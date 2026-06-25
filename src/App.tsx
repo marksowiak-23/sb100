@@ -78,7 +78,7 @@ export default function App() {
 
       {/* Main Container */}
       <main className="flex-grow flex flex-col items-center justify-center p-6 md:p-12">
-        
+
         {/* Dynamic Card */}
         <motion.div
           id="greeting-card"
@@ -120,8 +120,8 @@ export default function App() {
 
                 <p id="greeting-subtitle" className="text-lg text-slate-500 max-w-md mx-auto leading-relaxed">
                   {name.trim()
-                    ? 'A personalized reactive screen tailored specifically to your input.'
-                    : 'Your interactive React environment is fully initialized. Start customizing by entering your name below.'}
+                    ? 'A personalized reactive screen tailored specifically for Mark.'
+                    : 'Mark Sowiak, your interactive React environment is fully initialized. Start customizing by entering your name below.'}
                 </p>
               </motion.div>
             </AnimatePresence>
@@ -143,7 +143,7 @@ export default function App() {
                   maxLength={20}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Type a custom blname..."
+                  placeholder="Type a custom blnnname..."
                   className="w-full bg-slate-50/70 hover:bg-slate-50/90 focus:bg-white text-slate-800 placeholder-slate-400 text-sm rounded-2xl border border-slate-200 outline-none py-3.5 pl-11 pr-4 transition-all duration-150 font-sans shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-150"
                 />
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
