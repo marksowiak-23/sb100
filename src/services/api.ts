@@ -28,6 +28,16 @@ export interface HealthCheckResponse {
   database: string;
 }
 
+export interface UserAccount {
+  user_id: string;
+  username: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 async function handleResponse<T>(response: Response): Promise<T> {
@@ -129,5 +139,22 @@ export const taskApi = {
       },
     });
     return handleResponse<Task>(response);
+  },
+
+  /**
+   * Fetch list of user accounts, optionally filtered by username (with wildcards).
+   */
+  async getUsers(username?: string): Promise<UserAccount[]> {
+    let url = `${API_BASE_URL}/users`;
+    if (username) {
+      url += `?username=${encodeURIComponent(username)}`;
+    }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<UserAccount[]>(response);
   },
 };
