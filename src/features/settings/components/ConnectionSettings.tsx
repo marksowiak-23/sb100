@@ -1,0 +1,71 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { Settings as SettingsIcon } from 'lucide-react';
+
+interface ConnectionSettingsProps {
+  isSandbox: boolean;
+}
+
+export default function ConnectionSettings({ isSandbox }: ConnectionSettingsProps) {
+  return (
+    <div className="w-full max-w-2xl bg-white border border-slate-200 rounded-3xl p-8 md:p-12 shadow-sm">
+      <div className="flex items-center gap-3 pb-6 border-b border-slate-100 mb-6">
+        <div className="p-2.5 bg-slate-100 text-slate-700 rounded-xl">
+          <SettingsIcon className="w-5 h-5" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">Connection Settings</h2>
+          <p className="text-xs text-slate-400">Configure connection details for the sb100 environment.</p>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* API endpoint setting info */}
+        <div>
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 font-mono">
+            VITE_API_URL
+          </h3>
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex items-center justify-between">
+            <span className="font-mono text-sm text-slate-700">
+              {import.meta.env.VITE_API_URL || 'http://localhost:8000'}
+            </span>
+            <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-200/70 text-slate-600 rounded">
+              Configured
+            </span>
+          </div>
+          <p className="text-xs text-slate-400 mt-2 leading-normal">
+            This value is configured via <span className="font-mono bg-slate-100 px-1 py-0.5 rounded text-slate-600">.env.local</span>. To point to a different port or remote API, edit that file and reload the Vite client.
+          </p>
+        </div>
+
+        {/* API Mode */}
+        <div>
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 font-mono">
+            Connection Mode
+          </h3>
+          <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl">
+            <div>
+              <span className="text-sm font-bold text-slate-800 block">
+                {isSandbox ? 'Local Storage Sandbox' : 'FastAPI Connected'}
+              </span>
+              <span className="text-xs text-slate-400">
+                {isSandbox
+                  ? 'Running in sandboxed offline browser mode. Fastapi server was unreachable.'
+                  : 'Successfully queried backend routes and connected to Cloud SQL database.'}
+              </span>
+            </div>
+            <span
+              className={`w-3 h-3 rounded-full shrink-0 ${
+                isSandbox ? 'bg-amber-400' : 'bg-emerald-400'
+              }`}
+            ></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

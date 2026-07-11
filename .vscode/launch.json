@@ -1,18 +1,27 @@
 {
   "version": "0.2.0",
   "configurations": [
+    
+    
+
     {
       "name": "Launch Chrome (Debug React App)",
       "type": "pwa-chrome",
       "request": "launch",
-      "url": "http://localhost:3001",
+      "url": "http://localhost:3000",
       "webRoot": "${workspaceFolder}"
     },
     {
-      "name": "npm install && npm run dev",
+      "name": "npm install",
       "type": "node-terminal",
       "request": "launch",
-      "command": "npm install && npm run dev"
+      "command": "npm install"
+    },
+    {
+      "name": "npm run dev",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev"
     }
   ]
 }

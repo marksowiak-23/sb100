@@ -1,7 +1,12 @@
 {
 	"folders": [
 		{
-			"path": "../.."
+			"name": "sb100",
+			"path": ".."
+		},
+		{
+			"name": "sb-api",
+			"path": "../../sb-api"
 		}
 	],
 	"settings": {}
