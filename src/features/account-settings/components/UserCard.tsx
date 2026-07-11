@@ -9,15 +9,27 @@ import { Check, Copy, Mail, Clock } from 'lucide-react';
 import { UserAccount } from '@/src/services/api';
 
 interface UserCardProps {
-  user: UserAccount;
+  user: UserAccount; // Expects a single user record object.
 }
 
-export default function UserCard({ user }: UserCardProps) {
+/**
+ * UserCard Component
+ * Displays specific user account records (emails, ids, registration dates).
+ * Highlights: State Isolation. Each UserCard handles its own 'copied' visual success tick state.
+ * Clicking copy on one card does not affect any other cards or trigger parent re-renders.
+ */
+const UserCard: React.FC<UserCardProps> = ({ user }) => {
+  // Local state to track whether the user has clicked copy in the last 2 seconds.
   const [copied, setCopied] = useState(false);
 
+  // Fired when the copy icon is clicked.
   const handleCopy = () => {
+    // navigator.clipboard is a web API to write strings to the system clipboard.
     navigator.clipboard.writeText(user.user_id);
-    setCopied(true);
+    
+    setCopied(true); // Flip status to true, changing copy icon to green checkmark.
+    
+    // Set a timer to revert checkmark back to normal copy icon after 2000ms.
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -29,14 +41,16 @@ export default function UserCard({ user }: UserCardProps) {
       className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between"
     >
       <div className="space-y-4">
-        {/* User Header */}
+        {/* --- USER PROFILE HEADER --- */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
+            {/* Grab first two characters of username for avatar representation */}
             <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-600 font-bold">
               {user.username.substring(0, 2).toUpperCase()}
             </div>
             <div>
               <h4 className="font-bold text-slate-800 text-base">{user.username}</h4>
+              {/* Dynamic status chip formatting */}
               <span
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mt-1 ${
                   user.is_active
@@ -49,7 +63,8 @@ export default function UserCard({ user }: UserCardProps) {
             </div>
           </div>
           
-          {/* Copy UUID button */}
+          {/* --- COPY ID BUTTON --- */}
+          {/* Listens for the onClick handler. Toggles copy icons dynamically based on `copied` state. */}
           <button
             onClick={handleCopy}
             className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
@@ -63,13 +78,13 @@ export default function UserCard({ user }: UserCardProps) {
           </button>
         </div>
 
-        {/* Email info */}
+        {/* --- CONTACT EMAIL --- */}
         <div className="flex items-center gap-2.5 text-slate-600 text-sm">
           <Mail className="w-4 h-4 text-slate-400" />
           <span className="truncate">{user.email}</span>
         </div>
 
-        {/* UUID info */}
+        {/* --- UNIQUE IDENTIFIER BOX --- */}
         <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             User UUID
@@ -80,7 +95,8 @@ export default function UserCard({ user }: UserCardProps) {
         </div>
       </div>
 
-      {/* Dates info footer */}
+      {/* --- FOOTER LOG INFORMATION --- */}
+      {/* Takes ISO date strings and transforms them into localized string views using native JS Date interfaces. */}
       <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 font-mono">
         <div className="flex items-center gap-1">
           <Clock className="w-3.5 h-3.5 text-slate-400" />
@@ -92,4 +108,6 @@ export default function UserCard({ user }: UserCardProps) {
       </div>
     </motion.div>
   );
-}
+};
+
+export default UserCard;

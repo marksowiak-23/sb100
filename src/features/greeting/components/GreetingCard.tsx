@@ -7,16 +7,25 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Sparkles, RefreshCw } from 'lucide-react';
 
+// Interfaces outline the data structure of the properties passed from parent components.
 interface GreetingCardProps {
-  name: string;
-  setName: (name: string) => void;
+  name: string;                   // The string value representing the subject name.
+  setName: (name: string) => void; // A function callback to update state in the parent App.tsx.
 }
 
+/**
+ * GreetingCard Component
+ * Displays the dynamic welcome message. It uses input state that it modifies via props callback,
+ * demonstrating "Lifting State Up" (state is owned by App.tsx, but edited by GreetingCard).
+ */
 export default function GreetingCard({ name, setName }: GreetingCardProps) {
+  
+  // Resets the greeting input back to its default empty state.
   const handleReset = () => {
     setName('');
   };
 
+  // Fallback string if the user hasn't typed anything yet.
   const displayName = name.trim() || 'World';
 
   return (
@@ -24,14 +33,18 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
       id="greeting-card"
       className="w-full max-w-2xl bg-white border border-slate-100 rounded-3xl p-8 md:p-16 shadow-[0_20px_50px_rgba(148,163,184,0.12)] text-center transition-shadow duration-300"
     >
-      {/* Theme Badge */}
+      {/* --- DYNAMIC BADGE --- */}
+      {/* Uses a ternary expression to conditionally choose the text depending on whether `name` is empty. */}
       <div className="inline-block px-4 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-full mb-6 uppercase tracking-widest">
         {name.trim() ? 'System Synced' : 'Initialization Successful'}
       </div>
 
-      {/* Dynamic Greeting Heading */}
+      {/* --- DYNAMIC GREETING HEADING --- */}
       <div id="greeting-display" className="min-h-[140px] flex flex-col justify-center text-center">
+        {/* AnimatePresence monitors when elements enter or leave the DOM tree */}
         <AnimatePresence mode="wait">
+          {/* We set `key={displayName}` on the motion.div. */}
+          {/* In React, changing a key tells it to completely discard the old element and animate in a brand new one. */}
           <motion.div
             key={displayName}
             initial={{ opacity: 0, scale: 0.97, y: 8 }}
@@ -40,6 +53,7 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             className="space-y-4"
           >
+            {/* Conditional Avatar Display: Shows static User icon if name is set, or animated Sparkles if empty */}
             <div
               className="inline-flex items-center justify-center p-3 bg-blue-50/70 rounded-2xl"
               id="avatar-container"
@@ -70,7 +84,7 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
         </AnimatePresence>
       </div>
 
-      {/* Dynamic input integration */}
+      {/* --- INPUT FORM CONTAINER --- */}
       <div id="input-container" className="mt-10 pt-8 border-t border-slate-100 space-y-4 max-w-md mx-auto">
         <div className="space-y-2 text-left">
           <label
@@ -80,6 +94,10 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
             Change Greeting Subject
           </label>
           <div className="relative">
+            {/* A "controlled input" in React: */}
+            {/* 1. value={name} links the input value directly to our state. */}
+            {/* 2. onChange is a callback function that is fired on every keystroke. */}
+            {/*    e.target.value grabs the text currently typed, and calls setName to update state. */}
             <input
               id="name-input"
               type="text"
@@ -93,6 +111,8 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
           </div>
         </div>
 
+        {/* --- RESET BUTTON --- */}
+        {/* We use double-ampersand logical AND `&&` to render this button ONLY if a name has been typed. */}
         <AnimatePresence>
           {name && (
             <motion.button

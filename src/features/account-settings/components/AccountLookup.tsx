@@ -12,41 +12,62 @@ import { matchUser } from '../utils/search';
 import UserCard from './UserCard';
 
 interface AccountLookupProps {
-  isSandbox: boolean;
+  isSandbox: boolean; // Tells us whether we query mock offline data or a live backend DB.
 }
 
+/**
+ * AccountLookup Component
+ * Coordinates searching and showing lists of user accounts.
+ * Manages complex async lifecycle operations (loading spinners, error banners, mock vs live API endpoints).
+ */
 export default function AccountLookup({ isSandbox }: AccountLookupProps) {
+  // --- STATE FOR USER SELECTION AND LOGIC ---
+  // Tracks user input in search field.
   const [searchUsername, setSearchUsername] = useState('');
+  // Stores array of matching users fetched from the datasource.
   const [searchUsersResults, setSearchUsersResults] = useState<UserAccount[]>([]);
+  // Boolean flag displaying a loading spinner during network roundtrips.
   const [searchLoading, setSearchLoading] = useState(false);
+  // Holds errors if backend rejects the queries.
   const [searchError, setSearchError] = useState<string | null>(null);
 
+  // Fired when the form is submitted.
+  // We accept `FormEvent` to control default form behavior.
   const handleSearchUsers = async (e?: FormEvent) => {
+    // e?.preventDefault() stops the browser from refreshing the page when the user presses Enter/clicks submit.
     if (e) e.preventDefault();
+    
     setSearchLoading(true);
     setSearchError(null);
     try {
       if (isSandbox) {
+        // MOCK DATA QUERY:
+        // Runs standard JS array filter matching usernames against our wildcard utility.
         const results = SANDBOX_USERS.filter(u => matchUser(u.username, searchUsername.trim()));
         setSearchUsersResults(results);
       } else {
+        // LIVE NETWORK QUERY:
+        // Contacts the FastAPI server database using the SDK wrapper.
         const results = await taskApi.getUsers(searchUsername.trim() || undefined);
         setSearchUsersResults(results);
       }
     } catch (err: any) {
       setSearchError(`Failed to fetch user accounts: ${err.message}`);
     } finally {
-      setSearchLoading(false);
+      setSearchLoading(false); // Disable spinner.
     }
   };
 
+  // --- AUTOMATIC RE-FETCH EFFECT ---
+  // When `isSandbox` changes (e.g. going offline/online), this effect automatically runs.
+  // It ensures the search results refresh immediately using the correct data source.
   useEffect(() => {
     handleSearchUsers();
   }, [isSandbox]);
 
   return (
     <div className="w-full max-w-5xl space-y-8">
-      {/* Header Status Card */}
+      {/* --- STATUS CONNECTION HEADER --- */}
       <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
@@ -60,7 +81,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
           </div>
         </div>
         
-        {/* Mode status badge */}
+        {/* Connection mode details */}
         <div className="flex items-center gap-3">
           <span
             className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full border ${
@@ -75,12 +96,13 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
         </div>
       </div>
 
-      {/* Search Card */}
+      {/* --- SEARCH INPUT CONTROLS --- */}
       <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-sm">
         <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Search className="w-4 h-4 text-blue-600" /> Search User Accounts
         </h3>
         
+        {/* Standard Form element. Allows users to submit queries by pressing the 'Enter' key. */}
         <form onSubmit={handleSearchUsers} className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-grow">
             <input
@@ -92,6 +114,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
             />
             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           </div>
+          {/* Submit button. Disabled during network fetching requests to prevent duplicate requests. */}
           <button
             type="submit"
             disabled={searchLoading}
@@ -111,7 +134,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
         </p>
       </div>
 
-      {/* Error Banner */}
+      {/* --- ERROR BANNER DISPLAY --- */}
       {searchError && (
         <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-800 p-4 rounded-xl flex items-start justify-between">
           <div className="flex items-center gap-2.5">
@@ -124,7 +147,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
         </div>
       )}
 
-      {/* Grid of Results */}
+      {/* --- RESULTS AREA --- */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-slate-200 pb-2">
           <h3 className="text-sm font-bold text-slate-500">
@@ -132,12 +155,15 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
           </h3>
         </div>
 
+        {/* Dynamic loading vs. empty vs. list renders using nested ternary statements */}
         {searchLoading ? (
+          /* State 1: Search is active */
           <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             <span className="text-sm font-medium">Searching account records...</span>
           </div>
         ) : searchUsersResults.length === 0 ? (
+          /* State 2: Search complete, but returned no matches */
           <div className="bg-white border border-slate-150 border-dashed rounded-2xl py-16 px-6 text-center shadow-sm">
             <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 text-slate-400">
               <Info className="w-6 h-6" />
@@ -148,7 +174,11 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
             </p>
           </div>
         ) : (
+          /* State 3: Render list results */
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Array.map compiles each user data object in the array into a visual <UserCard> element. */}
+            {/* The 'key' attribute is required by React when rendering lists. */}
+            {/* It helps React identify exactly which items have changed, been added, or been removed. */}
             {searchUsersResults.map((user) => (
               <UserCard key={user.user_id} user={user} />
             ))}

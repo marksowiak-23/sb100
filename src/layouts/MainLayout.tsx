@@ -5,15 +5,27 @@
 
 import React from 'react';
 
+// Restrict values for the tab parameter.
 type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings';
 
+// Define the interface (contract) for the props this component expects to receive.
+// React components receive data from their parent component via "props" (properties).
 interface MainLayoutProps {
+  // The value of the active tab.
   activeTab: TabType;
+  // A callback function supplied by the parent to update its state when a tab is clicked.
   setActiveTab: (tab: TabType) => void;
+  // State representing sandbox environment vs live DB.
   isSandbox: boolean;
+  // Special React prop representing whatever content is wrapped inside the <MainLayout> tags in App.tsx.
   children: React.ReactNode;
 }
 
+/**
+ * MainLayout Component
+ * Serves as the structural wrapper (shell) for the application.
+ * It displays the top navigation header and bottom status footer while displaying nested screen contents in the center.
+ */
 export default function MainLayout({
   activeTab,
   setActiveTab,
@@ -25,11 +37,12 @@ export default function MainLayout({
       id="app-container"
       className="min-h-screen w-full flex flex-col bg-slate-50 text-slate-900 font-sans select-none overflow-x-hidden"
     >
-      {/* Header */}
+      {/* --- HEADER SECTION --- */}
       <header
         id="app-header"
         className="h-16 px-6 md:px-8 flex items-center justify-between bg-white border-b border-slate-200 shadow-sm z-10"
       >
+        {/* Logo and branding */}
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shadow-md shadow-blue-200">
             <div className="w-4 h-4 border-2 border-white rounded-full animate-pulse"></div>
@@ -38,6 +51,10 @@ export default function MainLayout({
             ReactOS<span className="text-blue-600 italic">_</span>
           </span>
         </div>
+
+        {/* --- NAVIGATION LINKS --- */}
+        {/* We trigger the setActiveTab state callback whenever a user clicks a nav link. */}
+        {/* We dynamically apply classes (like 'text-blue-600 border-b-2 border-blue-600') based on whether that tab is active. */}
         <nav className="hidden md:flex gap-8 text-sm font-semibold text-slate-500">
           <span
             onClick={() => setActiveTab('greeting')}
@@ -71,6 +88,8 @@ export default function MainLayout({
             Account Settings
           </span>
         </nav>
+
+        {/* --- STATUS INDICATOR --- */}
         <div className="flex items-center gap-4">
           <div className="text-right">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
@@ -92,12 +111,13 @@ export default function MainLayout({
         </div>
       </header>
 
-      {/* Main Content Area */}
+      {/* --- MAIN PORTVIEW (Content Injection Area) --- */}
+      {/* We render {children} here. React inserts whatever children elements were nested within the layout container. */}
       <main className="flex-grow flex flex-col items-center justify-center p-6 md:p-12 max-w-7xl w-full mx-auto">
         {children}
       </main>
 
-      {/* Footer Bar */}
+      {/* --- FOOTER STATUS BAR --- */}
       <footer
         id="app-footer"
         className="h-12 bg-slate-900 text-slate-400 px-6 md:px-8 flex items-center justify-between text-xs font-medium"
