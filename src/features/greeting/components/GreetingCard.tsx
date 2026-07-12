@@ -31,11 +31,11 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
   return (
     <div
       id="greeting-card"
-      className="w-full max-w-2xl bg-white border border-slate-100 rounded-3xl p-8 md:p-16 shadow-[0_20px_50px_rgba(148,163,184,0.12)] text-center transition-shadow duration-300"
+      className="w-full max-w-2xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-8 md:p-16 shadow-[0_12px_40px_rgba(0,0,0,0.02)] text-center transition-shadow duration-300"
     >
       {/* --- DYNAMIC BADGE --- */}
       {/* Uses a ternary expression to conditionally choose the text depending on whether `name` is empty. */}
-      <div className="inline-block px-4 py-1.5 bg-blue-50 text-blue-600 text-xs font-bold rounded-full mb-6 uppercase tracking-widest">
+      <div className="inline-block px-4 py-1.5 bg-slate-150/70 text-slate-650 text-xs font-bold rounded-full mb-6 uppercase tracking-widest font-mono">
         {name.trim() ? 'System Synced' : 'Initialization Successful'}
       </div>
 
@@ -55,27 +55,27 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
           >
             {/* Conditional Avatar Display: Shows static User icon if name is set, or animated Sparkles if empty */}
             <div
-              className="inline-flex items-center justify-center p-3 bg-blue-50/70 rounded-2xl"
+              className="inline-flex items-center justify-center p-3 bg-slate-50 border border-[#EFECE7] rounded-2xl"
               id="avatar-container"
             >
               {name.trim() ? (
-                <User className="w-6 h-6 text-blue-600" />
+                <User className="w-6 h-6 text-slate-700" />
               ) : (
-                <Sparkles className="w-6 h-6 text-blue-500 animate-spin-slow" />
+                <Sparkles className="w-6 h-6 text-amber-600 animate-spin-slow" />
               )}
             </div>
 
             <h1
               id="main-greeting"
-              className="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tighter mb-4 leading-normal break-words"
+              className="text-5xl md:text-6xl font-serif font-black text-slate-800 tracking-tight mb-4 leading-normal break-words"
             >
               Hello,{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-600 font-serif">
                 {displayName}!
               </span>
             </h1>
 
-            <p id="greeting-subtitle" className="text-lg text-slate-500 max-w-md mx-auto leading-relaxed">
+            <p id="greeting-subtitle" className="text-sm md:text-base text-slate-500 max-w-md mx-auto leading-relaxed font-serif">
               {name.trim()
                 ? 'A personalized reactive screen tailored specifically for Mark.'
                 : 'Mark Sowiak, your interactive React environment is fully initialized. Start customizing by entering your name below.'}
@@ -85,7 +85,7 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
       </div>
 
       {/* --- INPUT FORM CONTAINER --- */}
-      <div id="input-container" className="mt-10 pt-8 border-t border-slate-100 space-y-4 max-w-md mx-auto">
+      <div id="input-container" className="mt-10 pt-8 border-t border-[#EFECE7] space-y-4 max-w-md mx-auto">
         <div className="space-y-2 text-left">
           <label
             htmlFor="name-input"
@@ -105,7 +105,7 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Type a custom name..."
-              className="w-full bg-slate-50/70 hover:bg-slate-50/90 focus:bg-white text-slate-800 placeholder-slate-400 text-sm rounded-2xl border border-slate-200 outline-none py-3.5 pl-11 pr-4 transition-all duration-150 font-sans shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-150"
+              className="w-full bg-slate-50/70 hover:bg-slate-50 focus:bg-white text-slate-800 placeholder-slate-400 text-xs md:text-sm rounded-2xl border border-[#EFECE7] outline-none py-3.5 pl-11 pr-4 transition-all duration-150 font-sans shadow-sm focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
             />
             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           </div>
@@ -122,7 +122,7 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.15 }}
               onClick={handleReset}
-              className="w-full flex items-center justify-center gap-2 py-3 text-xs font-semibold text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/70 rounded-2xl transition-all duration-150"
+              className="w-full flex items-center justify-center gap-2 py-3 text-xs font-semibold text-slate-550 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/80 border border-[#EFECE7] rounded-2xl transition-all duration-150 cursor-pointer"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Reset to World</span>

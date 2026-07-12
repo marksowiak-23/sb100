@@ -68,14 +68,14 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
   return (
     <div className="w-full max-w-5xl space-y-8">
       {/* --- STATUS CONNECTION HEADER --- */}
-      <div className="bg-white border border-slate-200/80 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+          <div className="p-3 bg-slate-50 border border-[#EFECE7] text-slate-700 rounded-xl">
             <User className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800">Account Settings Lookup</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="text-lg font-serif font-bold text-slate-800">Account Settings Lookup</h2>
+            <p className="text-xs text-slate-450 font-serif mt-0.5">
               Query and view user credentials, registration dates, and active statuses.
             </p>
           </div>
@@ -86,8 +86,8 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
           <span
             className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full border ${
               isSandbox
-                ? 'bg-amber-50 text-amber-700 border-amber-200'
-                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                : 'bg-emerald-50 text-emerald-800 border-emerald-250'
             }`}
           >
             <span className={`w-2 h-2 rounded-full ${isSandbox ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`}></span>
@@ -97,9 +97,9 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
       </div>
 
       {/* --- SEARCH INPUT CONTROLS --- */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl p-6 md:p-8 shadow-sm">
-        <h3 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-          <Search className="w-4 h-4 text-blue-600" /> Search User Accounts
+      <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 md:p-8 shadow-sm">
+        <h3 className="text-sm font-serif font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Search className="w-4 h-4 text-slate-500" /> Search User Accounts
         </h3>
         
         {/* Standard Form element. Allows users to submit queries by pressing the 'Enter' key. */}
@@ -110,7 +110,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
               value={searchUsername}
               onChange={(e) => setSearchUsername(e.target.value)}
               placeholder="Enter username (e.g. john_doe, john*, *smith)..."
-              className="w-full bg-slate-50 hover:bg-slate-100/65 focus:bg-white text-slate-800 placeholder-slate-400 text-sm rounded-xl border border-slate-200 outline-none py-3 pl-11 pr-4 transition-all duration-150 focus:border-blue-500 focus:ring-1 focus:ring-blue-150"
+              className="w-full bg-slate-50/70 hover:bg-slate-50 focus:bg-white text-slate-800 placeholder-slate-400 text-xs md:text-sm rounded-xl border border-[#EFECE7] outline-none py-3.5 pl-11 pr-4 transition-all duration-150 focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
             />
             <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           </div>
@@ -118,7 +118,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
           <button
             type="submit"
             disabled={searchLoading}
-            className="py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-200 transition-all duration-150 disabled:opacity-50 shrink-0 flex items-center justify-center gap-2"
+            className="py-3 px-6 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs md:text-sm rounded-xl shadow-md transition-all duration-150 disabled:opacity-50 shrink-0 flex items-center justify-center gap-2 border border-[#EFECE7] cursor-pointer"
           >
             {searchLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -129,7 +129,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
           </button>
         </form>
 
-        <p className="text-[11px] text-slate-400 mt-3 leading-normal">
+        <p className="text-[11px] text-slate-400 mt-3 leading-normal font-serif">
           💡 Wildcard support: Use <strong>*</strong> for matching prefixes (e.g. <code>john*</code>), suffixes (e.g. <code>*smith</code>), or internal patterns. Entering plain text defaults to a partial substring search.
         </p>
       </div>
@@ -149,8 +149,8 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
 
       {/* --- RESULTS AREA --- */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-          <h3 className="text-sm font-bold text-slate-500">
+        <div className="flex items-center justify-between border-b border-[#EFECE7] pb-2">
+          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
             Results ({searchUsersResults.length})
           </h3>
         </div>
@@ -159,17 +159,17 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
         {searchLoading ? (
           /* State 1: Search is active */
           <div className="flex flex-col items-center justify-center py-20 text-slate-400 gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+            <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
             <span className="text-sm font-medium">Searching account records...</span>
           </div>
         ) : searchUsersResults.length === 0 ? (
           /* State 2: Search complete, but returned no matches */
-          <div className="bg-white border border-slate-150 border-dashed rounded-2xl py-16 px-6 text-center shadow-sm">
-            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100 text-slate-400">
+          <div className="bg-[#FDFCFB] border border-[#EFECE7] border-dashed rounded-2xl py-16 px-6 text-center shadow-sm">
+            <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#EFECE7] text-slate-400">
               <Info className="w-6 h-6" />
             </div>
-            <h4 className="text-slate-800 font-bold mb-1">No user accounts found</h4>
-            <p className="text-slate-400 text-xs max-w-xs mx-auto leading-relaxed">
+            <h4 className="text-slate-800 font-serif font-bold mb-1">No user accounts found</h4>
+            <p className="text-slate-400 text-xs max-w-xs mx-auto leading-relaxed font-serif">
               Try searching with different keywords or check if the backend mock accounts are seeded.
             </p>
           </div>
