@@ -7,9 +7,9 @@ import React, { useState } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
-import { MEMBER_STORIES } from '../constants/memberData';
+import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
 
-export default function StoryBookFeature() {
+export default function SbHomePageFeature() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter logic: Checks if query string exists inside username, location, or tags list.
@@ -30,12 +30,12 @@ export default function StoryBookFeature() {
       {/* lg:grid-cols-12 distributes proportions as 3/12 (Left), 6/12 (Center), and 3/12 (Right). */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
         
-        {/* Left Column Section: Brand branding, authentication, explainer facts, stats */}
+        {/* Left Column Section: Brand name, scrollable new connections, biography checklist status, and existing connections */}
         <div className="lg:col-span-3">
           <LeftColumn />
         </div>
 
-        {/* Center Column Section: Main page stories feed, searches, filters */}
+        {/* Center Column Section: Main welcome hero, Search Bar box, and Dynamic Stories feed */}
         <div className="lg:col-span-6 bg-slate-50/50 p-1 lg:p-0 rounded-3xl">
           <CenterColumn
             searchQuery={searchQuery}
@@ -44,7 +44,7 @@ export default function StoryBookFeature() {
           />
         </div>
 
-        {/* Right Column Section: Memoir publishing programs, sponsors, legal details */}
+        {/* Right Column Section: Recommended publishing sponsors and legal footer links */}
         <div className="lg:col-span-3">
           <RightColumn />
         </div>

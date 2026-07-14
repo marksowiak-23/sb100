@@ -4,9 +4,10 @@
  */
 
 import React from 'react';
+import { User, ChevronDown } from 'lucide-react';
 
 // Restrict values for the tab parameter.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'storybook';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbHomePage';
 
 // Define the interface (contract) for the props this component expects to receive.
 // React components receive data from their parent component via "props" (properties).
@@ -32,10 +33,12 @@ export default function MainLayout({
   isSandbox,
   children
 }: MainLayoutProps) {
+  const [isDropdownOpen, setDropdownOpen] = React.useState(false);
+
   return (
     <div
       id="app-container"
-      className="min-h-screen w-full flex flex-col bg-[#FAF8F5] text-slate-800 font-sans select-none overflow-x-hidden"
+      className="min-h-screen w-full flex flex-col bg-[#FAF8F5] text-slate-800 font-sans select-none overflow-x-clip"
     >
       {/* --- HEADER SECTION --- */}
       <header
@@ -57,40 +60,20 @@ export default function MainLayout({
         {/* We dynamically apply classes (like 'text-white border-b-2 border-white font-bold') based on whether that tab is active. */}
         <nav className="hidden md:flex gap-8 text-sm font-semibold text-slate-300 font-serif">
           <span
-            onClick={() => setActiveTab('greeting')}
+            onClick={() => setActiveTab('sbHomePage')}
             className={`py-5 px-1 cursor-pointer transition-all duration-150 ${
-              activeTab === 'greeting'
+              activeTab === 'sbHomePage'
                 ? 'text-white border-b-2 border-white font-bold'
                 : 'hover:text-slate-200'
             }`}
           >
-            Greeting Screen
+            Home Dashboard
           </span>
 
           <span
-            onClick={() => setActiveTab('settings')}
+            onClick={() => setActiveTab('sbPublicPage')}
             className={`py-5 px-1 cursor-pointer transition-all duration-150 ${
-              activeTab === 'settings'
-                ? 'text-white border-b-2 border-white font-bold'
-                : 'hover:text-slate-200'
-            }`}
-          >
-            Settings
-          </span>
-          <span
-            onClick={() => setActiveTab('account-settings')}
-            className={`py-5 px-1 cursor-pointer transition-all duration-150 ${
-              activeTab === 'account-settings'
-                ? 'text-white border-b-2 border-white font-bold'
-                : 'hover:text-slate-200'
-            }`}
-          >
-            Account Settings
-          </span>
-          <span
-            onClick={() => setActiveTab('storybook')}
-            className={`py-5 px-1 cursor-pointer transition-all duration-150 ${
-              activeTab === 'storybook'
+              activeTab === 'sbPublicPage'
                 ? 'text-white border-b-2 border-white font-bold font-serif'
                 : 'hover:text-slate-200'
             }`}
@@ -99,8 +82,75 @@ export default function MainLayout({
           </span>
         </nav>
 
-        {/* --- STATUS INDICATOR --- */}
-        <div className="flex items-center gap-4">
+        {/* --- STATUS INDICATOR & ACCOUNT MENU --- */}
+        <div className="flex items-center gap-6">
+          {/* Account Dropdown Menu */}
+          <div className="relative">
+            <button
+              onClick={() => setDropdownOpen(!isDropdownOpen)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold font-serif transition-all duration-150 cursor-pointer border ${
+                isDropdownOpen
+                  ? 'bg-white/10 text-white border-white/10'
+                  : 'text-slate-300 hover:text-white border-transparent hover:bg-white/5'
+              }`}
+            >
+              <User className="w-3.5 h-3.5" />
+              <span>Account</span>
+              <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isDropdownOpen && (
+              <>
+                {/* Backdrop overlay for closing on click outside */}
+                <div
+                  className="fixed inset-0 z-40 cursor-default"
+                  onClick={() => setDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-44 bg-[#0F1B35] border border-slate-800 rounded-xl shadow-xl z-50 py-1.5 overflow-hidden">
+                  <div
+                    onClick={() => {
+                      setActiveTab('account-settings');
+                      setDropdownOpen(false);
+                    }}
+                    className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                      activeTab === 'account-settings'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    Account Settings
+                  </div>
+                  <div
+                    onClick={() => {
+                      setActiveTab('settings');
+                      setDropdownOpen(false);
+                    }}
+                    className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                      activeTab === 'settings'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    Settings
+                  </div>
+                  <div
+                    onClick={() => {
+                      setActiveTab('greeting');
+                      setDropdownOpen(false);
+                    }}
+                    className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                      activeTab === 'greeting'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    Greeting Screen
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
           <div className="text-right">
             <div className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-mono">
               Backend Status

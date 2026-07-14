@@ -21,10 +21,11 @@ import MainLayout from '@/src/layouts/MainLayout';
 import { GreetingCard, StatsGrid } from '@/src/features/greeting';
 import { ConnectionSettings } from '@/src/features/settings';
 import { AccountLookup } from '@/src/features/account-settings';
-import { StoryBookFeature } from '@/src/features/storybook';
+import { SbPublicPageFeature } from '@/src/features/sbPublicPage';
+import { SbHomePageFeature } from '@/src/features/sbHomePage';
 
 // Define a TypeScript type to restrict activeTab to only these four string values.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'storybook';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbHomePage';
 
 export default function App() {
   // --- STATE DEFINITIONS ---
@@ -136,17 +137,31 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* If the active tab is 'storybook', render the three-column memoir layout */}
-        {activeTab === 'storybook' && (
+        {/* If the active tab is 'sbPublicPage', render the three-column memoir layout */}
+        {activeTab === 'sbPublicPage' && (
           <motion.div
-            key="storybook-view"
+            key="sbPublicPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <StoryBookFeature />
+            <SbPublicPageFeature />
+          </motion.div>
+        )}
+
+        {/* If the active tab is 'sbHomePage', render the home page dashboard */}
+        {activeTab === 'sbHomePage' && (
+          <motion.div
+            key="sbHomePage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <SbHomePageFeature />
           </motion.div>
         )}
       </AnimatePresence>
