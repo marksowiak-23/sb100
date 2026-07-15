@@ -29,9 +29,17 @@ const STORY_CONTENTS: Record<string, string[]> = {
 
 export default function SbMbrAuthorPageFeature({ onClickBack }: SbMbrAuthorPageFeatureProps) {
   const [activeSection, setActiveSection] = useState('introduction');
+  const [storyContents, setStoryContents] = useState<Record<string, string[]>>(STORY_CONTENTS);
 
   const getActiveContent = (): string[] => {
-    return STORY_CONTENTS[activeSection] || ["This chapter draft is empty."];
+    return storyContents[activeSection] || ["This chapter draft is empty."];
+  };
+
+  const handleSaveActiveContent = (newContent: string[]) => {
+    setStoryContents((prev) => ({
+      ...prev,
+      [activeSection]: newContent
+    }));
   };
 
   return (
@@ -52,6 +60,7 @@ export default function SbMbrAuthorPageFeature({ onClickBack }: SbMbrAuthorPageF
             activeSection={activeSection}
             activeContent={getActiveContent()}
             onClickBack={onClickBack}
+            onSaveActiveContent={handleSaveActiveContent}
           />
         </div>
 

@@ -14,12 +14,14 @@ interface CenterColumnProps {
   activeSection: string;
   activeContent: string[];
   onClickBack: () => void;
+  onSaveActiveContent: (newContent: string[]) => void;
 }
 
 export default function CenterColumn({
   activeSection,
   activeContent,
-  onClickBack
+  onClickBack,
+  onSaveActiveContent
 }: CenterColumnProps) {
   const eleanor = MEMBER_STORIES.find((m) => m.id === 'm1') || MEMBER_STORIES[0];
 
@@ -41,7 +43,11 @@ export default function CenterColumn({
       <SbMbrProfilePanel member={eleanor} />
 
       {/* --- ACTIVE SECTION CONTENT AREA --- */}
-      <SbMbrBookEditor sectionTitle={activeSection} content={activeContent} />
+      <SbMbrBookEditor
+        sectionTitle={activeSection}
+        content={activeContent}
+        onSave={onSaveActiveContent}
+      />
 
       {/* --- STORY MATE PANEL --- */}
       <StoryMatePanel memberName="Eleanor" />

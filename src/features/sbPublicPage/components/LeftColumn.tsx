@@ -25,7 +25,7 @@ export default function LeftColumn({ setActiveTab }: LeftColumnProps) {
       {/* --- BRAND HEADER --- */}
       <div className="space-y-2">
         <h1 className="font-serif text-4xl md:text-5xl font-black text-slate-800 tracking-tight leading-none">
-          Story Book
+          Storybook
         </h1>
         <p className="font-serif text-sm italic text-slate-500 tracking-wide">
           Where every life becomes literature
@@ -90,11 +90,11 @@ export default function LeftColumn({ setActiveTab }: LeftColumnProps) {
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-slate-700 shrink-0" />
             <h3 className="font-serif text-base font-bold text-slate-800">
-              What is Story Book?
+              What is Storybook?
             </h3>
           </div>
           <p className="text-xs text-slate-550 leading-relaxed">
-            Story Book is a dedicated space for recording personal memories, organizing life chapters, and preserving them securely for generations to come.
+            Storybook is a dedicated space for recording personal memories, organizing life chapters, and preserving them securely for generations to come.
           </p>
         </div>
 

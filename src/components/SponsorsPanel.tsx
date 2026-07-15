@@ -19,7 +19,7 @@ export default function SponsorsPanel() {
     {
       name: 'Heritage Press',
       category: 'Memoir printing & binding',
-      description: 'Print custom leather-bound editions of your completed Story Book.',
+      description: 'Print custom leather-bound editions of your completed Storybook.',
       icon: <Bookmark className="w-5 h-5 text-amber-600" />,
       actionText: 'Get Quote'
     },

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { User, ChevronDown } from 'lucide-react';
+import { User, ChevronDown, BookOpen } from 'lucide-react';
 
 // Restrict values for the tab parameter.
 type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage';
@@ -18,7 +18,7 @@ interface MainLayoutProps {
   setActiveTab: (tab: TabType) => void;
   // State representing sandbox environment vs live DB.
   isSandbox: boolean;
-  // Special React prop representing whatever content is wrapped inside the <MainLayout> tags in App.tsx.
+  // The child components to render within the layout.
   children: React.ReactNode;
 }
 
@@ -47,11 +47,12 @@ export default function MainLayout({
       >
         {/* Logo and branding */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center border border-white/10 shadow-sm">
-            <div className="w-4 h-4 border-2 border-white rounded-full animate-pulse"></div>
+          <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center border border-blue-400/20 shadow-md shadow-blue-500/10">
+            <BookOpen className="w-4 h-4 text-white" />
           </div>
-          <span className="font-serif font-black text-xl tracking-tight text-white">
-            ReactOS<span className="text-slate-300 italic">_</span>
+          <span className="font-serif font-black text-xl tracking-tight text-white flex items-center gap-0.5">
+            story<span className="text-blue-400 font-sans font-light">book</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2"></span>
           </span>
         </div>
 

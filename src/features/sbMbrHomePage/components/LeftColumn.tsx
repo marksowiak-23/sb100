@@ -32,7 +32,7 @@ export default function LeftColumn({ onClickAuthorPage }: LeftColumnProps) {
       {/* --- BRAND HEADER --- */}
       <div className="space-y-1">
         <h1 className="font-serif text-3xl font-black text-slate-800 tracking-tight leading-none">
-          Story Book
+          Storybook
         </h1>
         <p className="font-serif text-xs italic text-slate-500">
           Where every life becomes literature
@@ -148,7 +148,7 @@ export default function LeftColumn({ onClickAuthorPage }: LeftColumnProps) {
         {/* Link button to sbMbrAuthorPage */}
         <button
           onClick={onClickAuthorPage}
-          className="w-full mt-1.5 py-2 bg-slate-800 hover:bg-slate-750 text-white rounded-xl text-[11px] font-bold font-serif transition-colors cursor-pointer text-center shadow-sm"
+          className="w-full mt-1.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold font-serif transition-colors cursor-pointer text-center shadow-sm"
         >
           Go to Author Workspace
         </button>

@@ -118,7 +118,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
           <button
             type="submit"
             disabled={searchLoading}
-            className="py-3 px-6 bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs md:text-sm rounded-xl shadow-md transition-all duration-150 disabled:opacity-50 shrink-0 flex items-center justify-center gap-2 border border-[#EFECE7] cursor-pointer"
+            className="py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs md:text-sm rounded-xl shadow-md transition-all duration-150 disabled:opacity-50 shrink-0 flex items-center justify-center gap-2 border border-blue-600 cursor-pointer"
           >
             {searchLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />

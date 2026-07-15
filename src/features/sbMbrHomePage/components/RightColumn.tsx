@@ -6,7 +6,7 @@ export default function RightColumn() {
     { text: 'Privacy', action: 'Privacy Policy' },
     { text: 'Terms', action: 'Terms of Service' },
     { text: 'Help', action: 'Help Center' },
-    { text: 'About', action: 'About Story Book' },
+    { text: 'About', action: 'About Storybook' },
     { text: 'Careers', action: 'Careers Page' }
   ];
 
@@ -32,7 +32,7 @@ export default function RightColumn() {
           ))}
         </div>
         <div className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-          © 2026 Story Book, Inc.
+          © 2026 Storybook, Inc.
         </div>
       </div>
 

@@ -11,7 +11,7 @@ export default function RightColumn() {
     { text: 'Privacy', action: 'Privacy Policy' },
     { text: 'Terms', action: 'Terms of Service' },
     { text: 'Help', action: 'Help Center' },
-    { text: 'About', action: 'About Story Book' },
+    { text: 'About', action: 'About Storybook' },
     { text: 'Careers', action: 'Careers Page' }
   ];
 
@@ -41,7 +41,7 @@ export default function RightColumn() {
 
         {/* Corporate copyright signature */}
         <div className="text-[10px] font-bold text-slate-450 uppercase tracking-wider font-mono">
-          © 2026 Story Book, Inc.
+          © 2026 Storybook, Inc.
         </div>
       </div>
     </div>

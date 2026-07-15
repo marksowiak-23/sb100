@@ -27,7 +27,7 @@ export default function LeftColumn({ activeSection, setActiveSection }: LeftColu
       {/* --- BRAND HEADER --- */}
       <div className="space-y-1">
         <h1 className="font-serif text-3xl font-black text-slate-800 tracking-tight leading-none">
-          Story Book
+          Storybook
         </h1>
         <p className="font-serif text-xs italic text-slate-500">
           Where every life becomes literature

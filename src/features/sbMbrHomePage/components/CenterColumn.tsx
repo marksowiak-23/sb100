@@ -27,7 +27,7 @@ export default function CenterColumn({
       {/* --- HERO DESCRIPTION BANNER --- */}
       <div className="space-y-3">
         <h2 className="font-serif text-3xl font-black text-slate-800 tracking-tight leading-tight">
-          Welcome to your Story Book Portal
+          Welcome to your Storybook Portal
         </h2>
         <p className="text-slate-500 text-xs md:text-sm leading-relaxed max-w-xl font-serif">
           Manage your connections, update your biography status checklist, or search for other members and read their public life chapters.
@@ -59,7 +59,7 @@ export default function CenterColumn({
           </div>
           <button
             type="submit"
-            className="px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-white text-xs md:text-sm font-semibold rounded-2xl border border-[#EFECE7] cursor-pointer shadow-sm transition-all duration-150 shrink-0"
+            className="px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-semibold rounded-2xl border border-blue-600 cursor-pointer shadow-sm transition-all duration-150 shrink-0"
           >
             Search
           </button>

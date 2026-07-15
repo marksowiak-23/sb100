@@ -32,7 +32,7 @@ export default function LeftColumn({
       {/* --- BRAND HEADER --- */}
       <div className="space-y-1">
         <h1 className="font-serif text-3xl font-black text-slate-800 tracking-tight leading-none">
-          Story Book
+          Storybook
         </h1>
         <p className="font-serif text-xs italic text-slate-500">
           Where every life becomes literature
@@ -103,7 +103,7 @@ export default function LeftColumn({
 
         <button
           onClick={() => alert(`Opening Photo Book slider for ${memberName}...`)}
-          className="w-full text-center py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
+          className="w-full text-center py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-sm"
         >
           Open Photo Book
         </button>

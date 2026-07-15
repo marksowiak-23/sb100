@@ -88,7 +88,7 @@ export default function StoryMatePanel({ memberName = 'Eleanor' }: StoryMatePane
             className={`flex flex-col gap-1 p-3 rounded-2xl max-w-[85%] ${
               msg.sender === 'cassie'
                 ? 'bg-slate-50 border border-slate-100 text-slate-750 self-start'
-                : 'bg-slate-800 text-white self-end ml-auto'
+                : 'bg-blue-600 text-white self-end ml-auto'
             }`}
           >
             <div className="font-sans text-[8px] font-bold uppercase tracking-wider text-slate-400">
@@ -111,7 +111,7 @@ export default function StoryMatePanel({ memberName = 'Eleanor' }: StoryMatePane
         />
         <button
           type="submit"
-          className="bg-slate-800 hover:bg-slate-750 text-white rounded-xl p-2.5 cursor-pointer transition-colors shadow-sm flex items-center justify-center shrink-0"
+          className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-2.5 cursor-pointer transition-colors shadow-sm flex items-center justify-center shrink-0"
         >
           <Send className="w-3.5 h-3.5" />
         </button>

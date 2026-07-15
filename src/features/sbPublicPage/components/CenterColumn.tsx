@@ -52,7 +52,7 @@ export default function CenterColumn({
           </div>
           <button
             type="submit"
-            className="px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-white text-xs md:text-sm font-semibold rounded-2xl border border-[#EFECE7] cursor-pointer shadow-sm transition-all duration-150 shrink-0"
+            className="px-5 py-3.5 bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-semibold rounded-2xl border border-blue-600 cursor-pointer shadow-sm transition-all duration-150 shrink-0"
           >
             Search
           </button>

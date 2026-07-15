@@ -49,7 +49,7 @@ export default function SbMbrStoryPageFeature({
     // Dynamic fallback copy for other members
     if (activeSection === 'introduction') {
       return [
-        `${member.name} joined Story Book in ${member.joinedDate} to document a life lived across different eras. Residing in ${member.location}, they have already published ${member.chaptersCount} chapters of their memoirs, capturing personal anecdotes, family histories, and local transitions.`,
+        `${member.name} joined Storybook in ${member.joinedDate} to document a life lived across different eras. Residing in ${member.location}, they have already published ${member.chaptersCount} chapters of their memoirs, capturing personal anecdotes, family histories, and local transitions.`,
         `Their recollections focus heavily on themes of ${member.tags.join(', ')} — drawing connections between past events and the wisdom they hold today.`,
         "This is their story, written in their own words, preserved forever."
       ];
@@ -58,7 +58,7 @@ export default function SbMbrStoryPageFeature({
     if (activeSection === 'demographics') {
       return [
         `${member.name} was born and raised in ${member.location}. They have built a lifetime of experiences, establishing deep roots in their community while documenting their ancestry and descent.`,
-        `As a member of the Story Book platform, they actively collaborate with family and friends to co-author and refine their life records. This section details their early education, family structure, marriages, and professional achievements.`
+        `As a member of the Storybook platform, they actively collaborate with family and friends to co-author and refine their life records. This section details their early education, family structure, marriages, and professional achievements.`
       ];
     }
 
