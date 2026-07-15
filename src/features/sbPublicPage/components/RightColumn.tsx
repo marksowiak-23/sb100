@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import SponsorsPanel from './SponsorsPanel';
+import SponsorsPanel from '@/src/components/SponsorsPanel';
 
 export default function RightColumn() {
   const footerLinks = [
