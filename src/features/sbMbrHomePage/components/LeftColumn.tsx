@@ -7,7 +7,11 @@ import React from 'react';
 import { UserCheck, CheckCircle2, Circle, Compass, Users } from 'lucide-react';
 import { NEW_CONNECTIONS, MY_CONNECTIONS } from '../constants/memberConnections';
 
-export default function LeftColumn() {
+interface LeftColumnProps {
+  onClickAuthorPage?: () => void;
+}
+
+export default function LeftColumn({ onClickAuthorPage }: LeftColumnProps) {
   const statusItems = [
     { name: 'Demographics', completed: true },
     { name: 'Family', completed: true },
@@ -140,6 +144,14 @@ export default function LeftColumn() {
             </div>
           ))}
         </div>
+
+        {/* Link button to sbMbrAuthorPage */}
+        <button
+          onClick={onClickAuthorPage}
+          className="w-full mt-1.5 py-2 bg-slate-800 hover:bg-slate-750 text-white rounded-xl text-[11px] font-bold font-serif transition-colors cursor-pointer text-center shadow-sm"
+        >
+          Go to Author Workspace
+        </button>
       </div>
 
       {/* --- MY CONNECTIONS --- */}

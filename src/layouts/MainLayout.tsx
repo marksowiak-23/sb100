@@ -7,7 +7,7 @@ import React from 'react';
 import { User, ChevronDown } from 'lucide-react';
 
 // Restrict values for the tab parameter.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbHomePage';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage';
 
 // Define the interface (contract) for the props this component expects to receive.
 // React components receive data from their parent component via "props" (properties).
@@ -55,32 +55,6 @@ export default function MainLayout({
           </span>
         </div>
 
-        {/* --- NAVIGATION LINKS --- */}
-        {/* We trigger the setActiveTab state callback whenever a user clicks a nav link. */}
-        {/* We dynamically apply classes (like 'text-white border-b-2 border-white font-bold') based on whether that tab is active. */}
-        <nav className="hidden md:flex gap-8 text-sm font-semibold text-slate-300 font-serif">
-          <span
-            onClick={() => setActiveTab('sbHomePage')}
-            className={`py-5 px-1 cursor-pointer transition-all duration-150 ${
-              activeTab === 'sbHomePage'
-                ? 'text-white border-b-2 border-white font-bold'
-                : 'hover:text-slate-200'
-            }`}
-          >
-            Home Dashboard
-          </span>
-
-          <span
-            onClick={() => setActiveTab('sbPublicPage')}
-            className={`py-5 px-1 cursor-pointer transition-all duration-150 ${
-              activeTab === 'sbPublicPage'
-                ? 'text-white border-b-2 border-white font-bold font-serif'
-                : 'hover:text-slate-200'
-            }`}
-          >
-            Story Book
-          </span>
-        </nav>
 
         {/* --- STATUS INDICATOR & ACCOUNT MENU --- */}
         <div className="flex items-center gap-6">
@@ -145,6 +119,17 @@ export default function MainLayout({
                     }`}
                   >
                     Greeting Screen
+                  </div>
+                  
+                  {/* Logout Action Option */}
+                  <div
+                    onClick={() => {
+                      setActiveTab('sbPublicPage');
+                      setDropdownOpen(false);
+                    }}
+                    className="border-t border-slate-800 mt-1 px-4 py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-950/20 hover:text-rose-300 cursor-pointer transition-colors"
+                  >
+                    Logout
                   </div>
                 </div>
               </>

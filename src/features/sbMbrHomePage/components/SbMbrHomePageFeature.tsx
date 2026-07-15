@@ -9,7 +9,12 @@ import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
 
-export default function SbHomePageFeature() {
+interface SbMbrHomePageFeatureProps {
+  onClickReadStory?: (memberId: string) => void;
+  onClickAuthorPage?: () => void;
+}
+
+export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPage }: SbMbrHomePageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter logic: Checks if query string exists inside username, location, or tags list.
@@ -32,7 +37,7 @@ export default function SbHomePageFeature() {
         
         {/* Left Column Section: Brand name, scrollable new connections, biography checklist status, and existing connections */}
         <div className="lg:col-span-3">
-          <LeftColumn />
+          <LeftColumn onClickAuthorPage={onClickAuthorPage} />
         </div>
 
         {/* Center Column Section: Main welcome hero, Search Bar box, and Dynamic Stories feed */}
@@ -41,6 +46,7 @@ export default function SbHomePageFeature() {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             members={filteredMembers}
+            onClickReadStory={onClickReadStory}
           />
         </div>
 

@@ -13,12 +13,14 @@ interface CenterColumnProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   members: MemberStory[];
+  onClickReadStory?: (memberId: string) => void;
 }
 
 export default function CenterColumn({
   searchQuery,
   setSearchQuery,
-  members
+  members,
+  onClickReadStory
 }: CenterColumnProps) {
   return (
     <div className="space-y-8 flex flex-col">
@@ -83,7 +85,11 @@ export default function CenterColumn({
           /* Render filtered list feed */
           <div className="flex flex-col gap-6">
             {members.map((member) => (
-              <MemberCard key={member.id} member={member} />
+              <MemberCard
+                key={member.id}
+                member={member}
+                onClickReadStory={() => onClickReadStory && onClickReadStory(member.id)}
+              />
             ))}
           </div>
         )}

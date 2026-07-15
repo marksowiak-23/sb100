@@ -22,10 +22,12 @@ import { GreetingCard, StatsGrid } from '@/src/features/greeting';
 import { ConnectionSettings } from '@/src/features/settings';
 import { AccountLookup } from '@/src/features/account-settings';
 import { SbPublicPageFeature } from '@/src/features/sbPublicPage';
-import { SbHomePageFeature } from '@/src/features/sbHomePage';
+import { SbMbrHomePageFeature } from '@/src/features/sbMbrHomePage';
+import { SbMbrStoryPageFeature } from '@/src/features/sbMbrStoryPage';
+import { SbMbrAuthorPageFeature } from '@/src/features/sbMbrAuthorPage';
 
 // Define a TypeScript type to restrict activeTab to only these four string values.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbHomePage';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage';
 
 export default function App() {
   // --- STATE DEFINITIONS ---
@@ -33,8 +35,9 @@ export default function App() {
   // React monitors state variables. When a setterFunction is called, React re-renders 
   // the component with the new value.
   
-  // Controls which tab/screen is currently active in the workspace viewport.
-  const [activeTab, setActiveTab] = useState<TabType>('greeting');
+  const [activeTab, setActiveTab] = useState<TabType>('sbPublicPage');
+  const [previousTab, setPreviousTab] = useState<TabType>('sbPublicPage');
+  const [selectedMemberId, setSelectedMemberId] = useState<string>('m1');
   
   // Stores the name inputted in the greeting card. This is shared between GreetingCard 
   // and StatsGrid.
@@ -77,6 +80,12 @@ export default function App() {
     } finally {
       setLoading(false); // Done checking health.
     }
+  };
+
+  const handleReadStory = (memberId: string) => {
+    setPreviousTab(activeTab);
+    setSelectedMemberId(memberId);
+    setActiveTab('sbMbrStoryPage');
   };
 
   // --- RENDERING (JSX) ---
@@ -147,21 +156,63 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <SbPublicPageFeature />
+            <SbPublicPageFeature
+              setActiveTab={setActiveTab}
+              onClickReadStory={handleReadStory}
+            />
           </motion.div>
         )}
 
-        {/* If the active tab is 'sbHomePage', render the home page dashboard */}
-        {activeTab === 'sbHomePage' && (
+        {/* If the active tab is 'sbMbrHomePage', render the home page dashboard */}
+        {activeTab === 'sbMbrHomePage' && (
           <motion.div
-            key="sbHomePage-view"
+            key="sbMbrHomePage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <SbHomePageFeature />
+            <SbMbrHomePageFeature
+              onClickReadStory={handleReadStory}
+              onClickAuthorPage={() => {
+                setPreviousTab(activeTab);
+                setActiveTab('sbMbrAuthorPage');
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* If the active tab is 'sbMbrStoryPage', render the member story biography page */}
+        {activeTab === 'sbMbrStoryPage' && (
+          <motion.div
+            key="sbMbrStoryPage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <SbMbrStoryPageFeature
+              memberId={selectedMemberId}
+              onClickBack={() => setActiveTab(previousTab)}
+            />
+          </motion.div>
+        )}
+
+        {/* If the active tab is 'sbMbrAuthorPage', render the member co-writer workspace */}
+        {activeTab === 'sbMbrAuthorPage' && (
+          <motion.div
+            key="sbMbrAuthorPage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <SbMbrAuthorPageFeature
+              onClickBack={() => setActiveTab('sbMbrHomePage')}
+            />
           </motion.div>
         )}
       </AnimatePresence>

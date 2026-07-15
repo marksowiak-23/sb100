@@ -7,9 +7,17 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { ShieldAlert, Sparkles, MessageSquare, Users, BookOpen, Share2, Globe } from 'lucide-react';
 
-export default function LeftColumn() {
+interface LeftColumnProps {
+  setActiveTab: (tab: any) => void;
+}
+
+export default function LeftColumn({ setActiveTab }: LeftColumnProps) {
   const handleSocialLogin = (provider: string) => {
-    alert(`Initiating simulated ${provider} OAuth sign-in flow...`);
+    if (provider === 'Google') {
+      setActiveTab('sbMbrHomePage');
+    } else {
+      alert(`Initiating simulated ${provider} OAuth sign-in flow...`);
+    }
   };
 
   return (

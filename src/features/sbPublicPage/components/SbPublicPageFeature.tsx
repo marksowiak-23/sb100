@@ -9,7 +9,12 @@ import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import { MEMBER_STORIES } from '../constants/memberData';
 
-export default function SbPublicPageFeature() {
+interface SbPublicPageFeatureProps {
+  setActiveTab: (tab: any) => void;
+  onClickReadStory?: (memberId: string) => void;
+}
+
+export default function SbPublicPageFeature({ setActiveTab, onClickReadStory }: SbPublicPageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter logic: Checks if query string exists inside username, location, or tags list.
@@ -32,7 +37,7 @@ export default function SbPublicPageFeature() {
         
         {/* Left Column Section: Brand branding, authentication, explainer facts, stats */}
         <div className="lg:col-span-3">
-          <LeftColumn />
+          <LeftColumn setActiveTab={setActiveTab} />
         </div>
 
         {/* Center Column Section: Main page stories feed, searches, filters */}
@@ -41,6 +46,7 @@ export default function SbPublicPageFeature() {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             members={filteredMembers}
+            onClickReadStory={onClickReadStory}
           />
         </div>
 

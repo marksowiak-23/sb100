@@ -10,9 +10,10 @@ import { MemberStory } from '../constants/memberData';
 
 interface MemberCardProps {
   member: MemberStory;
+  onClickReadStory?: () => void;
 }
 
-const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
+const MemberCard: React.FC<MemberCardProps> = ({ member, onClickReadStory }) => {
   // Get initials for avatar
   const initials = member.name
     .split(' ')
@@ -99,7 +100,13 @@ const MemberCard: React.FC<MemberCardProps> = ({ member }) => {
 
         {/* Read story button link */}
         <button
-          onClick={() => alert(`Opening complete memoirs of ${member.name}...`)}
+          onClick={() => {
+            if (onClickReadStory) {
+              onClickReadStory();
+            } else {
+              alert(`Opening complete memoirs of ${member.name}...`);
+            }
+          }}
           className="group inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors"
         >
           <span>Read story</span>
