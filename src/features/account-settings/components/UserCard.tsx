@@ -6,10 +6,10 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Check, Copy, Mail, Clock } from 'lucide-react';
-import { UserAccount } from '@/src/services/api';
+import { User } from '@/src/services/api';
 
 interface UserCardProps {
-  user: UserAccount; // Expects a single user record object.
+  user: User; // Expects a single user record object.
 }
 
 /**

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { UserAccount } from '@/src/services/api';
+import { User } from '@/src/services/api';
 
-export const SANDBOX_USERS: UserAccount[] = [
+export const SANDBOX_USERS: User[] = [
   { user_id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', username: 'john_doe_mock', email: 'john.doe@example.com', is_active: true, created_at: '2026-07-01T08:00:00Z', updated_at: '2026-07-01T08:00:00Z' },
   { user_id: 'b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e', username: 'jane_smith_mock', email: 'jane.smith@example.com', is_active: true, created_at: '2026-07-01T08:30:00Z', updated_at: '2026-07-01T08:30:00Z' },
   { user_id: 'c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f', username: 'alex_jones_mock', email: 'alex.jones@example.com', is_active: true, created_at: '2026-07-01T09:00:00Z', updated_at: '2026-07-01T09:00:00Z' },

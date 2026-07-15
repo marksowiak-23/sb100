@@ -6,7 +6,7 @@
 import React, { useState, useEffect, FormEvent } from 'react';
 import { motion } from 'motion/react';
 import { User, Search, Loader2, AlertCircle, X, Info } from 'lucide-react';
-import { taskApi, UserAccount } from '@/src/services/api';
+import { taskApi, User as ApiUser } from '@/src/services/api';
 import { SANDBOX_USERS } from '../constants/mockUsers';
 import { matchUser } from '../utils/search';
 import UserCard from './UserCard';
@@ -25,7 +25,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
   // Tracks user input in search field.
   const [searchUsername, setSearchUsername] = useState('');
   // Stores array of matching users fetched from the datasource.
-  const [searchUsersResults, setSearchUsersResults] = useState<UserAccount[]>([]);
+  const [searchUsersResults, setSearchUsersResults] = useState<ApiUser[]>([]);
   // Boolean flag displaying a loading spinner during network roundtrips.
   const [searchLoading, setSearchLoading] = useState(false);
   // Holds errors if backend rejects the queries.

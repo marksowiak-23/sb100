@@ -8,7 +8,7 @@ export interface HealthCheckResponse {
   database: string;
 }
 
-export interface UserAccount {
+export interface User {
   user_id: string;
   username: string;
   email: string;
@@ -55,7 +55,7 @@ export const taskApi = {
   /**
    * Fetch list of user accounts, optionally filtered by username (with wildcards).
    */
-  async getUsers(username?: string): Promise<UserAccount[]> {
+  async getUsers(username?: string): Promise<User[]> {
     let url = `${API_BASE_URL}/users`;
     if (username) {
       url += `?username=${encodeURIComponent(username)}`;
@@ -66,6 +66,6 @@ export const taskApi = {
         'Accept': 'application/json',
       },
     });
-    return handleResponse<UserAccount[]>(response);
+    return handleResponse<User[]>(response);
   },
 };
