@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { User, Search, Loader2, AlertCircle, X, Info } from 'lucide-react';
+import { User, Search, Loader2, AlertCircle, X, Info, Mail, ShieldCheck } from 'lucide-react';
 import { taskApi, User as ApiUser } from '@/src/services/api';
 import { SANDBOX_USERS } from '../constants/mockUsers';
 import { matchUser } from '../utils/search';
@@ -30,6 +30,19 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
   const [searchLoading, setSearchLoading] = useState(false);
   // Holds errors if backend rejects the queries.
   const [searchError, setSearchError] = useState<string | null>(null);
+  // Stores the currently logged-in user profile from session storage.
+  const [currentUser, setCurrentUser] = useState<ApiUser | null>(null);
+
+  useEffect(() => {
+    const userStr = sessionStorage.getItem('user');
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch (e) {
+        console.error("Failed to parse logged-in user session:", e);
+      }
+    }
+  }, []);
 
   // Fired when the form is submitted.
   // We accept `FormEvent` to control default form behavior.
@@ -94,6 +107,44 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
             {isSandbox ? 'Sandbox Mock Data' : 'Live DB Connected'}
           </span>
         </div>
+      </div>
+
+      {/* --- ACTIVE SESSION PROFILE PANEL --- */}
+      <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-sm">
+        <h3 className="text-sm font-serif font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <ShieldCheck className="w-4.5 h-4.5 text-blue-600" /> Active Session Profile
+        </h3>
+        
+        {currentUser ? (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-blue-50/20 border border-blue-100 p-5 rounded-2xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-600/10 border border-blue-600/20 text-blue-700 rounded-xl flex items-center justify-center font-bold text-sm shrink-0">
+                {currentUser.username.substring(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-serif font-bold text-slate-800 text-base leading-none">{currentUser.username}</span>
+                  <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-bold bg-blue-600 text-white rounded-full uppercase tracking-wider">
+                    Active
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500 font-serif mt-1.5 flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-slate-400" /> {currentUser.email}
+                </div>
+              </div>
+            </div>
+            <div className="text-left sm:text-right font-serif text-[10px] text-slate-400 space-y-1">
+              <div><strong>User ID:</strong> <code className="bg-slate-100 px-1 py-0.5 rounded text-[9px] font-mono text-slate-600">{currentUser.user_id}</code></div>
+              <div><strong>Registered:</strong> {new Date(currentUser.created_at).toLocaleDateString()}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-slate-50 border border-slate-100 border-dashed p-6 rounded-2xl text-center">
+            <p className="text-xs font-serif text-slate-500 italic">
+              No user logged in. Please use the logon buttons on the home page to authenticate.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* --- SEARCH INPUT CONTROLS --- */}
