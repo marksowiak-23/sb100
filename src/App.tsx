@@ -25,9 +25,10 @@ import { SbPublicPageFeature } from '@/src/features/sbPublicPage';
 import { SbMbrHomePageFeature } from '@/src/features/sbMbrHomePage';
 import { SbMbrStoryPageFeature } from '@/src/features/sbMbrStoryPage';
 import { SbMbrAuthorPageFeature } from '@/src/features/sbMbrAuthorPage';
+import { SbMbrLogonFeature } from '@/src/features/sbMbrLogon';
 
-// Define a TypeScript type to restrict activeTab to only these four string values.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage';
+// Define a TypeScript type to restrict activeTab to only these string values.
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon';
 
 export default function App() {
   // --- STATE DEFINITIONS ---
@@ -38,6 +39,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('sbPublicPage');
   const [previousTab, setPreviousTab] = useState<TabType>('sbPublicPage');
   const [selectedMemberId, setSelectedMemberId] = useState<string>('m1');
+  const [logonType, setLogonType] = useState<'Google' | 'Apple'>('Google');
   
   // Stores the name inputted in the greeting card. This is shared between GreetingCard 
   // and StatsGrid.
@@ -159,6 +161,10 @@ export default function App() {
             <SbPublicPageFeature
               setActiveTab={setActiveTab}
               onClickReadStory={handleReadStory}
+              onSelectLogonType={(type) => {
+                setLogonType(type);
+                setActiveTab('sbMbrLogon');
+              }}
             />
           </motion.div>
         )}
@@ -212,6 +218,22 @@ export default function App() {
           >
             <SbMbrAuthorPageFeature
               onClickBack={() => setActiveTab('sbMbrHomePage')}
+            />
+          </motion.div>
+        )}
+        {/* If the active tab is 'sbMbrLogon', render the secure logon screen */}
+        {activeTab === 'sbMbrLogon' && (
+          <motion.div
+            key="sbMbrLogon-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <SbMbrLogonFeature
+              logonType={logonType}
+              setActiveTab={setActiveTab}
             />
           </motion.div>
         )}

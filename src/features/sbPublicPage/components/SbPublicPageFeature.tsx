@@ -12,9 +12,10 @@ import { MEMBER_STORIES } from '../constants/memberData';
 interface SbPublicPageFeatureProps {
   setActiveTab: (tab: any) => void;
   onClickReadStory?: (memberId: string) => void;
+  onSelectLogonType?: (type: 'Google' | 'Apple') => void;
 }
 
-export default function SbPublicPageFeature({ setActiveTab, onClickReadStory }: SbPublicPageFeatureProps) {
+export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, onSelectLogonType }: SbPublicPageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Filter logic: Checks if query string exists inside username, location, or tags list.
@@ -37,7 +38,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory }: 
         
         {/* Left Column Section: Brand branding, authentication, explainer facts, stats */}
         <div className="lg:col-span-3">
-          <LeftColumn setActiveTab={setActiveTab} />
+          <LeftColumn setActiveTab={setActiveTab} onSelectLogonType={onSelectLogonType} />
         </div>
 
         {/* Center Column Section: Main page stories feed, searches, filters */}

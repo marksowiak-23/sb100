@@ -9,14 +9,19 @@ import { ShieldAlert, Sparkles, MessageSquare, Users, BookOpen, Share2, Globe } 
 
 interface LeftColumnProps {
   setActiveTab: (tab: any) => void;
+  onSelectLogonType?: (type: 'Google' | 'Apple') => void;
 }
 
-export default function LeftColumn({ setActiveTab }: LeftColumnProps) {
-  const handleSocialLogin = (provider: string) => {
-    if (provider === 'Google') {
-      setActiveTab('sbMbrHomePage');
+export default function LeftColumn({ setActiveTab, onSelectLogonType }: LeftColumnProps) {
+  const handleSocialLogin = (provider: 'Google' | 'Apple') => {
+    if (onSelectLogonType) {
+      onSelectLogonType(provider);
     } else {
-      alert(`Initiating simulated ${provider} OAuth sign-in flow...`);
+      if (provider === 'Google') {
+        setActiveTab('sbMbrHomePage');
+      } else {
+        alert(`Initiating simulated ${provider} OAuth sign-in flow...`);
+      }
     }
   };
 
