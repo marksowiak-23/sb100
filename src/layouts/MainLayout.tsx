@@ -7,7 +7,7 @@ import React from 'react';
 import { User, ChevronDown, BookOpen } from 'lucide-react';
 
 // Restrict values for the tab parameter.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'sbMbrLogon';
 
 // Define the interface (contract) for the props this component expects to receive.
 // React components receive data from their parent component via "props" (properties).
@@ -82,6 +82,19 @@ export default function MainLayout({
                   onClick={() => setDropdownOpen(false)}
                 />
                 <div className="absolute right-0 mt-2 w-44 bg-[#0F1B35] border border-slate-800 rounded-xl shadow-xl z-50 py-1.5 overflow-hidden">
+                  <div
+                    onClick={() => {
+                      setActiveTab('mbrProfile');
+                      setDropdownOpen(false);
+                    }}
+                    className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                      activeTab === 'mbrProfile'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    Member Profile
+                  </div>
                   <div
                     onClick={() => {
                       setActiveTab('account-settings');

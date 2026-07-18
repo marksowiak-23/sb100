@@ -83,6 +83,21 @@ export const taskApi = {
   },
 
   /**
+   * Update an existing member profile record.
+   */
+  async updateMember(mbrId: string, member: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbrs/${mbrId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(member),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
    * Fetch list of family members for a given member ID.
    */
   async getFamilyMembers(mbrId: string): Promise<any[]> {
@@ -150,5 +165,62 @@ export const taskApi = {
     });
     return handleResponse<any[]>(response);
   },
+
+  /**
+   * Fetch all residences for a given member.
+   */
+  async getResidences(mbrId: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-residences/member/${mbrId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any[]>(response);
+  },
+
+  /**
+   * Create a new residence record.
+   */
+  async createResidence(residence: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-residences`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(residence),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Update an existing residence record.
+   */
+  async updateResidence(mbrResidenceId: string, residence: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-residences/${mbrResidenceId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(residence),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Delete a residence record.
+   */
+  async deleteResidence(mbrResidenceId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-residences/${mbrResidenceId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
 };
+
 

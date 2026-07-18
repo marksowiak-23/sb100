@@ -26,9 +26,10 @@ import { SbMbrHomePageFeature } from '@/src/features/sbMbrHomePage';
 import { SbMbrStoryPageFeature } from '@/src/features/sbMbrStoryPage';
 import { SbMbrAuthorPageFeature } from '@/src/features/sbMbrAuthorPage';
 import { SbMbrLogonFeature } from '@/src/features/sbMbrLogon';
+import { MbrProfileFeature } from '@/src/features/mbrProfile';
 
 // Define a TypeScript type to restrict activeTab to only these string values.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'mbrProfile';
 
 export default function App() {
   // --- STATE DEFINITIONS ---
@@ -235,6 +236,22 @@ export default function App() {
             <SbMbrLogonFeature
               logonType={logonType}
               setActiveTab={setActiveTab}
+            />
+          </motion.div>
+        )}
+        {/* If the active tab is 'mbrProfile', render the member profile editing screen */}
+        {activeTab === 'mbrProfile' && (
+          <motion.div
+            key="mbrProfile-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full flex justify-center"
+          >
+            <MbrProfileFeature
+              isSandbox={isSandbox}
+              onClickBack={() => setActiveTab('sbMbrHomePage')}
             />
           </motion.div>
         )}

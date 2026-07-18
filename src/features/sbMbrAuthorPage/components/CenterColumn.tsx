@@ -9,6 +9,7 @@ import StoryMatePanel from './StoryMatePanel';
 import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
 import SbMbrFamily from './SbMbrFamily';
+import SbMbrResidence from './SbMbrResidence';
 import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
 
 interface CenterColumnProps {
@@ -55,6 +56,11 @@ export default function CenterColumn({
       {/* --- FAMILY DIRECTORY PANEL --- */}
       {activeSection === 'introduction' && (
         <SbMbrFamily isSandbox={isSandbox} />
+      )}
+
+      {/* --- RESIDENCES PANEL --- */}
+      {activeSection === 'introduction' && (
+        <SbMbrResidence isSandbox={isSandbox} />
       )}
 
       {/* --- STORY MATE PANEL --- */}
