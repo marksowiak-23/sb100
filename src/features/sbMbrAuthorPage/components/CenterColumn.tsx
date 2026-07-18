@@ -8,9 +8,11 @@ import { ArrowLeft } from 'lucide-react';
 import StoryMatePanel from './StoryMatePanel';
 import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
+import SbMbrFamily from './SbMbrFamily';
 import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
 
 interface CenterColumnProps {
+  isSandbox: boolean;
   activeSection: string;
   activeContent: string[];
   onClickBack: () => void;
@@ -18,6 +20,7 @@ interface CenterColumnProps {
 }
 
 export default function CenterColumn({
+  isSandbox,
   activeSection,
   activeContent,
   onClickBack,
@@ -48,6 +51,11 @@ export default function CenterColumn({
         content={activeContent}
         onSave={onSaveActiveContent}
       />
+
+      {/* --- FAMILY DIRECTORY PANEL --- */}
+      {activeSection === 'introduction' && (
+        <SbMbrFamily isSandbox={isSandbox} />
+      )}
 
       {/* --- STORY MATE PANEL --- */}
       <StoryMatePanel memberName="Eleanor" />

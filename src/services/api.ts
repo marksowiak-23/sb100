@@ -68,4 +68,87 @@ export const taskApi = {
     });
     return handleResponse<User[]>(response);
   },
+
+  /**
+   * Fetch member profile by their associated user ID.
+   */
+  async getMemberByUserId(userId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbrs/user/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Fetch list of family members for a given member ID.
+   */
+  async getFamilyMembers(mbrId: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-families/member/${mbrId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any[]>(response);
+  },
+
+  /**
+   * Create a new family member record.
+   */
+  async createFamilyMember(familyMember: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-families`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(familyMember),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Update an existing family member record.
+   */
+  async updateFamilyMember(mbrFamilyId: string, familyMember: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-families/${mbrFamilyId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(familyMember),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Delete a family member record.
+   */
+  async deleteFamilyMember(mbrFamilyId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-families/${mbrFamilyId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Fetch lookup codes by category tag.
+   */
+  async getLookupCodes(tag: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/cds?tag=${encodeURIComponent(tag)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any[]>(response);
+  },
 };
+

@@ -9,6 +9,7 @@ import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 
 interface SbMbrAuthorPageFeatureProps {
+  isSandbox: boolean;
   onClickBack: () => void;
 }
 
@@ -27,7 +28,7 @@ const STORY_CONTENTS: Record<string, string[]> = {
   ]
 };
 
-export default function SbMbrAuthorPageFeature({ onClickBack }: SbMbrAuthorPageFeatureProps) {
+export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack }: SbMbrAuthorPageFeatureProps) {
   const [activeSection, setActiveSection] = useState('introduction');
   const [storyContents, setStoryContents] = useState<Record<string, string[]>>(STORY_CONTENTS);
 
@@ -57,6 +58,7 @@ export default function SbMbrAuthorPageFeature({ onClickBack }: SbMbrAuthorPageF
         {/* Center Column Content */}
         <div className="lg:col-span-6 bg-slate-50/50 p-1 lg:p-0 rounded-3xl">
           <CenterColumn
+            isSandbox={isSandbox}
             activeSection={activeSection}
             activeContent={getActiveContent()}
             onClickBack={onClickBack}

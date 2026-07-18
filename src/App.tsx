@@ -217,6 +217,7 @@ export default function App() {
             className="w-full"
           >
             <SbMbrAuthorPageFeature
+              isSandbox={isSandbox}
               onClickBack={() => setActiveTab('sbMbrHomePage')}
             />
           </motion.div>
