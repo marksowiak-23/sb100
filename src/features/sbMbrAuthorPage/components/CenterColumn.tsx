@@ -12,6 +12,8 @@ import SbMbrFamily from './SbMbrFamily';
 import SbMbrResidence from './SbMbrResidence';
 import SbMbrActivity from './SbMbrActivity';
 import SbMbrAchievement from './SbMbrAchievement';
+import SbMbrEducation from './SbMbrEducation';
+import SbMbrEmployment from './SbMbrEmployment';
 
 interface CenterColumnProps {
   isSandbox: boolean;
@@ -70,6 +72,16 @@ export default function CenterColumn({
       {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
       {activeSection === 'introduction' && (
         <SbMbrAchievement isSandbox={isSandbox} />
+      )}
+
+      {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
+      {activeSection === 'introduction' && (
+        <SbMbrEducation isSandbox={isSandbox} />
+      )}
+
+      {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
+      {activeSection === 'introduction' && (
+        <SbMbrEmployment isSandbox={isSandbox} />
       )}
 
       {/* --- STORY MATE PANEL --- */}

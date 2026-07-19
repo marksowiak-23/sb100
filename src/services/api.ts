@@ -73,11 +73,14 @@ export const taskApi = {
    * Fetch member profile by their associated user ID.
    */
   async getMemberByUserId(userId: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/mbrs/user/${userId}`, {
+    const response = await fetch(`${API_BASE_URL}/mbrs/user/${userId}?t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-cache'
     });
     return handleResponse<any>(response);
   },
@@ -101,11 +104,14 @@ export const taskApi = {
    * Fetch list of family members for a given member ID.
    */
   async getFamilyMembers(mbrId: string): Promise<any[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-families/member/${mbrId}`, {
+    const response = await fetch(`${API_BASE_URL}/mbr-families/member/${mbrId}?t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-cache'
     });
     return handleResponse<any[]>(response);
   },
@@ -170,11 +176,14 @@ export const taskApi = {
    * Fetch all residences for a given member.
    */
   async getResidences(mbrId: string): Promise<any[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-residences/member/${mbrId}`, {
+    const response = await fetch(`${API_BASE_URL}/mbr-residences/member/${mbrId}?t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-cache'
     });
     return handleResponse<any[]>(response);
   },
@@ -226,11 +235,14 @@ export const taskApi = {
    * Fetch all activities for a given member.
    */
   async getActivities(mbrId: string): Promise<any[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-activities/member/${mbrId}`, {
+    const response = await fetch(`${API_BASE_URL}/mbr-activities/member/${mbrId}?t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-cache'
     });
     return handleResponse<any[]>(response);
   },
@@ -282,11 +294,14 @@ export const taskApi = {
    * Fetch all achievements for a given member.
    */
   async getAchievements(mbrId: string): Promise<any[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-achievements/member/${mbrId}`, {
+    const response = await fetch(`${API_BASE_URL}/mbr-achievements/member/${mbrId}?t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-cache'
     });
     return handleResponse<any[]>(response);
   },
@@ -326,6 +341,124 @@ export const taskApi = {
    */
   async deleteAchievement(mbrAchievementId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/mbr-achievements/${mbrAchievementId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Fetch all education records for a given member.
+   */
+  async getEducations(mbrId: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-educations/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<any[]>(response);
+  },
+
+  /**
+   * Create a new education record.
+   */
+  async createEducation(education: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-educations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(education),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Update an existing education record.
+   */
+  async updateEducation(mbrEducationId: string, education: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-educations/${mbrEducationId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(education),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Delete an education record.
+   */
+  async deleteEducation(mbrEducationId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-educations/${mbrEducationId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Fetch all employment records for a given member.
+   */
+  async getEmployments(mbrId: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-employments/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<any[]>(response);
+  },
+
+  /**
+   * Create a new employment record.
+   */
+  async createEmployment(employment: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-employments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(employment),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Update an existing employment record.
+   */
+  async updateEmployment(mbrEmploymentId: string, employment: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-employments/${mbrEmploymentId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(employment),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Delete an employment record.
+   */
+  async deleteEmployment(mbrEmploymentId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-employments/${mbrEmploymentId}`, {
       method: 'DELETE',
       headers: {
         'Accept': 'application/json',
