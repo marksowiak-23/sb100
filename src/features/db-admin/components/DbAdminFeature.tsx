@@ -202,7 +202,7 @@ const TABLES: TableDefinition[] = [
     searchField: 'chPromptName',
     fields: [
       { name: 'chPromptName', label: 'Prompt Name', type: 'string', required: true },
-      { name: 'chPromptDesc', label: 'Description', type: 'string', required: false },
+      { name: 'chPromptContent', label: 'Prompt Content', type: 'string', required: false },
       { name: 'chPromptActInd', label: 'Active Indicator', type: 'boolean', required: true },
       { name: 'chPromptVersion', label: 'Version', type: 'number', required: true },
       { name: 'chIntentId', label: 'Intent ID (UUID)', type: 'uuid', required: true }
@@ -242,7 +242,7 @@ const getInitialMockData = (tableId: string): any[] => {
       ];
     case 'chPrompts':
       return [
-        { chPromptId: 'd7cf92f1-f8a1-43ee-b4c8-b2a123f9ab7c', chPromptName: 'Elaborate Sensory Prompt', chPromptDesc: 'Prompt focusing on sights, smells, and sounds.', chPromptActInd: true, chPromptVersion: 1, chIntentId: '98fac10e-a61f-49ff-88ec-a6cbef6542a1', chPromptCreatedAt: now, chPromptUpdatedAt: now }
+        { chPromptId: 'd7cf92f1-f8a1-43ee-b4c8-b2a123f9ab7c', chPromptName: 'Elaborate Sensory Prompt', chPromptContent: 'Prompt focusing on sights, smells, and sounds.', chPromptActInd: true, chPromptVersion: 1, chIntentId: '98fac10e-a61f-49ff-88ec-a6cbef6542a1', chPromptCreatedAt: now, chPromptUpdatedAt: now }
       ];
     default:
       return [];

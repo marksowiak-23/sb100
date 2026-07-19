@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { GraduationCap, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 
-interface SbMbrEducationProps {
+interface SbMbrStryEducationProps {
   isSandbox: boolean;
 }
 
@@ -53,7 +53,7 @@ const SANDBOX_EDUCATION: Education[] = [
   }
 ];
 
-export default function SbMbrEducation({ isSandbox }: SbMbrEducationProps) {
+export default function SbMbrStryEducation({ isSandbox }: SbMbrStryEducationProps) {
   // --- STATE VARIABLES ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);

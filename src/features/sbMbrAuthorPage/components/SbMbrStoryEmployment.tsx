@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Briefcase, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 
-interface SbMbrEmploymentProps {
+interface SbMbrStoryEmploymentProps {
   isSandbox: boolean;
 }
 
@@ -60,7 +60,7 @@ const SANDBOX_EMPLOYMENT: Employment[] = [
   }
 ];
 
-export default function SbMbrEmployment({ isSandbox }: SbMbrEmploymentProps) {
+export default function SbMbrStoryEmployment({ isSandbox }: SbMbrStoryEmploymentProps) {
   // --- STATE ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);

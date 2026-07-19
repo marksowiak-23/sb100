@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MapPin, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 
-interface SbMbrResidenceProps {
+interface SbMbrStryResidenceProps {
   isSandbox: boolean;
 }
 
@@ -54,7 +54,7 @@ const SANDBOX_RESIDENCES: Residence[] = [
   }
 ];
 
-export default function SbMbrResidence({ isSandbox }: SbMbrResidenceProps) {
+export default function SbMbrStryResidence({ isSandbox }: SbMbrStryResidenceProps) {
   // --- STATE VARIABLES ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);

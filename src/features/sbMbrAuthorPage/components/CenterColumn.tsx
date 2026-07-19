@@ -8,12 +8,12 @@ import { ArrowLeft } from 'lucide-react';
 import StoryMatePanel from './StoryMatePanel';
 import SbMbrAuthorProfile from './SbMbrAuthorProfile';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
-import SbMbrFamily from './SbMbrFamily';
-import SbMbrResidence from './SbMbrResidence';
-import SbMbrActivity from './SbMbrActivity';
-import SbMbrAchievement from './SbMbrAchievement';
-import SbMbrEducation from './SbMbrEducation';
-import SbMbrEmployment from './SbMbrEmployment';
+import SbMbrStryFamily from './SbMbrStryFamily';
+import SbMbrStryResidence from './SbMbrStryResidence';
+import SbMbrStryActivity from './SbMbrStryActivity';
+import SbMbrStryAchievment from './SbMbrStryAchievment';
+import SbMbrStryEducation from './SbMbrStryEducation';
+import SbMbrStoryEmployment from './SbMbrStoryEmployment';
 
 interface CenterColumnProps {
   isSandbox: boolean;
@@ -56,32 +56,32 @@ export default function CenterColumn({
 
       {/* --- FAMILY DIRECTORY PANEL --- */}
       {activeSection === 'introduction' && (
-        <SbMbrFamily isSandbox={isSandbox} />
+        <SbMbrStryFamily isSandbox={isSandbox} />
       )}
 
       {/* --- RESIDENCES PANEL --- */}
       {activeSection === 'introduction' && (
-        <SbMbrResidence isSandbox={isSandbox} />
+        <SbMbrStryResidence isSandbox={isSandbox} />
       )}
 
       {/* --- ACTIVITIES & HOBBIES PANEL --- */}
       {activeSection === 'introduction' && (
-        <SbMbrActivity isSandbox={isSandbox} />
+        <SbMbrStryActivity isSandbox={isSandbox} />
       )}
 
       {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
       {activeSection === 'introduction' && (
-        <SbMbrAchievement isSandbox={isSandbox} />
+        <SbMbrStryAchievment isSandbox={isSandbox} />
       )}
 
       {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
       {activeSection === 'introduction' && (
-        <SbMbrEducation isSandbox={isSandbox} />
+        <SbMbrStryEducation isSandbox={isSandbox} />
       )}
 
       {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
       {activeSection === 'introduction' && (
-        <SbMbrEmployment isSandbox={isSandbox} />
+        <SbMbrStoryEmployment isSandbox={isSandbox} />
       )}
 
       {/* --- STORY MATE PANEL --- */}

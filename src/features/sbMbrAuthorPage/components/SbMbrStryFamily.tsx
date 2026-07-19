@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Users, UserPlus, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 
-interface SbMbrFamilyProps {
+interface SbMbrStryFamilyProps {
   isSandbox: boolean;
 }
 
@@ -71,7 +71,7 @@ const DEFAULT_RELATIONSHIPS = [
   { cdValue: 'Step Daughter', cdDesc: 'Step Daughter' }
 ];
 
-export default function SbMbrFamily({ isSandbox }: SbMbrFamilyProps) {
+export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
   // --- STATE VARIABLES ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);

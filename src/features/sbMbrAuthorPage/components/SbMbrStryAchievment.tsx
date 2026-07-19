@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 
-interface SbMbrAchievementProps {
+interface SbMbrStryAchievmentProps {
   isSandbox: boolean;
 }
 
@@ -37,7 +37,7 @@ const SANDBOX_ACHIEVEMENTS: Achievement[] = [
   }
 ];
 
-export default function SbMbrAchievement({ isSandbox }: SbMbrAchievementProps) {
+export default function SbMbrStryAchievment({ isSandbox }: SbMbrStryAchievmentProps) {
   // --- STATE VARIABLES ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
