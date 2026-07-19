@@ -468,4 +468,91 @@ export const taskApi = {
   },
 };
 
+export const adminDbApi = {
+  async getTableData(endpoint: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any[]>(response);
+  },
+
+  async createRecord(endpoint: string, data: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async updateRecord(endpoint: string, id: string, data: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async deleteRecord(endpoint: string, id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+};
+
+export interface ChatResponse {
+  response: string;
+  thread_id: string;
+}
+
+const AI_API_BASE_URL = import.meta.env.VITE_API_URL_AI || 'http://localhost:8002';
+
+export const chatApi = {
+  /**
+   * Send a chat message to Cassie the Story Mate via the FastAPI AI service.
+   */
+  async sendMessage(message: string, threadId: string, memberName?: string): Promise<ChatResponse> {
+    const response = await fetch(`${AI_API_BASE_URL}/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        message,
+        thread_id: threadId,
+        member_name: memberName
+      }),
+    });
+    return handleResponse<ChatResponse>(response);
+  },
+
+  /**
+   * Check connection health of FastAPI AI service.
+   */
+  async checkHealth(): Promise<{ status: string; service: string }> {
+    const response = await fetch(`${AI_API_BASE_URL}/health`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<{ status: string; service: string }>(response);
+  }
+};
+
 

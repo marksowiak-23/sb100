@@ -5,6 +5,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles } from 'lucide-react';
+import { chatApi } from '@/src/services/api';
 
 interface Message {
   sender: 'cassie' | 'user';
@@ -17,6 +18,7 @@ interface StoryMatePanelProps {
 
 export default function StoryMatePanel({ memberName = 'Eleanor' }: StoryMatePanelProps) {
   const [chatInput, setChatInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       sender: 'cassie',
@@ -24,37 +26,57 @@ export default function StoryMatePanel({ memberName = 'Eleanor' }: StoryMatePane
     }
   ]);
   
+  // Persistent threadId for the session
+  const [threadId] = useState(() => {
+    const saved = sessionStorage.getItem('story_mate_thread_id');
+    if (saved) return saved;
+    const newId = 'thread_' + Math.random().toString(36).substring(2, 11);
+    sessionStorage.setItem('story_mate_thread_id', newId);
+    return newId;
+  });
+
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, loading]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || loading) return;
 
     const userText = chatInput.trim();
     setMessages((prev) => [...prev, { sender: 'user', text: userText }]);
     setChatInput('');
+    setLoading(true);
 
-    // Trigger simulated Cassie response after 1 second
-    setTimeout(() => {
-      let cassieReply = '';
-      const lowercaseUser = userText.toLowerCase();
+    try {
+      const result = await chatApi.sendMessage(userText, threadId, memberName);
+      setMessages((prev) => [...prev, { sender: 'cassie', text: result.response }]);
+    } catch (error) {
+      console.warn("AI API backend offline or error, falling back to simulation:", error);
+      
+      // Simulated Cassie response fallback
+      setTimeout(() => {
+        let cassieReply = '';
+        const lowercaseUser = userText.toLowerCase();
 
-      if (lowercaseUser.includes('childhood') || lowercaseUser.includes('kid') || lowercaseUser.includes('grow up')) {
-        cassieReply = `Growing up by the water is such a sensory experience, ${memberName}. Can you recall specific smells or sounds from your childhood home that still stay with you?`;
-      } else if (lowercaseUser.includes('grandfather') || lowercaseUser.includes('harold')) {
-        cassieReply = "Your grandfather Harold sounds like an anchor in your early years. What did it feel like sitting in silence with him while mending nets?";
-      } else if (lowercaseUser.includes('school') || lowercaseUser.includes('teach') || lowercaseUser.includes('portland')) {
-        cassieReply = `Transitioning from Coos Bay to teaching in Portland must have been a major milestone. How did those coastal lessons influence your classroom?`;
-      } else {
-        cassieReply = "That's a beautiful detail to reflect on. Let's think about how to write that into this chapter. What other sights or emotions stood out to you in that moment?";
-      }
+        if (lowercaseUser.includes('childhood') || lowercaseUser.includes('kid') || lowercaseUser.includes('grow up')) {
+          cassieReply = `Growing up by the water is such a sensory experience, ${memberName}. Can you recall specific smells or sounds from your childhood home that still stay with you?`;
+        } else if (lowercaseUser.includes('grandfather') || lowercaseUser.includes('harold')) {
+          cassieReply = "Your grandfather Harold sounds like an anchor in your early years. What did it feel like sitting in silence with him while mending nets?";
+        } else if (lowercaseUser.includes('school') || lowercaseUser.includes('teach') || lowercaseUser.includes('portland')) {
+          cassieReply = `Transitioning from Coos Bay to teaching in Portland must have been a major milestone. How did those coastal lessons influence your classroom?`;
+        } else {
+          cassieReply = "That's a beautiful detail to reflect on. Let's think about how to write that into this chapter. What other sights or emotions stood out to you in that moment?";
+        }
 
-      setMessages((prev) => [...prev, { sender: 'cassie', text: cassieReply }]);
-    }, 1000);
+        setMessages((prev) => [...prev, { sender: 'cassie', text: cassieReply }]);
+        setLoading(false);
+      }, 1000);
+      return; // prevent setting loading to false too early
+    }
+    setLoading(false);
   };
 
   return (
@@ -97,6 +119,21 @@ export default function StoryMatePanel({ memberName = 'Eleanor' }: StoryMatePane
             <p className="leading-relaxed">{msg.text}</p>
           </div>
         ))}
+
+        {/* Premium Loading Typing Indicator */}
+        {loading && (
+          <div className="flex flex-col gap-1 p-3 rounded-2xl max-w-[85%] bg-slate-50 border border-slate-100 text-slate-750 self-start animate-pulse">
+            <div className="font-sans text-[8px] font-bold uppercase tracking-wider text-slate-400">
+              Cassie is typing
+            </div>
+            <div className="flex gap-1 items-center mt-1 py-1">
+              <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+              <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+              <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
+            </div>
+          </div>
+        )}
+
         <div ref={chatEndRef} />
       </div>
 
@@ -106,12 +143,14 @@ export default function StoryMatePanel({ memberName = 'Eleanor' }: StoryMatePane
           type="text"
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
-          placeholder="Share a memory or ask Cassie for a prompt…"
-          className="flex-1 bg-white border border-[#EFECE7] rounded-xl px-3.5 py-2.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-slate-350 transition-colors font-serif shadow-inner"
+          disabled={loading}
+          placeholder={loading ? "Cassie is typing..." : "Share a memory or ask Cassie for a prompt…"}
+          className="flex-1 bg-white border border-[#EFECE7] rounded-xl px-3.5 py-2.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-slate-350 transition-colors font-serif shadow-inner disabled:opacity-50"
         />
         <button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-2.5 cursor-pointer transition-colors shadow-sm flex items-center justify-center shrink-0"
+          disabled={loading || !chatInput.trim()}
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl p-2.5 cursor-pointer disabled:cursor-not-allowed transition-colors shadow-sm flex items-center justify-center shrink-0"
         >
           <Send className="w-3.5 h-3.5" />
         </button>
