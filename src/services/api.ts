@@ -221,6 +221,118 @@ export const taskApi = {
     });
     return handleResponse<any>(response);
   },
+
+  /**
+   * Fetch all activities for a given member.
+   */
+  async getActivities(mbrId: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-activities/member/${mbrId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any[]>(response);
+  },
+
+  /**
+   * Create a new activity record.
+   */
+  async createActivity(activity: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-activities`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(activity),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Update an existing activity record.
+   */
+  async updateActivity(mbrActivityId: string, activity: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-activities/${mbrActivityId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(activity),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Delete an activity record.
+   */
+  async deleteActivity(mbrActivityId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-activities/${mbrActivityId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Fetch all achievements for a given member.
+   */
+  async getAchievements(mbrId: string): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-achievements/member/${mbrId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any[]>(response);
+  },
+
+  /**
+   * Create a new achievement record.
+   */
+  async createAchievement(achievement: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-achievements`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(achievement),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Update an existing achievement record.
+   */
+  async updateAchievement(mbrAchievementId: string, achievement: any): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-achievements/${mbrAchievementId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(achievement),
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Delete an achievement record.
+   */
+  async deleteAchievement(mbrAchievementId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-achievements/${mbrAchievementId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
 };
 
 

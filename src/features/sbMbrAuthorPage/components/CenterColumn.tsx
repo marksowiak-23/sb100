@@ -6,11 +6,12 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import StoryMatePanel from './StoryMatePanel';
-import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
+import SbMbrAuthorProfile from './SbMbrAuthorProfile';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
 import SbMbrFamily from './SbMbrFamily';
 import SbMbrResidence from './SbMbrResidence';
-import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
+import SbMbrActivity from './SbMbrActivity';
+import SbMbrAchievement from './SbMbrAchievement';
 
 interface CenterColumnProps {
   isSandbox: boolean;
@@ -27,8 +28,6 @@ export default function CenterColumn({
   onClickBack,
   onSaveActiveContent
 }: CenterColumnProps) {
-  const eleanor = MEMBER_STORIES.find((m) => m.id === 'm1') || MEMBER_STORIES[0];
-
   return (
     <div className="space-y-6 flex flex-col">
       
@@ -44,7 +43,7 @@ export default function CenterColumn({
       </div>
 
       {/* --- PROFILE SUMMARY CARD --- */}
-      <SbMbrProfilePanel member={eleanor} />
+      <SbMbrAuthorProfile isSandbox={isSandbox} />
 
       {/* --- ACTIVE SECTION CONTENT AREA --- */}
       <SbMbrBookEditor
@@ -61,6 +60,16 @@ export default function CenterColumn({
       {/* --- RESIDENCES PANEL --- */}
       {activeSection === 'introduction' && (
         <SbMbrResidence isSandbox={isSandbox} />
+      )}
+
+      {/* --- ACTIVITIES & HOBBIES PANEL --- */}
+      {activeSection === 'introduction' && (
+        <SbMbrActivity isSandbox={isSandbox} />
+      )}
+
+      {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
+      {activeSection === 'introduction' && (
+        <SbMbrAchievement isSandbox={isSandbox} />
       )}
 
       {/* --- STORY MATE PANEL --- */}

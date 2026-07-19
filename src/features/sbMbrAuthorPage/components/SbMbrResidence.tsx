@@ -79,28 +79,42 @@ export default function SbMbrResidence({ isSandbox }: SbMbrResidenceProps) {
       // 1. Fetch logged-in user and lookup member profile ID
       let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
       const userStr = sessionStorage.getItem('user');
-      if (userStr && !isSandbox) {
-        try {
-          const u = JSON.parse(userStr);
-          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-          if (mbrProfile && mbrProfile.mbrId) {
-            currentMbrId = mbrProfile.mbrId;
-            setMbrId(currentMbrId);
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (isSandbox) {
+          const savedMbr = sessionStorage.getItem('sandbox_mbr');
+          if (savedMbr) {
+            const mbr = JSON.parse(savedMbr);
+            currentMbrId = mbr.mbrId;
           }
-        } catch (e) {
-          console.warn("Could not retrieve member profile ID from DB, falling back to Eleanor Hartwell UUID:", e);
+        } else {
+          try {
+            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+            if (mbrProfile && mbrProfile.mbrId) {
+              currentMbrId = mbrProfile.mbrId;
+            }
+          } catch (e) {
+            console.warn("Could not retrieve member profile ID from DB, falling back to Eleanor Hartwell UUID:", e);
+          }
         }
       }
+      setMbrId(currentMbrId);
 
       // 2. Load residence records
       if (isSandbox) {
         const saved = sessionStorage.getItem('sandbox_residences');
+        let allResidences: Residence[] = [];
         if (saved) {
-          setResidenceList(JSON.parse(saved));
+          allResidences = JSON.parse(saved);
         } else {
-          setResidenceList(SANDBOX_RESIDENCES);
-          sessionStorage.setItem('sandbox_residences', JSON.stringify(SANDBOX_RESIDENCES));
+          allResidences = SANDBOX_RESIDENCES.map(r => ({
+            ...r,
+            mbrId: currentMbrId
+          }));
+          sessionStorage.setItem('sandbox_residences', JSON.stringify(allResidences));
         }
+        const filtered = allResidences.filter((r) => r.mbrId === currentMbrId);
+        setResidenceList(filtered);
       } else {
         const dbResidences = await taskApi.getResidences(currentMbrId);
         setResidenceList(dbResidences);
@@ -152,15 +166,28 @@ export default function SbMbrResidence({ isSandbox }: SbMbrResidenceProps) {
   };
 
   const handleFieldChange = (mbrResidenceId: string, field: keyof Residence, value: any) => {
-    setEditList(
-      editList.map((item) => {
+    setEditList((prevList) =>
+      prevList.map((item) => {
+        // If this is the row being updated
         if (item.mbrResidenceId === mbrResidenceId) {
-          // If setting current indicator to true, reset others to false
+          const updatedItem = { ...item, [field]: value };
+          // If setting current indicator to true, reset the end date
           if (field === 'mbrResidenceCurrentInd' && value === true) {
-            return { ...item, [field]: value };
+            updatedItem.mbrResidenceEndDate = '';
           }
-          return { ...item, [field]: value };
+          return updatedItem;
         }
+
+        // Mutual exclusivity: if setting an indicator to true on one row, clear it on all other rows
+        if (
+          value === true &&
+          (field === 'mbrResidenceCurrentInd' ||
+            field === 'mbrResidenceBornInd' ||
+            field === 'mbrResidenceHomeTownInd')
+        ) {
+          return { ...item, [field]: false };
+        }
+
         return item;
       })
     );
@@ -171,13 +198,12 @@ export default function SbMbrResidence({ isSandbox }: SbMbrResidenceProps) {
     // Basic validation
     for (const item of editList) {
       if (
-        !item.mbrResidenceAddress.trim() ||
         !item.mbrResidenceCity.trim() ||
         !item.mbrResidenceState.trim() ||
         !item.mbrResidenceCountry.trim() ||
         !item.mbrResidenceStartDate
       ) {
-        setError("Address, City, State, Country, and Start Date are required for all residence rows.");
+        setError("City, State, Country, and Start Date are required for all residence rows.");
         return;
       }
     }
@@ -188,8 +214,15 @@ export default function SbMbrResidence({ isSandbox }: SbMbrResidenceProps) {
 
     try {
       if (isSandbox) {
-        // Update local session storage
-        sessionStorage.setItem('sandbox_residences', JSON.stringify(editList));
+        const saved = sessionStorage.getItem('sandbox_residences');
+        let allRes: Residence[] = [];
+        if (saved) {
+          allRes = JSON.parse(saved);
+        }
+        const otherMembersResidences = allRes.filter((r) => r.mbrId !== mbrId);
+        const updatedList = [...otherMembersResidences, ...editList];
+        
+        sessionStorage.setItem('sandbox_residences', JSON.stringify(updatedList));
         setResidenceList(editList);
         setSuccessMsg("Residence records updated in Sandbox mode successfully!");
         setIsEditing(false);
@@ -203,7 +236,7 @@ export default function SbMbrResidence({ isSandbox }: SbMbrResidenceProps) {
         for (const item of editList) {
           const payload = {
             mbrId: mbrId,
-            mbrResidenceAddress: item.mbrResidenceAddress.trim(),
+            mbrResidenceAddress: item.mbrResidenceAddress?.trim() || null,
             mbrResidenceCity: item.mbrResidenceCity.trim(),
             mbrResidenceState: item.mbrResidenceState.trim(),
             mbrResidenceCountry: item.mbrResidenceCountry.trim(),
@@ -427,7 +460,7 @@ export default function SbMbrResidence({ isSandbox }: SbMbrResidenceProps) {
                     <td className="py-3 px-2 min-w-[140px]">
                       <input
                         type="text"
-                        value={item.mbrResidenceAddress}
+                        value={item.mbrResidenceAddress || ''}
                         onChange={(e) =>
                           handleFieldChange(item.mbrResidenceId, 'mbrResidenceAddress', e.target.value)
                         }
@@ -529,13 +562,7 @@ export default function SbMbrResidence({ isSandbox }: SbMbrResidenceProps) {
                       <input
                         type="checkbox"
                         checked={item.mbrResidenceCurrentInd}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          handleFieldChange(item.mbrResidenceId, 'mbrResidenceCurrentInd', val);
-                          if (val) {
-                            handleFieldChange(item.mbrResidenceId, 'mbrResidenceEndDate', '');
-                          }
-                        }}
+                        onChange={(e) => handleFieldChange(item.mbrResidenceId, 'mbrResidenceCurrentInd', e.target.checked)}
                         className="w-4 h-4 text-blue-650 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
                       />
                     </td>

@@ -27,7 +27,7 @@ export default function CenterColumn({
       {/* --- HERO DESCRIPTION BANNER --- */}
       <div className="space-y-3">
         <h2 className="font-serif text-3xl font-black text-slate-800 tracking-tight leading-tight">
-          Welcome to your Storybook Portal
+          Welcome to your Storybook
         </h2>
         <p className="text-slate-500 text-xs md:text-sm leading-relaxed max-w-xl font-serif">
           Manage your connections, update your biography status checklist, or search for other members and read their public life chapters.
