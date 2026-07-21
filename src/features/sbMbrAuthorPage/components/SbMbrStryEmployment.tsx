@@ -5,10 +5,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Briefcase, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Briefcase, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 
-interface SbMbrStoryEmploymentProps {
+interface SbMbrStryEmploymentProps {
   isSandbox: boolean;
 }
 
@@ -60,7 +60,7 @@ const SANDBOX_EMPLOYMENT: Employment[] = [
   }
 ];
 
-export default function SbMbrStoryEmployment({ isSandbox }: SbMbrStoryEmploymentProps) {
+export default function SbMbrStryEmployment({ isSandbox }: SbMbrStryEmploymentProps) {
   // --- STATE ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -290,7 +290,7 @@ export default function SbMbrStoryEmployment({ isSandbox }: SbMbrStoryEmployment
           </div>
           <div>
             <h3 className="font-serif text-sm font-bold text-slate-800 leading-tight">
-              Employment & Professional History
+              Employment & Career
             </h3>
             <p className="text-[10px] text-slate-400 font-medium tracking-wide">
               Work experience, positions, and companies
@@ -298,14 +298,37 @@ export default function SbMbrStoryEmployment({ isSandbox }: SbMbrStoryEmployment
           </div>
         </div>
 
-        {!isEditing && !loading && (
-          <button
-            onClick={handleStartEdit}
-            className="flex items-center gap-1.5 px-4 py-2 bg-white border border-[#EFECE7] hover:bg-slate-50 text-slate-700 hover:text-slate-800 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-sm"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-            <span>Edit</span>
-          </button>
+        {/* Toggle Mode Buttons */}
+        {!isEditing && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const storyMateEl = document.getElementById('story-mate-panel');
+                if (storyMateEl) {
+                  storyMateEl.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="p-2.5 text-slate-400 hover:text-amber-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title="StoryMate AI Assistant"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            </button>
+            <button
+              onClick={() => alert('Opening Privacy settings for employment...')}
+              className="p-2.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title="Privacy settings"
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={handleStartEdit}
+              disabled={loading}
+              title="Edit Employment"
+              className="p-2.5 text-slate-500 hover:text-slate-805 hover:bg-slate-100/80 rounded-xl border border-slate-200 transition-all duration-150 cursor-pointer disabled:opacity-50"
+            >
+              <Edit3 className="w-4.5 h-4.5" />
+            </button>
+          </div>
         )}
       </div>
 
@@ -426,7 +449,7 @@ export default function SbMbrStoryEmployment({ isSandbox }: SbMbrStoryEmployment
                   <th className="pb-3 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest px-2 w-[13%]">Type</th>
                   <th className="pb-3 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest px-2 w-[13%]">Location</th>
                   <th className="pb-3 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest px-2 w-[18%]">Dates</th>
-                  <th className="pb-3 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest px-2 w-[20%]">Resp. / Description</th>
+                  <th className="pb-3 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest px-[#EFECE7] w-[20%]">Resp. / Description</th>
                   <th className="pb-3 text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest px-2 text-right w-[5%]"></th>
                 </tr>
               </thead>

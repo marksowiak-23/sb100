@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, UserPlus, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Users, UserPlus, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 
 interface SbMbrStryFamilyProps {
@@ -287,7 +287,19 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
         {!isEditing && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => alert('Opening Privacy settings for this draft...')}
+              onClick={() => {
+                const storyMateEl = document.getElementById('story-mate-panel');
+                if (storyMateEl) {
+                  storyMateEl.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+              className="p-2.5 text-slate-400 hover:text-amber-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title="StoryMate AI Assistant"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            </button>
+            <button
+              onClick={() => alert('Opening Privacy settings for family members...')}
               className="p-2.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
               title="Privacy settings"
             >
@@ -358,45 +370,47 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {familyList.map((member) => (
-              <div
-                key={member.mbrFamilyId}
-                className="bg-white border border-[#EFECE7] rounded-2xl p-4 flex items-center gap-4 hover:border-slate-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.015)] transition-all duration-200"
-              >
-                {/* Initials Avatar */}
-                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 font-serif font-black text-sm shrink-0">
-                  {getInitials(member.mbrFamilyFirstNm, member.mbrFamilyLastNm)}
-                </div>
+          <div className="max-h-[268px] overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {familyList.map((member) => (
+                <div
+                  key={member.mbrFamilyId}
+                  className="bg-white border border-[#EFECE7] rounded-2xl p-4 flex items-center gap-4 hover:border-slate-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.015)] transition-all duration-200"
+                >
+                  {/* Initials Avatar */}
+                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 font-serif font-black text-sm shrink-0">
+                    {getInitials(member.mbrFamilyFirstNm, member.mbrFamilyLastNm)}
+                  </div>
 
-                <div className="min-w-0 flex-grow">
-                  <h3 className="font-serif text-sm font-bold text-slate-805 truncate leading-snug">
-                    {member.mbrFamilyFirstNm}{' '}
-                    {member.mbrFamilyMiddleNm ? `${member.mbrFamilyMiddleNm} ` : ''}
-                    {member.mbrFamilyLastNm}
-                  </h3>
-                  
-                  {/* Badged relationship category */}
-                  <span className="inline-flex mt-1 items-center px-2 py-0.5 text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-100/50 rounded-full uppercase tracking-wider">
-                    {getRelationLabel(member.mbrFamilyRelationshipCd)}
-                  </span>
+                  <div className="min-w-0 flex-grow">
+                    <h3 className="font-serif text-sm font-bold text-slate-805 truncate leading-snug">
+                      {member.mbrFamilyFirstNm}{' '}
+                      {member.mbrFamilyMiddleNm ? `${member.mbrFamilyMiddleNm} ` : ''}
+                      {member.mbrFamilyLastNm}
+                    </h3>
+                    
+                    {/* Badged relationship category */}
+                    <span className="inline-flex mt-1 items-center px-2 py-0.5 text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-100/50 rounded-full uppercase tracking-wider">
+                      {getRelationLabel(member.mbrFamilyRelationshipCd)}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )
       ) : (
         /* EDIT MODE: Form Directory Grid/Table */
         <div className="flex flex-col gap-4">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto overflow-y-auto max-h-[370px] pr-1 border border-[#EFECE7] rounded-xl">
             <table className="w-full border-collapse text-left">
-              <thead>
-                <tr className="border-b border-[#EFECE7] text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
-                  <th className="py-2.5 px-2">Relationship</th>
-                  <th className="py-2.5 px-2">First Name</th>
-                  <th className="py-2.5 px-2">Middle Name</th>
-                  <th className="py-2.5 px-2">Last Name</th>
-                  <th className="py-2.5 px-2 text-right">Delete</th>
+              <thead className="sticky top-0 bg-[#FDFCFB] z-10 border-b border-[#EFECE7] shadow-xs">
+                <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                  <th className="py-2.5 px-2 bg-[#FDFCFB]">Relationship</th>
+                  <th className="py-2.5 px-2 bg-[#FDFCFB]">First Name</th>
+                  <th className="py-2.5 px-2 bg-[#FDFCFB]">Middle Name</th>
+                  <th className="py-2.5 px-2 bg-[#FDFCFB]">Last Name</th>
+                  <th className="py-2.5 px-2 text-right bg-[#FDFCFB]">Delete</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -473,6 +487,7 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
               </tbody>
             </table>
           </div>
+
 
           {/* Add Member Row Button */}
           <button

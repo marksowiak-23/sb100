@@ -11,9 +11,9 @@ import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
 import SbMbrStryFamily from './SbMbrStryFamily';
 import SbMbrStryResidence from './SbMbrStryResidence';
 import SbMbrStryActivity from './SbMbrStryActivity';
-import SbMbrStryAchievment from './SbMbrStryAchievment';
+import SbMbrStryAchievement from './SbMbrStryAchievement';
 import SbMbrStryEducation from './SbMbrStryEducation';
-import SbMbrStoryEmployment from './SbMbrStoryEmployment';
+import SbMbrStryEmployment from './SbMbrStryEmployment';
 
 interface CenterColumnProps {
   isSandbox: boolean;
@@ -71,7 +71,7 @@ export default function CenterColumn({
 
       {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
       {activeSection === 'introduction' && (
-        <SbMbrStryAchievment isSandbox={isSandbox} />
+        <SbMbrStryAchievement isSandbox={isSandbox} />
       )}
 
       {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
@@ -81,7 +81,7 @@ export default function CenterColumn({
 
       {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
       {activeSection === 'introduction' && (
-        <SbMbrStoryEmployment isSandbox={isSandbox} />
+        <SbMbrStryEmployment isSandbox={isSandbox} />
       )}
 
       {/* --- STORY MATE PANEL --- */}

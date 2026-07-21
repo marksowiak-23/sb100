@@ -17,6 +17,23 @@ export interface User {
   updated_at: string;
 }
 
+export interface MbrStory {
+  mbrStoryId: string;
+  mbrStoryTypeCd: string;
+  mbrStoryPublishStatusCd: string;
+  mbrStoryTitle: string;
+  mbrStoryContent?: string;
+  mbrStoryVersion: number;
+  mbrStoryStartDate?: string;
+  mbrStoryEndDate?: string;
+  mbrStoryCreatedAt: string;
+  mbrStoryUpdatedAt: string;
+  mbrStoryThreadID?: string;
+  mbrMbrId: string;
+  chIntentId?: string;
+}
+
+
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -466,7 +483,67 @@ export const taskApi = {
     });
     return handleResponse<any>(response);
   },
+
+  /**
+   * Fetch all stories for a given member.
+   */
+  async getStories(mbrId: string): Promise<MbrStory[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-stories/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStory[]>(response);
+  },
+
+  /**
+   * Create a new member story record.
+   */
+  async createStory(story: Partial<MbrStory>): Promise<MbrStory> {
+    const response = await fetch(`${API_BASE_URL}/mbr-stories`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(story),
+    });
+    return handleResponse<MbrStory>(response);
+  },
+
+  /**
+   * Update an existing story record.
+   */
+  async updateStory(mbrStoryId: string, story: Partial<MbrStory>): Promise<MbrStory> {
+    const response = await fetch(`${API_BASE_URL}/mbr-stories/${mbrStoryId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(story),
+    });
+    return handleResponse<MbrStory>(response);
+  },
+
+  /**
+   * Delete a story record.
+   */
+  async deleteStory(mbrStoryId: string): Promise<MbrStory> {
+    const response = await fetch(`${API_BASE_URL}/mbr-stories/${mbrStoryId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrStory>(response);
+  },
 };
+
 
 export const adminDbApi = {
   async getTableData(endpoint: string): Promise<any[]> {

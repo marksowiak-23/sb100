@@ -80,7 +80,7 @@ export default function StoryMatePanel({ memberName = 'Eleanor' }: StoryMatePane
   };
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-3.5">
+    <div id="story-mate-panel" className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-3.5">
       <div className="flex items-center justify-between pb-1 border-b border-[#EFECE7]">
         <div className="flex items-center gap-2">
           {/* Headshot thumbnail container */}

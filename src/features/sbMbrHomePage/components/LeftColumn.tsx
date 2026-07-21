@@ -17,8 +17,9 @@ export default function LeftColumn({ onClickAuthorPage }: LeftColumnProps) {
     { name: 'Family', completed: true },
     { name: 'Residencies', completed: true },
     { name: 'Achievements', completed: false },
-    { name: 'Health', completed: false },
-    { name: 'Hobbies', completed: false },
+    { name: 'Education and Training', completed: false },
+    { name: 'Employment and Career', completed: false },
+    { name: 'Activities and Hobbies', completed: false },
     { name: 'Stories', completed: true },
     { name: 'Biography', completed: true }
   ];

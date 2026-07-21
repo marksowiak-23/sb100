@@ -18,8 +18,9 @@ export default function LeftColumn({ activeSection, setActiveSection }: LeftColu
     { id: 'family', label: 'Family', disabled: true },
     { id: 'residencies', label: 'Residencies', disabled: true },
     { id: 'achievements', label: 'Achievements', disabled: true },
-    { id: 'health', label: 'Health', disabled: true },
-    { id: 'hobbies', label: 'Hobbies', disabled: true }
+    { id: 'education', label: 'Education and Training', disabled: true },
+    { id: 'employment', label: 'Employment and Career', disabled: true },
+    { id: 'hobbies', label: 'Activities and Hobbies', disabled: true }
   ];
 
   return (
