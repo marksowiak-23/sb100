@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import { Send, Sparkles, X } from 'lucide-react';
 import { chatApi } from '@/src/services/api';
 
 interface Message {
@@ -14,9 +14,10 @@ interface Message {
 
 interface StoryMatePanelProps {
   memberName?: string;
+  onClose?: () => void;
 }
 
-export default function StoryMatePanel({ memberName = 'Eleanor' }: StoryMatePanelProps) {
+export default function StoryMatePanel({ memberName = 'Eleanor', onClose }: StoryMatePanelProps) {
   const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -96,9 +97,20 @@ export default function StoryMatePanel({ memberName = 'Eleanor' }: StoryMatePane
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1 text-[10px] font-bold text-slate-450 uppercase font-mono">
-          <Sparkles className="w-3 h-3 text-slate-500 shrink-0" />
-          <span>Co-Writer Mode</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 text-[10px] font-bold text-slate-450 uppercase font-mono">
+            <Sparkles className="w-3 h-3 text-slate-500 shrink-0" />
+            <span>Co-Writer Mode</span>
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              title="Close StoryMate Assistant"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

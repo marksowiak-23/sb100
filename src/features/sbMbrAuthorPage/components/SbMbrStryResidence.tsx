@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles } from 'lucide-react';
+import { MapPin, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, BookOpen } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 
 interface SbMbrStryResidenceProps {
@@ -315,12 +315,14 @@ export default function SbMbrStryResidence({ isSandbox }: SbMbrStryResidenceProp
         {!isEditing && (
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                const storyMateEl = document.getElementById('story-mate-panel');
-                if (storyMateEl) {
-                  storyMateEl.scrollIntoView({ behavior: 'smooth' });
-                }
-              }}
+              onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'residencies', topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' } }))}
+              className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title="Story Editor"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+            </button>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-story-mate'))}
               className="p-2.5 text-slate-400 hover:text-amber-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
               title="StoryMate AI Assistant"
             >

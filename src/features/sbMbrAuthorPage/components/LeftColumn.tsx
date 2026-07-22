@@ -15,12 +15,12 @@ export default function LeftColumn({ activeSection, setActiveSection }: LeftColu
   const sections = [
     { id: 'introduction', label: 'Introduction' },
     { id: 'demographics', label: 'Demographics' },
-    { id: 'family', label: 'Family', disabled: true },
-    { id: 'residencies', label: 'Residencies', disabled: true },
-    { id: 'achievements', label: 'Achievements', disabled: true },
-    { id: 'education', label: 'Education and Training', disabled: true },
-    { id: 'employment', label: 'Employment and Career', disabled: true },
-    { id: 'hobbies', label: 'Activities and Hobbies', disabled: true }
+    { id: 'family', label: 'Family' },
+    { id: 'residencies', label: 'Residencies' },
+    { id: 'achievements', label: 'Achievements' },
+    { id: 'education', label: 'Education and Training' },
+    { id: 'employment', label: 'Employment and Career' },
+    { id: 'hobbies', label: 'Activities and Hobbies' }
   ];
 
   return (
@@ -49,18 +49,14 @@ export default function LeftColumn({ activeSection, setActiveSection }: LeftColu
           {sections.map((sec) => (
             <button
               key={sec.id}
-              disabled={sec.disabled}
               onClick={() => setActiveSection(sec.id)}
               className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-left text-xs font-serif transition-all duration-150 cursor-pointer ${
-                sec.disabled
-                  ? 'text-slate-300 cursor-not-allowed hover:bg-transparent'
-                  : activeSection === sec.id
-                  ? 'text-slate-850 font-bold underline underline-offset-2'
+                activeSection === sec.id
+                  ? 'text-slate-850 font-bold underline underline-offset-2 bg-slate-100/60'
                   : 'text-slate-650 hover:text-slate-850 hover:underline hover:underline-offset-2'
               }`}
             >
-              <span>• {sec.label}</span>
-              {sec.disabled && <Lock className="w-3 h-3 text-slate-300" />}
+              <span>{sec.label}</span>
             </button>
           ))}
         </nav>

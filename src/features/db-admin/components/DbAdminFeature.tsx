@@ -207,6 +207,25 @@ const TABLES: TableDefinition[] = [
       { name: 'chPromptVersion', label: 'Version', type: 'number', required: true },
       { name: 'chIntentId', label: 'Intent ID (UUID)', type: 'uuid', required: true }
     ]
+  },
+  {
+    id: 'mbr_stories',
+    name: 'Member Stories',
+    endpoint: '/mbr-stories',
+    primaryKey: 'mbrStoryId',
+    searchField: 'mbrStoryTitle',
+    fields: [
+      { name: 'mbrMbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrStoryTypeCd', label: 'Story Type Code', type: 'string', required: true },
+      { name: 'mbrStoryPublishStatusCd', label: 'Publish Status Code', type: 'string', required: true },
+      { name: 'mbrStoryTitle', label: 'Title', type: 'string', required: true },
+      { name: 'mbrStoryContent', label: 'Content', type: 'string', required: false },
+      { name: 'mbrStoryVersion', label: 'Version', type: 'number', required: true },
+      { name: 'mbrStoryStartDate', label: 'Start Date', type: 'date', required: false },
+      { name: 'mbrStoryEndDate', label: 'End Date', type: 'date', required: false },
+      { name: 'mbrStoryThreadID', label: 'Story Thread ID', type: 'string', required: false },
+      { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false }
+    ]
   }
 ];
 
@@ -243,6 +262,21 @@ const getInitialMockData = (tableId: string): any[] => {
     case 'chPrompts':
       return [
         { chPromptId: 'd7cf92f1-f8a1-43ee-b4c8-b2a123f9ab7c', chPromptName: 'Elaborate Sensory Prompt', chPromptContent: 'Prompt focusing on sights, smells, and sounds.', chPromptActInd: true, chPromptVersion: 1, chIntentId: '98fac10e-a61f-49ff-88ec-a6cbef6542a1', chPromptCreatedAt: now, chPromptUpdatedAt: now }
+      ];
+    case 'mbr_stories':
+      return [
+        {
+          mbrStoryId: 'st_fam_1',
+          mbrMbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrStoryTypeCd: 'sbMbrStryFamly',
+          mbrStoryPublishStatusCd: 'Draft',
+          mbrStoryTitle: 'Sunday Mornings at Harold’s Dock',
+          mbrStoryContent: 'Every Sunday after morning services, the family would gather near the harbor. Harold would untie the wooden skiff and take us out past the breakwater to watch the fog roll off the headlands.',
+          mbrStoryVersion: 1,
+          mbrStoryStartDate: '1965-06-12',
+          mbrStoryCreatedAt: now,
+          mbrStoryUpdatedAt: now
+        }
       ];
     default:
       return [];
@@ -504,7 +538,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
           <div>
             <h1 className="text-xl font-serif font-black tracking-tight">Database Administration Center</h1>
             <p className="text-xs text-slate-300 mt-1">
-              Select any of the 12 system tables to manage user accounts, storyteller profiles, and chatbot states.
+              Select any of the 13 system tables to manage user accounts, storyteller profiles, chatbot states, and member stories.
             </p>
           </div>
         </div>

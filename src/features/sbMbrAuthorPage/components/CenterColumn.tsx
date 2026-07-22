@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import StoryMatePanel from './StoryMatePanel';
+import StoryEditorPanel from './StoryEditorPanel';
 import SbMbrAuthorProfile from './SbMbrAuthorProfile';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
 import SbMbrStryFamily from './SbMbrStryFamily';
@@ -30,6 +31,48 @@ export default function CenterColumn({
   onClickBack,
   onSaveActiveContent
 }: CenterColumnProps) {
+  const [showStoryMate, setShowStoryMate] = useState(false);
+  const [storyEditorConfig, setStoryEditorConfig] = useState<{ topicId: string; topicTitle: string; componentName?: string } | null>(null);
+
+  // Hide StoryMate panel and StoryEditor panel whenever the active topic/section changes
+  useEffect(() => {
+    setShowStoryMate(false);
+    setStoryEditorConfig(null);
+  }, [activeSection]);
+
+  useEffect(() => {
+    const handleOpen = () => {
+      setShowStoryMate(true);
+      setTimeout(() => {
+        const el = document.getElementById('story-mate-panel');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    };
+    window.addEventListener('open-story-mate', handleOpen);
+    return () => window.removeEventListener('open-story-mate', handleOpen);
+  }, []);
+
+  useEffect(() => {
+    const handleOpenEditor = (e: any) => {
+      const detail = e.detail || {};
+      setStoryEditorConfig({
+        topicId: detail.topicId || activeSection,
+        topicTitle: detail.topicTitle || 'Section',
+        componentName: detail.componentName
+      });
+      setTimeout(() => {
+        const el = document.getElementById('story-editor-panel');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    };
+    window.addEventListener('open-story-editor', handleOpenEditor);
+    return () => window.removeEventListener('open-story-editor', handleOpenEditor);
+  }, [activeSection]);
+
   return (
     <div className="space-y-6 flex flex-col">
       
@@ -47,45 +90,62 @@ export default function CenterColumn({
       {/* --- PROFILE SUMMARY CARD --- */}
       <SbMbrAuthorProfile isSandbox={isSandbox} />
 
-      {/* --- ACTIVE SECTION CONTENT AREA --- */}
-      <SbMbrBookEditor
-        sectionTitle={activeSection}
-        content={activeContent}
-        onSave={onSaveActiveContent}
-      />
+      {/* --- ACTIVE BOOK EDITOR (FOR INTRODUCTION & DEMOGRAPHICS) --- */}
+      {(activeSection === 'introduction' || activeSection === 'demographics') && (
+        <SbMbrBookEditor
+          sectionTitle={activeSection}
+          content={activeContent}
+          onSave={onSaveActiveContent}
+        />
+      )}
 
       {/* --- FAMILY DIRECTORY PANEL --- */}
-      {activeSection === 'introduction' && (
+      {activeSection === 'family' && (
         <SbMbrStryFamily isSandbox={isSandbox} />
       )}
 
       {/* --- RESIDENCES PANEL --- */}
-      {activeSection === 'introduction' && (
+      {activeSection === 'residencies' && (
         <SbMbrStryResidence isSandbox={isSandbox} />
       )}
 
       {/* --- ACTIVITIES & HOBBIES PANEL --- */}
-      {activeSection === 'introduction' && (
+      {activeSection === 'hobbies' && (
         <SbMbrStryActivity isSandbox={isSandbox} />
       )}
 
       {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
-      {activeSection === 'introduction' && (
+      {activeSection === 'achievements' && (
         <SbMbrStryAchievement isSandbox={isSandbox} />
       )}
 
       {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
-      {activeSection === 'introduction' && (
+      {activeSection === 'education' && (
         <SbMbrStryEducation isSandbox={isSandbox} />
       )}
 
       {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
-      {activeSection === 'introduction' && (
+      {activeSection === 'employment' && (
         <SbMbrStryEmployment isSandbox={isSandbox} />
       )}
 
+      {storyEditorConfig && (
+        <StoryEditorPanel
+          topicId={storyEditorConfig.topicId}
+          topicTitle={storyEditorConfig.topicTitle}
+          componentName={storyEditorConfig.componentName}
+          isSandbox={isSandbox}
+          onClose={() => setStoryEditorConfig(null)}
+        />
+      )}
+
       {/* --- STORY MATE PANEL --- */}
-      <StoryMatePanel memberName="Eleanor" />
+      {showStoryMate && (
+        <StoryMatePanel
+          memberName="Eleanor"
+          onClose={() => setShowStoryMate(false)}
+        />
+      )}
 
     </div>
   );
