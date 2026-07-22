@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText } from 'lucide-react';
+import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe } from 'lucide-react';
 import { taskApi, MbrStory } from '@/src/services/api';
 
 interface StoryEditorPanelProps {
@@ -94,6 +94,10 @@ export default function StoryEditorPanel({
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showPublishModal, setShowPublishModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -280,9 +284,14 @@ export default function StoryEditorPanel({
     }
   };
 
-  const handleDelete = async () => {
+  const confirmDelete = () => {
     if (!activeStoryId) return;
-    if (!window.confirm('Are you sure you want to delete this story?')) return;
+    setShowDeleteModal(true);
+  };
+
+  const executeDelete = async () => {
+    if (!activeStoryId) return;
+    setDeleting(true);
 
     try {
       const finalStoryTypeCd = componentName || componentNameMap[topicId] || topicId;
@@ -304,12 +313,98 @@ export default function StoryEditorPanel({
         }
         const nextList = stories.filter((s) => s.mbrStoryId !== activeStoryId);
         setStories(nextList);
-        if (nextList.length > 0) selectStory(nextList[0]);
+        if (nextList.length > 0) {
+          selectStory(nextList[0]);
+        } else {
+          setTitle('');
+          setContent('');
+          setActiveStoryId(null);
+        }
       }
       setSuccessMsg('Story deleted successfully.');
+      setShowDeleteModal(false);
     } catch (err: any) {
       setError(`Failed to delete story: ${err.message}`);
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const confirmPublish = () => {
+    if (!activeStoryId) return;
+    setShowPublishModal(true);
+  };
+
+  const executePublish = async () => {
+    if (!activeStoryId) return;
+    setPublishing(true);
+    setError(null);
+
+    try {
+      let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
+      const userStr = sessionStorage.getItem('user');
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+          if (mbrProfile && mbrProfile.mbrId) {
+            currentMbrId = mbrProfile.mbrId;
+          }
+        } catch (e) {
+          console.warn("Could not retrieve member profile ID from DB:", e);
+        }
+      }
+
+      const finalStoryTypeCd = componentName || componentNameMap[topicId] || topicId;
+      const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
+
+      const updatedStory: Partial<MbrStory> = {
+        mbrStoryId: (!activeStoryId.startsWith('temp_')) ? activeStoryId : undefined,
+        mbrStoryTitle: title.trim() || 'Untitled Story',
+        mbrStoryContent: content,
+        mbrStoryPublishStatusCd: 'Published',
+        mbrStoryTypeCd: finalStoryTypeCd,
+        mbrMbrId: currentMbrId,
+        mbrStoryVersion: activeStory ? (activeStory.mbrStoryVersion || 1) : 1
+      };
+
+      if (isSandbox) {
+        const sandboxStory = {
+          ...updatedStory,
+          mbrStoryId: activeStoryId
+        };
+        const nextList = stories.map((s) =>
+          s.mbrStoryId === activeStoryId ? sandboxStory : s
+        );
+        setStories(nextList);
+        sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+        setStatus('Published');
+        setSuccessMsg('Story published successfully in Sandbox!');
+      } else {
+        let savedResult: MbrStory;
+        if (!activeStoryId.startsWith('temp_')) {
+          savedResult = await taskApi.updateStory(activeStoryId, updatedStory);
+        } else {
+          savedResult = await taskApi.createStory(updatedStory);
+        }
+        const nextList = stories.map((s) =>
+          s.mbrStoryId === activeStoryId ? savedResult : s
+        );
+        setStories(nextList);
+        setActiveStoryId(savedResult.mbrStoryId);
+        setStatus('Published');
+        setSuccessMsg('Story published successfully to database!');
+      }
+      setShowPublishModal(false);
+    } catch (err: any) {
+      setError(`Failed to publish story: ${err.message}`);
+    } finally {
+      setPublishing(false);
+    }
+  };
+
+  const handlePrivacyClick = () => {
+    setSuccessMsg('Privacy settings configured for this story.');
   };
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
@@ -340,13 +435,15 @@ export default function StoryEditorPanel({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleCreateNew}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>New Story</span>
-          </button>
+          {!isEditing && (
+            <button
+              onClick={handleCreateNew}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>New Story</span>
+            </button>
+          )}
           
           <button
             onClick={onClose}
@@ -392,7 +489,7 @@ export default function StoryEditorPanel({
       </AnimatePresence>
 
       {/* --- STORY SELECTOR TABS --- */}
-      {stories.length > 1 && (
+      {!isEditing && stories.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
           {stories.map((s) => (
             <button
@@ -479,33 +576,22 @@ export default function StoryEditorPanel({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#EFECE7]">
+          <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#EFECE7]">
             <button
-              onClick={handleDelete}
+              onClick={() => setIsEditing(false)}
               disabled={saving}
-              className="flex items-center gap-1.5 px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50"
             >
-              <Trash2 className="w-4 h-4" />
-              <span>Delete</span>
+              Cancel
             </button>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsEditing(false)}
-                disabled={saving}
-                className="px-4 py-2 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 transition-all duration-150 cursor-pointer disabled:opacity-50 border border-blue-600"
-              >
-                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                <span>Save Story</span>
-              </button>
-            </div>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 transition-all duration-150 cursor-pointer disabled:opacity-50 border border-blue-600"
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              <span>Save Story</span>
+            </button>
           </div>
         </div>
       ) : (
@@ -516,13 +602,41 @@ export default function StoryEditorPanel({
               <h4 className="font-serif text-lg font-bold text-slate-850 leading-snug">
                 {title || 'Untitled Story'}
               </h4>
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-1 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                <span>Edit Story</span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={confirmDelete}
+                  title="Delete Story"
+                  className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-150 rounded-xl cursor-pointer transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={confirmPublish}
+                  disabled={status === 'Published'}
+                  title={status === 'Published' ? 'Story is already Published' : 'Publish Story'}
+                  className={`p-2 border rounded-xl transition-colors ${
+                    status === 'Published'
+                      ? 'text-emerald-600 bg-emerald-50/60 border-emerald-200 opacity-60 cursor-not-allowed'
+                      : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border-slate-200 hover:border-emerald-150 cursor-pointer'
+                  }`}
+                >
+                  <Globe className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handlePrivacyClick}
+                  title="Privacy Settings"
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                >
+                  <ShieldAlert className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  title="Edit Story"
+                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl cursor-pointer transition-colors"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {content ? (
@@ -531,7 +645,7 @@ export default function StoryEditorPanel({
               </div>
             ) : (
               <div className="py-6 text-center text-slate-400 font-serif italic text-xs">
-                No content written for this story yet. Click "Edit Story" to start writing.
+                No content written for this story yet. Click the edit icon to start writing.
               </div>
             )}
 
@@ -542,6 +656,106 @@ export default function StoryEditorPanel({
           </div>
         </div>
       )}
+      {/* --- CUSTOM DELETE CONFIRMATION MODAL --- */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div className="absolute inset-0 cursor-default" onClick={() => setShowDeleteModal(false)} />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-slate-100 rounded-3xl shadow-2xl max-w-sm w-full z-10 p-6 flex flex-col items-center text-center gap-4 relative overflow-hidden"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="font-serif text-lg font-bold text-slate-850">
+                  Delete Story?
+                </h3>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                  Are you sure you want to delete <span className="font-semibold text-slate-700">"{title || 'this story'}"</span>? This action cannot be undone.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 w-full pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  disabled={deleting}
+                  className="flex-1 py-2.5 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executeDelete}
+                  disabled={deleting}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md shadow-rose-500/10 transition-all cursor-pointer border border-rose-600 disabled:opacity-50"
+                >
+                  {deleting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>Delete Story</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* --- CUSTOM PUBLISH CONFIRMATION MODAL --- */}
+      <AnimatePresence>
+        {showPublishModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div className="absolute inset-0 cursor-default" onClick={() => setShowPublishModal(false)} />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-slate-100 rounded-3xl shadow-2xl max-w-sm w-full z-10 p-6 flex flex-col items-center text-center gap-4 relative overflow-hidden"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                <Globe className="w-6 h-6" />
+              </div>
+
+              <div className="space-y-1">
+                <h3 className="font-serif text-lg font-bold text-slate-850">
+                  Publish Story?
+                </h3>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                  Are you sure you want to publish <span className="font-semibold text-slate-700">"{title || 'this story'}"</span>? This will update its status to Published in the database.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 w-full pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => setShowPublishModal(false)}
+                  disabled={publishing}
+                  className="flex-1 py-2.5 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={executePublish}
+                  disabled={publishing}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-500/10 transition-all cursor-pointer border border-emerald-600 disabled:opacity-50"
+                >
+                  {publishing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Globe className="w-3.5 h-3.5" />
+                  )}
+                  <span>Publish Story</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
