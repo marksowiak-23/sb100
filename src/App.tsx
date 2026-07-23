@@ -28,9 +28,10 @@ import { SbMbrAuthorPageFeature } from '@/src/features/sbMbrAuthorPage';
 import { SbMbrLogonFeature } from '@/src/features/sbMbrLogon';
 import { MbrProfileFeature } from '@/src/features/mbrProfile';
 import DbAdminFeature from '@/src/features/db-admin/components/DbAdminFeature';
+import { AdminCacheManagement } from '@/src/features/admin-cache';
 
 // Define a TypeScript type to restrict activeTab to only these string values.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'mbrProfile' | 'db-admin';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'mbrProfile' | 'db-admin' | 'adminCacheManagement';
 
 export default function App() {
   // --- STATE DEFINITIONS ---
@@ -267,6 +268,19 @@ export default function App() {
             className="w-full"
           >
             <DbAdminFeature isSandbox={isSandbox} />
+          </motion.div>
+        )}
+        {/* If the active tab is 'adminCacheManagement', render the Admin Cache Management Page */}
+        {activeTab === 'adminCacheManagement' && (
+          <motion.div
+            key="adminCacheManagement-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <AdminCacheManagement isSandbox={isSandbox} />
           </motion.div>
         )}
       </AnimatePresence>

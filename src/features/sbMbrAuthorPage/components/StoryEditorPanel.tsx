@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe } from 'lucide-react';
+import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles } from 'lucide-react';
 import { taskApi, MbrStory } from '@/src/services/api';
 
 interface StoryEditorPanelProps {
@@ -100,6 +100,22 @@ export default function StoryEditorPanel({
   const [showPublishModal, setShowPublishModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | undefined>(undefined);
+  const [activeIntentId, setActiveIntentId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const handleContentUpdate = (e: any) => {
+      const detail = e.detail || {};
+      if (detail.content) {
+        setContent(detail.content);
+        if (detail.threadId) setActiveThreadId(detail.threadId);
+        if (detail.intentId) setActiveIntentId(detail.intentId);
+        setSuccessMsg('Story content updated from StoryMate AI!');
+      }
+    };
+    window.addEventListener('update-story-editor-content', handleContentUpdate);
+    return () => window.removeEventListener('update-story-editor-content', handleContentUpdate);
+  }, []);
 
   useEffect(() => {
     loadStories();
@@ -177,6 +193,8 @@ export default function StoryEditorPanel({
     setTitle(story.mbrStoryTitle || '');
     setContent(story.mbrStoryContent || '');
     setStatus(story.mbrStoryPublishStatusCd || 'Draft');
+    setActiveThreadId(story.mbrStoryThreadID);
+    setActiveIntentId(story.chIntentId);
     setIsEditing(false);
     setError(null);
     setSuccessMsg(null);
@@ -239,7 +257,9 @@ export default function StoryEditorPanel({
         mbrStoryPublishStatusCd: status,
         mbrStoryTypeCd: finalStoryTypeCd,
         mbrMbrId: currentMbrId,
-        mbrStoryVersion: version
+        mbrStoryVersion: version,
+        mbrStoryThreadID: activeThreadId,
+        chIntentId: activeIntentId,
       };
 
       if (isSandbox) {
@@ -365,7 +385,9 @@ export default function StoryEditorPanel({
         mbrStoryPublishStatusCd: 'Published',
         mbrStoryTypeCd: finalStoryTypeCd,
         mbrMbrId: currentMbrId,
-        mbrStoryVersion: activeStory ? (activeStory.mbrStoryVersion || 1) : 1
+        mbrStoryVersion: activeStory ? (activeStory.mbrStoryVersion || 1) : 1,
+        mbrStoryThreadID: activeThreadId,
+        chIntentId: activeIntentId,
       };
 
       if (isSandbox) {
@@ -576,22 +598,48 @@ export default function StoryEditorPanel({
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-end gap-3 pt-2 border-t border-[#EFECE7]">
+          <div className="flex items-center justify-between pt-2 border-t border-[#EFECE7]">
             <button
-              onClick={() => setIsEditing(false)}
-              disabled={saving}
-              className="px-4 py-2 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50"
+              type="button"
+              onClick={() => {
+                const compName = componentName || componentNameMap[topicId] || topicId;
+                window.dispatchEvent(new CustomEvent('open-story-mate', {
+                  detail: {
+                    componentName: compName,
+                    topicId,
+                    topicTitle,
+                    activeStoryId,
+                    mbrStoryThreadID: activeThreadId,
+                    chIntentId: activeIntentId,
+                    storyTitle: title,
+                    storyContent: content,
+                  }
+                }));
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-800 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              title="StoryMate AI Assistant"
             >
-              Cancel
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>StoryMate AI</span>
             </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 transition-all duration-150 cursor-pointer disabled:opacity-50 border border-blue-600"
-            >
-              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-              <span>Save Story</span>
-            </button>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsEditing(false)}
+                disabled={saving}
+                className="px-4 py-2 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 transition-all duration-150 cursor-pointer disabled:opacity-50 border border-blue-600"
+              >
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                <span>Save Story</span>
+              </button>
+            </div>
           </div>
         </div>
       ) : (

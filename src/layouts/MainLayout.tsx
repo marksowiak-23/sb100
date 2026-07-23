@@ -8,7 +8,7 @@ import { User, ChevronDown, BookOpen } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 
 // Restrict values for the tab parameter.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'sbMbrLogon' | 'db-admin';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement';
 
 // Define the interface (contract) for the props this component expects to receive.
 // React components receive data from their parent component via "props" (properties).
@@ -174,6 +174,19 @@ export default function MainLayout({
                       }`}
                     >
                       Database Admin
+                    </div>
+                    <div
+                      onClick={() => {
+                        setActiveTab('adminCacheManagement');
+                        setDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                        activeTab === 'adminCacheManagement'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Cache Management
                     </div>
                     <div
                       onClick={() => {

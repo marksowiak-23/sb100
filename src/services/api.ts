@@ -556,6 +556,16 @@ export const adminDbApi = {
     return handleResponse<any[]>(response);
   },
 
+  async getRecord(endpoint: string, id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}${endpoint}/${id}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
   async createRecord(endpoint: string, data: any): Promise<any> {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
@@ -588,6 +598,16 @@ export const adminDbApi = {
       },
     });
     return handleResponse<any>(response);
+  },
+
+  async clearCache(): Promise<{ status: string; message: string }> {
+    const response = await fetch(`${API_BASE_URL}/admin/cache/clear`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<{ status: string; message: string }>(response);
   },
 };
 

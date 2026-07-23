@@ -297,13 +297,6 @@ export default function SbMbrStryEducation({ isSandbox }: SbMbrStryEducationProp
               <BookOpen className="w-3.5 h-3.5 text-blue-500" />
             </button>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-story-mate'))}
-              className="p-2.5 text-slate-400 hover:text-amber-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title="StoryMate AI Assistant"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            </button>
-            <button
               onClick={() => alert('Opening Privacy settings for education...')}
               className="p-2.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
               title="Privacy settings"

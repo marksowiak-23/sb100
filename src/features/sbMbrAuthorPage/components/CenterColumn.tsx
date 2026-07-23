@@ -35,13 +35,36 @@ export default function CenterColumn({
   const [storyEditorConfig, setStoryEditorConfig] = useState<{ topicId: string; topicTitle: string; componentName?: string } | null>(null);
 
   // Hide StoryMate panel and StoryEditor panel whenever the active topic/section changes
+  const [storyMateConfig, setStoryMateConfig] = useState<{
+    componentName?: string;
+    topicId?: string;
+    topicTitle?: string;
+    activeStoryId?: string;
+    mbrStoryThreadID?: string;
+    chIntentId?: string;
+    storyTitle?: string;
+    storyContent?: string;
+  } | null>(null);
+
   useEffect(() => {
     setShowStoryMate(false);
+    setStoryMateConfig(null);
     setStoryEditorConfig(null);
   }, [activeSection]);
 
   useEffect(() => {
-    const handleOpen = () => {
+    const handleOpen = (e: any) => {
+      const detail = e?.detail || {};
+      setStoryMateConfig({
+        componentName: detail.componentName,
+        topicId: detail.topicId || activeSection,
+        topicTitle: detail.topicTitle,
+        activeStoryId: detail.activeStoryId,
+        mbrStoryThreadID: detail.mbrStoryThreadID,
+        chIntentId: detail.chIntentId,
+        storyTitle: detail.storyTitle,
+        storyContent: detail.storyContent,
+      });
       setShowStoryMate(true);
       setTimeout(() => {
         const el = document.getElementById('story-mate-panel');
@@ -52,7 +75,7 @@ export default function CenterColumn({
     };
     window.addEventListener('open-story-mate', handleOpen);
     return () => window.removeEventListener('open-story-mate', handleOpen);
-  }, []);
+  }, [activeSection]);
 
   useEffect(() => {
     const handleOpenEditor = (e: any) => {
@@ -143,7 +166,16 @@ export default function CenterColumn({
       {showStoryMate && (
         <StoryMatePanel
           memberName="Eleanor"
-          onClose={() => setShowStoryMate(false)}
+          componentName={storyMateConfig?.componentName}
+          topicId={storyMateConfig?.topicId || activeSection}
+          storyTitle={storyMateConfig?.storyTitle}
+          storyContent={storyMateConfig?.storyContent}
+          mbrStoryThreadID={storyMateConfig?.mbrStoryThreadID}
+          chIntentId={storyMateConfig?.chIntentId}
+          onClose={() => {
+            setShowStoryMate(false);
+            setStoryMateConfig(null);
+          }}
         />
       )}
 
