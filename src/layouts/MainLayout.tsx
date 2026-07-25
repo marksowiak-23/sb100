@@ -5,10 +5,10 @@
 
 import React from 'react';
 import { User, ChevronDown, BookOpen } from 'lucide-react';
-import { taskApi } from '@/src/services/api';
+import { taskApi, resolveMediaUrl } from '@/src/services/api';
 
 // Restrict values for the tab parameter.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
 
 // Define the interface (contract) for the props this component expects to receive.
 // React components receive data from their parent component via "props" (properties).
@@ -58,7 +58,8 @@ export default function MainLayout({
           const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
           if (mbrProfile) {
             const cachedPic = sessionStorage.getItem(`session_pic_${mbrProfile.mbrId}`);
-            setProfilePic(cachedPic || mbrProfile.mbrProfilePic || null);
+            const resolved = resolveMediaUrl(cachedPic || mbrProfile.mbrProfilePic);
+            setProfilePic(resolved || null);
           }
         }
       } catch (e) {
@@ -187,6 +188,19 @@ export default function MainLayout({
                       }`}
                     >
                       Cache Management
+                    </div>
+                    <div
+                      onClick={() => {
+                        setActiveTab('adminMedia');
+                        setDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                        activeTab === 'adminMedia'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Media Storage Admin
                     </div>
                     <div
                       onClick={() => {

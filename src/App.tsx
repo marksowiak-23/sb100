@@ -12,6 +12,7 @@ import React, { useState, useEffect } from 'react';
 
 // Import animation tools from motion. AnimatePresence is used to animate components when they are unmounted/removed.
 import { motion, AnimatePresence } from 'motion/react';
+import { AlertTriangle, X } from 'lucide-react';
 
 // Import our custom API helper client.
 import { taskApi } from '@/src/services/api';
@@ -29,9 +30,10 @@ import { SbMbrLogonFeature } from '@/src/features/sbMbrLogon';
 import { MbrProfileFeature } from '@/src/features/mbrProfile';
 import DbAdminFeature from '@/src/features/db-admin/components/DbAdminFeature';
 import { AdminCacheManagement } from '@/src/features/admin-cache';
+import { AdminMediaManagement } from '@/src/features/admin-media';
 
 // Define a TypeScript type to restrict activeTab to only these string values.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'mbrProfile' | 'db-admin' | 'adminCacheManagement';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'mbrProfile' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
 
 export default function App() {
   // --- STATE DEFINITIONS ---
@@ -59,6 +61,25 @@ export default function App() {
   
   // Determines if the app should run using offline sandbox data. If the backend is unreachable, this falls back to true.
   const [isSandbox, setIsSandbox] = useState(false);
+
+  // Unsaved member profile changes guard state
+  const [isProfileDirty, setIsProfileDirty] = useState(false);
+  const [showAppDiscardModal, setShowAppDiscardModal] = useState(false);
+  const [pendingTab, setPendingTab] = useState<TabType | null>(null);
+
+  const forceNavigateAway = (newTab: TabType) => {
+    setIsProfileDirty(false);
+    setActiveTab(newTab);
+  };
+
+  const handleTabChange = (newTab: TabType) => {
+    if (activeTab === 'mbrProfile' && isProfileDirty && newTab !== 'mbrProfile') {
+      setPendingTab(newTab);
+      setShowAppDiscardModal(true);
+    } else {
+      setActiveTab(newTab);
+    }
+  };
 
   // --- SIDE EFFECTS (useEffect) ---
   // useEffect runs after the component renders on the screen.
@@ -100,9 +121,66 @@ export default function App() {
   return (
     <MainLayout
       activeTab={activeTab}
-      setActiveTab={setActiveTab}
+      setActiveTab={handleTabChange}
       isSandbox={isSandbox}
     >
+      {/* App-level Unsaved Changes Discard Modal when navigating via top nav tabs */}
+      <AnimatePresence>
+        {showAppDiscardModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white border border-[#EFECE7] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAppDiscardModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-serif font-bold text-lg text-slate-800">Unsaved Profile Changes</h3>
+                <p className="text-xs text-slate-500 font-serif leading-relaxed">
+                  You have modified fields on your member profile settings. If you navigate to another page now, your changes will be discarded.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAppDiscardModal(false)}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer"
+                >
+                  Keep Editing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAppDiscardModal(false);
+                    setIsProfileDirty(false);
+                    if (pendingTab) {
+                      setActiveTab(pendingTab);
+                      setPendingTab(null);
+                    }
+                  }}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer shadow-xs"
+                >
+                  Discard & Leave
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       {/* AnimatePresence coordinates transition effects between our screens. */}
       {/* mode="wait" ensures the old screen completes its fade-out before the new one fades in. */}
       <AnimatePresence mode="wait">
@@ -253,7 +331,8 @@ export default function App() {
           >
             <MbrProfileFeature
               isSandbox={isSandbox}
-              onClickBack={() => setActiveTab('sbMbrHomePage')}
+              onClickBack={() => forceNavigateAway('sbMbrHomePage')}
+              onDirtyChange={setIsProfileDirty}
             />
           </motion.div>
         )}
@@ -281,6 +360,19 @@ export default function App() {
             className="w-full"
           >
             <AdminCacheManagement isSandbox={isSandbox} />
+          </motion.div>
+        )}
+        {/* If the active tab is 'adminMedia', render the Admin Media Management Page */}
+        {activeTab === 'adminMedia' && (
+          <motion.div
+            key="adminMedia-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <AdminMediaManagement isSandbox={isSandbox} />
           </motion.div>
         )}
       </AnimatePresence>

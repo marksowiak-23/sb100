@@ -652,4 +652,157 @@ export const chatApi = {
   }
 };
 
+export interface MediaObject {
+  name: string;
+  size: number;
+  content_type: string;
+  updated: string;
+  public_url: string;
+  metadata?: Record<string, any>;
+}
+
+export interface MediaListResponse {
+  bucket: string;
+  count: number;
+  items: MediaObject[];
+}
+
+export interface MediaUploadResponse {
+  message: string;
+  data: MediaObject;
+}
+
+export interface SignedUrlResponse {
+  bucket: string;
+  object_name: string;
+  signed_url: string;
+  method: string;
+  expiration_minutes: number;
+}
+
+const MEDIA_API_BASE_URL = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
+
+export const mediaApi = {
+  /**
+   * Check connection health of FastAPI Media service.
+   */
+  async checkHealth(): Promise<{ status: string; service: string; bucket: string; bucket_status: string }> {
+    const response = await fetch(`${MEDIA_API_BASE_URL}/health`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<{ status: string; service: string; bucket: string; bucket_status: string }>(response);
+  },
+
+  /**
+   * Upload an image/media file to Cloud Storage via sb-api-media.
+   */
+  async uploadMedia(file: File, destinationPath?: string): Promise<MediaUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (destinationPath && destinationPath.trim() !== '') {
+      formData.append('destination_path', destinationPath.trim());
+    }
+    const response = await fetch(`${MEDIA_API_BASE_URL}/media/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    return handleResponse<MediaUploadResponse>(response);
+  },
+
+  /**
+   * List media objects in GCS bucket with optional prefix and max results limit.
+   */
+  async listMedia(prefix?: string, maxResults: number = 100): Promise<MediaListResponse> {
+    let url = `${MEDIA_API_BASE_URL}/media/list?max_results=${maxResults}`;
+    if (prefix && prefix.trim() !== '') {
+      url += `&prefix=${encodeURIComponent(prefix.trim())}`;
+    }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MediaListResponse>(response);
+  },
+
+  /**
+   * Fetch object metadata.
+   */
+  async getMetadata(objectName: string): Promise<MediaObject> {
+    const response = await fetch(`${MEDIA_API_BASE_URL}/media/metadata/${encodeURIComponent(objectName)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MediaObject>(response);
+  },
+
+  /**
+   * Delete a media object from GCS bucket.
+   */
+  async deleteMedia(objectName: string): Promise<{ message: string; bucket: string }> {
+    const response = await fetch(`${MEDIA_API_BASE_URL}/media/${encodeURIComponent(objectName)}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<{ message: string; bucket: string }>(response);
+  },
+
+  /**
+   * Generate a GCS Signed URL for direct access/download.
+   */
+  async createSignedUrl(objectName: string, method: string = 'GET', expirationMinutes: number = 15): Promise<SignedUrlResponse> {
+    const response = await fetch(`${MEDIA_API_BASE_URL}/media/signed-url`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        object_name: objectName,
+        method: method,
+        expiration_minutes: expirationMinutes,
+      }),
+    });
+    return handleResponse<SignedUrlResponse>(response);
+  },
+
+  /**
+   * Get direct streaming read URL for media content display.
+   */
+  getReadUrl(objectName: string): string {
+    return `${MEDIA_API_BASE_URL}/media/read/${objectName}`;
+  }
+};
+
+/**
+ * Resolves direct private GCS object URLs (https://storage.googleapis.com/sb-media-01/... or gs://sb-media-01/...)
+ * to authenticated media streaming proxy URLs (http://localhost:8003/media/read/...) for browser rendering.
+ */
+export function resolveMediaUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  const mediaBase = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
+  const gcsPrefix = 'https://storage.googleapis.com/sb-media-01/';
+  const gsPrefix = 'gs://sb-media-01/';
+
+  if (url.startsWith(gcsPrefix)) {
+    const objectPath = url.substring(gcsPrefix.length);
+    return `${mediaBase}/media/read/${objectPath}`;
+  }
+  if (url.startsWith(gsPrefix)) {
+    const objectPath = url.substring(gsPrefix.length);
+    return `${mediaBase}/media/read/${objectPath}`;
+  }
+  return url;
+}
+
+
+
 

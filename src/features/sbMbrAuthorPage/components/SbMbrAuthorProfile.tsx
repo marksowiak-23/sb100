@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MapPin, BookOpen, Calendar, Loader2 } from 'lucide-react';
-import { taskApi } from '@/src/services/api';
+import { taskApi, resolveMediaUrl } from '@/src/services/api';
 
 interface SbMbrAuthorProfileProps {
   isSandbox: boolean;
@@ -61,7 +61,7 @@ export default function SbMbrAuthorProfile({ isSandbox }: SbMbrAuthorProfileProp
           const cachedPic = sessionStorage.getItem(`session_pic_${mbr.mbrId}`);
           setProfile({
             ...mbr,
-            mbrProfilePic: cachedPic || mbr.mbrProfilePic
+            mbrProfilePic: resolveMediaUrl(cachedPic || mbr.mbrProfilePic)
           });
 
           // Fetch member residence for location

@@ -3,28 +3,56 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Camera, User, Calendar, Save, ArrowLeft, Loader2, 
-  CheckCircle2, AlertCircle, Image as ImageIcon, Sparkles, Upload 
+  CheckCircle2, AlertCircle, Image as ImageIcon, Sparkles, Upload,
+  AlertTriangle, X
 } from 'lucide-react';
-import { taskApi } from '@/src/services/api';
+import { taskApi, mediaApi, resolveMediaUrl } from '@/src/services/api';
 
 interface MbrProfileFeatureProps {
   isSandbox: boolean;
   onClickBack: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
-const PRESET_AVATARS = [
-  { name: 'Classic Portrait', url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format' },
-  { name: 'Professional Male', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&auto=format' },
-  { name: 'Warm Female', url: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=150&h=150&fit=crop&auto=format' },
-  { name: 'Modern Male', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&auto=format' },
-  { name: 'Casual Studio', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&auto=format' }
+const GILLIGAN_AVATARS = [
+  { name: 'Gilligan', url: '/avatars/gilligan.png' },
+  { name: 'The Skipper', url: '/avatars/skipper.png' },
+  { name: 'Mary Ann', url: '/avatars/mary_ann.png' }
 ];
 
-export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfileFeatureProps) {
+const SCOOBY_AVATARS = [
+  { name: 'Scooby-Doo', url: '/avatars/scooby.png' },
+  { name: 'Shaggy', url: '/avatars/shaggy.png' },
+  { name: 'Velma', url: '/avatars/velma.png' },
+  { name: 'Fred', url: '/avatars/fred.png' },
+  { name: 'Daphne', url: '/avatars/daphne.png' }
+];
+
+const PEANUTS_AVATARS = [
+  { name: 'Charlie Brown', url: '/avatars/charlie_brown.png' },
+  { name: 'Snoopy', url: '/avatars/snoopy.png' },
+  { name: 'Linus', url: '/avatars/linus.png' },
+  { name: 'Lucy', url: '/avatars/lucy.png' },
+  { name: 'Woodstock', url: '/avatars/woodstock.png' }
+];
+
+const GENERAL_AVATARS = [
+  { name: 'Happy Felix', url: 'https://api.dicebear.com/7.x/big-smile/svg?seed=Felix' },
+  { name: 'Cool Sammy', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sammy' },
+  { name: 'Adventurer Bella', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Bella' },
+  { name: 'Charming Oliver', url: 'https://api.dicebear.com/7.x/lorelei/svg?seed=Oliver' },
+  { name: 'Robot Toby', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Toby' },
+  { name: 'Stylist Charlie', url: 'https://api.dicebear.com/7.x/micah/svg?seed=Charlie' },
+  { name: 'Doodle Alex', url: 'https://api.dicebear.com/7.x/croodles/svg?seed=Alex' },
+  { name: 'Friendly Jordan', url: 'https://api.dicebear.com/7.x/open-peeps/svg?seed=Jordan' }
+];
+
+
+export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChange }: MbrProfileFeatureProps) {
   // --- STATE DEFINITIONS ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -47,6 +75,47 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
 
   // Local state for image upload preview (data URL)
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  // Unsaved changes tracking state
+  const [initialData, setInitialData] = useState<{ formData: typeof formData; previewImage: string | null } | null>(null);
+  const [showDiscardModal, setShowDiscardModal] = useState(false);
+
+  // Compute dirty status (true if any field was changed from initial loaded state)
+  const isDirty = useMemo(() => {
+    if (!initialData) return false;
+    return (
+      formData.mbrFirstName !== initialData.formData.mbrFirstName ||
+      formData.mbrLastName !== initialData.formData.mbrLastName ||
+      formData.mbrMiddleName !== initialData.formData.mbrMiddleName ||
+      formData.mbrBirthDate !== initialData.formData.mbrBirthDate ||
+      formData.mbrDeathDate !== initialData.formData.mbrDeathDate ||
+      formData.mbrGenderCd !== initialData.formData.mbrGenderCd ||
+      formData.mbrBiography !== initialData.formData.mbrBiography ||
+      formData.mbrProfilePic !== initialData.formData.mbrProfilePic ||
+      previewImage !== initialData.previewImage
+    );
+  }, [formData, previewImage, initialData]);
+
+  // Notify parent component of dirty state changes
+  useEffect(() => {
+    if (onDirtyChange) {
+      onDirtyChange(isDirty);
+    }
+  }, [isDirty, onDirtyChange]);
+
+  // Browser level protection (beforeunload prompt when reloading/closing tab)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   // --- DATA LOADING (useEffect) ---
   useEffect(() => {
@@ -77,6 +146,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
           setMbrId(mbr.mbrId);
           setFormData(mbr);
           setPreviewImage(mbr.mbrProfilePic);
+          setInitialData({ formData: mbr, previewImage: mbr.mbrProfilePic });
         } else {
           // Initialize default Eleanor Hartwell template for sandbox
           const defaultMbr = {
@@ -93,6 +163,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
           setMbrId('sandbox-id-eleanor');
           setFormData(defaultMbr);
           setPreviewImage(defaultMbr.mbrProfilePic);
+          setInitialData({ formData: defaultMbr, previewImage: defaultMbr.mbrProfilePic });
         }
       } else {
         // --- LIVE DATABASE MODE ---
@@ -100,7 +171,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
           const mbr = await taskApi.getMemberByUserId(u.user_id);
           if (mbr) {
             setMbrId(mbr.mbrId);
-            setFormData({
+            const resolvedPic = resolveMediaUrl(mbr.mbrProfilePic || '');
+            const loadedForm = {
               mbrFirstName: mbr.mbrFirstName || '',
               mbrLastName: mbr.mbrLastName || '',
               mbrMiddleName: mbr.mbrMiddleName || '',
@@ -108,18 +180,21 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
               mbrDeathDate: mbr.mbrDeathDate || '',
               mbrGenderCd: mbr.mbrGenderCd || '',
               mbrBiography: mbr.mbrBiography || '',
-              mbrProfilePic: mbr.mbrProfilePic || ''
-            });
+              mbrProfilePic: resolvedPic
+            };
+            setFormData(loadedForm);
             // If the saved profile picture is stored locally for session
             const cachedPic = sessionStorage.getItem(`session_pic_${mbr.mbrId}`);
-            setPreviewImage(cachedPic || mbr.mbrProfilePic || '');
+            const finalPreview = resolveMediaUrl(cachedPic) || resolvedPic || '';
+            setPreviewImage(finalPreview);
+            setInitialData({ formData: loadedForm, previewImage: finalPreview });
           }
         } catch (err: any) {
           // If profile is not found (404), we auto-populate a draft to let them create it!
           if (err.message.includes('404') || err.message.includes('not found')) {
             console.log("No member profile found, initializing creation draft");
             const names = u.username.split('.');
-            setFormData({
+            const draftForm = {
               mbrFirstName: names[0] ? names[0].charAt(0).toUpperCase() + names[0].slice(1) : 'Mark',
               mbrLastName: names[1] ? names[1].charAt(0).toUpperCase() + names[1].slice(1) : 'Sowiak',
               mbrMiddleName: '',
@@ -128,7 +203,9 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
               mbrGenderCd: 'Male',
               mbrBiography: 'Co-authored narrative story biography workspace.',
               mbrProfilePic: ''
-            });
+            };
+            setFormData(draftForm);
+            setInitialData({ formData: draftForm, previewImage: '' });
           } else {
             throw err;
           }
@@ -189,15 +266,17 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
 
         setSuccess("Sandbox member profile updated successfully!");
         setMbrId(updatedMbr.mbrId);
+        setInitialData({ formData: { ...payload, mbrProfilePic: payload.mbrProfilePic || '' }, previewImage: previewImage });
       } else {
         // Save live database
         if (mbrId) {
           // UPDATE
           const res = await taskApi.updateMember(mbrId, payload);
           setSuccess("Member profile updated successfully in sbDB100!");
-          if (res.mbrId && previewImage && previewImage.startsWith('data:image')) {
-            sessionStorage.setItem(`session_pic_${res.mbrId}`, previewImage);
+          if (res.mbrId && payload.mbrProfilePic) {
+            sessionStorage.setItem(`session_pic_${res.mbrId}`, payload.mbrProfilePic);
           }
+          setInitialData({ formData: { ...payload, mbrProfilePic: payload.mbrProfilePic || '' }, previewImage: previewImage });
         } else {
           // CREATE
           // We call taskApi to create member record using FastAPI POST /mbrs
@@ -216,9 +295,10 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
           const res = await response.json();
           setMbrId(res.mbrId);
           setSuccess("Member profile created successfully in sbDB100!");
-          if (res.mbrId && previewImage && previewImage.startsWith('data:image')) {
-            sessionStorage.setItem(`session_pic_${res.mbrId}`, previewImage);
+          if (res.mbrId && payload.mbrProfilePic) {
+            sessionStorage.setItem(`session_pic_${res.mbrId}`, payload.mbrProfilePic);
           }
+          setInitialData({ formData: { ...payload, mbrProfilePic: payload.mbrProfilePic || '' }, previewImage: previewImage });
         }
       }
     } catch (err: any) {
@@ -229,32 +309,75 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
     }
   };
 
-  // --- IMAGE UPLOAD SIMULATION ---
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // State for image upload status
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  // --- IMAGE UPLOAD TO CLOUD STORAGE ---
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      // Check file size (limit base64 encoding to reasonable size)
-      if (file.size > 2 * 1024 * 1024) {
-        setError("Please choose an image file under 2MB.");
-        return;
+    if (!file) return;
+
+    // Validate file type is a valid display image (.jpg, .jpeg, .png, .gif, .webp, .svg)
+    const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    const validExtensions = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+
+    if (!validMimeTypes.includes(file.type) && !validExtensions.test(file.name)) {
+      setError("Invalid file type. Please select a valid image file (.png, .jpg, .jpeg, .webp, .gif, .svg).");
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Please choose an image file under 10MB.");
+      e.target.value = '';
+      return;
+    }
+
+    setUploadingImage(true);
+    setError(null);
+    setSuccess(null);
+
+    // Instant local preview in display window while uploading
+    const localObjectUrl = URL.createObjectURL(file);
+    setPreviewImage(localObjectUrl);
+
+    try {
+      // Determine member ID or generate a draft ID
+      let targetMbrId = mbrId;
+      if (!targetMbrId) {
+        targetMbrId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `mbr-${Date.now()}`;
+        setMbrId(targetMbrId);
       }
 
+      // Required Cloud Storage folder path: /member/{mbrId}/profile/{filename}
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const destinationPath = `member/${targetMbrId}/profile/${cleanFileName}`;
+
+      // Perform upload to Google Cloud Storage via sb-api-media
+      const uploadRes = await mediaApi.uploadMedia(file, destinationPath);
+
+      const mediaBase = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
+      const rawUrl = uploadRes.data?.name ? `${mediaBase}/media/read/${uploadRes.data.name}` : `${mediaBase}/media/read/${destinationPath}`;
+      const storageUrl = resolveMediaUrl(rawUrl);
+
+      // Refresh picture in display window and form state
+      setFormData((prev) => ({ ...prev, mbrProfilePic: storageUrl }));
+      setPreviewImage(storageUrl);
+      setSuccess("Image uploaded successfully.");
+    } catch (err: any) {
+      console.error("Error uploading image to cloud storage:", err);
+      // Fallback to Base64 data URL for preview if offline or media service unreachable
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64Url = reader.result as string;
         setPreviewImage(base64Url);
-
-        // If sandbox, we can store full base64 data url.
-        // If live mode, we store a mock cloud storage URL in the database (since column is VARCHAR(500)),
-        // but store the actual base64 file locally for current session display.
-        if (isSandbox) {
-          setFormData((prev) => ({ ...prev, mbrProfilePic: base64Url }));
-        } else {
-          const simulatedUrl = `https://example.com/profiles/avatar_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
-          setFormData((prev) => ({ ...prev, mbrProfilePic: simulatedUrl }));
-        }
+        setFormData((prev) => ({ ...prev, mbrProfilePic: base64Url }));
       };
       reader.readAsDataURL(file);
+      setSuccess("Image uploaded successfully.");
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
     }
   };
 
@@ -262,6 +385,43 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
   const handleSelectPreset = (url: string) => {
     setPreviewImage(url);
     setFormData((prev) => ({ ...prev, mbrProfilePic: url }));
+  };
+
+  // Handler for explicit Cancel button: directly reverts changes and leaves without popup prompt
+  const handleExplicitCancel = () => {
+    if (initialData) {
+      setFormData(initialData.formData);
+      setPreviewImage(initialData.previewImage);
+    }
+    if (onDirtyChange) {
+      onDirtyChange(false);
+    }
+    setTimeout(() => {
+      onClickBack();
+    }, 0);
+  };
+
+  // Navigation guard helper for top back button
+  const handleAttemptBack = () => {
+    if (isDirty) {
+      setShowDiscardModal(true);
+    } else {
+      onClickBack();
+    }
+  };
+
+  const handleConfirmDiscard = () => {
+    setShowDiscardModal(false);
+    if (initialData) {
+      setFormData(initialData.formData);
+      setPreviewImage(initialData.previewImage);
+    }
+    if (onDirtyChange) {
+      onDirtyChange(false);
+    }
+    setTimeout(() => {
+      onClickBack();
+    }, 0);
   };
 
   if (loading) {
@@ -276,13 +436,64 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
   }
 
   return (
-    <div className="w-full max-w-3xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 md:p-10 shadow-[0_12px_40px_rgba(0,0,0,0.02)] animate-fade-in">
+    <div className="w-full max-w-3xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 md:p-10 shadow-[0_12px_40px_rgba(0,0,0,0.02)] animate-fade-in relative">
       
+      {/* --- UNSAVED CHANGES CONFIRMATION MODAL --- */}
+      <AnimatePresence>
+        {showDiscardModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white border border-[#EFECE7] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDiscardModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-50 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-serif font-bold text-lg text-slate-800">Unsaved Changes</h3>
+                <p className="text-xs text-slate-500 font-serif leading-relaxed">
+                  You have modified fields on your member profile settings. If you leave or cancel now, your unsaved changes will be lost.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDiscardModal(false)}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer"
+                >
+                  Keep Editing
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmDiscard}
+                  className="w-full sm:w-auto px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer shadow-xs"
+                >
+                  Discard Changes
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#EFECE7] mb-8">
         <div className="flex items-center gap-3">
           <button 
-            onClick={onClickBack}
+            onClick={handleAttemptBack}
             className="p-2 bg-slate-50 hover:bg-slate-100 border border-[#EFECE7] text-slate-600 rounded-xl transition-all cursor-pointer"
             title="Go Back"
           >
@@ -336,9 +547,9 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
           </div>
 
           <div className="flex flex-col md:flex-row items-center gap-8">
-            {/* Avatar Preview */}
-            <div className="relative group">
-              <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-100 flex items-center justify-center shrink-0">
+            {/* Avatar Preview & Upload Button */}
+            <div className="flex flex-col items-center gap-3 shrink-0">
+              <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-100 flex items-center justify-center relative">
                 {previewImage ? (
                   <img 
                     src={previewImage} 
@@ -348,88 +559,133 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
                 ) : (
                   <User className="w-12 h-12 text-slate-300" />
                 )}
+
+                {uploadingImage && (
+                  <div className="absolute inset-0 bg-slate-900/70 flex flex-col items-center justify-center text-white gap-1.5 z-10">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                    <span className="text-[9px] font-bold">Uploading...</span>
+                  </div>
+                )}
               </div>
               
               <label 
                 htmlFor="avatar-upload" 
-                className="absolute inset-0 bg-slate-900/60 flex flex-col items-center justify-center text-white rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer text-[10px] font-bold font-sans gap-1"
+                className={`inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm transition-all duration-150 ${
+                  uploadingImage ? 'opacity-50 pointer-events-none' : 'hover:scale-[1.02] active:scale-[0.98]'
+                }`}
               >
-                <Upload className="w-4 h-4" />
-                <span>Upload New</span>
+                <Upload className="w-3.5 h-3.5" />
+                <span>{uploadingImage ? 'Uploading...' : 'Upload Image'}</span>
               </label>
               
               <input 
                 id="avatar-upload"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
                 onChange={handleImageChange}
+                disabled={uploadingImage}
                 className="hidden"
               />
             </div>
 
-            {/* Upload Options & Presets */}
-            <div className="flex-grow space-y-4 w-full">
+            {/* Options & Character Preset Collections in 2-row Scroll Window */}
+            <div className="flex-grow space-y-2.5 w-full">
               <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Preset Premium Avatars</span>
-                <p className="text-[11px] text-slate-450 font-serif leading-relaxed">Choose a default premium portrait option for your layout:</p>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Featured Character Avatars</span>
+                <p className="text-[11px] text-slate-450 font-serif leading-relaxed">Choose a classic TV cast or cartoon avatar (scroll to view all casts):</p>
               </div>
 
-              <div className="flex flex-wrap gap-3">
-                {PRESET_AVATARS.map((avatar, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSelectPreset(avatar.url)}
-                    className={`w-10 h-10 rounded-xl overflow-hidden border transition-all cursor-pointer hover:scale-105 active:scale-95 ${
-                      formData.mbrProfilePic === avatar.url 
-                        ? 'border-blue-500 ring-2 ring-blue-500/20' 
-                        : 'border-[#EFECE7] hover:border-slate-450'
-                    }`}
-                    title={avatar.name}
-                  >
-                    <img src={avatar.url} alt={avatar.name} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-
-              {/* Direct URL Inputs */}
-              <div className="pt-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block mb-1">Direct Image URL</label>
-                <div className="flex gap-2">
-                  <div className="relative flex-grow">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <ImageIcon className="w-3.5 h-3.5" />
-                    </div>
-                    <input 
-                      type="text" 
-                      placeholder="https://example.com/your-profile-pic.jpg"
-                      value={formData.mbrProfilePic.startsWith('data:image') ? 'Uploaded Local File (Base64)' : formData.mbrProfilePic}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val.trim() === '') {
-                          setPreviewImage(null);
-                        } else if (!val.startsWith('Uploaded Local File')) {
-                          setPreviewImage(val);
-                        }
-                        setFormData((prev) => ({ ...prev, mbrProfilePic: val }));
-                      }}
-                      className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl pl-9 pr-3 py-2 text-slate-700 transition-colors"
-                      disabled={formData.mbrProfilePic.startsWith('data:image')}
-                    />
+              {/* Scrollable Container (Shows ~2 rows at a time) */}
+              <div className="max-h-[185px] overflow-y-auto pr-2 space-y-3.5 border border-[#EFECE7] rounded-2xl p-3 bg-white/70 shadow-inner">
+                
+                {/* Gilligan's Island Collection */}
+                <div className="space-y-1.5">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono block">Gilligan's Island Cast</span>
+                  <div className="flex flex-wrap gap-2.5">
+                    {GILLIGAN_AVATARS.map((avatar, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSelectPreset(avatar.url)}
+                        className={`w-11 h-11 rounded-2xl overflow-hidden border p-1 bg-white transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-xs ${
+                          formData.mbrProfilePic === avatar.url 
+                            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30' 
+                            : 'border-[#EFECE7] hover:border-slate-400'
+                        }`}
+                        title={avatar.name}
+                      >
+                        <img src={avatar.url} alt={avatar.name} className="w-full h-full object-cover rounded-xl" />
+                      </button>
+                    ))}
                   </div>
-                  {formData.mbrProfilePic.startsWith('data:image') && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPreviewImage(null);
-                        setFormData((prev) => ({ ...prev, mbrProfilePic: '' }));
-                      }}
-                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 border border-[#EFECE7] text-slate-650 hover:text-slate-800 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-                    >
-                      Clear File
-                    </button>
-                  )}
                 </div>
+
+                {/* Scooby-Doo Collection */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono block">Scooby-Doo Cast</span>
+                  <div className="flex flex-wrap gap-2.5">
+                    {SCOOBY_AVATARS.map((avatar, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSelectPreset(avatar.url)}
+                        className={`w-11 h-11 rounded-2xl overflow-hidden border p-1 bg-white transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-xs ${
+                          formData.mbrProfilePic === avatar.url 
+                            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30' 
+                            : 'border-[#EFECE7] hover:border-slate-400'
+                        }`}
+                        title={avatar.name}
+                      >
+                        <img src={avatar.url} alt={avatar.name} className="w-full h-full object-cover rounded-xl" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Peanuts Collection */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono block">Peanuts Cast</span>
+                  <div className="flex flex-wrap gap-2.5">
+                    {PEANUTS_AVATARS.map((avatar, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSelectPreset(avatar.url)}
+                        className={`w-11 h-11 rounded-2xl overflow-hidden border p-1 bg-white transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-xs ${
+                          formData.mbrProfilePic === avatar.url 
+                            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30' 
+                            : 'border-[#EFECE7] hover:border-slate-400'
+                        }`}
+                        title={avatar.name}
+                      >
+                        <img src={avatar.url} alt={avatar.name} className="w-full h-full object-cover rounded-xl" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* General Cartoon Collection */}
+                <div className="space-y-1.5 pt-1">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono block">General Avatars</span>
+                  <div className="flex flex-wrap gap-2.5">
+                    {GENERAL_AVATARS.map((avatar, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSelectPreset(avatar.url)}
+                        className={`w-11 h-11 rounded-2xl overflow-hidden border p-1 bg-white transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-xs ${
+                          formData.mbrProfilePic === avatar.url 
+                            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30' 
+                            : 'border-[#EFECE7] hover:border-slate-400'
+                        }`}
+                        title={avatar.name}
+                      >
+                        <img src={avatar.url} alt={avatar.name} className="w-full h-full object-contain" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
               </div>
             </div>
           </div>
@@ -476,7 +732,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Birth Date</label>
               <div className="relative">
@@ -487,16 +743,6 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
                   className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
                 />
               </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Death Date (Historical)</label>
-              <input 
-                type="date" 
-                value={formData.mbrDeathDate}
-                onChange={(e) => setFormData((prev) => ({ ...prev, mbrDeathDate: e.target.value }))}
-                className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
-              />
             </div>
 
             <div className="space-y-1">
@@ -540,7 +786,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack }: MbrProfile
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#EFECE7]">
           <button
             type="button"
-            onClick={onClickBack}
+            onClick={handleExplicitCancel}
             className="px-6 py-2.5 bg-transparent hover:bg-slate-50 text-slate-650 hover:text-slate-800 border border-transparent hover:border-[#EFECE7] rounded-xl text-xs font-bold font-sans transition-all cursor-pointer"
           >
             Cancel

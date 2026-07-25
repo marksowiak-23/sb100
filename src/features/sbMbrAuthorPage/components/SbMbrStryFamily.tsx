@@ -366,26 +366,24 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
           </div>
         ) : (
           <div className="max-h-[268px] overflow-y-auto pr-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
               {familyList.map((member) => (
                 <div
                   key={member.mbrFamilyId}
-                  className="bg-white border border-[#EFECE7] rounded-2xl p-4 flex items-center gap-4 hover:border-slate-300 hover:shadow-[0_4px_12px_rgba(0,0,0,0.015)] transition-all duration-200"
+                  className="bg-white border border-[#EFECE7] rounded-xl py-2 px-2.5 flex items-center gap-2.5 hover:border-slate-300 hover:shadow-xs transition-all duration-200"
                 >
                   {/* Initials Avatar */}
-                  <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 font-serif font-black text-sm shrink-0">
+                  <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 font-serif font-bold text-xs shrink-0">
                     {getInitials(member.mbrFamilyFirstNm, member.mbrFamilyLastNm)}
                   </div>
 
                   <div className="min-w-0 flex-grow">
-                    <h3 className="font-serif text-sm font-bold text-slate-805 truncate leading-snug">
-                      {member.mbrFamilyFirstNm}{' '}
-                      {member.mbrFamilyMiddleNm ? `${member.mbrFamilyMiddleNm} ` : ''}
-                      {member.mbrFamilyLastNm}
+                    <h3 className="font-serif text-xs font-bold text-slate-800 truncate leading-snug">
+                      {member.mbrFamilyFirstNm} {member.mbrFamilyLastNm}
                     </h3>
                     
                     {/* Badged relationship category */}
-                    <span className="inline-flex mt-1 items-center px-2 py-0.5 text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-100/50 rounded-full uppercase tracking-wider">
+                    <span className="inline-flex mt-0.5 items-center px-1.5 py-0.2 text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-100/50 rounded-full uppercase tracking-wider">
                       {getRelationLabel(member.mbrFamilyRelationshipCd)}
                     </span>
                   </div>
