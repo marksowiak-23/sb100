@@ -301,6 +301,13 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
           setInitialData({ formData: { ...payload, mbrProfilePic: payload.mbrProfilePic || '' }, previewImage: previewImage });
         }
       }
+
+      if (onDirtyChange) {
+        onDirtyChange(false);
+      }
+      setTimeout(() => {
+        onClickBack();
+      }, 0);
     } catch (err: any) {
       console.error("Error saving member profile:", err);
       setError(`Failed to save changes: ${err.message}`);

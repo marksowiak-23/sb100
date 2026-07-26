@@ -67,12 +67,16 @@ export default function App() {
   const [showAppDiscardModal, setShowAppDiscardModal] = useState(false);
   const [pendingTab, setPendingTab] = useState<TabType | null>(null);
 
-  const forceNavigateAway = (newTab: TabType) => {
+  const forceNavigateAway = (targetTab?: TabType) => {
     setIsProfileDirty(false);
-    setActiveTab(newTab);
+    const dest = (targetTab && targetTab !== 'mbrProfile') ? targetTab : (previousTab && previousTab !== 'mbrProfile' ? previousTab : 'sbMbrHomePage');
+    setActiveTab(dest);
   };
 
   const handleTabChange = (newTab: TabType) => {
+    if (newTab !== activeTab && activeTab !== 'mbrProfile') {
+      setPreviousTab(activeTab);
+    }
     if (activeTab === 'mbrProfile' && isProfileDirty && newTab !== 'mbrProfile') {
       setPendingTab(newTab);
       setShowAppDiscardModal(true);
@@ -331,7 +335,7 @@ export default function App() {
           >
             <MbrProfileFeature
               isSandbox={isSandbox}
-              onClickBack={() => forceNavigateAway('sbMbrHomePage')}
+              onClickBack={() => forceNavigateAway()}
               onDirtyChange={setIsProfileDirty}
             />
           </motion.div>
