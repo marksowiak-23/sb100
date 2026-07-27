@@ -139,10 +139,11 @@ export default function StoryMatePanel({
     return newId;
   });
 
-  // Intent, Instruction, Prompt state
+  // Intent, Instruction, Prompt, and Writer Persona state
   const [intentRecord, setIntentRecord] = useState<any>(null);
   const [instructionText, setInstructionText] = useState<string>('');
   const [promptText, setPromptText] = useState<string>('');
+  const [writerPersona, setWriterPersona] = useState<any>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
 
@@ -152,13 +153,14 @@ export default function StoryMatePanel({
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  // Lookup Intent, Hierarchical Instructions, and Prompt
+  // Lookup Intent, Hierarchical Instructions, Prompt, and Member chWriter Preference
   useEffect(() => {
     let isMounted = true;
     const loadAIContext = async () => {
       let resolvedIntent: any = null;
       let resolvedInst = '';
       let resolvedPrompt = '';
+      let activeWriter: any = null;
 
       try {
         // 1. Fetch intents
@@ -227,10 +229,67 @@ export default function StoryMatePanel({
       if (!resolvedInst) resolvedInst = (FALLBACK_INTENT_MAP[componentName] || FALLBACK_INTENT_MAP.sbMbrStryFamly).inst;
       if (!resolvedPrompt) resolvedPrompt = (FALLBACK_INTENT_MAP[componentName] || FALLBACK_INTENT_MAP.sbMbrStryFamly).prompt;
 
+      // 4. Lookup Member Preference & selected chWriter persona instructions
+      try {
+        let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+          try {
+            const u = JSON.parse(userStr);
+            const mbr = await taskApi.getMemberByUserId(u.user_id);
+            if (mbr && mbr.mbrId) currentMbrId = mbr.mbrId;
+          } catch (e) {
+            console.warn("Could not resolve member ID for preferences:", e);
+          }
+        }
+
+        let prefRecord: any = null;
+        const savedPref = sessionStorage.getItem('sandbox_mbr_preferences');
+        if (savedPref) {
+          try { prefRecord = JSON.parse(savedPref); } catch (e) {}
+        }
+        if (!prefRecord) {
+          try {
+            prefRecord = await taskApi.getMemberPreferences(currentMbrId);
+          } catch (e) {
+            console.warn("No preferences record found for member:", e);
+          }
+        }
+
+        const chWriterId = prefRecord?.chWriterId;
+
+        let writers: any[] = [];
+        try {
+          writers = await taskApi.getChWriters();
+        } catch (e) {
+          console.warn("Could not query /chWriters, using fallback personas:", e);
+        }
+
+        if (!writers || writers.length === 0) {
+          writers = [
+            { chWriterId: 'w1', chWriterName: 'Everyday Eddie', chWriterDesc: 'Common & Informal', chWriterPrompt: 'Use the “Everyday Eddie” writing mode. Write in a casual, conversational style with simple language and a friendly tone. Avoid jargon. Keep explanations easy, relatable, and down to earth, like a helpful friend talking over coffee.' },
+            { chWriterId: 'w2', chWriterName: 'Clarity Consultant', chWriterDesc: 'Professional', chWriterPrompt: 'Use a “Clarity Consultant” writing mode. Write in a professional, structured, and polished style. Maintain a confident, neutral tone. Prioritize clarity, accuracy, and efficiency. Avoid slang and emotional language. Format content cleanly with logical transitions.' },
+            { chWriterId: 'w3', chWriterName: 'Casual Chuckles', chWriterDesc: 'Common + Humor', chWriterPrompt: 'Use a “Casual Chuckles” writing mode. Write in a conversational style with light humor, friendly sarcasm, and playful metaphors. Keep the message clear but add personality. Make the reader smile without distracting from the main point.' },
+            { chWriterId: 'w4', chWriterName: 'The Polished Guide', chWriterDesc: 'Professional + Warm', chWriterPrompt: 'Use a “Polished Guide” writing mode. Write in a professional yet approachable style. Maintain a warm, encouraging tone. Blend clarity with empathy. Offer guidance that feels supportive, respectful, and easy to follow.' },
+            { chWriterId: 'w5', chWriterName: 'The Story Crafter', chWriterDesc: 'Creative & Expressive', chWriterPrompt: 'Use a “Story Crafter” writing mode. Write in a narrative, descriptive, and imaginative style. Use sensory detail, metaphor, and emotional depth. Make the content feel alive, atmospheric, and engaging.' }
+          ];
+        }
+
+        if (chWriterId) {
+          activeWriter = writers.find((w: any) => w.chWriterId === chWriterId);
+        }
+        if (!activeWriter && writers.length > 0) {
+          activeWriter = writers[0];
+        }
+      } catch (err) {
+        console.warn("Error looking up chWriter persona preference:", err);
+      }
+
       if (isMounted) {
         setIntentRecord(resolvedIntent);
         setInstructionText(resolvedInst);
         setPromptText(resolvedPrompt);
+        setWriterPersona(activeWriter);
 
         // Initialize starting Cassie prompt greeting
         const nameToUse = displayFirstName || memberName;
@@ -258,10 +317,11 @@ export default function StoryMatePanel({
     setLoading(true);
 
     const isWriteRequest = userText.toLowerCase().includes('write') || userText.toLowerCase().includes('draft') || userText.toLowerCase().includes('generate story');
+    const personaInstruction = writerPersona?.chWriterPrompt ? ` [Writing Persona Style: ${writerPersona.chWriterPrompt}]` : '';
 
     try {
       const result = await chatApi.sendMessage(
-        `[Instruction: ${instructionText}] [Prompt: ${promptText}] ${userText}`,
+        `[Instruction: ${instructionText}] [Prompt: ${promptText}]${personaInstruction} ${userText}`,
         threadId,
         displayFirstName
       );
@@ -281,15 +341,16 @@ export default function StoryMatePanel({
       setTimeout(() => {
         let cassieReply = '';
         const lowercaseUser = userText.toLowerCase();
+        const personaStyleNotice = writerPersona?.chWriterName ? ` (${writerPersona.chWriterName} mode)` : '';
 
         if (isWriteRequest) {
-          cassieReply = `Here is a drafted story based on our conversation:\n\n"${storyTitle || 'Memoir'}: ${userText}. The vivid memories of these days remain clear and meaningful. Looking back, those experiences shaped my journey and taught me lessons that I carry with me to this day."`;
+          cassieReply = `Here is a drafted story based on our conversation${personaStyleNotice}:\n\n"${storyTitle || 'Memoir'}: ${userText}. The vivid memories of these days remain clear and meaningful. Looking back, those experiences shaped my journey and taught me lessons that I carry with me to this day."`;
         } else if (lowercaseUser.includes('childhood') || lowercaseUser.includes('kid') || lowercaseUser.includes('grow up')) {
-          cassieReply = `Growing up with those experiences is such a sensory memory, ${displayFirstName}. Applying our ${intentRecord?.chIntentName || 'intent'} focus: what specific smells, sights, or feelings do you remember most clearly?`;
+          cassieReply = `Growing up with those experiences is such a sensory memory, ${displayFirstName}. Applying our ${intentRecord?.chIntentName || 'intent'} focus${personaStyleNotice}: what specific smells, sights, or feelings do you remember most clearly?`;
         } else if (lowercaseUser.includes('family') || lowercaseUser.includes('parent') || lowercaseUser.includes('grandparent')) {
-          cassieReply = `That family connection sounds like an anchor in your story. What was a specific moment or tradition you shared that stands out most?`;
+          cassieReply = `That family connection sounds like an anchor in your story${personaStyleNotice}. What was a specific moment or tradition you shared that stands out most?`;
         } else {
-          cassieReply = `That is a wonderful detail to include. Building on our ${intentRecord?.chIntentName || 'story'} prompt: how would you like us to phrase this in your final story narrative? Say 'write story' anytime you would like me to compile our chat!`;
+          cassieReply = `That is a wonderful detail to include. Building on our ${intentRecord?.chIntentName || 'story'} prompt${personaStyleNotice}: how would you like us to phrase this in your final story narrative? Say 'write story' anytime you would like me to compile our chat!`;
         }
 
         setMessages((prev) => [
@@ -331,16 +392,24 @@ export default function StoryMatePanel({
             <Sparkles className="w-3.5 h-3.5" />
           </div>
           <div>
-            <h3 className="font-serif text-xs font-bold text-slate-850 flex items-center gap-1.5">
+            <h3 className="font-serif text-xs font-bold text-slate-850 flex items-center gap-1.5 flex-wrap">
               <span>StoryMate AI</span>
               {intentRecord?.chIntentName && (
                 <span className="text-[9px] font-sans font-semibold bg-amber-50 text-amber-800 border border-amber-200/80 px-2 py-0.5 rounded-full">
                   {intentRecord.chIntentName}
                 </span>
               )}
+              {writerPersona?.chWriterName && (
+                <span
+                  className="text-[9px] font-sans font-semibold bg-blue-50 text-blue-800 border border-blue-200/80 px-2 py-0.5 rounded-full"
+                  title={writerPersona.chWriterPrompt}
+                >
+                  ✨ Persona: {writerPersona.chWriterName}
+                </span>
+              )}
             </h3>
             <p className="text-[9px] font-mono text-slate-400 font-semibold uppercase tracking-wider">
-              Assisting {displayFirstName} • Intent & Prompt Active
+              Assisting {displayFirstName} • Style: {writerPersona?.chWriterName || 'Default'}
             </p>
           </div>
         </div>

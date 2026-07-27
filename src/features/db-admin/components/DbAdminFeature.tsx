@@ -16,7 +16,7 @@ import { adminDbApi } from '@/src/services/api';
 interface TableField {
   name: string;
   label: string;
-  type: 'string' | 'number' | 'boolean' | 'date' | 'uuid';
+  type: 'string' | 'number' | 'boolean' | 'date' | 'uuid' | 'textarea';
   required: boolean;
   placeholder?: string;
 }
@@ -225,6 +225,34 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrStoryEndDate', label: 'End Date', type: 'date', required: false },
       { name: 'mbrStoryThreadID', label: 'Story Thread ID', type: 'string', required: false },
       { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false }
+    ]
+  },
+  {
+    id: 'chWriters',
+    name: 'Story Craft Personas',
+    endpoint: '/chWriters',
+    primaryKey: 'chWriterId',
+    searchField: 'chWriterName',
+    fields: [
+      { name: 'chWriterName', label: 'Persona Name', type: 'string', required: true, placeholder: 'e.g. Everyday Eddie' },
+      { name: 'chWriterDesc', label: 'Description', type: 'string', required: false, placeholder: 'e.g. Common & Informal' },
+      { name: 'chWriterPrompt', label: 'System Prompt', type: 'textarea', required: true, placeholder: 'Writing mode instructions...' },
+      { name: 'chWriterActInd', label: 'Active Indicator', type: 'boolean', required: true }
+    ]
+  },
+  {
+    id: 'mbrPreferences',
+    name: 'Member Preferences',
+    endpoint: '/mbr-preferences',
+    primaryKey: 'mbrPrefId',
+    searchField: 'mbrPrefTheme',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'chWriterId', label: 'Story Craft Persona ID (UUID)', type: 'uuid', required: false },
+      { name: 'mbrPrefTheme', label: 'UI Theme', type: 'string', required: false, placeholder: 'System / Light / Dark' },
+      { name: 'mbrPrefNotificationsInd', label: 'Enable Notifications', type: 'boolean', required: true },
+      { name: 'mbrPrefAutoSaveInd', label: 'Enable Auto Save', type: 'boolean', required: true },
+      { name: 'mbrPrefJson', label: 'Custom Preferences (JSON)', type: 'string', required: false }
     ]
   }
 ];
@@ -774,7 +802,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white border border-slate-100 rounded-3xl shadow-2xl max-w-lg w-full z-10 overflow-hidden flex flex-col relative"
+              className="bg-white border border-slate-100 rounded-3xl shadow-2xl max-w-xl w-full z-10 overflow-hidden flex flex-col relative"
             >
               <div className="bg-[#122347] text-white px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -791,7 +819,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
                 </button>
               </div>
 
-              <form onSubmit={handleFormSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+              <form onSubmit={handleFormSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
                 {selectedTable.fields.map((field) => (
                   <div key={field.name} className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-slate-700 flex items-center gap-0.5">
@@ -820,14 +848,14 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
                         onChange={(e) => handleInputChange(field.name, e.target.value)}
                         className="bg-white border border-[#EFECE7] text-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 w-full"
                       />
-                    ) : selectedTable.id === 'chInsts' && field.name === 'chInstContent' ? (
+                    ) : field.type === 'textarea' || field.name === 'chWriterPrompt' || field.name === 'chInstContent' || field.name === 'chPromptContent' || field.name === 'mbrStoryContent' || field.name === 'mbrPrefJson' ? (
                       <textarea
                         required={field.required}
-                        rows={6}
+                        rows={5}
                         placeholder={field.placeholder}
                         value={formData[field.name] || ''}
                         onChange={(e) => handleInputChange(field.name, e.target.value)}
-                        className="bg-white border border-[#EFECE7] text-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 w-full resize-none font-mono"
+                        className="bg-white border border-[#EFECE7] text-slate-800 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-blue-500 w-full resize-y font-serif leading-relaxed"
                       />
                     ) : (
                       <input

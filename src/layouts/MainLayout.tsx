@@ -8,7 +8,7 @@ import { User, ChevronDown, BookOpen } from 'lucide-react';
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
 
 // Restrict values for the tab parameter.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
+type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
 
 // Define the interface (contract) for the props this component expects to receive.
 // React components receive data from their parent component via "props" (properties).
@@ -149,6 +149,19 @@ export default function MainLayout({
                       }`}
                     >
                       Member Profile
+                    </div>
+                    <div
+                      onClick={() => {
+                        setActiveTab('mbrPreferences');
+                        setDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                        activeTab === 'mbrPreferences'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Member Preferences
                     </div>
                     <div
                       onClick={() => {

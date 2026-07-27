@@ -177,6 +177,51 @@ export const taskApi = {
   },
 
   /**
+   * Fetch list of story craft writer personas.
+   */
+  async getChWriters(): Promise<any[]> {
+    const response = await fetch(`${API_BASE_URL}/chWriters?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    return handleResponse<any[]>(response);
+  },
+
+  /**
+   * Fetch preferences for a given member ID.
+   */
+  async getMemberPreferences(mbrId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-preferences/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Save member preferences (Create or Update).
+   */
+  async saveMemberPreferences(mbrPrefId: string | null, payload: any): Promise<any> {
+    const method = mbrPrefId ? 'PUT' : 'POST';
+    const url = mbrPrefId ? `${API_BASE_URL}/mbr-preferences/${mbrPrefId}` : `${API_BASE_URL}/mbr-preferences`;
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
    * Fetch lookup codes by category tag.
    */
   async getLookupCodes(tag: string): Promise<any[]> {
