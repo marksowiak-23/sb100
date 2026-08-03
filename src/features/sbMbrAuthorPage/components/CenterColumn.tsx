@@ -15,6 +15,7 @@ import SbMbrStryActivity from './SbMbrStryActivity';
 import SbMbrStryAchievement from './SbMbrStryAchievement';
 import SbMbrStryEducation from './SbMbrStryEducation';
 import SbMbrStryEmployment from './SbMbrStryEmployment';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
   isSandbox: boolean;
@@ -97,7 +98,7 @@ export default function CenterColumn({
   }, [activeSection]);
 
   return (
-    <div className="space-y-6 flex flex-col">
+    <div className="space-y-6 flex flex-col relative">
       
       {/* --- BACK NAVIGATION LINK --- */}
       <div>
@@ -112,15 +113,6 @@ export default function CenterColumn({
 
       {/* --- PROFILE SUMMARY CARD --- */}
       <SbMbrAuthorProfile isSandbox={isSandbox} />
-
-      {/* --- ACTIVE BOOK EDITOR (FOR INTRODUCTION & DEMOGRAPHICS) --- */}
-      {(activeSection === 'introduction' || activeSection === 'demographics') && (
-        <SbMbrBookEditor
-          sectionTitle={activeSection}
-          content={activeContent}
-          onSave={onSaveActiveContent}
-        />
-      )}
 
       {/* --- FAMILY DIRECTORY PANEL --- */}
       {activeSection === 'family' && (
@@ -179,6 +171,7 @@ export default function CenterColumn({
         />
       )}
 
+      <AdminComponentTag name="CenterColumn" />
     </div>
   );
 }

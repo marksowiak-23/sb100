@@ -8,10 +8,11 @@ import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import { MEMBER_STORIES } from '../constants/memberData';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbPublicPageFeatureProps {
-  setActiveTab: (tab: any) => void;
-  onClickReadStory?: (memberId: string) => void;
+  setActiveTab: (tab: 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia') => void;
+  onClickReadStory: (storyId: string) => void;
   onSelectLogonType?: (type: 'Google' | 'Apple') => void;
 }
 
@@ -31,7 +32,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
   });
 
   return (
-    <div className="w-full">
+    <div className="w-full relative">
       {/* 3-Column Responsive Grid Structure */}
       {/* lg:grid-cols-12 distributes proportions as 3/12 (Left), 6/12 (Center), and 3/12 (Right). */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
@@ -57,6 +58,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
         </div>
 
       </div>
+      <AdminComponentTag name="SbPublicPageFeature" />
     </div>
   );
 }

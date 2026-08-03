@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, X, FileText, CheckCircle2 } from 'lucide-react';
 import { chatApi, adminDbApi, taskApi } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface Message {
   sender: 'cassie' | 'user';
@@ -60,6 +61,18 @@ const FALLBACK_INTENT_MAP: Record<string, { intentName: string; desc: string; in
     desc: 'Chronicling professional life, first jobs, career milestones, and workplace wisdom.',
     inst: 'Explore early work experiences, career pivots, teamwork, lessons learned, and professional growth.',
     prompt: 'What was your first job or a key career milestone you would like to describe in your story?'
+  },
+  SbMbrProfile: {
+    intentName: 'Member Profile & Introduction',
+    desc: 'Craft a compelling biography narrative, background introduction, and personal profile context.',
+    inst: 'Ask engaging questions about life highlights, background, values, personal philosophy, and what stories they want to share in their profile.',
+    prompt: 'Personal stories bring profiles to life! To create a vivid and engaging paragraph for your personal profile, could you tell me a bit about yourself? Consider including details like your background, unique interests or hobbies, and any memorable experiences or traits that define you.'
+  },
+  sbMbrProfile: {
+    intentName: 'Member Profile & Introduction',
+    desc: 'Craft a compelling biography narrative, background introduction, and personal profile context.',
+    inst: 'Ask engaging questions about life highlights, background, values, personal philosophy, and what stories they want to share in their profile.',
+    prompt: 'Personal stories bring profiles to life! To create a vivid and engaging paragraph for your personal profile, could you tell me a bit about yourself? Consider including details like your background, unique interests or hobbies, and any memorable experiences or traits that define you.'
   }
 };
 
@@ -291,9 +304,17 @@ export default function StoryMatePanel({
         setPromptText(resolvedPrompt);
         setWriterPersona(activeWriter);
 
-        // Initialize starting Cassie prompt greeting
+        // Initialize starting Cassie prompt greeting with current panel content if present
         const nameToUse = displayFirstName || memberName;
-        const initialGreeting = `Hi ${nameToUse}! I'm Cassie, your StoryMate. I'm here to help you craft this story.\n\n*${resolvedPrompt}*`;
+        const trimmedContent = storyContent?.trim();
+        const contentQuote = trimmedContent
+          ? (trimmedContent.length > 180 ? `${trimmedContent.slice(0, 180)}...` : trimmedContent)
+          : '';
+        const existingNotice = trimmedContent
+          ? `\n\nI reviewed your current content:\n> "${contentQuote}"\n\nHow would you like to revise, refine, or expand your text today?`
+          : `\n\n*${resolvedPrompt}*`;
+
+        const initialGreeting = `Hi ${nameToUse}! I'm Cassie, your StoryMate. I'm here to help you craft and refine your text.${existingNotice}`;
         setMessages([
           {
             sender: 'cassie',
@@ -305,7 +326,7 @@ export default function StoryMatePanel({
 
     loadAIContext();
     return () => { isMounted = false; };
-  }, [componentName, chIntentId, memberName, displayFirstName]);
+  }, [componentName, chIntentId, memberName, displayFirstName, storyContent]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -316,12 +337,13 @@ export default function StoryMatePanel({
     setChatInput('');
     setLoading(true);
 
-    const isWriteRequest = userText.toLowerCase().includes('write') || userText.toLowerCase().includes('draft') || userText.toLowerCase().includes('generate story');
+    const isWriteRequest = userText.toLowerCase().includes('write') || userText.toLowerCase().includes('draft') || userText.toLowerCase().includes('generate story') || userText.toLowerCase().includes('revise');
     const personaInstruction = writerPersona?.chWriterPrompt ? ` [Writing Persona Style: ${writerPersona.chWriterPrompt}]` : '';
+    const currentContentInstruction = storyContent?.trim() ? ` [Current Content: "${storyContent.trim()}"]` : '';
 
     try {
       const result = await chatApi.sendMessage(
-        `[Instruction: ${instructionText}] [Prompt: ${promptText}]${personaInstruction} ${userText}`,
+        `[Instruction: ${instructionText}] [Prompt: ${promptText}]${personaInstruction}${currentContentInstruction} ${userText}`,
         threadId,
         displayFirstName
       );
@@ -344,13 +366,17 @@ export default function StoryMatePanel({
         const personaStyleNotice = writerPersona?.chWriterName ? ` (${writerPersona.chWriterName} mode)` : '';
 
         if (isWriteRequest) {
-          cassieReply = `Here is a drafted story based on our conversation${personaStyleNotice}:\n\n"${storyTitle || 'Memoir'}: ${userText}. The vivid memories of these days remain clear and meaningful. Looking back, those experiences shaped my journey and taught me lessons that I carry with me to this day."`;
+          if (storyContent?.trim()) {
+            cassieReply = `Here is a revised draft incorporating your current text and feedback${personaStyleNotice}:\n\n"${storyContent.trim()}\n\n${userText}. Reflecting on these experiences gives deeper context to my journey, capturing both where I have been and the memories I carry forward."`;
+          } else {
+            cassieReply = `Here is a drafted story based on our conversation${personaStyleNotice}:\n\n"${storyTitle || 'Memoir'}: ${userText}. The vivid memories of these days remain clear and meaningful. Looking back, those experiences shaped my journey and taught me lessons that I carry with me to this day."`;
+          }
         } else if (lowercaseUser.includes('childhood') || lowercaseUser.includes('kid') || lowercaseUser.includes('grow up')) {
           cassieReply = `Growing up with those experiences is such a sensory memory, ${displayFirstName}. Applying our ${intentRecord?.chIntentName || 'intent'} focus${personaStyleNotice}: what specific smells, sights, or feelings do you remember most clearly?`;
         } else if (lowercaseUser.includes('family') || lowercaseUser.includes('parent') || lowercaseUser.includes('grandparent')) {
           cassieReply = `That family connection sounds like an anchor in your story${personaStyleNotice}. What was a specific moment or tradition you shared that stands out most?`;
         } else {
-          cassieReply = `That is a wonderful detail to include. Building on our ${intentRecord?.chIntentName || 'story'} prompt${personaStyleNotice}: how would you like us to phrase this in your final story narrative? Say 'write story' anytime you would like me to compile our chat!`;
+          cassieReply = `That is a wonderful detail to include. Building on your current text${personaStyleNotice}: how would you like us to phrase this in your updated narrative? Say 'write story' or 'revise' anytime you would like me to compile our draft!`;
         }
 
         setMessages((prev) => [
@@ -384,7 +410,7 @@ export default function StoryMatePanel({
   };
 
   return (
-    <div id="story-mate-panel" className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.015)] flex flex-col gap-3.5">
+    <div id="story-mate-panel" className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.015)] flex flex-col gap-3.5 relative">
       {/* Header */}
       <div className="flex items-center justify-between pb-2 border-b border-[#EFECE7]">
         <div className="flex items-center gap-2.5">
@@ -498,6 +524,7 @@ export default function StoryMatePanel({
           <Send className="w-3.5 h-3.5" />
         </button>
       </form>
+      <AdminComponentTag name="StoryMatePanel" />
     </div>
   );
 }

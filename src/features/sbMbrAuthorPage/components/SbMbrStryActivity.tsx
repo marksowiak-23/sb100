@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, BookOpen } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrStryActivityProps {
   isSandbox: boolean;
@@ -249,7 +250,7 @@ export default function SbMbrStryActivity({ isSandbox }: SbMbrStryActivityProps)
   };
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-6">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-6 relative">
       
       {/* --- PANEL HEADER --- */}
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#EFECE7]">
@@ -490,6 +491,7 @@ export default function SbMbrStryActivity({ isSandbox }: SbMbrStryActivityProps)
           </div>
         </div>
       )}
+      <AdminComponentTag name="SbMbrStryActivity" />
     </div>
   );
 }

@@ -8,9 +8,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Camera, User, Calendar, Save, ArrowLeft, Loader2, 
   CheckCircle2, AlertCircle, Image as ImageIcon, Sparkles, Upload,
-  AlertTriangle, X
+  AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Mail
 } from 'lucide-react';
 import { taskApi, mediaApi, resolveMediaUrl } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import StoryMatePanel from '@/src/features/sbMbrAuthorPage/components/StoryMatePanel';
 
 interface MbrProfileFeatureProps {
   isSandbox: boolean;
@@ -69,7 +71,13 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
     mbrBirthDate: '',
     mbrDeathDate: '',
     mbrGenderCd: '',
-    mbrBiography: '',
+    mbrRelationshipStatusCd: '',
+    mbrLivesCityState: '',
+    mbrFromCityState: '',
+    mbrWorkAt: '',
+    mbrStudiedAt: '',
+    mbrEmailAddress: '',
+    mbrIntroduction: '',
     mbrProfilePic: ''
   });
 
@@ -79,6 +87,24 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   // Unsaved changes tracking state
   const [initialData, setInitialData] = useState<{ formData: typeof formData; previewImage: string | null } | null>(null);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
+  const [showStoryMate, setShowStoryMate] = useState(false);
+
+  // Listen for StoryMate AI text insertion updates
+  useEffect(() => {
+    const handleUpdateContent = (e: any) => {
+      const detail = e.detail || {};
+      if (detail.text) {
+        setFormData((prev) => ({
+          ...prev,
+          mbrIntroduction: prev.mbrIntroduction 
+            ? `${prev.mbrIntroduction}\n\n${detail.text}`
+            : detail.text
+        }));
+      }
+    };
+    window.addEventListener('update-story-editor-content', handleUpdateContent);
+    return () => window.removeEventListener('update-story-editor-content', handleUpdateContent);
+  }, []);
 
   // Compute dirty status (true if any field was changed from initial loaded state)
   const isDirty = useMemo(() => {
@@ -90,7 +116,13 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
       formData.mbrBirthDate !== initialData.formData.mbrBirthDate ||
       formData.mbrDeathDate !== initialData.formData.mbrDeathDate ||
       formData.mbrGenderCd !== initialData.formData.mbrGenderCd ||
-      formData.mbrBiography !== initialData.formData.mbrBiography ||
+      formData.mbrRelationshipStatusCd !== initialData.formData.mbrRelationshipStatusCd ||
+      formData.mbrLivesCityState !== initialData.formData.mbrLivesCityState ||
+      formData.mbrFromCityState !== initialData.formData.mbrFromCityState ||
+      formData.mbrWorkAt !== initialData.formData.mbrWorkAt ||
+      formData.mbrStudiedAt !== initialData.formData.mbrStudiedAt ||
+      formData.mbrEmailAddress !== initialData.formData.mbrEmailAddress ||
+      formData.mbrIntroduction !== initialData.formData.mbrIntroduction ||
       formData.mbrProfilePic !== initialData.formData.mbrProfilePic ||
       previewImage !== initialData.previewImage
     );
@@ -156,7 +188,13 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
             mbrBirthDate: '1961-10-14',
             mbrDeathDate: '',
             mbrGenderCd: 'Female',
-            mbrBiography: 'Eleanor Hartwell was born in the coastal town of Coos Bay, Oregon...',
+            mbrRelationshipStatusCd: 'Married',
+            mbrLivesCityState: 'Coos Bay, Oregon',
+            mbrFromCityState: 'Seattle, Washington',
+            mbrWorkAt: 'Coos Bay Public Library',
+            mbrStudiedAt: 'University of Washington',
+            mbrEmailAddress: 'eleanor.hartwell@example.com',
+            mbrIntroduction: 'Eleanor Hartwell was born in the coastal town of Coos Bay, Oregon...',
             mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format'
           };
           sessionStorage.setItem('sandbox_mbr', JSON.stringify({ ...defaultMbr, mbrId: 'sandbox-id-eleanor' }));
@@ -179,7 +217,13 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
               mbrBirthDate: mbr.mbrBirthDate || '',
               mbrDeathDate: mbr.mbrDeathDate || '',
               mbrGenderCd: mbr.mbrGenderCd || '',
-              mbrBiography: mbr.mbrBiography || '',
+              mbrRelationshipStatusCd: mbr.mbrRelationshipStatusCd || '',
+              mbrLivesCityState: mbr.mbrLivesCityState || '',
+              mbrFromCityState: mbr.mbrFromCityState || '',
+              mbrWorkAt: mbr.mbrWorkAt || '',
+              mbrStudiedAt: mbr.mbrStudiedAt || '',
+              mbrEmailAddress: mbr.mbrEmailAddress || '',
+              mbrIntroduction: mbr.mbrIntroduction || '',
               mbrProfilePic: resolvedPic
             };
             setFormData(loadedForm);
@@ -201,7 +245,13 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
               mbrBirthDate: '1990-01-01',
               mbrDeathDate: '',
               mbrGenderCd: 'Male',
-              mbrBiography: 'Co-authored narrative story biography workspace.',
+              mbrRelationshipStatusCd: '',
+              mbrLivesCityState: '',
+              mbrFromCityState: '',
+              mbrWorkAt: '',
+              mbrStudiedAt: '',
+              mbrEmailAddress: u.email || '',
+              mbrIntroduction: 'Co-authored narrative story biography workspace.',
               mbrProfilePic: ''
             };
             setFormData(draftForm);
@@ -241,7 +291,13 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         mbrBirthDate: formData.mbrBirthDate || null,
         mbrDeathDate: formData.mbrDeathDate || null,
         mbrGenderCd: formData.mbrGenderCd || null,
-        mbrBiography: formData.mbrBiography.trim() || null,
+        mbrRelationshipStatusCd: formData.mbrRelationshipStatusCd.trim() || null,
+        mbrLivesCityState: formData.mbrLivesCityState.trim() || null,
+        mbrFromCityState: formData.mbrFromCityState.trim() || null,
+        mbrWorkAt: formData.mbrWorkAt.trim() || null,
+        mbrStudiedAt: formData.mbrStudiedAt.trim() || null,
+        mbrEmailAddress: formData.mbrEmailAddress.trim() || null,
+        mbrIntroduction: formData.mbrIntroduction.trim() || null,
         mbrProfilePic: formData.mbrProfilePic.trim() || null,
         user_id: userId
       };
@@ -259,7 +315,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
           if (idx !== -1) {
             stories[idx].name = `${payload.mbrFirstName} ${payload.mbrLastName}`;
             stories[idx].avatarUrl = payload.mbrProfilePic;
-            stories[idx].excerpt = payload.mbrBiography ? payload.mbrBiography.substring(0, 150) + "..." : "";
+            stories[idx].excerpt = payload.mbrIntroduction ? payload.mbrIntroduction.substring(0, 150) + "..." : "";
             sessionStorage.setItem('sandbox_stories', JSON.stringify(stories));
           }
         }
@@ -508,7 +564,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
           </button>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-serif font-black text-slate-800 tracking-tight">Member Profile Settings</h2>
+              <h2 className="text-2xl font-serif font-black text-slate-800 tracking-tight">Member Profile</h2>
               <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
                 isSandbox ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
               }`}>
@@ -702,7 +758,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-slate-650" />
-            <h3 className="font-serif text-sm font-bold text-slate-800">Member Demographics</h3>
+            <h3 className="font-serif text-sm font-bold text-slate-800">Demographics</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -739,7 +795,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Birth Date</label>
               <div className="relative">
@@ -766,27 +822,145 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                 <option value="Rather not say">Rather not say</option>
               </select>
             </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Relationship Status</label>
+              <select 
+                value={formData.mbrRelationshipStatusCd}
+                onChange={(e) => setFormData((prev) => ({ ...prev, mbrRelationshipStatusCd: e.target.value }))}
+                className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3 py-2.5 text-slate-700 transition-colors"
+              >
+                <option value="">-- Choose Relationship Status --</option>
+                <option value="Single">Single</option>
+                <option value="In a relationship">In a relationship</option>
+                <option value="Engaged">Engaged</option>
+                <option value="Married">Married</option>
+                <option value="Separated">Separated</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+                <option value="Rather not say">Rather not say</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* PERSONAL BACKGROUND & PLACES */}
+        <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-slate-650" />
+            <h3 className="font-serif text-sm font-bold text-slate-800">Background & Places</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Lives In (City, State)</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="e.g. Coos Bay, Oregon"
+                  value={formData.mbrLivesCityState}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrLivesCityState: e.target.value }))}
+                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">From / Hometown (City, State)</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="e.g. Seattle, Washington"
+                  value={formData.mbrFromCityState}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrFromCityState: e.target.value }))}
+                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Works At (Company / Organization)</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="e.g. Coos Bay Library"
+                  value={formData.mbrWorkAt}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrWorkAt: e.target.value }))}
+                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Studied At (School / University)</label>
+              <div className="relative">
+                <input 
+                  type="text" 
+                  placeholder="e.g. University of Washington"
+                  value={formData.mbrStudiedAt}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrStudiedAt: e.target.value }))}
+                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Email Address</label>
+              <div className="relative">
+                <input 
+                  type="email" 
+                  placeholder="e.g. eleanor.hartwell@example.com"
+                  value={formData.mbrEmailAddress}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrEmailAddress: e.target.value }))}
+                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
+                />
+              </div>
+            </div>
           </div>
         </div>
 
         {/* LONG FORM BIOGRAPHY / CONTEXT */}
         <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-slate-650" />
-            <h3 className="font-serif text-sm font-bold text-slate-800">Biography Narrative</h3>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-slate-650" />
+              <h3 className="font-serif text-sm font-bold text-slate-800">Introduction</h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowStoryMate((prev) => !prev)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-800 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              title="StoryMate AI Assistant for Profile Introduction"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>StoryMate AI</span>
+            </button>
           </div>
 
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Biography / Co-authored Story Context</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Introduction / Biography / Co-authored Story Context</label>
             <textarea 
               rows={6}
               placeholder="Tell your life story, co-authored chronicles or write an introductory excerpt..."
-              value={formData.mbrBiography}
-              onChange={(e) => setFormData((prev) => ({ ...prev, mbrBiography: e.target.value }))}
+              value={formData.mbrIntroduction}
+              onChange={(e) => setFormData((prev) => ({ ...prev, mbrIntroduction: e.target.value }))}
               className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-2xl px-3.5 py-3 text-slate-700 transition-colors resize-y leading-relaxed"
             />
-            <p className="text-[10px] text-slate-400 font-serif mt-1">This text appears as the primary long-form narrative for your biography portfolio.</p>
+            <p className="text-[10px] text-slate-400 font-serif mt-1">This text appears as the primary long-form introduction for your profile portfolio.</p>
           </div>
+
+          {showStoryMate && (
+            <div className="pt-2">
+              <StoryMatePanel
+                memberName={formData.mbrFirstName || 'Member'}
+                componentName="SbMbrProfile"
+                storyTitle="Member Profile Introduction"
+                storyContent={formData.mbrIntroduction}
+                onClose={() => setShowStoryMate(false)}
+              />
+            </div>
+          )}
         </div>
 
         {/* --- BUTTONS --- */}
@@ -819,6 +993,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         </div>
 
       </form>
+
+      <AdminComponentTag name="MbrProfileFeature" />
     </div>
   );
 }

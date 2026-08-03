@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface StatsGridProps {
   name: string;
@@ -48,7 +49,7 @@ export default function StatsGrid({ name }: StatsGridProps) {
   });
 
   return (
-    <div id="stats-grid" className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-4xl mt-12">
+    <div id="stats-grid" className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full max-w-4xl mt-12 relative">
       {/* Card 1: System Clock */}
       <div className="bg-[#FDFCFB] border border-[#EFECE7] p-6 rounded-2xl flex flex-col gap-1.5 shadow-[0_8px_20px_rgba(0,0,0,0.01)]">
         <span className="text-xs font-bold text-slate-450 uppercase tracking-wider font-mono">System Clock</span>
@@ -67,6 +68,7 @@ export default function StatsGrid({ name }: StatsGridProps) {
         <span className="text-xs font-bold text-slate-455 uppercase tracking-wider font-mono">Input Bytes</span>
         <span className="text-xl font-mono text-slate-800">{name.trim().length} octets</span>
       </div>
+      <AdminComponentTag name="StatsGrid" />
     </div>
   );
 }

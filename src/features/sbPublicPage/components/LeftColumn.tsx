@@ -6,6 +6,7 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { ShieldAlert, Sparkles, MessageSquare, Users, BookOpen, Share2, Globe } from 'lucide-react';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface LeftColumnProps {
   setActiveTab: (tab: any) => void;
@@ -26,7 +27,7 @@ export default function LeftColumn({ setActiveTab, onSelectLogonType }: LeftColu
   };
 
   return (
-    <div className="space-y-8 flex flex-col">
+    <div className="space-y-8 flex flex-col relative">
       {/* --- BRAND HEADER --- */}
       <div className="space-y-2">
         <h1 className="font-serif text-4xl md:text-5xl font-black text-slate-800 tracking-tight leading-none">
@@ -170,6 +171,7 @@ export default function LeftColumn({ setActiveTab, onSelectLogonType }: LeftColu
           </div>
         </div>
       </div>
+      <AdminComponentTag name="LeftColumn" />
     </div>
   );
 }

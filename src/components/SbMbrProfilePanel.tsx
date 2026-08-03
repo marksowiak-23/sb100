@@ -6,6 +6,7 @@
 import React from 'react';
 import { MapPin, BookOpen, Calendar } from 'lucide-react';
 import { MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrProfilePanelProps {
   member: MemberStory;
@@ -20,7 +21,7 @@ export default function SbMbrProfilePanel({ member }: SbMbrProfilePanelProps) {
     .toUpperCase();
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-5">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-5 relative">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           {/* Avatar image */}
@@ -53,11 +54,6 @@ export default function SbMbrProfilePanel({ member }: SbMbrProfilePanelProps) {
       {/* Stats metadata */}
       <div className="flex items-center gap-4 text-xs font-mono font-bold text-slate-400 tracking-wider uppercase bg-slate-50/50 p-2.5 rounded-xl border border-slate-100/50 w-fit">
         <div className="flex items-center gap-1.5">
-          <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-          <span>{member.chaptersCount} chapters</span>
-        </div>
-        <div className="w-1.5 h-1.5 rounded-full bg-slate-250"></div>
-        <div className="flex items-center gap-1.5">
           <Calendar className="w-3.5 h-3.5 text-slate-400" />
           <span>Member since {member.joinedDate}</span>
         </div>
@@ -79,6 +75,7 @@ export default function SbMbrProfilePanel({ member }: SbMbrProfilePanelProps) {
           </span>
         ))}
       </div>
+      <AdminComponentTag name="SbMbrProfilePanel" />
     </div>
   );
 }

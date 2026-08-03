@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Loader2, AlertCircle, ArrowLeft, ShieldCheck, LogIn } from 'lucide-react';
 import { userManager } from '@/src/services/userManager';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrLogonProps {
   logonType: 'Google' | 'Apple';
@@ -66,7 +67,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab }: SbMbrLogo
   }, [logonType, setActiveTab]);
 
   return (
-    <div className="w-full min-h-[70vh] flex items-center justify-center p-4">
+    <div className="w-full min-h-[70vh] flex items-center justify-center p-4 relative">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -156,6 +157,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab }: SbMbrLogo
           </div>
         )}
       </motion.div>
+      <AdminComponentTag name="SbMbrLogonFeature" />
     </div>
   );
 }

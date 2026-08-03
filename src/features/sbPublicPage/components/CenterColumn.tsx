@@ -8,6 +8,7 @@ import { Search, Info, HelpCircle, Users } from 'lucide-react';
 import { MemberStory } from '../constants/memberData';
 import MemberCard from './MemberCard';
 import HeroCarousel from './HeroCarousel';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
   searchQuery: string;
@@ -23,7 +24,7 @@ export default function CenterColumn({
   onClickReadStory
 }: CenterColumnProps) {
   return (
-    <div className="space-y-8 flex flex-col">
+    <div className="space-y-8 flex flex-col relative">
       {/* --- HERO CAROUSEL --- */}
       <HeroCarousel />
 
@@ -94,6 +95,7 @@ export default function CenterColumn({
           </div>
         )}
       </div>
+      <AdminComponentTag name="CenterColumn" />
     </div>
   );
 }

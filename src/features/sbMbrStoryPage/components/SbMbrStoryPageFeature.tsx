@@ -8,6 +8,7 @@ import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrStoryPageFeatureProps {
   memberId: string;
@@ -35,7 +36,7 @@ export default function SbMbrStoryPageFeature({
   memberId,
   onClickBack
 }: SbMbrStoryPageFeatureProps) {
-  const [activeSection, setActiveSection] = useState('introduction');
+  const [activeSection, setActiveSection] = useState('family');
 
   // Look up current member
   const member = MEMBER_STORIES.find((m) => m.id === memberId) || MEMBER_STORIES[0];
@@ -66,12 +67,13 @@ export default function SbMbrStoryPageFeature({
   };
 
   return (
-    <div className="w-full animate-fade-in">
+    <div className="w-full relative">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
         
         {/* Left Column Sidebar */}
         <div className="lg:col-span-3">
           <LeftColumn
+            onClickBack={onClickBack}
             activeSection={activeSection}
             setActiveSection={setActiveSection}
             memberName={member.name}
@@ -94,6 +96,7 @@ export default function SbMbrStoryPageFeature({
         </div>
 
       </div>
+      <AdminComponentTag name="SbMbrStoryPageFeature" />
     </div>
   );
 }

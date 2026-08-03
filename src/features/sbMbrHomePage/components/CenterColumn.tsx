@@ -7,6 +7,7 @@ import React from 'react';
 import { Search, Info, HelpCircle, Users } from 'lucide-react';
 import { MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
 import MemberCard from '@/src/features/sbPublicPage/components/MemberCard';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
   searchQuery: string;
@@ -22,7 +23,7 @@ export default function CenterColumn({
   onClickReadStory
 }: CenterColumnProps) {
   return (
-    <div className="space-y-6 flex flex-col">
+    <div className="space-y-6 flex flex-col relative">
       
       {/* --- HERO DESCRIPTION BANNER --- */}
       <div className="space-y-3">
@@ -102,6 +103,7 @@ export default function CenterColumn({
         )}
       </div>
 
+      <AdminComponentTag name="CenterColumn" />
     </div>
   );
 }

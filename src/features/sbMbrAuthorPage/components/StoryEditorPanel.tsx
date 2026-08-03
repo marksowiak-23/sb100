@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles } from 'lucide-react';
 import { taskApi, MbrStory } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface StoryEditorPanelProps {
   topicTitle?: string;
@@ -250,6 +251,57 @@ export default function StoryEditorPanel({
       const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
       const version = activeStory ? (activeStory.mbrStoryVersion || 1) : 1;
 
+      // Check if user is publishing a draft story that has an original published story reference
+      const isPublishingDraftWithOriginal = (status || '').toLowerCase() === 'published' && activeStory && activeStory.mbrStoryOriginalId;
+
+      if (isPublishingDraftWithOriginal) {
+        const originalId = activeStory.mbrStoryOriginalId!;
+        const updatedOriginalStory: Partial<MbrStory> = {
+          mbrStoryTitle: title.trim(),
+          mbrStoryContent: content,
+          mbrStoryPublishStatusCd: 'Published',
+          mbrStoryTypeCd: finalStoryTypeCd,
+          mbrMbrId: currentMbrId,
+          mbrStoryVersion: version,
+          mbrStoryThreadID: activeThreadId,
+          chIntentId: activeIntentId,
+        };
+
+        if (isSandbox) {
+          const nextList = stories
+            .filter((s) => s.mbrStoryId !== activeStoryId)
+            .map((s) => (s.mbrStoryId === originalId ? { ...updatedOriginalStory, mbrStoryId: originalId } : s));
+          if (!nextList.some((s) => s.mbrStoryId === originalId)) {
+            nextList.push({ ...updatedOriginalStory, mbrStoryId: originalId });
+          }
+          setStories(nextList);
+          sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+          const updatedTarget = nextList.find((s) => s.mbrStoryId === originalId) || { ...updatedOriginalStory, mbrStoryId: originalId };
+          selectStory(updatedTarget);
+          setSuccessMsg('Published draft changes to original story, and removed draft copy!');
+        } else {
+          const savedResult = await taskApi.updateStory(originalId, updatedOriginalStory);
+          if (activeStoryId && !activeStoryId.startsWith('temp_')) {
+            try {
+              await taskApi.deleteStory(activeStoryId);
+            } catch (delErr) {
+              console.warn("Could not delete draft story after publishing:", delErr);
+            }
+          }
+          const nextList = stories
+            .filter((s) => s.mbrStoryId !== activeStoryId)
+            .map((s) => (s.mbrStoryId === originalId ? savedResult : s));
+          if (!nextList.some((s) => s.mbrStoryId === originalId)) {
+            nextList.push(savedResult);
+          }
+          setStories(nextList);
+          selectStory(savedResult);
+          setSuccessMsg('Published draft changes to original story, and removed draft copy!');
+        }
+        setIsEditing(false);
+        return;
+      }
+
       const updatedStory: Partial<MbrStory> = {
         mbrStoryId: (activeStoryId && !activeStoryId.startsWith('temp_')) ? activeStoryId : undefined,
         mbrStoryTitle: title.trim(),
@@ -260,6 +312,7 @@ export default function StoryEditorPanel({
         mbrStoryVersion: version,
         mbrStoryThreadID: activeThreadId,
         chIntentId: activeIntentId,
+        mbrStoryOriginalId: activeStory?.mbrStoryOriginalId,
       };
 
       if (isSandbox) {
@@ -378,50 +431,170 @@ export default function StoryEditorPanel({
       const finalStoryTypeCd = componentName || componentNameMap[topicId] || topicId;
       const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
 
-      const updatedStory: Partial<MbrStory> = {
-        mbrStoryId: (!activeStoryId.startsWith('temp_')) ? activeStoryId : undefined,
-        mbrStoryTitle: title.trim() || 'Untitled Story',
-        mbrStoryContent: content,
-        mbrStoryPublishStatusCd: 'Published',
-        mbrStoryTypeCd: finalStoryTypeCd,
-        mbrMbrId: currentMbrId,
-        mbrStoryVersion: activeStory ? (activeStory.mbrStoryVersion || 1) : 1,
-        mbrStoryThreadID: activeThreadId,
-        chIntentId: activeIntentId,
-      };
-
-      if (isSandbox) {
-        const sandboxStory = {
-          ...updatedStory,
-          mbrStoryId: activeStoryId
+      // Check if publishing a draft story that references an original published story
+      if (activeStory && activeStory.mbrStoryOriginalId) {
+        const originalId = activeStory.mbrStoryOriginalId;
+        const updatedOriginalStory: Partial<MbrStory> = {
+          mbrStoryTitle: title.trim() || 'Untitled Story',
+          mbrStoryContent: content,
+          mbrStoryPublishStatusCd: 'Published',
+          mbrStoryTypeCd: finalStoryTypeCd,
+          mbrMbrId: currentMbrId,
+          mbrStoryVersion: activeStory.mbrStoryVersion || 1,
+          mbrStoryThreadID: activeThreadId,
+          chIntentId: activeIntentId,
         };
-        const nextList = stories.map((s) =>
-          s.mbrStoryId === activeStoryId ? sandboxStory : s
-        );
-        setStories(nextList);
-        sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
-        setStatus('Published');
-        setSuccessMsg('Story published successfully in Sandbox!');
-      } else {
-        let savedResult: MbrStory;
-        if (!activeStoryId.startsWith('temp_')) {
-          savedResult = await taskApi.updateStory(activeStoryId, updatedStory);
+
+        if (isSandbox) {
+          const nextList = stories
+            .filter((s) => s.mbrStoryId !== activeStoryId)
+            .map((s) => (s.mbrStoryId === originalId ? { ...updatedOriginalStory, mbrStoryId: originalId } : s));
+          if (!nextList.some((s) => s.mbrStoryId === originalId)) {
+            nextList.push({ ...updatedOriginalStory, mbrStoryId: originalId });
+          }
+          setStories(nextList);
+          sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+          const updatedTarget = nextList.find((s) => s.mbrStoryId === originalId) || { ...updatedOriginalStory, mbrStoryId: originalId };
+          selectStory(updatedTarget);
+          setSuccessMsg('Published draft changes to original story, and removed draft copy!');
         } else {
-          savedResult = await taskApi.createStory(updatedStory);
+          const savedResult = await taskApi.updateStory(originalId, updatedOriginalStory);
+          if (activeStoryId && !activeStoryId.startsWith('temp_')) {
+            try {
+              await taskApi.deleteStory(activeStoryId);
+            } catch (delErr) {
+              console.warn("Could not delete draft story after publishing:", delErr);
+            }
+          }
+          const nextList = stories
+            .filter((s) => s.mbrStoryId !== activeStoryId)
+            .map((s) => (s.mbrStoryId === originalId ? savedResult : s));
+          if (!nextList.some((s) => s.mbrStoryId === originalId)) {
+            nextList.push(savedResult);
+          }
+          setStories(nextList);
+          selectStory(savedResult);
+          setSuccessMsg('Published draft changes to original story, and removed draft copy!');
         }
-        const nextList = stories.map((s) =>
-          s.mbrStoryId === activeStoryId ? savedResult : s
-        );
-        setStories(nextList);
-        setActiveStoryId(savedResult.mbrStoryId);
-        setStatus('Published');
-        setSuccessMsg('Story published successfully to database!');
+      } else {
+        const updatedStory: Partial<MbrStory> = {
+          mbrStoryId: (!activeStoryId.startsWith('temp_')) ? activeStoryId : undefined,
+          mbrStoryTitle: title.trim() || 'Untitled Story',
+          mbrStoryContent: content,
+          mbrStoryPublishStatusCd: 'Published',
+          mbrStoryTypeCd: finalStoryTypeCd,
+          mbrMbrId: currentMbrId,
+          mbrStoryVersion: activeStory ? (activeStory.mbrStoryVersion || 1) : 1,
+          mbrStoryThreadID: activeThreadId,
+          chIntentId: activeIntentId,
+        };
+
+        if (isSandbox) {
+          const sandboxStory = {
+            ...updatedStory,
+            mbrStoryId: activeStoryId
+          };
+          const nextList = stories.map((s) =>
+            s.mbrStoryId === activeStoryId ? sandboxStory : s
+          );
+          setStories(nextList);
+          sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+          setStatus('Published');
+          setSuccessMsg('Story published successfully in Sandbox!');
+        } else {
+          let savedResult: MbrStory;
+          if (!activeStoryId.startsWith('temp_')) {
+            savedResult = await taskApi.updateStory(activeStoryId, updatedStory);
+          } else {
+            savedResult = await taskApi.createStory(updatedStory);
+          }
+          const nextList = stories.map((s) =>
+            s.mbrStoryId === activeStoryId ? savedResult : s
+          );
+          setStories(nextList);
+          setActiveStoryId(savedResult.mbrStoryId);
+          setStatus('Published');
+          setSuccessMsg('Story published successfully to database!');
+        }
       }
       setShowPublishModal(false);
     } catch (err: any) {
       setError(`Failed to publish story: ${err.message}`);
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const handleEditClick = async () => {
+    // Check if the current active story is Published
+    const isPublished = (status || '').toLowerCase() === 'published';
+
+    if (isPublished) {
+      setSaving(true);
+      setError(null);
+      setSuccessMsg(null);
+
+      try {
+        let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1'; // fallback
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+          try {
+            const u = JSON.parse(userStr);
+            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+            if (mbrProfile && mbrProfile.mbrId) {
+              currentMbrId = mbrProfile.mbrId;
+            }
+          } catch (e) {
+            console.warn("Could not retrieve member profile ID from DB:", e);
+          }
+        }
+
+        const finalStoryTypeCd = componentName || componentNameMap[topicId] || topicId;
+        const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
+        const currentVersion = activeStory ? (activeStory.mbrStoryVersion || 1) : 1;
+        const originalId = activeStory?.mbrStoryOriginalId || (activeStoryId && !activeStoryId.startsWith('temp_') ? activeStoryId : undefined);
+
+        const newDraftStory: Partial<MbrStory> = {
+          mbrStoryTitle: title.trim() || `${topicTitle} Story`,
+          mbrStoryContent: content,
+          mbrStoryPublishStatusCd: 'Draft',
+          mbrStoryTypeCd: finalStoryTypeCd,
+          mbrMbrId: currentMbrId,
+          mbrStoryVersion: currentVersion + 1,
+          mbrStoryThreadID: activeThreadId,
+          chIntentId: activeIntentId,
+          mbrStoryOriginalId: originalId,
+        };
+
+        if (isSandbox) {
+          const newId = `st_draft_${Date.now()}`;
+          const sandboxStory = {
+            ...newDraftStory,
+            mbrStoryId: newId
+          };
+          const nextList = [sandboxStory, ...stories];
+          setStories(nextList);
+          sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+          setActiveStoryId(newId);
+          setStatus('Draft');
+          setSuccessMsg('Created new draft story copied from published story.');
+        } else {
+          const savedResult = await taskApi.createStory(newDraftStory);
+          const nextList = [savedResult, ...stories];
+          setStories(nextList);
+          setActiveStoryId(savedResult.mbrStoryId);
+          setStatus('Draft');
+          setSuccessMsg('Created new draft story copied from published story.');
+        }
+
+        setIsEditing(true);
+      } catch (err: any) {
+        setError(`Failed to create new draft story: ${err.message}`);
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      setIsEditing(true);
     }
   };
 
@@ -432,7 +605,7 @@ export default function StoryEditorPanel({
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
 
   return (
-    <div id="story-editor-panel" className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.015)] flex flex-col gap-5">
+    <div id="story-editor-panel" className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.015)] flex flex-col gap-5 relative">
       {/* --- HEADER BAR --- */}
       <div className="flex items-center justify-between pb-4 border-b border-[#EFECE7]">
         <div className="flex items-center gap-3">
@@ -440,16 +613,9 @@ export default function StoryEditorPanel({
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="font-serif text-base font-bold text-slate-800 leading-tight">
-                Story Editor — {topicTitle}
-              </h3>
-              {stories.length > 0 && (
-                <span className="px-2 py-0.5 rounded-full border text-[9px] font-bold bg-amber-50 text-amber-700 border-amber-200/60 font-mono uppercase">
-                  {status}
-                </span>
-              )}
-            </div>
+            <h3 className="font-serif text-base font-bold text-slate-800 leading-tight">
+              Story Editor — {topicTitle}
+            </h3>
             <p className="text-[10px] text-slate-400 font-medium tracking-wide">
               Craft narrative stories and personal memoirs for this section
             </p>
@@ -513,19 +679,31 @@ export default function StoryEditorPanel({
       {/* --- STORY SELECTOR TABS --- */}
       {!isEditing && stories.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-          {stories.map((s) => (
-            <button
-              key={s.mbrStoryId}
-              onClick={() => selectStory(s)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-serif font-bold whitespace-nowrap transition-all cursor-pointer border ${
-                activeStoryId === s.mbrStoryId
-                  ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {s.mbrStoryTitle || 'Untitled Story'}
-            </button>
-          ))}
+          {stories.map((s) => {
+            const sStatus = s.mbrStoryPublishStatusCd || 'Draft';
+            const isPub = sStatus.toLowerCase() === 'published';
+            const isActive = activeStoryId === s.mbrStoryId;
+            return (
+              <button
+                key={s.mbrStoryId}
+                onClick={() => selectStory(s)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-serif font-bold whitespace-nowrap transition-all cursor-pointer border flex items-center gap-2 ${
+                  isActive
+                    ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <span>{s.mbrStoryTitle || 'Untitled Story'}</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-bold uppercase font-mono border ${
+                  isActive
+                    ? isPub ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40' : 'bg-amber-500/20 text-amber-300 border-amber-400/40'
+                    : isPub ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                }`}>
+                  {sStatus}
+                </span>
+              </button>
+            );
+          })}
         </div>
       )}
 
@@ -647,9 +825,18 @@ export default function StoryEditorPanel({
         <div className="flex flex-col gap-4">
           <div className="bg-white border border-[#EFECE7] rounded-2xl p-5 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-3">
-              <h4 className="font-serif text-lg font-bold text-slate-850 leading-snug">
-                {title || 'Untitled Story'}
-              </h4>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h4 className="font-serif text-lg font-bold text-slate-850 leading-snug">
+                  {title || 'Untitled Story'}
+                </h4>
+                <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold font-mono uppercase ${
+                  (status || '').toLowerCase() === 'published'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : 'bg-amber-50 text-amber-700 border-amber-200'
+                }`}>
+                  {status || 'Draft'}
+                </span>
+              </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   onClick={confirmDelete}
@@ -678,9 +865,10 @@ export default function StoryEditorPanel({
                   <ShieldAlert className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => setIsEditing(true)}
-                  title="Edit Story"
-                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl cursor-pointer transition-colors"
+                  onClick={handleEditClick}
+                  disabled={saving}
+                  title={status.toLowerCase() === 'published' ? 'Edit Published Story (Creates a new Draft copy)' : 'Edit Story'}
+                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl cursor-pointer transition-colors flex items-center gap-1"
                 >
                   <Edit3 className="w-4 h-4" />
                 </button>
@@ -804,6 +992,7 @@ export default function StoryEditorPanel({
           </div>
         )}
       </AnimatePresence>
+      <AdminComponentTag name="StoryEditorPanel" />
     </div>
   );
 }

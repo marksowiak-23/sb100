@@ -6,6 +6,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User, Sparkles, RefreshCw } from 'lucide-react';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 // Interfaces outline the data structure of the properties passed from parent components.
 interface GreetingCardProps {
@@ -31,7 +32,7 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
   return (
     <div
       id="greeting-card"
-      className="w-full max-w-2xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-8 md:p-16 shadow-[0_12px_40px_rgba(0,0,0,0.02)] text-center transition-shadow duration-300"
+      className="w-full max-w-2xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-8 md:p-16 shadow-[0_12px_40px_rgba(0,0,0,0.02)] text-center transition-shadow duration-300 relative"
     >
       {/* --- DYNAMIC BADGE --- */}
       {/* Uses a ternary expression to conditionally choose the text depending on whether `name` is empty. */}
@@ -130,6 +131,7 @@ export default function GreetingCard({ name, setName }: GreetingCardProps) {
           )}
         </AnimatePresence>
       </div>
+      <AdminComponentTag name="GreetingCard" />
     </div>
   );
 }

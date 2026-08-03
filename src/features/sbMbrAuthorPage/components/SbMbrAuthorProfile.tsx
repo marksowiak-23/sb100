@@ -4,8 +4,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, BookOpen, Calendar, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrAuthorProfileProps {
   isSandbox: boolean;
@@ -14,7 +16,19 @@ interface SbMbrAuthorProfileProps {
 export default function SbMbrAuthorProfile({ isSandbox }: SbMbrAuthorProfileProps) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
-  const [location, setLocation] = useState<string>('Portland, OR');
+  
+  // Session storage state for introduction accordion panel collapse persistence
+  const [isIntroCollapsed, setIsIntroCollapsed] = useState<boolean>(() => {
+    return sessionStorage.getItem('author_intro_collapsed') === 'true';
+  });
+
+  const toggleIntroAccordion = () => {
+    setIsIntroCollapsed((prev) => {
+      const nextState = !prev;
+      sessionStorage.setItem('author_intro_collapsed', String(nextState));
+      return nextState;
+    });
+  };
 
   useEffect(() => {
     loadAuthorProfile();
@@ -46,13 +60,21 @@ export default function SbMbrAuthorProfile({ isSandbox }: SbMbrAuthorProfileProp
             mbrMiddleName: 'Ruth',
             mbrBirthDate: '1961-10-14',
             mbrGenderCd: 'Female',
-            mbrBiography: 'The rain was different in those days — softer, somehow. We would run down to the docks without coats, our mother calling after us...',
+            mbrRelationshipStatusCd: 'Widowed',
+            mbrLivesCityState: 'Portland, OR',
+            mbrFromCityState: 'Coos Bay, OR',
+            mbrWorkAt: 'Portland Public Schools',
+            mbrStudiedAt: 'University of Oregon',
+            mbrIntroduction: `The rain was different in those days — softer, somehow. We would run down to the docks without coats, our mother calling after us from the porch while the salt mist off Coos Bay clung to our hair.
+
+She spent her childhood in the company of her grandfather, Harold, a taciturn man who had served in the Pacific and come home carrying something he never named. He taught Eleanor to fish, to mend nets, and to sit quietly with discomfort — lessons she would draw on for the rest of her life.
+
+When Harold died the summer Eleanor turned twelve, she began writing. Not because anyone encouraged her, but because silence had to go somewhere. The chapters that follow are Eleanor's attempt to trace the invisible threads connecting her childhood on the Oregon coast to the woman she became: a schoolteacher, a gardener, a painter, and a grandmother.`,
             mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format',
             mbrCreatedAt: '2020-10-01T00:00:00Z'
           };
           setProfile(defaultMbr);
         }
-        setLocation('Portland, OR');
       } else {
         // --- LIVE DATABASE MODE ---
         const mbr = await taskApi.getMemberByUserId(u.user_id);
@@ -63,17 +85,6 @@ export default function SbMbrAuthorProfile({ isSandbox }: SbMbrAuthorProfileProp
             ...mbr,
             mbrProfilePic: resolveMediaUrl(cachedPic || mbr.mbrProfilePic)
           });
-
-          // Fetch member residence for location
-          try {
-            const residences = await taskApi.getResidences(mbr.mbrId);
-            if (residences && residences.length > 0) {
-              const currentRes = residences.find((r) => r.mbrResidenceCurrentInd) || residences[0];
-              setLocation(`${currentRes.mbrResidenceCity}, ${currentRes.mbrResidenceState}`);
-            }
-          } catch (resErr) {
-            console.warn("Could not retrieve residences for author profile:", resErr);
-          }
         }
       }
     } catch (err) {
@@ -105,71 +116,169 @@ export default function SbMbrAuthorProfile({ isSandbox }: SbMbrAuthorProfileProp
   const fullName = `${profile.mbrFirstName} ${profile.mbrMiddleName ? profile.mbrMiddleName + ' ' : ''}${profile.mbrLastName}`;
   
   // Initials for avatar fallback
-  const initials = (profile.mbrFirstName[0] || '') + (profile.mbrLastName[0] || '').toUpperCase();
+  const initials = (profile.mbrFirstName?.[0] || '') + (profile.mbrLastName?.[0] || '').toUpperCase();
 
-  // Format joined date
-  let joinedYear = 'Oct 2020';
-  if (profile.mbrCreatedAt) {
+  // Calculate Age from mbrBirthDate
+  const calculateAge = (birthDateStr?: string): number | null => {
+    if (!birthDateStr) return null;
     try {
-      const date = new Date(profile.mbrCreatedAt);
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      joinedYear = `${months[date.getMonth()]} ${date.getFullYear()}`;
+      const birthDate = new Date(birthDateStr);
+      if (isNaN(birthDate.getTime())) return null;
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
     } catch (e) {
-      // Use fallback
+      return null;
     }
-  }
+  };
+
+  const age = calculateAge(profile.mbrBirthDate) ?? (isSandbox ? 64 : null);
+  const livesIn = profile.mbrLivesCityState || (isSandbox ? 'Portland, OR' : null);
+  const fromLocation = profile.mbrFromCityState || (isSandbox ? 'Coos Bay, OR' : null);
+  const worksAt = profile.mbrWorkAt || (isSandbox ? 'Lincoln Elementary School' : null);
+  const studiedAt = profile.mbrStudiedAt || (isSandbox ? 'University of Oregon' : null);
+  const relationshipStatus = profile.mbrRelationshipStatusCd || (isSandbox ? 'Widowed' : null);
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          {/* Avatar image */}
-          <div className="relative w-14 h-14 shrink-0">
-            {profile.mbrProfilePic ? (
-              <img
-                src={profile.mbrProfilePic}
-                alt={fullName}
-                className="w-full h-full rounded-2xl object-cover border border-[#EFECE7] shadow-sm"
-              />
-            ) : (
-              <div className="w-full h-full rounded-2xl bg-gradient-to-tr from-slate-100 to-slate-50 border border-slate-200 flex items-center justify-center font-serif text-slate-700 font-bold text-xl">
-                {initials}
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
+      {/* Top Header & Metadata Block */}
+      <div className="flex items-start gap-4">
+        {/* Avatar image */}
+        <div className="relative w-14 h-14 md:w-16 md:h-16 shrink-0 mt-0.5">
+          {profile.mbrProfilePic ? (
+            <img
+              src={profile.mbrProfilePic}
+              alt={fullName}
+              className="w-full h-full rounded-2xl object-cover border border-[#EFECE7] shadow-xs"
+            />
+          ) : (
+            <div className="w-full h-full rounded-2xl bg-gradient-to-tr from-slate-100 to-slate-50 border border-slate-200 flex items-center justify-center font-serif text-slate-700 font-bold text-xl">
+              {initials}
+            </div>
+          )}
+        </div>
+
+        {/* Name & Metadata Rows Column */}
+        <div className="flex-1 min-w-0 space-y-2">
+          <h2 className="font-serif text-xl md:text-2xl font-black text-slate-800 tracking-tight leading-tight">
+            {fullName}
+          </h2>
+
+          {/* Metadata Rows */}
+          <div className="space-y-1.5 text-xs">
+            {/* Lives In & From */}
+            {(livesIn || fromLocation) && (
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-slate-700">
+                {livesIn && (
+                  <div className="flex items-center gap-1.5">
+                    <Home className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">LIVES IN:</span>
+                    <span className="font-semibold text-slate-800">{livesIn}</span>
+                  </div>
+                )}
+                {livesIn && fromLocation && (
+                  <span className="text-slate-300 font-bold select-none">•</span>
+                )}
+                {fromLocation && (
+                  <div className="flex items-center gap-1.5">
+                    <Compass className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">FROM:</span>
+                    <span className="font-semibold text-slate-800">{fromLocation}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Works At */}
+            {worksAt && (
+              <div className="flex items-center gap-1.5 text-slate-700">
+                <Briefcase className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">WORKS AT:</span>
+                <span className="font-semibold text-slate-800">{worksAt}</span>
+              </div>
+            )}
+
+            {/* Studied At */}
+            {studiedAt && (
+              <div className="flex items-center gap-1.5 text-slate-700">
+                <GraduationCap className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">STUDIED AT:</span>
+                <span className="font-semibold text-slate-800">{studiedAt}</span>
+              </div>
+            )}
+
+            {/* Relationship Status & Age */}
+            {(relationshipStatus || age !== null) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-700">
+                {relationshipStatus && (
+                  <div className="flex items-center gap-1.5">
+                    <Heart className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">RELATIONSHIP STATUS:</span>
+                    <span className="font-semibold text-slate-800">{relationshipStatus}</span>
+                  </div>
+                )}
+                {age !== null && (
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">AGE:</span>
+                    <span className="font-semibold text-slate-800">{age}</span>
+                  </div>
+                )}
               </div>
             )}
           </div>
+        </div>
+      </div>
 
-          <div>
-            <h2 className="font-serif text-xl font-black text-slate-800 tracking-tight leading-tight">
-              {fullName}
-            </h2>
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium mt-0.5">
-              <MapPin className="w-3.5 h-3.5 text-slate-400" />
-              <span>{location}</span>
+      {/* Divider and Collapsible Accordion Introduction Section */}
+      {profile.mbrIntroduction && (
+        <div className="pt-3 border-t border-[#EFECE7]">
+          {/* Accordion Header Button */}
+          <button
+            type="button"
+            onClick={toggleIntroAccordion}
+            className="w-full flex items-center justify-between py-1 text-left cursor-pointer group"
+          >
+            <div className="flex items-center gap-1.5 text-xs font-serif font-bold text-slate-700 group-hover:text-slate-900 transition-colors">
+              <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+              <span>Introduction</span>
             </div>
-          </div>
-        </div>
-      </div>
+            <div className="flex items-center gap-1 text-[10px] font-mono text-slate-400">
+              <span>{isIntroCollapsed ? 'Expand' : 'Collapse'}</span>
+              {isIntroCollapsed ? (
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform" />
+              ) : (
+                <ChevronUp className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform" />
+              )}
+            </div>
+          </button>
 
-      {/* Stats metadata */}
-      <div className="flex items-center gap-4 text-xs font-mono font-bold text-slate-400 tracking-wider uppercase bg-slate-50/50 p-2.5 rounded-xl border border-slate-100/50 w-fit">
-        <div className="flex items-center gap-1.5">
-          <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-          <span>18 chapters</span>
+          {/* Accordion Body with Smooth Animation */}
+          <AnimatePresence initial={false}>
+            {!isIntroCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                className="overflow-hidden pt-2"
+              >
+                <div className="pl-3.5 border-l-2 border-slate-500 max-h-60 overflow-y-auto pr-1">
+                  <p className="text-slate-600 font-serif leading-relaxed text-xs md:text-sm italic whitespace-pre-line">
+                    "{profile.mbrIntroduction}"
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        <div className="w-1.5 h-1.5 rounded-full bg-slate-250"></div>
-        <div className="flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-          <span>Member since {joinedYear}</span>
-        </div>
-      </div>
-
-      {/* Intro quote excerpt */}
-      {profile.mbrBiography && (
-        <p className="text-slate-500 font-serif leading-relaxed text-sm italic relative pl-4 border-l-2 border-slate-250">
-          "{profile.mbrBiography.length > 150 ? profile.mbrBiography.substring(0, 150) + '...' : profile.mbrBiography}"
-        </p>
       )}
 
+      <AdminComponentTag name="SbMbrAuthorProfile" />
     </div>
   );
 }

@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Bookmark, Award, Feather, ArrowUpRight } from 'lucide-react';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface Sponsor {
   name: string;
@@ -40,7 +41,7 @@ export default function SponsorsPanel() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <h3 className="font-serif text-lg font-bold text-slate-800">
           Sponsors
@@ -87,6 +88,7 @@ export default function SponsorsPanel() {
           </div>
         ))}
       </div>
+      <AdminComponentTag name="SponsorsPanel" />
     </div>
   );
 }

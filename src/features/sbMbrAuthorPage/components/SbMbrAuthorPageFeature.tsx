@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrAuthorPageFeatureProps {
   isSandbox: boolean;
@@ -29,7 +30,7 @@ const STORY_CONTENTS: Record<string, string[]> = {
 };
 
 export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack }: SbMbrAuthorPageFeatureProps) {
-  const [activeSection, setActiveSection] = useState('introduction');
+  const [activeSection, setActiveSection] = useState('family');
   const [storyContents, setStoryContents] = useState<Record<string, string[]>>(STORY_CONTENTS);
 
   const getActiveContent = (): string[] => {
@@ -44,7 +45,7 @@ export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack }: SbMbr
   };
 
   return (
-    <div className="w-full animate-fade-in">
+    <div className="w-full relative">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
         
         {/* Left Column Sidebar */}
@@ -72,6 +73,7 @@ export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack }: SbMbr
         </div>
 
       </div>
+      <AdminComponentTag name="SbMbrAuthorPageFeature" />
     </div>
   );
 }

@@ -92,6 +92,20 @@ export default function App() {
   // - [] (Empty array): Tells React to run this effect EXACTLY ONCE, when the component initially mounts (loads).
   useEffect(() => {
     loadHealth();
+
+    // Synchronize application color theme (Default, Dark, Ocean, Forest)
+    const applyGlobalTheme = () => {
+      const savedTheme = sessionStorage.getItem('mbrPrefTheme') || sessionStorage.getItem('theme') || 'Default';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    };
+
+    applyGlobalTheme();
+    window.addEventListener('theme-changed', applyGlobalTheme);
+    window.addEventListener('storage', applyGlobalTheme);
+    return () => {
+      window.removeEventListener('theme-changed', applyGlobalTheme);
+      window.removeEventListener('storage', applyGlobalTheme);
+    };
   }, []);
 
   // Helper function to query the backend health check endpoint.

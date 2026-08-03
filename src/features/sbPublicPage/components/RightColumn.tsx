@@ -5,6 +5,7 @@
 
 import React from 'react';
 import SponsorsPanel from '@/src/components/SponsorsPanel';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 export default function RightColumn() {
   const footerLinks = [
@@ -20,7 +21,7 @@ export default function RightColumn() {
   };
 
   return (
-    <div className="space-y-8 flex flex-col justify-between h-full">
+    <div className="space-y-8 flex flex-col justify-between h-full relative">
       {/* Sponsors Container */}
       <SponsorsPanel />
 
@@ -44,6 +45,7 @@ export default function RightColumn() {
           © 2026 Storybook, Inc.
         </div>
       </div>
+      <AdminComponentTag name="RightColumn" />
     </div>
   );
 }

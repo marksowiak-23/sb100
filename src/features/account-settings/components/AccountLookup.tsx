@@ -7,6 +7,7 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import { motion } from 'motion/react';
 import { User, Search, Loader2, AlertCircle, X, Info, Mail, ShieldCheck } from 'lucide-react';
 import { taskApi, User as ApiUser } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { SANDBOX_USERS } from '../constants/mockUsers';
 import { matchUser } from '../utils/search';
 import UserCard from './UserCard';
@@ -79,7 +80,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
   }, [isSandbox]);
 
   return (
-    <div className="w-full max-w-5xl space-y-8">
+    <div className="w-full max-w-5xl space-y-8 relative">
       {/* --- STATUS CONNECTION HEADER --- */}
       <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -236,6 +237,7 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
           </div>
         )}
       </div>
+      <AdminComponentTag name="AccountLookup" />
     </div>
   );
 }

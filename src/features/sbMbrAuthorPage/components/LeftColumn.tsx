@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { BookOpen, Camera, Edit2, Lock } from 'lucide-react';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface LeftColumnProps {
   activeSection: string;
@@ -13,8 +14,6 @@ interface LeftColumnProps {
 
 export default function LeftColumn({ activeSection, setActiveSection }: LeftColumnProps) {
   const sections = [
-    { id: 'introduction', label: 'Introduction' },
-    { id: 'demographics', label: 'Demographics' },
     { id: 'family', label: 'Family' },
     { id: 'residencies', label: 'Residencies' },
     { id: 'achievements', label: 'Achievements' },
@@ -36,7 +35,7 @@ export default function LeftColumn({ activeSection, setActiveSection }: LeftColu
       </div>
 
       {/* --- STORY INDEX PANEL --- */}
-      <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4">
+      <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
         <div className="flex items-center gap-2 pb-1 border-b border-[#EFECE7]">
           <BookOpen className="w-4 h-4 text-slate-650 shrink-0" />
           <h3 className="font-serif text-sm font-bold text-slate-800">
@@ -101,7 +100,7 @@ export default function LeftColumn({ activeSection, setActiveSection }: LeftColu
           Open Photo Book
         </button>
       </div>
-
+      <AdminComponentTag name="LeftColumn" />
     </div>
   );
 }

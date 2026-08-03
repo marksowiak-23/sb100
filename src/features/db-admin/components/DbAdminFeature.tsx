@@ -11,6 +11,7 @@ import {
   Check, Loader2, RefreshCw
 } from 'lucide-react';
 import { adminDbApi } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 // Definition of a table field
 interface TableField {
@@ -58,7 +59,13 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrBirthDate', label: 'Birth Date', type: 'date', required: false },
       { name: 'mbrDeathDate', label: 'Death Date', type: 'date', required: false },
       { name: 'mbrGenderCd', label: 'Gender Code', type: 'string', required: false },
-      { name: 'mbrBiography', label: 'Biography', type: 'string', required: false },
+      { name: 'mbrRelationshipStatusCd', label: 'Relationship Status Code', type: 'string', required: false },
+      { name: 'mbrLivesCityState', label: 'Lives In (City, State)', type: 'string', required: false },
+      { name: 'mbrFromCityState', label: 'From (City, State)', type: 'string', required: false },
+      { name: 'mbrWorkAt', label: 'Works At', type: 'string', required: false },
+      { name: 'mbrStudiedAt', label: 'Studied At', type: 'string', required: false },
+      { name: 'mbrEmailAddress', label: 'Email Address', type: 'string', required: false },
+      { name: 'mbrIntroduction', label: 'Introduction', type: 'string', required: false },
       { name: 'mbrProfilePic', label: 'Profile Picture URL', type: 'string', required: false },
       { name: 'user_id', label: 'Associated User ID (UUID)', type: 'uuid', required: false }
     ]
@@ -224,7 +231,8 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrStoryStartDate', label: 'Start Date', type: 'date', required: false },
       { name: 'mbrStoryEndDate', label: 'End Date', type: 'date', required: false },
       { name: 'mbrStoryThreadID', label: 'Story Thread ID', type: 'string', required: false },
-      { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false }
+      { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false },
+      { name: 'mbrStoryOriginalId', label: 'Original Published Story ID (UUID)', type: 'uuid', required: false }
     ]
   },
   {
@@ -252,6 +260,7 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrPrefTheme', label: 'UI Theme', type: 'string', required: false, placeholder: 'System / Light / Dark' },
       { name: 'mbrPrefNotificationsInd', label: 'Enable Notifications', type: 'boolean', required: true },
       { name: 'mbrPrefAutoSaveInd', label: 'Enable Auto Save', type: 'boolean', required: true },
+      { name: 'adminDisplayComponentName', label: 'Admin Display Component Name', type: 'boolean', required: true },
       { name: 'mbrPrefJson', label: 'Custom Preferences (JSON)', type: 'string', required: false }
     ]
   }
@@ -269,8 +278,8 @@ const getInitialMockData = (tableId: string): any[] => {
       ];
     case 'mbrs':
       return [
-        { mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', mbrFirstName: 'Eleanor', mbrLastName: 'Ross', mbrMiddleName: 'Grace', mbrBirthDate: '1945-05-12', mbrGenderCd: 'Female', mbrBiography: 'Born in Chicago, Eleanor lived through the space age and taught English for 35 years.', mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format', mbrCreatedAt: now, mbrUpdatedAt: now },
-        { mbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341', user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', mbrFirstName: 'James', mbrLastName: 'Carter', mbrMiddleName: 'Dean', mbrBirthDate: '1952-11-20', mbrGenderCd: 'Male', mbrBiography: 'Retired mechanical engineer and grandfather of four. Enthusiast of sailing and history.', mbrProfilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&auto=format', mbrCreatedAt: now, mbrUpdatedAt: now }
+        { mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', mbrFirstName: 'Eleanor', mbrLastName: 'Ross', mbrMiddleName: 'Grace', mbrBirthDate: '1945-05-12', mbrGenderCd: 'Female', mbrIntroduction: 'Born in Chicago, Eleanor lived through the space age and taught English for 35 years.', mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format', mbrCreatedAt: now, mbrUpdatedAt: now },
+        { mbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341', user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', mbrFirstName: 'James', mbrLastName: 'Carter', mbrMiddleName: 'Dean', mbrBirthDate: '1952-11-20', mbrGenderCd: 'Male', mbrIntroduction: 'Retired mechanical engineer and grandfather of four. Enthusiast of sailing and history.', mbrProfilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&auto=format', mbrCreatedAt: now, mbrUpdatedAt: now }
       ];
     case 'cds':
       return [
@@ -304,6 +313,20 @@ const getInitialMockData = (tableId: string): any[] => {
           mbrStoryStartDate: '1965-06-12',
           mbrStoryCreatedAt: now,
           mbrStoryUpdatedAt: now
+        }
+      ];
+    case 'mbrPreferences':
+      return [
+        {
+          mbrPrefId: 'sandbox-pref-id',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          chWriterId: 'w1',
+          mbrPrefTheme: 'System',
+          mbrPrefNotificationsInd: true,
+          mbrPrefAutoSaveInd: true,
+          adminDisplayComponentName: true,
+          mbrPrefCreatedAt: now,
+          mbrPrefUpdatedAt: now
         }
       ];
     default:
@@ -553,7 +576,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
   };
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-6 relative">
       {/* HEADER BAR */}
       <div className="bg-[#122347] text-white border border-slate-900 rounded-3xl p-6 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         {/* Subtle glass effect accent */}
@@ -966,6 +989,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
           </div>
         )}
       </AnimatePresence>
+      <AdminComponentTag name="DbAdminFeature" />
     </div>
   );
 }

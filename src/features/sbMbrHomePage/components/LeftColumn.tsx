@@ -6,6 +6,7 @@
 import React from 'react';
 import { UserCheck, CheckCircle2, Circle, Compass, Users } from 'lucide-react';
 import { NEW_CONNECTIONS, MY_CONNECTIONS } from '../constants/memberConnections';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface LeftColumnProps {
   onClickAuthorPage?: () => void;
@@ -13,7 +14,6 @@ interface LeftColumnProps {
 
 export default function LeftColumn({ onClickAuthorPage }: LeftColumnProps) {
   const statusItems = [
-    { name: 'Demographics', completed: true },
     { name: 'Family', completed: true },
     { name: 'Residencies', completed: true },
     { name: 'Achievements', completed: false },
@@ -28,7 +28,7 @@ export default function LeftColumn({ onClickAuthorPage }: LeftColumnProps) {
   const progressPercent = Math.round((completedCount / statusItems.length) * 100);
 
   return (
-    <div className="space-y-6 flex flex-col">
+    <div className="space-y-8 flex flex-col relative">
       
       {/* --- BRAND HEADER --- */}
       <div className="space-y-1">
@@ -220,7 +220,7 @@ export default function LeftColumn({ onClickAuthorPage }: LeftColumnProps) {
           })}
         </div>
       </div>
-
+      <AdminComponentTag name="LeftColumn" />
     </div>
   );
 }

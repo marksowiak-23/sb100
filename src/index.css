@@ -25,3 +25,269 @@
   background: #94a3b8;
 }
 
+/* --- THEME STYLES --- */
+
+/* 1. Dark Mode (Midnight) */
+html[data-theme="Dark"] body,
+html[data-theme="Dark"] #app-container {
+  background-color: #0B0F19 !important;
+  color: #F1F5F9 !important;
+}
+html[data-theme="Dark"] .bg-\[\#FAF8F5\] {
+  background-color: #0B0F19 !important;
+}
+html[data-theme="Dark"] .bg-\[\#FDFCFB\],
+html[data-theme="Dark"] .bg-white {
+  background-color: #151C2C !important;
+  color: #F1F5F9 !important;
+  border-color: #26334D !important;
+}
+html[data-theme="Dark"] .border-\[\#EFECE7\],
+html[data-theme="Dark"] .border-slate-100,
+html[data-theme="Dark"] .border-slate-200 {
+  border-color: #26334D !important;
+}
+html[data-theme="Dark"] .bg-\[\#2E2C2A\] {
+  background-color: #030712 !important;
+  border-color: #1F2937 !important;
+}
+html[data-theme="Dark"] .text-slate-800,
+html[data-theme="Dark"] .text-slate-900 {
+  color: #F8FAFC !important;
+}
+html[data-theme="Dark"] .text-slate-700,
+html[data-theme="Dark"] .text-slate-650 {
+  color: #E2E8F0 !important;
+}
+html[data-theme="Dark"] .text-slate-600,
+html[data-theme="Dark"] .text-slate-500 {
+  color: #94A3B8 !important;
+}
+html[data-theme="Dark"] .bg-slate-50,
+html[data-theme="Dark"] .bg-slate-50\/50 {
+  background-color: #1E293B !important;
+}
+
+/* 2. Ocean Indigo Theme */
+html[data-theme="Ocean"] body,
+html[data-theme="Ocean"] #app-container {
+  background-color: #EEF2FF !important;
+  color: #1E1B4B !important;
+}
+html[data-theme="Ocean"] .bg-\[\#FAF8F5\] {
+  background-color: #EEF2FF !important;
+}
+html[data-theme="Ocean"] .bg-\[\#FDFCFB\],
+html[data-theme="Ocean"] .bg-white {
+  background-color: #F8FAFC !important;
+  border-color: #C7D2FE !important;
+}
+html[data-theme="Ocean"] .border-\[\#EFECE7\],
+html[data-theme="Ocean"] .border-slate-100 {
+  border-color: #C7D2FE !important;
+}
+html[data-theme="Ocean"] .bg-\[\#2E2C2A\] {
+  background-color: #1E1B4B !important;
+  border-color: #312E81 !important;
+}
+html[data-theme="Ocean"] .text-slate-800,
+html[data-theme="Ocean"] .text-slate-900 {
+  color: #1E1B4B !important;
+}
+html[data-theme="Ocean"] .text-slate-700,
+html[data-theme="Ocean"] .text-slate-600 {
+  color: #312E81 !important;
+}
+
+/* 4. Rustic Bar (Copper Espresso) Theme */
+html[data-theme="Rustic"] body,
+html[data-theme="Rustic"] #app-container {
+  background-color: #161412 !important;
+  color: #F5EBE6 !important;
+}
+html[data-theme="Rustic"] .bg-\[\#FAF8F5\] {
+  background-color: #161412 !important;
+}
+html[data-theme="Rustic"] .bg-\[\#FDFCFB\],
+html[data-theme="Rustic"] .bg-white {
+  background-color: #221E1B !important;
+  color: #F5EBE6 !important;
+  border-color: #3B332D !important;
+}
+html[data-theme="Rustic"] .border-\[\#EFECE7\],
+html[data-theme="Rustic"] .border-slate-100,
+html[data-theme="Rustic"] .border-slate-200 {
+  border-color: #3B332D !important;
+}
+html[data-theme="Rustic"] .bg-\[\#2E2C2A\] {
+  background-color: #0F0D0B !important;
+  border-color: #2E2824 !important;
+}
+html[data-theme="Rustic"] .text-slate-800,
+html[data-theme="Rustic"] .text-slate-900 {
+  color: #D97724 !important;
+}
+html[data-theme="Rustic"] .text-slate-700,
+html[data-theme="Rustic"] .text-slate-650 {
+  color: #F5EBE6 !important;
+}
+html[data-theme="Rustic"] .text-slate-600,
+html[data-theme="Rustic"] .text-slate-500 {
+  color: #C2A999 !important;
+}
+html[data-theme="Rustic"] .bg-slate-50,
+html[data-theme="Rustic"] .bg-slate-50\/50 {
+  background-color: #2A2420 !important;
+}
+
+/* 5. Luxury Gold (Obsidian & Champagne) Theme */
+html[data-theme="Luxury"] body,
+html[data-theme="Luxury"] #app-container {
+  background-color: #080808 !important;
+  color: #F7F5F0 !important;
+}
+html[data-theme="Luxury"] .bg-\[\#FAF8F5\] {
+  background-color: #080808 !important;
+}
+html[data-theme="Luxury"] .bg-\[\#FDFCFB\],
+html[data-theme="Luxury"] .bg-white {
+  background-color: #121212 !important;
+  color: #F7F5F0 !important;
+  border-color: #2E2818 !important;
+}
+html[data-theme="Luxury"] .border-\[\#EFECE7\],
+html[data-theme="Luxury"] .border-slate-100,
+html[data-theme="Luxury"] .border-slate-200 {
+  border-color: #2E2818 !important;
+}
+html[data-theme="Luxury"] .bg-\[\#2E2C2A\] {
+  background-color: #030303 !important;
+  border-color: #1F1B10 !important;
+}
+html[data-theme="Luxury"] .text-slate-800,
+html[data-theme="Luxury"] .text-slate-900 {
+  color: #D4AF37 !important;
+}
+html[data-theme="Luxury"] .text-slate-700,
+html[data-theme="Luxury"] .text-slate-650 {
+  color: #E6DCB8 !important;
+}
+html[data-theme="Luxury"] .text-slate-600,
+html[data-theme="Luxury"] .text-slate-500 {
+  color: #9E937D !important;
+}
+html[data-theme="Luxury"] .bg-slate-50,
+html[data-theme="Luxury"] .bg-slate-50\/50 {
+  background-color: #1A1A1A !important;
+}
+
+/* 6. Modern Tech (Cyber Cyan & Neon Purple) Theme */
+html[data-theme="Tech"] body,
+html[data-theme="Tech"] #app-container {
+  background-color: #080B11 !important;
+  color: #F0F6FF !important;
+}
+html[data-theme="Tech"] .bg-\[\#FAF8F5\] {
+  background-color: #080B11 !important;
+}
+html[data-theme="Tech"] .bg-\[\#FDFCFB\],
+html[data-theme="Tech"] .bg-white {
+  background-color: #101622 !important;
+  color: #F0F6FF !important;
+  border-color: #1D2A40 !important;
+}
+html[data-theme="Tech"] .border-\[\#EFECE7\],
+html[data-theme="Tech"] .border-slate-100,
+html[data-theme="Tech"] .border-slate-200 {
+  border-color: #1D2A40 !important;
+}
+html[data-theme="Tech"] .bg-\[\#2E2C2A\] {
+  background-color: #04060A !important;
+  border-color: #121A28 !important;
+}
+html[data-theme="Tech"] .text-slate-800,
+html[data-theme="Tech"] .text-slate-900 {
+  color: #00F2FE !important;
+}
+html[data-theme="Tech"] .text-slate-700,
+html[data-theme="Tech"] .text-slate-650 {
+  color: #E2E8F0 !important;
+}
+html[data-theme="Tech"] .text-slate-600,
+html[data-theme="Tech"] .text-slate-500 {
+  color: #94A3B8 !important;
+}
+html[data-theme="Tech"] .bg-slate-50,
+html[data-theme="Tech"] .bg-slate-50\/50 {
+  background-color: #162032 !important;
+}
+
+/* 7. Earthy Craft (Warm Sand & Terracotta) Theme */
+html[data-theme="Earthy"] body,
+html[data-theme="Earthy"] #app-container {
+  background-color: #F4F1EA !important;
+  color: #2C2521 !important;
+}
+html[data-theme="Earthy"] .bg-\[\#FAF8F5\] {
+  background-color: #F4F1EA !important;
+}
+html[data-theme="Earthy"] .bg-\[\#FDFCFB\],
+html[data-theme="Earthy"] .bg-white {
+  background-color: #FAF8F3 !important;
+  border-color: #E2DDD2 !important;
+}
+html[data-theme="Earthy"] .border-\[\#EFECE7\],
+html[data-theme="Earthy"] .border-slate-100 {
+  border-color: #E2DDD2 !important;
+}
+html[data-theme="Earthy"] .bg-\[\#2E2C2A\] {
+  background-color: #2C2521 !important;
+  border-color: #3D342E !important;
+}
+html[data-theme="Earthy"] .text-slate-800,
+html[data-theme="Earthy"] .text-slate-900 {
+  color: #C84218 !important;
+}
+html[data-theme="Earthy"] .text-slate-700,
+html[data-theme="Earthy"] .text-slate-600 {
+  color: #4A3E37 !important;
+}
+html[data-theme="Earthy"] .bg-slate-50,
+html[data-theme="Earthy"] .bg-slate-50\/50 {
+  background-color: #EBE5DA !important;
+}
+
+/* 8. Minimalist Stark (Clean Monochrome) Theme */
+html[data-theme="Minimalist"] body,
+html[data-theme="Minimalist"] #app-container {
+  background-color: #FFFFFF !important;
+  color: #0A0A0A !important;
+}
+html[data-theme="Minimalist"] .bg-\[\#FAF8F5\] {
+  background-color: #FFFFFF !important;
+}
+html[data-theme="Minimalist"] .bg-\[\#FDFCFB\],
+html[data-theme="Minimalist"] .bg-white {
+  background-color: #FAFAFA !important;
+  border-color: #E5E5E5 !important;
+}
+html[data-theme="Minimalist"] .border-\[\#EFECE7\],
+html[data-theme="Minimalist"] .border-slate-100 {
+  border-color: #E5E5E5 !important;
+}
+html[data-theme="Minimalist"] .bg-\[\#2E2C2A\] {
+  background-color: #171717 !important;
+  border-color: #262626 !important;
+}
+html[data-theme="Minimalist"] .text-slate-800,
+html[data-theme="Minimalist"] .text-slate-900 {
+  color: #0A0A0A !important;
+}
+html[data-theme="Minimalist"] .text-slate-700,
+html[data-theme="Minimalist"] .text-slate-600 {
+  color: #404040 !important;
+}
+html[data-theme="Minimalist"] .bg-slate-50,
+html[data-theme="Minimalist"] .bg-slate-50\/50 {
+  background-color: #F5F5F5 !important;
+}

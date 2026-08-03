@@ -4,8 +4,9 @@
  */
 
 import React from 'react';
-import { User, ChevronDown, BookOpen } from 'lucide-react';
+import { User, ChevronDown, ChevronUp, BookOpen, Shield } from 'lucide-react';
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 // Restrict values for the tab parameter.
 type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
@@ -35,6 +36,7 @@ export default function MainLayout({
   children
 }: MainLayoutProps) {
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = React.useState(true);
   const [profilePic, setProfilePic] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -73,7 +75,7 @@ export default function MainLayout({
   return (
     <div
       id="app-container"
-      className="min-h-screen w-full flex flex-col bg-[#FAF8F5] text-slate-800 font-sans select-none overflow-x-clip"
+      className="min-h-screen w-full flex flex-col bg-[#FAF8F5] text-slate-800 font-sans select-none overflow-x-clip relative"
     >
       {/* --- HEADER SECTION --- */}
       <header
@@ -163,83 +165,109 @@ export default function MainLayout({
                     >
                       Member Preferences
                     </div>
-                    <div
-                      onClick={() => {
-                        setActiveTab('account-settings');
-                        setDropdownOpen(false);
-                      }}
-                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
-                        activeTab === 'account-settings'
-                          ? 'bg-white/10 text-white font-bold'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      Account Settings
-                    </div>
-                    <div
-                      onClick={() => {
-                        setActiveTab('db-admin');
-                        setDropdownOpen(false);
-                      }}
-                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
-                        activeTab === 'db-admin'
-                          ? 'bg-white/10 text-white font-bold'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      Database Admin
-                    </div>
-                    <div
-                      onClick={() => {
-                        setActiveTab('adminCacheManagement');
-                        setDropdownOpen(false);
-                      }}
-                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
-                        activeTab === 'adminCacheManagement'
-                          ? 'bg-white/10 text-white font-bold'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      Cache Management
-                    </div>
-                    <div
-                      onClick={() => {
-                        setActiveTab('adminMedia');
-                        setDropdownOpen(false);
-                      }}
-                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
-                        activeTab === 'adminMedia'
-                          ? 'bg-white/10 text-white font-bold'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      Media Storage Admin
-                    </div>
-                    <div
-                      onClick={() => {
-                        setActiveTab('settings');
-                        setDropdownOpen(false);
-                      }}
-                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
-                        activeTab === 'settings'
-                          ? 'bg-white/10 text-white font-bold'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      Settings
-                    </div>
-                    <div
-                      onClick={() => {
-                        setActiveTab('greeting');
-                        setDropdownOpen(false);
-                      }}
-                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
-                        activeTab === 'greeting'
-                          ? 'bg-white/10 text-white font-bold'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      Greeting Screen
+                    {/* Administrator Nested Menu Group */}
+                    <div className="border-t border-slate-800/80 my-1 pt-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsAdminMenuOpen(!isAdminMenuOpen);
+                        }}
+                        className="w-full px-4 py-1.5 text-xs font-bold text-slate-300 hover:text-white flex items-center justify-between cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <Shield className="w-3.5 h-3.5 text-blue-400" />
+                          <span>Administrator</span>
+                        </div>
+                        {isAdminMenuOpen ? (
+                          <ChevronUp className="w-3 h-3 text-slate-400 group-hover:text-slate-200" />
+                        ) : (
+                          <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-slate-200" />
+                        )}
+                      </button>
+
+                      {isAdminMenuOpen && (
+                        <div className="pl-3 border-l border-slate-700/60 ml-4 my-1 space-y-0.5">
+                          <div
+                            onClick={() => {
+                              setActiveTab('account-settings');
+                              setDropdownOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                              activeTab === 'account-settings'
+                                ? 'bg-white/10 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            Account Settings
+                          </div>
+                          <div
+                            onClick={() => {
+                              setActiveTab('db-admin');
+                              setDropdownOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                              activeTab === 'db-admin'
+                                ? 'bg-white/10 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            Database Admin
+                          </div>
+                          <div
+                            onClick={() => {
+                              setActiveTab('adminCacheManagement');
+                              setDropdownOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                              activeTab === 'adminCacheManagement'
+                                ? 'bg-white/10 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            Cache Management
+                          </div>
+                          <div
+                            onClick={() => {
+                              setActiveTab('adminMedia');
+                              setDropdownOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                              activeTab === 'adminMedia'
+                                ? 'bg-white/10 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            Media Storage Admin
+                          </div>
+                          <div
+                            onClick={() => {
+                              setActiveTab('settings');
+                              setDropdownOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                              activeTab === 'settings'
+                                ? 'bg-white/10 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            Settings
+                          </div>
+                          <div
+                            onClick={() => {
+                              setActiveTab('greeting');
+                              setDropdownOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                              activeTab === 'greeting'
+                                ? 'bg-white/10 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            Greeting Screen
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Logout Action Option */}
@@ -308,6 +336,7 @@ export default function MainLayout({
           </div>
         </div>
       </footer>
+      <AdminComponentTag name="MainLayout" />
     </div>
   );
 }

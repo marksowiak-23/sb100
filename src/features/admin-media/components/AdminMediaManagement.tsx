@@ -30,7 +30,8 @@ import {
   Sparkles,
   Cloud
 } from 'lucide-react';
-import { mediaApi, MediaObject, SignedUrlResponse } from '@/src/services/api';
+import { mediaApi, resolveMediaUrl, MediaObject } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface AdminMediaManagementProps {
   isSandbox?: boolean;
@@ -346,7 +347,7 @@ export default function AdminMediaManagement({ isSandbox = false }: AdminMediaMa
   });
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-16">
+    <div className="max-w-6xl mx-auto space-y-6 pb-16 relative">
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div className="flex items-center gap-3">
@@ -1039,6 +1040,7 @@ export default function AdminMediaManagement({ isSandbox = false }: AdminMediaMa
           </div>
         )}
       </AnimatePresence>
+      <AdminComponentTag name="AdminMediaManagement" />
     </div>
   );
 }

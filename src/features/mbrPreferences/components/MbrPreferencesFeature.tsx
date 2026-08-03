@@ -19,10 +19,18 @@ import {
   Moon, 
   Sun, 
   Laptop, 
+  Compass,
+  Trees,
+  Flame,
+  Crown,
+  Cpu,
+  Leaf,
+  Minus,
   Bell, 
   FileText 
 } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface MbrPreferencesFeatureProps {
   isSandbox: boolean;
@@ -91,13 +99,15 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   const [selectedTheme, setSelectedTheme] = useState<string>('System');
   const [notificationsInd, setNotificationsInd] = useState<boolean>(true);
   const [autoSaveInd, setAutoSaveInd] = useState<boolean>(true);
+  const [adminDisplayComponentName, setAdminDisplayComponentName] = useState<boolean>(true);
 
   // Initial reference state for dirty comparison
   const [initialPrefs, setInitialPrefs] = useState({
     selectedWriterId: '',
     selectedTheme: 'System',
     notificationsInd: true,
-    autoSaveInd: true
+    autoSaveInd: true,
+    adminDisplayComponentName: true
   });
 
   // Calculate form dirty state
@@ -106,9 +116,10 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
       selectedWriterId !== initialPrefs.selectedWriterId ||
       selectedTheme !== initialPrefs.selectedTheme ||
       notificationsInd !== initialPrefs.notificationsInd ||
-      autoSaveInd !== initialPrefs.autoSaveInd
+      autoSaveInd !== initialPrefs.autoSaveInd ||
+      adminDisplayComponentName !== initialPrefs.adminDisplayComponentName
     );
-  }, [selectedWriterId, selectedTheme, notificationsInd, autoSaveInd, initialPrefs]);
+  }, [selectedWriterId, selectedTheme, notificationsInd, autoSaveInd, adminDisplayComponentName, initialPrefs]);
 
   // Sync dirty state with parent handler
   useEffect(() => {
@@ -183,22 +194,31 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         }
       }
 
+      // Respect active applied theme from DOM or sessionStorage without mutating active theme
+      const currentAppliedTheme = document.documentElement.getAttribute('data-theme') || sessionStorage.getItem('mbrPrefTheme') || sessionStorage.getItem('theme') || prefRecord?.mbrPrefTheme || 'Default';
+      const activeTheme = (currentAppliedTheme === 'System' || currentAppliedTheme === 'Light') ? 'Default' : currentAppliedTheme;
+
       const defaultWriter = prefRecord?.chWriterId || writerList[0]?.chWriterId || '';
-      const defaultTheme = prefRecord?.mbrPrefTheme || 'System';
       const defaultNotif = prefRecord?.mbrPrefNotificationsInd ?? true;
       const defaultAutoSave = prefRecord?.mbrPrefAutoSaveInd ?? true;
+      const defaultAdminDisplay = prefRecord?.adminDisplayComponentName ?? true;
 
       setMbrPrefId(prefRecord?.mbrPrefId || null);
       setSelectedWriterId(defaultWriter);
-      setSelectedTheme(defaultTheme);
+      setSelectedTheme(activeTheme);
       setNotificationsInd(defaultNotif);
       setAutoSaveInd(defaultAutoSave);
+      setAdminDisplayComponentName(defaultAdminDisplay);
+
+      sessionStorage.setItem('adminDisplayComponentName', String(defaultAdminDisplay));
+      window.dispatchEvent(new Event('admin-display-component-changed'));
 
       setInitialPrefs({
         selectedWriterId: defaultWriter,
-        selectedTheme: defaultTheme,
+        selectedTheme: activeTheme,
         notificationsInd: defaultNotif,
-        autoSaveInd: defaultAutoSave
+        autoSaveInd: defaultAutoSave,
+        adminDisplayComponentName: defaultAdminDisplay
       });
 
     } catch (err: any) {
@@ -222,8 +242,17 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         mbrPrefTheme: selectedTheme,
         mbrPrefNotificationsInd: notificationsInd,
         mbrPrefAutoSaveInd: autoSaveInd,
+        adminDisplayComponentName: adminDisplayComponentName,
         mbrPrefJson: null
       };
+
+      sessionStorage.setItem('adminDisplayComponentName', String(adminDisplayComponentName));
+      window.dispatchEvent(new Event('admin-display-component-changed'));
+
+      sessionStorage.setItem('mbrPrefTheme', selectedTheme);
+      sessionStorage.setItem('theme', selectedTheme);
+      document.documentElement.setAttribute('data-theme', selectedTheme);
+      window.dispatchEvent(new Event('theme-changed'));
 
       if (isSandbox) {
         const updatedPref = { ...payload, mbrPrefId: mbrPrefId || 'sandbox-pref-id' };
@@ -240,7 +269,8 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         selectedWriterId,
         selectedTheme,
         notificationsInd,
-        autoSaveInd
+        autoSaveInd,
+        adminDisplayComponentName
       };
       setInitialPrefs(newInit);
       setSuccess("Member preferences saved successfully!");
@@ -278,7 +308,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 pb-12">
+    <div className="w-full max-w-4xl mx-auto space-y-6 pb-12 relative">
       
       {/* Top Header Navigation */}
       <div className="flex items-center justify-between pb-4 border-b border-[#EFECE7]">
@@ -428,31 +458,52 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
               {/* Theme Preference Selector */}
-              <div className="space-y-2">
+              <div className="space-y-2.5 md:col-span-2">
                 <label className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest block">
-                  Application Display Theme
+                  Application Color Theme
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {[
-                    { id: 'System', label: 'System', icon: Laptop },
-                    { id: 'Light', label: 'Light', icon: Sun },
-                    { id: 'Dark', label: 'Dark', icon: Moon }
+                    { id: 'Default', label: 'Default (Warm)', desc: 'Warm cream & slate', icon: Sun, badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+                    { id: 'Dark', label: 'Dark Midnight', desc: 'Charcoal & silver', icon: Moon, badge: 'bg-slate-900 text-slate-100 border-slate-700' },
+                    { id: 'Rustic', label: 'Rustic Bar', desc: 'Burnt copper espresso', icon: Flame, badge: 'bg-[#2E2016] text-[#D97724] border-[#4A3222]' },
+                    { id: 'Luxury', label: 'Luxury Gold', desc: 'Obsidian & champagne', icon: Crown, badge: 'bg-[#241F10] text-[#D4AF37] border-[#42391D]' },
+                    { id: 'Tech', label: 'Modern Tech', desc: 'Cyber cyan & violet', icon: Cpu, badge: 'bg-[#0E1B2E] text-[#00F2FE] border-[#163356]' },
+                    { id: 'Earthy', label: 'Earthy Craft', desc: 'Warm sand & terracotta', icon: Leaf, badge: 'bg-[#EBE5DA] text-[#C84218] border-[#D9D1C3]' },
+                    { id: 'Minimalist', label: 'Minimalist', desc: 'Stark monochrome', icon: Minus, badge: 'bg-stone-100 text-stone-900 border-stone-300' },
+                    { id: 'Ocean', label: 'Ocean Indigo', desc: 'Deep indigo & navy', icon: Compass, badge: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
                   ].map((t) => {
                     const Icon = t.icon;
-                    const isThemeSelected = selectedTheme === t.id;
+                    const isThemeSelected = (selectedTheme === t.id) || (selectedTheme === 'System' && t.id === 'Default') || (selectedTheme === 'Light' && t.id === 'Default');
                     return (
                       <button
                         key={t.id}
                         type="button"
-                        onClick={() => setSelectedTheme(t.id)}
-                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-serif font-bold transition-all cursor-pointer ${
+                        onClick={() => {
+                          setSelectedTheme(t.id);
+                          document.documentElement.setAttribute('data-theme', t.id);
+                          sessionStorage.setItem('mbrPrefTheme', t.id);
+                          sessionStorage.setItem('theme', t.id);
+                          window.dispatchEvent(new Event('theme-changed'));
+                        }}
+                        className={`flex flex-col items-start gap-2.5 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
                           isThemeSelected
-                            ? 'bg-white border-blue-500 text-blue-700 ring-2 ring-blue-500/20 shadow-xs'
-                            : 'bg-white border-[#EFECE7] text-slate-600 hover:border-slate-300'
+                            ? 'bg-white border-blue-600 ring-2 ring-blue-500/20 shadow-sm'
+                            : 'bg-white border-[#EFECE7] hover:border-slate-300 hover:bg-slate-50/50'
                         }`}
                       >
-                        <Icon className="w-3.5 h-3.5" />
-                        <span>{t.label}</span>
+                        <div className="flex items-center justify-between w-full">
+                          <div className={`p-2 rounded-xl border ${t.badge}`}>
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          {isThemeSelected && (
+                            <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                          )}
+                        </div>
+                        <div>
+                          <span className="font-serif font-bold text-xs text-slate-800 block leading-snug">{t.label}</span>
+                          <span className="text-[10px] text-slate-400 font-serif block mt-0.5">{t.desc}</span>
+                        </div>
                       </button>
                     );
                   })}
@@ -492,6 +543,23 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
                     type="checkbox"
                     checked={autoSaveInd}
                     onChange={(e) => setAutoSaveInd(e.target.checked)}
+                    className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
+                  />
+                </div>
+
+                {/* Admin Display Component Name Toggle */}
+                <div className="flex items-center justify-between p-3 bg-white border border-[#EFECE7] rounded-xl">
+                  <div className="flex items-center gap-2.5">
+                    <Sliders className="w-4 h-4 text-slate-500" />
+                    <div>
+                      <h5 className="text-xs font-serif font-bold text-slate-700">Admin Display Component Name</h5>
+                      <p className="text-[10px] text-slate-400 font-serif">Display component names in administrative panels</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={adminDisplayComponentName}
+                    onChange={(e) => setAdminDisplayComponentName(e.target.checked)}
                     className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
                   />
                 </div>
@@ -538,6 +606,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         </form>
       )}
 
+      <AdminComponentTag name="MbrPreferencesFeature" />
     </div>
   );
 }

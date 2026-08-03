@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldAlert, Edit2 } from 'lucide-react';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrBookEditorProps {
   sectionTitle: string;
@@ -41,7 +42,7 @@ export default function SbMbrBookEditor({
   };
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
       {/* Status Draft indicator & Actions header */}
       <div className="flex items-center justify-between border-b border-[#EFECE7] pb-2">
         <div className="flex flex-col gap-0.5">
@@ -116,6 +117,7 @@ export default function SbMbrBookEditor({
           </div>
         )}
       </div>
+      <AdminComponentTag name="SbMbrBookEditor" />
     </div>
   );
 }

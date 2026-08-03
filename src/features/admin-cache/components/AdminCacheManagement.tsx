@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RefreshCw, Database, ShieldAlert, CheckCircle2, AlertCircle, Server, Layers, Cpu, Trash2, ArrowRight } from 'lucide-react';
 import { adminDbApi } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface AdminCacheManagementProps {
   isSandbox?: boolean;
@@ -65,7 +66,7 @@ export default function AdminCacheManagement({ isSandbox = false }: AdminCacheMa
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+    <div className="max-w-5xl mx-auto space-y-6 pb-12 relative">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#EFECE7]">
         <div className="flex items-center gap-3">
@@ -300,6 +301,7 @@ export default function AdminCacheManagement({ isSandbox = false }: AdminCacheMa
           </div>
         )}
       </AnimatePresence>
+      <AdminComponentTag name="AdminCacheManagement" />
     </div>
   );
 }

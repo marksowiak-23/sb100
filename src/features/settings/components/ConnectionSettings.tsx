@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Settings as SettingsIcon } from 'lucide-react';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface ConnectionSettingsProps {
   isSandbox: boolean; // Indicates if the application is offline and using sandbox mocked data.
@@ -18,7 +19,7 @@ interface ConnectionSettingsProps {
  */
 export default function ConnectionSettings({ isSandbox }: ConnectionSettingsProps) {
   return (
-    <div className="w-full max-w-2xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-8 md:p-12 shadow-[0_12px_40px_rgba(0,0,0,0.02)]">
+    <div className="w-full max-w-2xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-8 md:p-12 shadow-[0_12px_40px_rgba(0,0,0,0.02)] relative">
       
       {/* Header section with icon and labels */}
       <div className="flex items-center gap-3 pb-6 border-b border-[#EFECE7] mb-6">
@@ -80,6 +81,7 @@ export default function ConnectionSettings({ isSandbox }: ConnectionSettingsProp
           </div>
         </div>
       </div>
+      <AdminComponentTag name="ConnectionSettings" />
     </div>
   );
 }

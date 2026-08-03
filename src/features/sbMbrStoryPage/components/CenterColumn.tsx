@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
 import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
   member: MemberStory;
@@ -18,7 +19,7 @@ export default function CenterColumn({
   onClickBack
 }: CenterColumnProps) {
   return (
-    <div className="space-y-6 flex flex-col">
+    <div className="space-y-6 flex flex-col relative">
       
       {/* --- BACK NAVIGATION LINK --- */}
       <div>
@@ -37,6 +38,7 @@ export default function CenterColumn({
       {/* --- ACTIVE SECTION CONTENT AREA --- */}
       <SbMbrBookEditor sectionTitle={activeSection} content={activeContent} readOnly={true} />
 
+      <AdminComponentTag name="CenterColumn" />
     </div>
   );
 }

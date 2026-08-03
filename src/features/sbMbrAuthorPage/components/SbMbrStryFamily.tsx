@@ -5,8 +5,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, UserPlus, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, BookOpen } from 'lucide-react';
+import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, BookOpen } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrStryFamilyProps {
   isSandbox: boolean;
@@ -19,6 +20,7 @@ interface FamilyMember {
   mbrFamilyFirstNm: string;
   mbrFamilyMiddleNm?: string;
   mbrFamilyLastNm: string;
+  mbrFamilyBirthDt?: string;
 }
 
 const SANDBOX_FAMILY: FamilyMember[] = [
@@ -28,7 +30,8 @@ const SANDBOX_FAMILY: FamilyMember[] = [
     mbrFamilyRelationshipCd: 'Spouse',
     mbrFamilyFirstNm: 'Thomas',
     mbrFamilyMiddleNm: 'Allen',
-    mbrFamilyLastNm: 'Hartwell'
+    mbrFamilyLastNm: 'Hartwell',
+    mbrFamilyBirthDt: '1948-03-12'
   },
   {
     mbrFamilyId: 'f2',
@@ -36,7 +39,8 @@ const SANDBOX_FAMILY: FamilyMember[] = [
     mbrFamilyRelationshipCd: 'Son',
     mbrFamilyFirstNm: 'Daniel',
     mbrFamilyMiddleNm: '',
-    mbrFamilyLastNm: 'Hartwell'
+    mbrFamilyLastNm: 'Hartwell',
+    mbrFamilyBirthDt: '1978-06-25'
   },
   {
     mbrFamilyId: 'f3',
@@ -44,7 +48,8 @@ const SANDBOX_FAMILY: FamilyMember[] = [
     mbrFamilyRelationshipCd: 'Daughter',
     mbrFamilyFirstNm: 'Claire',
     mbrFamilyMiddleNm: '',
-    mbrFamilyLastNm: 'Hartwell'
+    mbrFamilyLastNm: 'Hartwell',
+    mbrFamilyBirthDt: '1982-11-04'
   },
   {
     mbrFamilyId: 'f4',
@@ -52,28 +57,122 @@ const SANDBOX_FAMILY: FamilyMember[] = [
     mbrFamilyRelationshipCd: 'Grandfather',
     mbrFamilyFirstNm: 'Harold',
     mbrFamilyMiddleNm: '',
-    mbrFamilyLastNm: 'Sorenson'
+    mbrFamilyLastNm: 'Sorenson',
+    mbrFamilyBirthDt: '1920-01-15'
+  },
+  {
+    mbrFamilyId: 'f5',
+    mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    mbrFamilyRelationshipCd: 'Father',
+    mbrFamilyFirstNm: 'Raymond',
+    mbrFamilyMiddleNm: 'Dale',
+    mbrFamilyLastNm: 'Hartwell',
+    mbrFamilyBirthDt: '1925-08-19'
+  },
+  {
+    mbrFamilyId: 'f6',
+    mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    mbrFamilyRelationshipCd: 'Mother',
+    mbrFamilyFirstNm: 'Margaret',
+    mbrFamilyMiddleNm: 'Ann',
+    mbrFamilyLastNm: 'Hartwell',
+    mbrFamilyBirthDt: '1928-04-03'
+  },
+  {
+    mbrFamilyId: 'f7',
+    mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    mbrFamilyRelationshipCd: 'Sister',
+    mbrFamilyFirstNm: 'Sarah',
+    mbrFamilyMiddleNm: '',
+    mbrFamilyLastNm: 'Hartwell',
+    mbrFamilyBirthDt: '1952-09-14'
+  },
+  {
+    mbrFamilyId: 'f8',
+    mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    mbrFamilyRelationshipCd: 'Brother',
+    mbrFamilyFirstNm: 'James',
+    mbrFamilyMiddleNm: '',
+    mbrFamilyLastNm: 'Hartwell',
+    mbrFamilyBirthDt: '1955-12-01'
+  },
+  {
+    mbrFamilyId: 'f9',
+    mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    mbrFamilyRelationshipCd: 'Aunt',
+    mbrFamilyFirstNm: 'Clara',
+    mbrFamilyMiddleNm: '',
+    mbrFamilyLastNm: 'Sorenson',
+    mbrFamilyBirthDt: '1932-07-22'
   }
 ];
 
 const DEFAULT_RELATIONSHIPS = [
-  { cdValue: 'Fatther', cdDesc: 'Father' },
+  { cdValue: 'Father', cdDesc: 'Father' },
   { cdValue: 'Mother', cdDesc: 'Mother' },
+  { cdValue: 'Spouse', cdDesc: 'Spouse' },
+  { cdValue: 'Partner', cdDesc: 'Partner' },
+  { cdValue: 'Brother', cdDesc: 'Brother' },
+  { cdValue: 'Sister', cdDesc: 'Sister' },
   { cdValue: 'Son', cdDesc: 'Son' },
   { cdValue: 'Daughter', cdDesc: 'Daughter' },
   { cdValue: 'Grandfather', cdDesc: 'Grandfather' },
   { cdValue: 'Grandmother', cdDesc: 'Grandmother' },
   { cdValue: 'Great Grandfather', cdDesc: 'Great Grandfather' },
   { cdValue: 'Great Grandmother', cdDesc: 'Great Grandmother' },
+  { cdValue: 'Uncle', cdDesc: 'Uncle' },
+  { cdValue: 'Aunt', cdDesc: 'Aunt' },
+  { cdValue: 'Nephew', cdDesc: 'Nephew' },
+  { cdValue: 'Niece', cdDesc: 'Niece' },
   { cdValue: '1st Cousin', cdDesc: '1st Cousin' },
   { cdValue: 'N Cousin', cdDesc: 'N Cousin' },
   { cdValue: 'Step Son', cdDesc: 'Step Son' },
   { cdValue: 'Step Daughter', cdDesc: 'Step Daughter' }
 ];
 
+const RELATIONSHIP_ORDER: Record<string, number> = {
+  'Father': 1,
+  'Mother': 2,
+  'Son': 3,
+  'Daughter': 4,
+  'Brother': 5,
+  'Sister': 6,
+  'Grandfather': 7,
+  'Grandmother': 8,
+  'Great Grandfather': 9,
+  'Great Grandmother': 10,
+  'Uncle': 11,
+  'Aunt': 12,
+  '1st Cousin': 13,
+  'N Cousin': 14,
+  'Nephew': 15,
+  'Niece': 16,
+  'Spouse': 17,
+  'Partner': 18,
+  'Step Son': 19,
+  'Step Daughter': 20
+};
+
+const getRelationshipRank = (cd?: string): number => {
+  if (!cd) return 99;
+  return RELATIONSHIP_ORDER[cd] ?? 50;
+};
+
+export const sortFamilyList = (list: FamilyMember[]): FamilyMember[] => {
+  return [...list].sort((a, b) => {
+    const rankA = getRelationshipRank(a.mbrFamilyRelationshipCd);
+    const rankB = getRelationshipRank(b.mbrFamilyRelationshipCd);
+    if (rankA !== rankB) {
+      return rankA - rankB;
+    }
+    const nameA = `${a.mbrFamilyFirstNm} ${a.mbrFamilyLastNm}`.toLowerCase();
+    const nameB = `${b.mbrFamilyFirstNm} ${b.mbrFamilyLastNm}`.toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+};
+
 export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
   // --- STATE VARIABLES ---
-  const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,9 +180,21 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
   
   const [mbrId, setMbrId] = useState<string>('9edb4311-a4bc-428a-8317-833f0f08fea1');
   const [familyList, setFamilyList] = useState<FamilyMember[]>([]);
-  const [editList, setEditList] = useState<FamilyMember[]>([]);
-  const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [relationshipCodes, setRelationshipCodes] = useState<any[]>(DEFAULT_RELATIONSHIPS);
+
+  // --- MODAL STATE ---
+  const [showModal, setShowModal] = useState(false);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [formRelationship, setFormRelationship] = useState('Spouse');
+  const [formFirstNm, setFormFirstNm] = useState('');
+  const [formMiddleNm, setFormMiddleNm] = useState('');
+  const [formLastNm, setFormLastNm] = useState('');
+  const [formBirthDt, setFormBirthDt] = useState('');
+  const [modalError, setModalError] = useState<string | null>(null);
+
+  // --- DELETE CONFIRMATION STATE ---
+  const [deleteTargetMember, setDeleteTargetMember] = useState<FamilyMember | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // --- INITIAL DATA FETCH ---
   useEffect(() => {
@@ -94,21 +205,31 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
     setLoading(true);
     setError(null);
     try {
-      // 1. Load relationship codes from DB or fallback
       if (!isSandbox) {
         try {
-          const codes = await taskApi.getLookupCodes('mbrFamilyRelationsipCd');
-          if (codes && codes.length > 0) {
-            setRelationshipCodes(codes);
+          const dbCodes = await taskApi.getLookupCodes('mbrFamilyRelationsipCd');
+          const codeMap = new Map<string, string>();
+          DEFAULT_RELATIONSHIPS.forEach((c) => codeMap.set(c.cdValue, c.cdDesc));
+          if (dbCodes && Array.isArray(dbCodes)) {
+            dbCodes.forEach((c: any) => {
+              if (c.cdValue && c.cdDesc) {
+                codeMap.set(c.cdValue, c.cdDesc);
+              }
+            });
           }
+          const merged = Array.from(codeMap.entries()).map(([cdValue, cdDesc]) => ({
+            cdValue,
+            cdDesc
+          }));
+          setRelationshipCodes(merged);
         } catch (e) {
           console.warn("Could not fetch DB relationship codes, using defaults:", e);
+          setRelationshipCodes(DEFAULT_RELATIONSHIPS);
         }
       } else {
         setRelationshipCodes(DEFAULT_RELATIONSHIPS);
       }
 
-      // 2. Fetch logged-in user and lookup their member profile ID
       let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
       const userStr = sessionStorage.getItem('user');
       if (userStr && !isSandbox) {
@@ -124,19 +245,18 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
         }
       }
 
-      // 3. Load family records
       if (isSandbox) {
-        // Load from local sandbox state or sessionStorage
         const saved = sessionStorage.getItem('sandbox_family');
         if (saved) {
-          setFamilyList(JSON.parse(saved));
+          setFamilyList(sortFamilyList(JSON.parse(saved)));
         } else {
-          setFamilyList(SANDBOX_FAMILY);
-          sessionStorage.setItem('sandbox_family', JSON.stringify(SANDBOX_FAMILY));
+          const sorted = sortFamilyList(SANDBOX_FAMILY);
+          setFamilyList(sorted);
+          sessionStorage.setItem('sandbox_family', JSON.stringify(sorted));
         }
       } else {
         const dbFamily = await taskApi.getFamilyMembers(currentMbrId);
-        setFamilyList(dbFamily);
+        setFamilyList(sortFamilyList(dbFamily));
       }
     } catch (err: any) {
       setError(`Failed to load family directory: ${err.message}`);
@@ -145,129 +265,141 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
     }
   };
 
-  // --- BUTTON ACTIONS ---
-  const handleStartEdit = () => {
-    setEditList([...familyList]);
-    setDeletedIds([]);
-    setIsEditing(true);
-    setError(null);
-    setSuccessMsg(null);
+  // --- MODAL HANDLERS ---
+  const handleOpenAddModal = () => {
+    setEditingMemberId(null);
+    setFormRelationship(relationshipCodes[0]?.cdValue || 'Spouse');
+    setFormFirstNm('');
+    setFormMiddleNm('');
+    setFormLastNm('');
+    setFormBirthDt('');
+    setModalError(null);
+    setShowModal(true);
   };
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    setError(null);
+  const handleOpenEditModal = (member: FamilyMember) => {
+    setEditingMemberId(member.mbrFamilyId);
+    setFormRelationship(member.mbrFamilyRelationshipCd);
+    setFormFirstNm(member.mbrFamilyFirstNm);
+    setFormMiddleNm(member.mbrFamilyMiddleNm || '');
+    setFormLastNm(member.mbrFamilyLastNm);
+    setFormBirthDt(member.mbrFamilyBirthDt || '');
+    setModalError(null);
+    setShowModal(true);
   };
 
-  const handleAddRow = () => {
-    const tempId = `temp_${Date.now()}`;
-    const newRow: FamilyMember = {
-      mbrFamilyId: tempId,
-      mbrId: mbrId,
-      mbrFamilyRelationshipCd: relationshipCodes[0]?.cdValue || 'Spouse',
-      mbrFamilyFirstNm: '',
-      mbrFamilyMiddleNm: '',
-      mbrFamilyLastNm: ''
-    };
-    setEditList([...editList, newRow]);
-  };
-
-  const handleDeleteRow = (mbrFamilyId: string) => {
-    setEditList(editList.filter((item) => item.mbrFamilyId !== mbrFamilyId));
-    if (!mbrFamilyId.startsWith('temp_')) {
-      setDeletedIds([...deletedIds, mbrFamilyId]);
-    }
-  };
-
-  const handleFieldChange = (mbrFamilyId: string, field: keyof FamilyMember, value: string) => {
-    setEditList(
-      editList.map((item) => {
-        if (item.mbrFamilyId === mbrFamilyId) {
-          return { ...item, [field]: value };
-        }
-        return item;
-      })
-    );
-  };
-
-  // --- SAVE OPERATION ---
-  const handleSaveChanges = async () => {
-    // Basic validation
-    for (const item of editList) {
-      if (!item.mbrFamilyFirstNm.trim() || !item.mbrFamilyLastNm.trim()) {
-        setError("First Name and Last Name are required for all family members.");
-        return;
-      }
+  const handleSaveModalRecord = async () => {
+    if (!formFirstNm.trim() || !formLastNm.trim()) {
+      setModalError('First Name and Last Name are required.');
+      return;
     }
 
     setSaving(true);
+    setModalError(null);
     setError(null);
     setSuccessMsg(null);
 
+    const payload = {
+      mbrId: mbrId,
+      mbrFamilyRelationshipCd: formRelationship,
+      mbrFamilyFirstNm: formFirstNm.trim(),
+      mbrFamilyMiddleNm: formMiddleNm.trim() || undefined,
+      mbrFamilyLastNm: formLastNm.trim(),
+      mbrFamilyBirthDt: formBirthDt.trim() || undefined
+    };
+
     try {
       if (isSandbox) {
-        // Update local session storage
-        sessionStorage.setItem('sandbox_family', JSON.stringify(editList));
-        setFamilyList(editList);
-        setSuccessMsg("Family records updated in Sandbox mode successfully!");
-        setIsEditing(false);
+        let nextList: FamilyMember[] = [];
+        if (editingMemberId) {
+          nextList = familyList.map((item) =>
+            item.mbrFamilyId === editingMemberId
+              ? ({ ...item, ...payload } as FamilyMember)
+              : item
+          );
+          setSuccessMsg('Family member updated successfully!');
+        } else {
+          const newMember: FamilyMember = {
+            mbrFamilyId: `f_${Date.now()}`,
+            mbrId: mbrId,
+            mbrFamilyRelationshipCd: formRelationship,
+            mbrFamilyFirstNm: formFirstNm.trim(),
+            mbrFamilyMiddleNm: formMiddleNm.trim() || undefined,
+            mbrFamilyLastNm: formLastNm.trim(),
+            mbrFamilyBirthDt: formBirthDt.trim() || undefined
+          };
+          nextList = [...familyList, newMember];
+          setSuccessMsg('Family member added successfully!');
+        }
+        const sorted = sortFamilyList(nextList);
+        setFamilyList(sorted);
+        sessionStorage.setItem('sandbox_family', JSON.stringify(sorted));
+        setShowModal(false);
       } else {
-        // 1. Process deletes
-        for (const deleteId of deletedIds) {
-          await taskApi.deleteFamilyMember(deleteId);
+        if (editingMemberId) {
+          await taskApi.updateFamilyMember(editingMemberId, payload);
+          setSuccessMsg('Family member updated successfully!');
+        } else {
+          await taskApi.createFamilyMember(payload);
+          setSuccessMsg('Family member added successfully!');
         }
-
-        // 2. Process creates and updates
-        for (const item of editList) {
-          if (item.mbrFamilyId.startsWith('temp_')) {
-            // Create record
-            await taskApi.createFamilyMember({
-              mbrId: mbrId,
-              mbrFamilyRelationshipCd: item.mbrFamilyRelationshipCd,
-              mbrFamilyFirstNm: item.mbrFamilyFirstNm.trim(),
-              mbrFamilyMiddleNm: item.mbrFamilyMiddleNm?.trim() || undefined,
-              mbrFamilyLastNm: item.mbrFamilyLastNm.trim()
-            });
-          } else {
-            // Update record
-            await taskApi.updateFamilyMember(item.mbrFamilyId, {
-              mbrId: mbrId,
-              mbrFamilyRelationshipCd: item.mbrFamilyRelationshipCd,
-              mbrFamilyFirstNm: item.mbrFamilyFirstNm.trim(),
-              mbrFamilyMiddleNm: item.mbrFamilyMiddleNm?.trim() || undefined,
-              mbrFamilyLastNm: item.mbrFamilyLastNm.trim()
-            });
-          }
-        }
-
-        // 3. Reload from database
+        setShowModal(false);
         const dbFamily = await taskApi.getFamilyMembers(mbrId);
-        setFamilyList(dbFamily);
-        setSuccessMsg("Family records updated in database successfully!");
-        setIsEditing(false);
+        setFamilyList(sortFamilyList(dbFamily));
       }
     } catch (err: any) {
-      setError(`Failed to save changes: ${err.message}`);
+      setModalError(`Failed to save family member: ${err.message}`);
     } finally {
       setSaving(false);
     }
   };
 
-  // Helper for generating avatar initials
+  const promptDeleteMember = (member: FamilyMember) => {
+    setDeleteTargetMember(member);
+  };
+
+  const executeDeleteMember = async () => {
+    if (!deleteTargetMember) return;
+    setDeleting(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    const targetId = deleteTargetMember.mbrFamilyId;
+
+    try {
+      if (isSandbox) {
+        const nextList = familyList.filter((f) => f.mbrFamilyId !== targetId);
+        const sorted = sortFamilyList(nextList);
+        setFamilyList(sorted);
+        sessionStorage.setItem('sandbox_family', JSON.stringify(sorted));
+        setSuccessMsg('Family member deleted successfully!');
+      } else {
+        await taskApi.deleteFamilyMember(targetId);
+        const dbFamily = await taskApi.getFamilyMembers(mbrId);
+        setFamilyList(sortFamilyList(dbFamily));
+        setSuccessMsg('Family member deleted successfully!');
+      }
+      setDeleteTargetMember(null);
+    } catch (err: any) {
+      setError(`Failed to delete family member: ${err.message}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const getInitials = (first: string, last: string) => {
     const f = first ? first[0] : '';
     const l = last ? last[0] : '';
     return (f + l).toUpperCase() || '?';
   };
 
-  // Helper for mapping cdValue to clean desc labels
   const getRelationLabel = (cdVal: string) => {
     const codeObj = relationshipCodes.find((c) => c.cdValue === cdVal);
     return codeObj ? codeObj.cdDesc : cdVal;
   };
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-6">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-6 relative">
       
       {/* --- PANEL HEADER --- */}
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#EFECE7]">
@@ -275,41 +407,34 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
           <div className="p-2.5 bg-blue-50/50 border border-blue-100 text-blue-700 rounded-xl">
             <Users className="w-5 h-5" />
           </div>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest font-mono">
-              {isEditing ? 'Status: Editing' : 'Status: Draft'}
-            </span>
-            <h2 className="font-serif text-lg font-bold text-slate-800">Family</h2>
-          </div>
+          <h2 className="font-serif text-lg font-bold text-slate-800">Family</h2>
         </div>
 
-        {/* Toggle Mode Buttons */}
-        {!isEditing && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' } }))}
-              className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title="Story Editor"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-            </button>
-            <button
-              onClick={() => alert('Opening Privacy settings for family members...')}
-              className="p-2.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title="Privacy settings"
-            >
-              <ShieldAlert className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={handleStartEdit}
-              disabled={loading}
-              title="Edit Family"
-              className="p-2.5 text-slate-505 hover:text-slate-805 hover:bg-slate-100/80 rounded-xl border border-slate-200 transition-all duration-150 cursor-pointer disabled:opacity-50"
-            >
-              <Edit3 className="w-4.5 h-4.5" />
-            </button>
-          </div>
-        )}
+        {/* Action Header Buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleOpenAddModal}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 border border-blue-600 font-sans"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Member</span>
+          </button>
+
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' } }))}
+            className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+            title="Story Editor"
+          >
+            <BookOpen className="w-4 h-4 text-blue-500" />
+          </button>
+          <button
+            onClick={() => alert('Opening Privacy settings for family members...')}
+            className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+            title="Privacy settings"
+          >
+            <ShieldAlert className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {/* --- NOTIFICATIONS BANNER --- */}
@@ -346,32 +471,31 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
 
       {/* --- CONTENT WORKSPACE --- */}
       {loading ? (
-        /* Loading State */
         <div className="flex flex-col items-center justify-center py-10 text-slate-400 gap-2">
           <Loader2 className="w-7 h-7 animate-spin text-slate-500" />
           <span className="text-xs font-medium">Loading family members...</span>
         </div>
-      ) : !isEditing ? (
-        /* DISPLAY MODE: Premium Card Grid */
-        familyList.length === 0 ? (
-          <div className="bg-slate-50/50 border border-slate-100 border-dashed py-10 px-4 rounded-2xl text-center">
-            <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-            <p className="text-xs font-serif text-slate-500 italic">No family members registered.</p>
-            <button
-              onClick={handleStartEdit}
-              className="mt-3 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
-            >
-              <Plus className="w-3 h-3" /> Add Family Members
-            </button>
-          </div>
-        ) : (
-          <div className="max-h-[268px] overflow-y-auto pr-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-              {familyList.map((member) => (
-                <div
-                  key={member.mbrFamilyId}
-                  className="bg-white border border-[#EFECE7] rounded-xl py-2 px-2.5 flex items-center gap-2.5 hover:border-slate-300 hover:shadow-xs transition-all duration-200"
-                >
+      ) : familyList.length === 0 ? (
+        <div className="bg-slate-50/50 border border-slate-100 border-dashed py-10 px-4 rounded-2xl text-center">
+          <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+          <p className="text-xs font-serif text-slate-500 italic">No family members registered.</p>
+          <button
+            onClick={handleOpenAddModal}
+            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm transition-all"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Family Member
+          </button>
+        </div>
+      ) : (
+        /* FAMILY CARD GRID (Max 2 cards per row, 3 rows visible before scrolling) */
+        <div className="max-h-[172px] overflow-y-auto pr-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {sortFamilyList(familyList).map((member) => (
+              <div
+                key={member.mbrFamilyId}
+                className="bg-white border border-[#EFECE7] rounded-xl py-2 px-2.5 flex items-center justify-between gap-2 hover:border-slate-300 hover:shadow-xs transition-all duration-200 group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-grow">
                   {/* Initials Avatar */}
                   <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 font-serif font-bold text-xs shrink-0">
                     {getInitials(member.mbrFamilyFirstNm, member.mbrFamilyLastNm)}
@@ -382,139 +506,230 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
                       {member.mbrFamilyFirstNm} {member.mbrFamilyLastNm}
                     </h3>
                     
-                    {/* Badged relationship category */}
-                    <span className="inline-flex mt-0.5 items-center px-1.5 py-0.2 text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-100/50 rounded-full uppercase tracking-wider">
-                      {getRelationLabel(member.mbrFamilyRelationshipCd)}
-                    </span>
+                    {/* Badged relationship category & Birth date */}
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className="inline-flex items-center px-1.5 py-0.2 text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-100/50 rounded-full uppercase tracking-wider">
+                        {getRelationLabel(member.mbrFamilyRelationshipCd)}
+                      </span>
+                      {member.mbrFamilyBirthDt && (
+                        <span className="text-[9px] font-mono text-slate-400 font-medium">
+                          {member.mbrFamilyBirthDt}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        )
-      ) : (
-        /* EDIT MODE: Form Directory Grid/Table */
-        <div className="flex flex-col gap-4">
-          <div className="overflow-x-auto overflow-y-auto max-h-[370px] pr-1 border border-[#EFECE7] rounded-xl">
-            <table className="w-full border-collapse text-left">
-              <thead className="sticky top-0 bg-[#FDFCFB] z-10 border-b border-[#EFECE7] shadow-xs">
-                <tr className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
-                  <th className="py-2.5 px-2 bg-[#FDFCFB]">Relationship</th>
-                  <th className="py-2.5 px-2 bg-[#FDFCFB]">First Name</th>
-                  <th className="py-2.5 px-2 bg-[#FDFCFB]">Middle Name</th>
-                  <th className="py-2.5 px-2 bg-[#FDFCFB]">Last Name</th>
-                  <th className="py-2.5 px-2 text-right bg-[#FDFCFB]">Delete</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {editList.map((item) => (
-                  <tr key={item.mbrFamilyId} className="group hover:bg-slate-50/30 transition-colors">
-                    
-                    {/* Relationship Selection Dropdown */}
-                    <td className="py-3 px-2 min-w-[140px]">
-                      <select
-                        value={item.mbrFamilyRelationshipCd}
-                        onChange={(e) =>
-                          handleFieldChange(item.mbrFamilyId, 'mbrFamilyRelationshipCd', e.target.value)
-                        }
-                        className="w-full bg-white border border-[#EFECE7] rounded-lg text-xs outline-none py-2 px-2.5 focus:border-slate-800"
-                      >
-                        {relationshipCodes.map((code) => (
-                          <option key={code.cdValue} value={code.cdValue}>
-                            {code.cdDesc}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
 
-                    {/* First Name Input */}
-                    <td className="py-3 px-2 min-w-[120px]">
-                      <input
-                        type="text"
-                        value={item.mbrFamilyFirstNm}
-                        onChange={(e) =>
-                          handleFieldChange(item.mbrFamilyId, 'mbrFamilyFirstNm', e.target.value)
-                        }
-                        placeholder="First Name"
-                        className="w-full bg-white border border-[#EFECE7] rounded-lg text-xs outline-none py-2 px-2.5 focus:border-slate-800"
-                      />
-                    </td>
-
-                    {/* Middle Name Input */}
-                    <td className="py-3 px-2 min-w-[100px]">
-                      <input
-                        type="text"
-                        value={item.mbrFamilyMiddleNm || ''}
-                        onChange={(e) =>
-                          handleFieldChange(item.mbrFamilyId, 'mbrFamilyMiddleNm', e.target.value)
-                        }
-                        placeholder="Middle Name"
-                        className="w-full bg-white border border-[#EFECE7] rounded-lg text-xs outline-none py-2 px-2.5 focus:border-slate-800"
-                      />
-                    </td>
-
-                    {/* Last Name Input */}
-                    <td className="py-3 px-2 min-w-[120px]">
-                      <input
-                        type="text"
-                        value={item.mbrFamilyLastNm}
-                        onChange={(e) =>
-                          handleFieldChange(item.mbrFamilyId, 'mbrFamilyLastNm', e.target.value)
-                        }
-                        placeholder="Last Name"
-                        className="w-full bg-white border border-[#EFECE7] rounded-lg text-xs outline-none py-2 px-2.5 focus:border-slate-800"
-                      />
-                    </td>
-
-                    {/* Delete Icon Button */}
-                    <td className="py-3 px-2 text-right">
-                      <button
-                        onClick={() => handleDeleteRow(item.mbrFamilyId)}
-                        className="p-2 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-
-          {/* Add Member Row Button */}
-          <button
-            onClick={handleAddRow}
-            className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-slate-50 hover:bg-slate-100 border border-dashed border-slate-300 text-slate-600 hover:text-slate-800 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Add Family Member</span>
-          </button>
-
-          {/* Actions Bottom Bar */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#EFECE7]">
-            <button
-              onClick={handleCancelEdit}
-              disabled={saving}
-              className="px-4 py-2.5 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSaveChanges}
-              disabled={saving}
-              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 transition-all duration-150 cursor-pointer disabled:opacity-50 shrink-0 border border-blue-600"
-            >
-              {saving ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Save className="w-3.5 h-3.5" />
-              )}
-              <span>Save Changes</span>
-            </button>
+                {/* Card Action Buttons (Edit & Delete) */}
+                <div className="flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => handleOpenEditModal(member)}
+                    title="Edit Family Member"
+                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => promptDeleteMember(member)}
+                    title="Delete Family Member"
+                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
+
+      {/* --- EDIT / ADD FAMILY MEMBER POP-UP MODAL DIALOG --- */}
+      <AnimatePresence>
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white border border-[#EFECE7] rounded-3xl p-6 shadow-2xl max-w-md w-full relative space-y-5"
+            >
+              {/* Modal Header */}
+              <div className="flex items-start justify-between pb-3 border-b border-[#EFECE7]">
+                <h3 className="font-serif text-base font-bold text-slate-800">
+                  {editingMemberId ? 'Edit Family Member' : 'Add Family Member'}
+                </h3>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Modal Error Banner */}
+              {modalError && (
+                <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-800 p-3 rounded-xl text-xs font-medium flex items-center justify-between">
+                  <span>{modalError}</span>
+                  <button onClick={() => setModalError(null)} className="text-rose-500 hover:text-rose-700">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Modal Form Controls */}
+              <div className="space-y-4 text-left">
+                {/* Relationship Dropdown */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                    Relationship Type
+                  </label>
+                  <select
+                    value={formRelationship}
+                    onChange={(e) => setFormRelationship(e.target.value)}
+                    className="w-full bg-white border border-[#EFECE7] rounded-xl text-xs font-bold text-slate-700 py-2.5 px-3 outline-none focus:border-slate-800 cursor-pointer"
+                  >
+                    {relationshipCodes.map((code) => (
+                      <option key={code.cdValue} value={code.cdValue}>
+                        {code.cdDesc}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* First Name, Middle Name & Last Name Grid */}
+                <div className="grid grid-cols-3 gap-2.5">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formFirstNm}
+                      onChange={(e) => setFormFirstNm(e.target.value)}
+                      placeholder="e.g. Thomas"
+                      className="w-full bg-white border border-[#EFECE7] rounded-xl text-xs font-bold text-slate-800 py-2.5 px-2.5 outline-none focus:border-slate-800"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                      Middle Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formMiddleNm}
+                      onChange={(e) => setFormMiddleNm(e.target.value)}
+                      placeholder="e.g. Allen"
+                      className="w-full bg-white border border-[#EFECE7] rounded-xl text-xs font-bold text-slate-800 py-2.5 px-2.5 outline-none focus:border-slate-800"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formLastNm}
+                      onChange={(e) => setFormLastNm(e.target.value)}
+                      placeholder="e.g. Hartwell"
+                      className="w-full bg-white border border-[#EFECE7] rounded-xl text-xs font-bold text-slate-800 py-2.5 px-2.5 outline-none focus:border-slate-800"
+                    />
+                  </div>
+                </div>
+
+                {/* Birth Date Input */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                    Birth Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formBirthDt}
+                    onChange={(e) => setFormBirthDt(e.target.value)}
+                    className="w-full bg-white border border-[#EFECE7] rounded-xl text-xs font-mono font-medium text-slate-800 py-2.5 px-3 outline-none focus:border-slate-800"
+                  />
+                  <p className="text-[11px] text-slate-400 font-serif leading-normal mt-0.5">
+                    Birth Dates are not displayed to others. Birth Dates may come in handy as StoryMate helps you generate stories.
+                  </p>
+                </div>
+              </div>
+
+              {/* Modal Footer Action Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#EFECE7]">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  disabled={saving}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50 font-sans"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveModalRecord}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/10 transition-all cursor-pointer disabled:opacity-50 border border-blue-600 font-sans"
+                >
+                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                  <span>Save Record</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- DELETE CONFIRMATION POP-UP MODAL DIALOG --- */}
+      <AnimatePresence>
+        {deleteTargetMember && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white border border-[#EFECE7] rounded-3xl p-6 shadow-2xl max-w-sm w-full relative space-y-4 text-center"
+            >
+              <div className="p-3 bg-amber-50 text-amber-600 border border-amber-200/60 rounded-2xl w-12 h-12 flex items-center justify-center mx-auto shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+
+              <div>
+                <h3 className="font-serif text-base font-bold text-slate-850">
+                  Delete Family Member?
+                </h3>
+                <p className="text-xs text-slate-500 font-serif leading-relaxed mt-1.5">
+                  Are you sure you want to remove <span className="font-bold text-slate-700">{deleteTargetMember.mbrFamilyFirstNm} {deleteTargetMember.mbrFamilyLastNm}</span> from your family directory? This action cannot be undone.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteTargetMember(null)}
+                  disabled={deleting}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50 font-sans"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={executeDeleteMember}
+                  disabled={deleting}
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-500/10 transition-all cursor-pointer disabled:opacity-50 border border-rose-600 font-sans"
+                >
+                  {deleting ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3.5 h-3.5" />
+                  )}
+                  <span>Delete Record</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AdminComponentTag name="SbMbrStryFamily" />
     </div>
   );
 }

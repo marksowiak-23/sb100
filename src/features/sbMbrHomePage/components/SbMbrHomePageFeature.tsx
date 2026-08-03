@@ -8,6 +8,7 @@ import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrHomePageFeatureProps {
   onClickReadStory?: (memberId: string) => void;
@@ -30,7 +31,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
   });
 
   return (
-    <div className="w-full">
+    <div className="w-full relative">
       {/* 3-Column Responsive Grid Structure */}
       {/* lg:grid-cols-12 distributes proportions as 3/12 (Left), 6/12 (Center), and 3/12 (Right). */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
@@ -56,6 +57,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
         </div>
 
       </div>
+      <AdminComponentTag name="SbMbrHomePageFeature" />
     </div>
   );
 }
