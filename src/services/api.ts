@@ -47,6 +47,14 @@ export interface MbrMedia {
   mbrMediaUpdatedAt?: string;
 }
 
+export interface SignedUrlResponse {
+  bucket: string;
+  object_name: string;
+  signed_url: string;
+  method: string;
+  expiration_minutes: number;
+}
+
 
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';

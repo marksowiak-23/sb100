@@ -30,7 +30,7 @@ import {
   Sparkles,
   Cloud
 } from 'lucide-react';
-import { mediaApi, resolveMediaUrl, MediaObject } from '@/src/services/api';
+import { mediaApi, resolveMediaUrl, MediaObject, SignedUrlResponse } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface AdminMediaManagementProps {

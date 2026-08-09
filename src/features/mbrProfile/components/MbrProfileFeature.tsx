@@ -13,6 +13,7 @@ import {
 import { taskApi, mediaApi, resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryMatePanel from '@/src/features/sbMbrAuthorPage/components/StoryMatePanel';
+import ImageCropModal from './ImageCropModal';
 
 interface MbrProfileFeatureProps {
   isSandbox: boolean;
@@ -372,11 +373,14 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
     }
   };
 
-  // State for image upload status
+  // State for image crop modal & upload status
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [cropModalOpen, setCropModalOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState<string>('');
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null);
 
-  // --- IMAGE UPLOAD TO CLOUD STORAGE ---
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // --- IMAGE CROP & UPLOAD TO CLOUD STORAGE ---
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -396,13 +400,25 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
       return;
     }
 
-    setUploadingImage(true);
     setError(null);
     setSuccess(null);
 
-    // Instant local preview in display window while uploading
-    const localObjectUrl = URL.createObjectURL(file);
-    setPreviewImage(localObjectUrl);
+    // Open Crop Modal with selected local image
+    const rawUrl = URL.createObjectURL(file);
+    setPendingUploadFile(file);
+    setCropImageSrc(rawUrl);
+    setCropModalOpen(true);
+
+    e.target.value = '';
+  };
+
+  // Perform Cloud Storage Upload after Crop
+  const handleCropComplete = async (croppedBlob: Blob, croppedDataUrl: string) => {
+    setCropModalOpen(false);
+    setUploadingImage(true);
+
+    const originalName = pendingUploadFile?.name || 'profile.jpg';
+    const croppedFile = new File([croppedBlob], originalName, { type: 'image/jpeg' });
 
     try {
       // Determine member ID or generate a draft ID
@@ -413,11 +429,11 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
       }
 
       // Required Cloud Storage folder path: /member/{mbrId}/profile/{filename}
-      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const cleanFileName = croppedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const destinationPath = `member/${targetMbrId}/profile/${cleanFileName}`;
 
       // Perform upload to Google Cloud Storage via sb-api-media
-      const uploadRes = await mediaApi.uploadMedia(file, destinationPath);
+      const uploadRes = await mediaApi.uploadMedia(croppedFile, destinationPath);
 
       const mediaBase = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
       const rawUrl = uploadRes.data?.name ? `${mediaBase}/media/read/${uploadRes.data.name}` : `${mediaBase}/media/read/${destinationPath}`;
@@ -426,22 +442,30 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
       // Refresh picture in display window and form state
       setFormData((prev) => ({ ...prev, mbrProfilePic: storageUrl }));
       setPreviewImage(storageUrl);
-      setSuccess("Image uploaded successfully.");
+      setSuccess("Cropped profile picture uploaded successfully.");
     } catch (err: any) {
-      console.error("Error uploading image to cloud storage:", err);
-      // Fallback to Base64 data URL for preview if offline or media service unreachable
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64Url = reader.result as string;
-        setPreviewImage(base64Url);
-        setFormData((prev) => ({ ...prev, mbrProfilePic: base64Url }));
-      };
-      reader.readAsDataURL(file);
-      setSuccess("Image uploaded successfully.");
+      console.error("Error uploading cropped image to cloud storage:", err);
+      // Fallback to cropped Data URL preview if media service unreachable
+      setPreviewImage(croppedDataUrl);
+      setFormData((prev) => ({ ...prev, mbrProfilePic: croppedDataUrl }));
+      setSuccess("Cropped profile picture updated locally.");
     } finally {
+      if (cropImageSrc) {
+        URL.revokeObjectURL(cropImageSrc);
+      }
+      setCropImageSrc('');
+      setPendingUploadFile(null);
       setUploadingImage(false);
-      e.target.value = '';
     }
+  };
+
+  const handleCropCancel = () => {
+    setCropModalOpen(false);
+    if (cropImageSrc) {
+      URL.revokeObjectURL(cropImageSrc);
+    }
+    setCropImageSrc('');
+    setPendingUploadFile(null);
   };
 
   // Handle Preset Avatar Selection
@@ -993,6 +1017,13 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         </div>
 
       </form>
+
+      <ImageCropModal
+        isOpen={cropModalOpen}
+        imageSrc={cropImageSrc}
+        onCropComplete={handleCropComplete}
+        onCancel={handleCropCancel}
+      />
 
       <AdminComponentTag name="MbrProfileFeature" />
     </div>
