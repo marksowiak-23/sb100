@@ -27,6 +27,75 @@
 
 /* --- THEME STYLES --- */
 
+/* 0. Default Warm Theme (High Contrast Warm Cream & Espresso) */
+html[data-theme="Default"] body,
+html:not([data-theme]) body,
+html[data-theme="Default"] #app-container,
+html:not([data-theme]) #app-container {
+  background-color: #F6F3ED !important;
+  color: #1C1917 !important;
+}
+
+html[data-theme="Default"] .bg-\[\#FAF8F5\],
+html:not([data-theme]) .bg-\[\#FAF8F5\] {
+  background-color: #F6F3ED !important;
+}
+
+html[data-theme="Default"] .bg-\[\#FDFCFB\],
+html:not([data-theme]) .bg-\[\#FDFCFB\] {
+  background-color: #FFFFFF !important;
+}
+
+html[data-theme="Default"] .border-\[\#EFECE7\],
+html:not([data-theme]) .border-\[\#EFECE7\],
+html[data-theme="Default"] .border-slate-100,
+html:not([data-theme]) .border-slate-100,
+html[data-theme="Default"] .border-slate-200,
+html:not([data-theme]) .border-slate-200 {
+  border-color: #D6CEC2 !important;
+}
+
+html[data-theme="Default"] .bg-\[\#2E2C2A\],
+html:not([data-theme]) .bg-\[\#2E2C2A\] {
+  background-color: #1C1917 !important;
+  border-color: #0C0A09 !important;
+}
+
+html[data-theme="Default"] .text-slate-900,
+html:not([data-theme]) .text-slate-900,
+html[data-theme="Default"] .text-slate-800,
+html:not([data-theme]) .text-slate-800 {
+  color: #1C1917 !important;
+}
+
+html[data-theme="Default"] .text-slate-700,
+html:not([data-theme]) .text-slate-700,
+html[data-theme="Default"] .text-slate-650,
+html:not([data-theme]) .text-slate-650 {
+  color: #292524 !important;
+}
+
+html[data-theme="Default"] .text-slate-600,
+html:not([data-theme]) .text-slate-600,
+html[data-theme="Default"] .text-slate-500,
+html:not([data-theme]) .text-slate-500 {
+  color: #44403C !important;
+}
+
+html[data-theme="Default"] .text-slate-450,
+html:not([data-theme]) .text-slate-450,
+html[data-theme="Default"] .text-slate-400,
+html:not([data-theme]) .text-slate-400 {
+  color: #57534E !important;
+}
+
+html[data-theme="Default"] .bg-slate-50,
+html:not([data-theme]) .bg-slate-50,
+html[data-theme="Default"] .bg-slate-50\/50,
+html:not([data-theme]) .bg-slate-50\/50 {
+  background-color: #EFEAE1 !important;
+}
+
 /* 1. Dark Mode (Midnight) */
 html[data-theme="Dark"] body,
 html[data-theme="Dark"] #app-container {

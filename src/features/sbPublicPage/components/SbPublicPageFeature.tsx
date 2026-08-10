@@ -43,7 +43,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
         </div>
 
         {/* Center Column Section: Main page stories feed, searches, filters */}
-        <div className="lg:col-span-6 bg-slate-50/50 p-1 lg:p-0 rounded-3xl">
+        <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
           <CenterColumn
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}

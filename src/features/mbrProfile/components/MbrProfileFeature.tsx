@@ -8,9 +8,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Camera, User, Calendar, Save, ArrowLeft, Loader2, 
   CheckCircle2, AlertCircle, Image as ImageIcon, Sparkles, Upload,
-  AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Mail
+  AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Mail, Plus, Trash2, Check
 } from 'lucide-react';
-import { taskApi, mediaApi, resolveMediaUrl } from '@/src/services/api';
+import { taskApi, mediaApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryMatePanel from '@/src/features/sbMbrAuthorPage/components/StoryMatePanel';
 import ImageCropModal from './ImageCropModal';
@@ -21,38 +21,7 @@ interface MbrProfileFeatureProps {
   onDirtyChange?: (dirty: boolean) => void;
 }
 
-const GILLIGAN_AVATARS = [
-  { name: 'Gilligan', url: '/avatars/gilligan.png' },
-  { name: 'The Skipper', url: '/avatars/skipper.png' },
-  { name: 'Mary Ann', url: '/avatars/mary_ann.png' }
-];
 
-const SCOOBY_AVATARS = [
-  { name: 'Scooby-Doo', url: '/avatars/scooby.png' },
-  { name: 'Shaggy', url: '/avatars/shaggy.png' },
-  { name: 'Velma', url: '/avatars/velma.png' },
-  { name: 'Fred', url: '/avatars/fred.png' },
-  { name: 'Daphne', url: '/avatars/daphne.png' }
-];
-
-const PEANUTS_AVATARS = [
-  { name: 'Charlie Brown', url: '/avatars/charlie_brown.png' },
-  { name: 'Snoopy', url: '/avatars/snoopy.png' },
-  { name: 'Linus', url: '/avatars/linus.png' },
-  { name: 'Lucy', url: '/avatars/lucy.png' },
-  { name: 'Woodstock', url: '/avatars/woodstock.png' }
-];
-
-const GENERAL_AVATARS = [
-  { name: 'Happy Felix', url: 'https://api.dicebear.com/7.x/big-smile/svg?seed=Felix' },
-  { name: 'Cool Sammy', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sammy' },
-  { name: 'Adventurer Bella', url: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Bella' },
-  { name: 'Charming Oliver', url: 'https://api.dicebear.com/7.x/lorelei/svg?seed=Oliver' },
-  { name: 'Robot Toby', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=Toby' },
-  { name: 'Stylist Charlie', url: 'https://api.dicebear.com/7.x/micah/svg?seed=Charlie' },
-  { name: 'Doodle Alex', url: 'https://api.dicebear.com/7.x/croodles/svg?seed=Alex' },
-  { name: 'Friendly Jordan', url: 'https://api.dicebear.com/7.x/open-peeps/svg?seed=Jordan' }
-];
 
 
 export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChange }: MbrProfileFeatureProps) {
@@ -89,6 +58,12 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   const [initialData, setInitialData] = useState<{ formData: typeof formData; previewImage: string | null } | null>(null);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [showStoryMate, setShowStoryMate] = useState(false);
+
+  // Member Photo Gallery state
+  const [galleryItems, setGalleryItems] = useState<MbrMedia[]>([]);
+  const [loadingGallery, setLoadingGallery] = useState(false);
+  const [uploadingGalleryPhoto, setUploadingGalleryPhoto] = useState(false);
+  const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
 
   // Listen for StoryMate AI text insertion updates
   useEffect(() => {
@@ -468,10 +443,135 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
     setPendingUploadFile(null);
   };
 
-  // Handle Preset Avatar Selection
-  const handleSelectPreset = (url: string) => {
-    setPreviewImage(url);
-    setFormData((prev) => ({ ...prev, mbrProfilePic: url }));
+  // Load Member Photo Gallery from mbrMedia table
+  const loadMemberGallery = async (targetMbrId: string) => {
+    if (!targetMbrId || isSandbox) return;
+    setLoadingGallery(true);
+    try {
+      const mediaList = await taskApi.getMemberMedia(targetMbrId);
+      // Filter gallery photos (mbrMediaCategoryCd === 'Profile' or general category)
+      const profileMedia = mediaList.filter(
+        item => !item.mbrMediaCategoryCd || item.mbrMediaCategoryCd === 'Profile'
+      );
+      setGalleryItems(profileMedia);
+    } catch (err) {
+      console.error("Error loading member gallery photos:", err);
+    } finally {
+      setLoadingGallery(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mbrId && !isSandbox) {
+      loadMemberGallery(mbrId);
+    }
+  }, [mbrId, isSandbox]);
+
+  // Upload and save photo to Member Gallery
+  const handleAddGalleryPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (galleryItems.length >= 20) {
+      setError("Maximum limit of 20 member gallery photos reached. Please delete an existing photo before adding a new one.");
+      e.target.value = '';
+      return;
+    }
+
+    const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    const validExtensions = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+
+    if (!validMimeTypes.includes(file.type) && !validExtensions.test(file.name)) {
+      setError("Invalid file type. Please select a valid image file.");
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Please choose an image file under 10MB.");
+      e.target.value = '';
+      return;
+    }
+
+    setUploadingGalleryPhoto(true);
+    setError(null);
+
+    try {
+      let targetMbrId = mbrId;
+      if (!targetMbrId) {
+        targetMbrId = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `mbr-${Date.now()}`;
+        setMbrId(targetMbrId);
+      }
+
+      // Required Cloud Storage folder path: member/{mbrId}/profile/gallery/{filename}
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const destinationPath = `member/${targetMbrId}/profile/gallery/${cleanFileName}`;
+
+      // Upload file to Google Cloud Storage
+      const uploadRes = await mediaApi.uploadMedia(file, destinationPath);
+      const mediaBase = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
+      const rawUrl = uploadRes.data?.name ? `${mediaBase}/media/read/${uploadRes.data.name}` : `${mediaBase}/media/read/${destinationPath}`;
+      const storageUrl = resolveMediaUrl(rawUrl);
+
+      if (!isSandbox) {
+        // Create database record in mbrMedia table
+        const newMediaRecord = await taskApi.createMemberMedia({
+          mbrId: targetMbrId,
+          mbrMediaPath: storageUrl,
+          mbrMediaOriginalFilename: file.name,
+          mbrMediaMimeType: file.type,
+          mbrMediaCategoryCd: 'Profile',
+          mbrMediaDescription: 'Member Profile Gallery Photo'
+        });
+
+        setGalleryItems((prev) => [newMediaRecord, ...prev]);
+      } else {
+        const mockItem: MbrMedia = {
+          mbrMediaId: `gallery-mock-${Date.now()}`,
+          mbrId: targetMbrId,
+          mbrMediaPath: storageUrl,
+          mbrMediaOriginalFilename: file.name,
+          mbrMediaMimeType: file.type,
+          mbrMediaCategoryCd: 'Profile',
+          mbrMediaCreatedAt: new Date().toISOString()
+        };
+        setGalleryItems((prev) => [mockItem, ...prev]);
+      }
+
+      // Gallery photo added and saved to mbrMedia table
+      setSuccess("Gallery photo uploaded and saved successfully.");
+    } catch (err: any) {
+      console.error("Error adding gallery photo:", err);
+      setError(`Failed to upload gallery photo: ${err.message || 'Unknown error'}`);
+    } finally {
+      setUploadingGalleryPhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  // Delete photo from Member Gallery
+  const handleDeleteGalleryPhoto = async (mbrMediaId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!mbrMediaId) return;
+
+    setDeletingMediaId(mbrMediaId);
+    try {
+      if (!isSandbox && !mbrMediaId.startsWith('gallery-mock-')) {
+        await taskApi.deleteMemberMedia(mbrMediaId);
+      }
+      setGalleryItems((prev) => prev.filter((item) => item.mbrMediaId !== mbrMediaId));
+      setSuccess("Gallery photo deleted.");
+    } catch (err: any) {
+      console.error("Error deleting gallery photo:", err);
+      setError(`Failed to delete photo: ${err.message || 'Unknown error'}`);
+    } finally {
+      setDeletingMediaId(null);
+    }
+  };
+
+  // Select photo from Member Gallery
+  const handleSelectGalleryPhoto = (_url: string) => {
+    // Gallery photos remain in gallery without mutating primary profile avatar
   };
 
   // Handler for explicit Cancel button: directly reverts changes and leaves without popup prompt
@@ -675,104 +775,98 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
               />
             </div>
 
-            {/* Options & Character Preset Collections in 2-row Scroll Window */}
+            {/* Member Photo Gallery Section in Vertical Scroll Window */}
             <div className="flex-grow space-y-2.5 w-full">
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Featured Character Avatars</span>
-                <p className="text-[11px] text-slate-450 font-serif leading-relaxed">Choose a classic TV cast or cartoon avatar (scroll to view all casts):</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Member Photo Gallery</span>
+                  <p className="text-[11px] text-slate-450 font-serif leading-relaxed">Add photos that will be displayed as part of your Member Profile to Friends, Family, and Others based upon your security preferences.</p>
+                </div>
+
+                {/* Add Photo Button with (count/20) indicator */}
+                <label 
+                  htmlFor="gallery-photo-upload" 
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                    galleryItems.length >= 20 
+                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                      : uploadingGalleryPhoto 
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200/80 opacity-50 pointer-events-none' 
+                        : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+                  }`}
+                  title={galleryItems.length >= 20 ? 'Maximum 20 photos reached' : 'Add Photo to Gallery'}
+                >
+                  {uploadingGalleryPhoto ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                      <span>Adding...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Photo ({galleryItems.length}/20)</span>
+                    </>
+                  )}
+                </label>
+                <input 
+                  id="gallery-photo-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                  onChange={handleAddGalleryPhoto}
+                  disabled={uploadingGalleryPhoto || galleryItems.length >= 20}
+                  className="hidden"
+                />
               </div>
 
-              {/* Scrollable Container (Shows ~2 rows at a time) */}
-              <div className="max-h-[185px] overflow-y-auto pr-2 space-y-3.5 border border-[#EFECE7] rounded-2xl p-3 bg-white/70 shadow-inner">
-                
-                {/* Gilligan's Island Collection */}
-                <div className="space-y-1.5">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono block">Gilligan's Island Cast</span>
-                  <div className="flex flex-wrap gap-2.5">
-                    {GILLIGAN_AVATARS.map((avatar, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleSelectPreset(avatar.url)}
-                        className={`w-11 h-11 rounded-2xl overflow-hidden border p-1 bg-white transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-xs ${
-                          formData.mbrProfilePic === avatar.url 
-                            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30' 
-                            : 'border-[#EFECE7] hover:border-slate-400'
-                        }`}
-                        title={avatar.name}
-                      >
-                        <img src={avatar.url} alt={avatar.name} className="w-full h-full object-cover rounded-xl" />
-                      </button>
-                    ))}
+              {/* Vertical Scrollable Container for Gallery Thumbnails */}
+              <div className="max-h-[195px] overflow-y-auto pr-2 space-y-2 border border-[#EFECE7] rounded-2xl p-3 bg-white/70 shadow-inner min-h-[120px]">
+                {loadingGallery ? (
+                  <div className="flex items-center justify-center h-24 text-slate-400 gap-2 text-xs font-serif">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                    <span>Loading gallery photos...</span>
                   </div>
-                </div>
-
-                {/* Scooby-Doo Collection */}
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono block">Scooby-Doo Cast</span>
-                  <div className="flex flex-wrap gap-2.5">
-                    {SCOOBY_AVATARS.map((avatar, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleSelectPreset(avatar.url)}
-                        className={`w-11 h-11 rounded-2xl overflow-hidden border p-1 bg-white transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-xs ${
-                          formData.mbrProfilePic === avatar.url 
-                            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30' 
-                            : 'border-[#EFECE7] hover:border-slate-400'
-                        }`}
-                        title={avatar.name}
-                      >
-                        <img src={avatar.url} alt={avatar.name} className="w-full h-full object-cover rounded-xl" />
-                      </button>
-                    ))}
+                ) : galleryItems.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400 gap-1.5">
+                    <ImageIcon className="w-8 h-8 opacity-40 text-slate-400" />
+                    <p className="text-xs font-serif text-slate-500">No profile gallery photos saved yet.</p>
+                    <p className="text-[10px] text-slate-400 font-sans">Click "Add Photo" above to upload photos to your gallery.</p>
                   </div>
-                </div>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
+                    {galleryItems.map((item) => {
+                      const itemUrl = resolveMediaUrl(item.mbrMediaPath);
+                      const isDeleting = deletingMediaId === item.mbrMediaId;
 
-                {/* Peanuts Collection */}
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono block">Peanuts Cast</span>
-                  <div className="flex flex-wrap gap-2.5">
-                    {PEANUTS_AVATARS.map((avatar, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleSelectPreset(avatar.url)}
-                        className={`w-11 h-11 rounded-2xl overflow-hidden border p-1 bg-white transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-xs ${
-                          formData.mbrProfilePic === avatar.url 
-                            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30' 
-                            : 'border-[#EFECE7] hover:border-slate-400'
-                        }`}
-                        title={avatar.name}
-                      >
-                        <img src={avatar.url} alt={avatar.name} className="w-full h-full object-cover rounded-xl" />
-                      </button>
-                    ))}
+                      return (
+                        <div
+                          key={item.mbrMediaId}
+                          className="group relative aspect-square rounded-2xl overflow-hidden border p-1 bg-white transition-all border-[#EFECE7] hover:border-slate-400 shadow-xs"
+                          title={item.mbrMediaOriginalFilename || 'Member Gallery Photo'}
+                        >
+                          <img 
+                            src={itemUrl} 
+                            alt={item.mbrMediaOriginalFilename || 'Gallery Thumbnail'} 
+                            className="w-full h-full object-cover rounded-xl" 
+                          />
+
+                          {/* Delete Hover Action */}
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteGalleryPhoto(item.mbrMediaId, e)}
+                            disabled={isDeleting}
+                            className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-lg bg-red-600/90 hover:bg-red-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xs cursor-pointer z-10"
+                            title="Delete photo from gallery"
+                          >
+                            {isDeleting ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3 h-3" />
+                            )}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-
-                {/* General Cartoon Collection */}
-                <div className="space-y-1.5 pt-1">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider font-mono block">General Avatars</span>
-                  <div className="flex flex-wrap gap-2.5">
-                    {GENERAL_AVATARS.map((avatar, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => handleSelectPreset(avatar.url)}
-                        className={`w-11 h-11 rounded-2xl overflow-hidden border p-1 bg-white transition-all cursor-pointer hover:scale-110 active:scale-95 shadow-xs ${
-                          formData.mbrProfilePic === avatar.url 
-                            ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30' 
-                            : 'border-[#EFECE7] hover:border-slate-400'
-                        }`}
-                        title={avatar.name}
-                      >
-                        <img src={avatar.url} alt={avatar.name} className="w-full h-full object-contain" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
+                )}
               </div>
             </div>
           </div>
@@ -999,8 +1093,9 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
           
           <button
             type="submit"
-            disabled={saving}
-            className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold font-sans transition-all cursor-pointer flex items-center gap-2 shadow-sm disabled:bg-blue-400 disabled:cursor-not-allowed"
+            disabled={saving || !isDirty}
+            className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold font-sans transition-all cursor-pointer flex items-center gap-2 shadow-sm disabled:bg-slate-200 disabled:text-slate-400 disabled:border disabled:border-slate-300/60 disabled:cursor-not-allowed disabled:shadow-none"
+            title={!isDirty ? "Make an edit to enable saving" : "Save changes to your member profile"}
           >
             {saving ? (
               <>

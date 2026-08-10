@@ -57,7 +57,7 @@ export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack }: SbMbr
         </div>
 
         {/* Center Column Content */}
-        <div className="lg:col-span-6 bg-slate-50/50 p-1 lg:p-0 rounded-3xl">
+        <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
           <CenterColumn
             isSandbox={isSandbox}
             activeSection={activeSection}

@@ -81,7 +81,7 @@ export default function SbMbrStoryPageFeature({
         </div>
 
         {/* Center Column Main Panel */}
-        <div className="lg:col-span-6 bg-slate-50/50 p-1 lg:p-0 rounded-3xl">
+        <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
           <CenterColumn
             member={member}
             activeSection={activeSection}

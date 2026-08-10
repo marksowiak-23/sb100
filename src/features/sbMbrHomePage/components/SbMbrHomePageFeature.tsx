@@ -42,7 +42,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
         </div>
 
         {/* Center Column Section: Main welcome hero, Search Bar box, and Dynamic Stories feed */}
-        <div className="lg:col-span-6 bg-slate-50/50 p-1 lg:p-0 rounded-3xl">
+        <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
           <CenterColumn
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}

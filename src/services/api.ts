@@ -609,6 +609,75 @@ export const taskApi = {
     });
     return handleResponse<MbrStory>(response);
   },
+
+  /**
+   * Fetch all media records for a specific member ID.
+   */
+  async getMemberMedia(mbrId: string): Promise<MbrMedia[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-media/member/${mbrId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrMedia[]>(response);
+  },
+
+  /**
+   * Fetch a single member media record by ID.
+   */
+  async getMemberMediaById(mbrMediaId: string): Promise<MbrMedia> {
+    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrMedia>(response);
+  },
+
+  /**
+   * Create a new member media record.
+   */
+  async createMemberMedia(mbrMedia: Partial<MbrMedia>): Promise<MbrMedia> {
+    const response = await fetch(`${API_BASE_URL}/mbr-media`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(mbrMedia),
+    });
+    return handleResponse<MbrMedia>(response);
+  },
+
+  /**
+   * Update an existing member media record.
+   */
+  async updateMemberMedia(mbrMediaId: string, mbrMedia: Partial<MbrMedia>): Promise<MbrMedia> {
+    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(mbrMedia),
+    });
+    return handleResponse<MbrMedia>(response);
+  },
+
+  /**
+   * Delete a member media record.
+   */
+  async deleteMemberMedia(mbrMediaId: string): Promise<MbrMedia> {
+    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrMedia>(response);
+  }
 };
 
 
@@ -676,6 +745,75 @@ export const adminDbApi = {
     });
     return handleResponse<{ status: string; message: string }>(response);
   },
+
+  /**
+   * Fetch all media records for a specific member ID.
+   */
+  async getMemberMedia(mbrId: string): Promise<MbrMedia[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-media/member/${mbrId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrMedia[]>(response);
+  },
+
+  /**
+   * Fetch a single member media record by ID.
+   */
+  async getMemberMediaById(mbrMediaId: string): Promise<MbrMedia> {
+    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrMedia>(response);
+  },
+
+  /**
+   * Create a new member media record.
+   */
+  async createMemberMedia(mbrMedia: Partial<MbrMedia>): Promise<MbrMedia> {
+    const response = await fetch(`${API_BASE_URL}/mbr-media`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(mbrMedia),
+    });
+    return handleResponse<MbrMedia>(response);
+  },
+
+  /**
+   * Update an existing member media record.
+   */
+  async updateMemberMedia(mbrMediaId: string, mbrMedia: Partial<MbrMedia>): Promise<MbrMedia> {
+    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(mbrMedia),
+    });
+    return handleResponse<MbrMedia>(response);
+  },
+
+  /**
+   * Delete a member media record.
+   */
+  async deleteMemberMedia(mbrMediaId: string): Promise<MbrMedia> {
+    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrMedia>(response);
+  }
 };
 
 export interface ChatResponse {
@@ -846,75 +984,6 @@ export const mediaApi = {
    */
   getReadUrl(objectName: string): string {
     return `${MEDIA_API_BASE_URL}/media/read/${objectName}`;
-  },
-
-  /**
-   * Fetch all media records for a specific member ID.
-   */
-  async getMemberMedia(mbrId: string): Promise<MbrMedia[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media/member/${mbrId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    return handleResponse<MbrMedia[]>(response);
-  },
-
-  /**
-   * Fetch a single member media record by ID.
-   */
-  async getMemberMediaById(mbrMediaId: string): Promise<MbrMedia> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    return handleResponse<MbrMedia>(response);
-  },
-
-  /**
-   * Create a new member media record.
-   */
-  async createMemberMedia(mbrMedia: Partial<MbrMedia>): Promise<MbrMedia> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(mbrMedia),
-    });
-    return handleResponse<MbrMedia>(response);
-  },
-
-  /**
-   * Update an existing member media record.
-   */
-  async updateMemberMedia(mbrMediaId: string, mbrMedia: Partial<MbrMedia>): Promise<MbrMedia> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(mbrMedia),
-    });
-    return handleResponse<MbrMedia>(response);
-  },
-
-  /**
-   * Delete a member media record.
-   */
-  async deleteMemberMedia(mbrMediaId: string): Promise<MbrMedia> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    return handleResponse<MbrMedia>(response);
   }
 };
 

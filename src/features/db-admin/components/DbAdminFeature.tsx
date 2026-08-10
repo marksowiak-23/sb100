@@ -263,6 +263,22 @@ const TABLES: TableDefinition[] = [
       { name: 'adminDisplayComponentName', label: 'Admin Display Component Name', type: 'boolean', required: true },
       { name: 'mbrPrefJson', label: 'Custom Preferences (JSON)', type: 'string', required: false }
     ]
+  },
+  {
+    id: 'mbr_medias',
+    name: 'Member Media Assets',
+    endpoint: '/mbr-media',
+    primaryKey: 'mbrMediaId',
+    searchField: 'mbrMediaPath',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrMediaSubordinateId', label: 'Subordinate Entity ID (UUID)', type: 'uuid', required: false },
+      { name: 'mbrMediaPath', label: 'Media Cloud Path / URL', type: 'string', required: true, placeholder: 'e.g. member/{mbrId}/profile/gallery/{file}' },
+      { name: 'mbrMediaOriginalFilename', label: 'Original Filename', type: 'string', required: false },
+      { name: 'mbrMediaMimeType', label: 'MIME Type', type: 'string', required: false, placeholder: 'image/jpeg' },
+      { name: 'mbrMediaCategoryCd', label: 'Category Code', type: 'string', required: false, placeholder: 'Profile / Gallery' },
+      { name: 'mbrMediaDescription', label: 'Description / Caption', type: 'string', required: false }
+    ]
   }
 ];
 
@@ -327,6 +343,19 @@ const getInitialMockData = (tableId: string): any[] => {
           adminDisplayComponentName: true,
           mbrPrefCreatedAt: now,
           mbrPrefUpdatedAt: now
+        }
+      ];
+    case 'mbr_medias':
+      return [
+        {
+          mbrMediaId: 'm1a2b3c4-d5e6-7890-1234-56789abcdef0',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrMediaPath: 'http://localhost:8003/media/read/member/e20986fa-0fb9-4081-ae5d-35bc8f504df0/profile/gallery/photo1.jpg',
+          mbrMediaOriginalFilename: 'family_photo_1965.jpg',
+          mbrMediaMimeType: 'image/jpeg',
+          mbrMediaCategoryCd: 'Profile',
+          mbrMediaDescription: 'Family gathered at Coos Bay harbor',
+          mbrMediaCreatedAt: now
         }
       ];
     default:

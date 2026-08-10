@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, BookOpen } from 'lucide-react';
-import { taskApi } from '@/src/services/api';
+import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, BookOpen, Images, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
+import { taskApi, mediaApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrStryFamilyProps {
@@ -195,6 +195,20 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
   // --- DELETE CONFIRMATION STATE ---
   const [deleteTargetMember, setDeleteTargetMember] = useState<FamilyMember | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // --- FAMILY PHOTO GALLERY STATE ---
+  const [showFamilyGalleryModal, setShowFamilyGalleryModal] = useState(false);
+  const [familyGalleryItems, setFamilyGalleryItems] = useState<MbrMedia[]>([]);
+  const [currentFamilyPhotoIndex, setCurrentFamilyPhotoIndex] = useState(0);
+  const [uploadingFamilyPhoto, setUploadingFamilyPhoto] = useState(false);
+  const [deletingFamilyMediaId, setDeletingFamilyMediaId] = useState<string | null>(null);
+  const [galleryError, setGalleryError] = useState<string | null>(null);
+  const [gallerySuccess, setGallerySuccess] = useState<string | null>(null);
+
+  // --- PHOTO DESCRIPTION EDIT STATE ---
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [editDescriptionInput, setEditDescriptionInput] = useState('');
+  const [savingDescription, setSavingDescription] = useState(false);
 
   // --- INITIAL DATA FETCH ---
   useEffect(() => {
@@ -398,6 +412,188 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
     return codeObj ? codeObj.cdDesc : cdVal;
   };
 
+  // --- FAMILY PHOTO GALLERY HANDLERS ---
+  const loadFamilyGallery = async (targetMbrId: string) => {
+    if (!targetMbrId) return;
+    try {
+      const mediaList = await taskApi.getMemberMedia(targetMbrId);
+      if (mediaList && Array.isArray(mediaList)) {
+        // Filter strictly for category code "Family" only
+        const familyMedia = mediaList.filter((m) => m.mbrMediaCategoryCd === 'Family');
+        setFamilyGalleryItems(familyMedia);
+      }
+    } catch (err) {
+      console.error("Error loading family gallery photos:", err);
+    }
+  };
+
+  const handleOpenFamilyGalleryModal = async () => {
+    setShowFamilyGalleryModal(true);
+    setCurrentFamilyPhotoIndex(0);
+    setGalleryError(null);
+    setGallerySuccess(null);
+    await loadFamilyGallery(mbrId);
+  };
+
+  const handleUploadFamilyPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (familyGalleryItems.length >= 40) {
+      setGalleryError("Maximum limit of 40 family photos reached. Please delete an existing photo before adding a new one.");
+      e.target.value = '';
+      return;
+    }
+
+    const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    const validExtensions = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+
+    if (!validMimeTypes.includes(file.type) && !validExtensions.test(file.name)) {
+      setGalleryError("Invalid file format. Please upload an image file.");
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setGalleryError("File size exceeds 10MB limit.");
+      e.target.value = '';
+      return;
+    }
+
+    setUploadingFamilyPhoto(true);
+    setGalleryError(null);
+    setGallerySuccess(null);
+
+    try {
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      // Storage path required: member/{mbrID}/family/{filename}
+      const destinationPath = `member/${mbrId}/family/${cleanFileName}`;
+
+      const uploadRes = await mediaApi.uploadMedia(file, destinationPath);
+      const mediaBase = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
+      const rawUrl = uploadRes.data?.name ? `${mediaBase}/media/read/${uploadRes.data.name}` : `${mediaBase}/media/read/${destinationPath}`;
+      const storageUrl = resolveMediaUrl(rawUrl);
+
+      if (!isSandbox) {
+        const newMediaRecord = await taskApi.createMemberMedia({
+          mbrId: mbrId,
+          mbrMediaPath: storageUrl,
+          mbrMediaOriginalFilename: file.name,
+          mbrMediaMimeType: file.type,
+          mbrMediaCategoryCd: 'Family',
+          mbrMediaDescription: 'Enter a Description'
+        });
+        setFamilyGalleryItems((prev) => [newMediaRecord, ...prev]);
+      } else {
+        const mockItem: MbrMedia = {
+          mbrMediaId: `fam-mock-${Date.now()}`,
+          mbrId: mbrId,
+          mbrMediaPath: storageUrl,
+          mbrMediaOriginalFilename: file.name,
+          mbrMediaMimeType: file.type,
+          mbrMediaCategoryCd: 'Family',
+          mbrMediaDescription: 'Enter a Description',
+          mbrMediaCreatedAt: new Date().toISOString()
+        };
+        setFamilyGalleryItems((prev) => [mockItem, ...prev]);
+      }
+
+      setCurrentFamilyPhotoIndex(0);
+      setGallerySuccess("Family photo uploaded successfully.");
+    } catch (err: any) {
+      console.error("Error uploading family photo:", err);
+      setGalleryError(`Upload failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setUploadingFamilyPhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeleteFamilyPhoto = async (mbrMediaId: string) => {
+    if (!mbrMediaId) return;
+    setDeletingFamilyMediaId(mbrMediaId);
+    setGalleryError(null);
+    setGallerySuccess(null);
+
+    try {
+      if (!isSandbox && !mbrMediaId.startsWith('fam-mock-') && !mbrMediaId.startsWith('f-mock-')) {
+        await taskApi.deleteMemberMedia(mbrMediaId);
+      }
+      setFamilyGalleryItems((prev) => prev.filter((item) => item.mbrMediaId !== mbrMediaId));
+      setCurrentFamilyPhotoIndex(0);
+      setGallerySuccess("Family photo deleted.");
+    } catch (err: any) {
+      console.error("Error deleting family photo:", err);
+      setGalleryError(`Delete failed: ${err.message || 'Unknown error'}`);
+    } finally {
+      setDeletingFamilyMediaId(null);
+    }
+  };
+
+  const activeFamilyPhotos = useMemo<MbrMedia[]>(() => {
+    return familyGalleryItems;
+  }, [familyGalleryItems]);
+
+  const currentFamilyPhoto = activeFamilyPhotos[currentFamilyPhotoIndex] || activeFamilyPhotos[0];
+
+  const handlePrevFamilyPhoto = () => {
+    setIsEditingDescription(false);
+    setCurrentFamilyPhotoIndex((prev) => (prev - 1 + activeFamilyPhotos.length) % activeFamilyPhotos.length);
+  };
+
+  const handleNextFamilyPhoto = () => {
+    setIsEditingDescription(false);
+    setCurrentFamilyPhotoIndex((prev) => (prev + 1) % activeFamilyPhotos.length);
+  };
+
+  const handleSavePhotoDescription = async () => {
+    if (!currentFamilyPhoto?.mbrMediaId) return;
+    setSavingDescription(true);
+    setGalleryError(null);
+    setGallerySuccess(null);
+
+    try {
+      const updatedDesc = editDescriptionInput.trim();
+      if (!isSandbox && !currentFamilyPhoto.mbrMediaId.startsWith('fam-mock-') && !currentFamilyPhoto.mbrMediaId.startsWith('f-mock-')) {
+        await taskApi.updateMemberMedia(currentFamilyPhoto.mbrMediaId, {
+          mbrMediaDescription: updatedDesc
+        });
+      }
+      setFamilyGalleryItems((prev) =>
+        prev.map((item) =>
+          item.mbrMediaId === currentFamilyPhoto.mbrMediaId
+            ? { ...item, mbrMediaDescription: updatedDesc }
+            : item
+        )
+      );
+      setGallerySuccess("Photo description updated successfully.");
+      setIsEditingDescription(false);
+    } catch (err: any) {
+      console.error("Failed to update photo description:", err);
+      setGalleryError(`Failed to save description: ${err.message || 'Unknown error'}`);
+    } finally {
+      setSavingDescription(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showFamilyGalleryModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        setIsEditingDescription(false);
+        setCurrentFamilyPhotoIndex((prev) => (prev + 1) % activeFamilyPhotos.length);
+      } else if (e.key === 'ArrowLeft') {
+        setIsEditingDescription(false);
+        setCurrentFamilyPhotoIndex((prev) => (prev - 1 + activeFamilyPhotos.length) % activeFamilyPhotos.length);
+      } else if (e.key === 'Escape') {
+        setIsEditingDescription(false);
+        setShowFamilyGalleryModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showFamilyGalleryModal, activeFamilyPhotos.length]);
+
   return (
     <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-6 relative">
       
@@ -418,6 +614,15 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Member</span>
+          </button>
+
+          {/* Photo Gallery Icon Button */}
+          <button
+            onClick={handleOpenFamilyGalleryModal}
+            className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+            title="Family Photo Gallery"
+          >
+            <Images className="w-4 h-4 text-blue-600" />
           </button>
 
           <button
@@ -724,6 +929,277 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
                   <span>Delete Record</span>
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Family Photo Gallery Lightbox Modal Dialog */}
+      <AnimatePresence>
+        {showFamilyGalleryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowFamilyGalleryModal(false)}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+            />
+
+            {/* Dialog Window */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90 text-white shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl">
+                    <Images className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-slate-100">Family Photo Gallery</h3>
+                    <p className="text-xs text-slate-400 font-mono">
+                      Photo {activeFamilyPhotos.length > 0 ? currentFamilyPhotoIndex + 1 : 0} of {activeFamilyPhotos.length}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* Upload Family Photo Button with (count/40) limit indicator */}
+                  <label
+                    htmlFor="family-gallery-upload"
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-white rounded-xl text-xs font-bold font-sans transition-all ${
+                      familyGalleryItems.length >= 40
+                        ? 'bg-slate-700 text-slate-400 border border-slate-600 cursor-not-allowed opacity-60'
+                        : uploadingFamilyPhoto
+                          ? 'bg-blue-600 opacity-50 pointer-events-none'
+                          : 'bg-blue-600 hover:bg-blue-700 cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+                    }`}
+                    title={familyGalleryItems.length >= 40 ? 'Maximum limit of 40 family photos reached' : 'Upload Family Photo'}
+                  >
+                    {uploadingFamilyPhoto ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Photo ({familyGalleryItems.length}/40)</span>
+                      </>
+                    )}
+                  </label>
+                  <input
+                    id="family-gallery-upload"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                    onChange={handleUploadFamilyPhoto}
+                    disabled={uploadingFamilyPhoto || familyGalleryItems.length >= 40}
+                    className="hidden"
+                  />
+
+                  {/* Delete Current Photo Button */}
+                  {activeFamilyPhotos.length > 0 && currentFamilyPhoto && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteFamilyPhoto(currentFamilyPhoto.mbrMediaId)}
+                      disabled={deletingFamilyMediaId === currentFamilyPhoto.mbrMediaId}
+                      className="p-2 bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/30 rounded-xl transition-all cursor-pointer"
+                      title="Delete Current Photo"
+                    >
+                      {deletingFamilyMediaId === currentFamilyPhoto.mbrMediaId ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowFamilyGalleryModal(false)}
+                    className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+                    title="Close Gallery (Esc)"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Feedback Alerts in Modal */}
+              {galleryError && (
+                <div className="bg-rose-950/60 border-b border-rose-800 text-rose-300 px-6 py-2.5 text-xs font-serif flex items-center justify-between">
+                  <span>{galleryError}</span>
+                  <button onClick={() => setGalleryError(null)} className="text-rose-400 hover:text-rose-200">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+              {gallerySuccess && (
+                <div className="bg-emerald-950/60 border-b border-emerald-800 text-emerald-300 px-6 py-2.5 text-xs font-serif flex items-center justify-between">
+                  <span>{gallerySuccess}</span>
+                  <button onClick={() => setGallerySuccess(null)} className="text-emerald-400 hover:text-emerald-200">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              {/* Main Photo Stage */}
+              <div className="relative flex-grow flex items-center justify-center bg-black/60 p-4 min-h-[300px] md:min-h-[400px] overflow-hidden select-none">
+                {activeFamilyPhotos.length > 0 ? (
+                  <>
+                    {/* Previous Photo Button */}
+                    <button
+                      type="button"
+                      onClick={handlePrevFamilyPhoto}
+                      className="absolute left-4 z-20 p-3 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white border border-slate-700/60 shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                      title="Previous Photo (Left Arrow)"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+
+                    {/* Current Active Photo & Editable Description */}
+                    <motion.div
+                      key={currentFamilyPhoto?.mbrMediaId || currentFamilyPhotoIndex}
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex flex-col items-center justify-center max-h-[58vh] w-full"
+                    >
+                      <img
+                        src={resolveMediaUrl(currentFamilyPhoto?.mbrMediaPath)}
+                        alt={currentFamilyPhoto?.mbrMediaOriginalFilename || 'Family Gallery Photo'}
+                        className="max-h-[44vh] max-w-full object-contain rounded-2xl shadow-xl border border-slate-800"
+                      />
+
+                      {/* Photo Description Editable Control */}
+                      {currentFamilyPhoto && (
+                        <div className="mt-3 max-w-xl w-full px-4 select-text">
+                          {isEditingDescription ? (
+                            <div className="flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-blue-500/60 shadow-lg">
+                              <input
+                                type="text"
+                                value={editDescriptionInput}
+                                onChange={(e) => setEditDescriptionInput(e.target.value)}
+                                placeholder="Enter a Description"
+                                className="flex-grow bg-transparent text-slate-100 text-xs font-serif px-3 py-1 outline-none placeholder-slate-500"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSavePhotoDescription();
+                                  if (e.key === 'Escape') setIsEditingDescription(false);
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={handleSavePhotoDescription}
+                                disabled={savingDescription}
+                                className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1 cursor-pointer transition-colors shrink-0"
+                              >
+                                {savingDescription ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                                <span>Save</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setIsEditingDescription(false)}
+                                className="p-1 text-slate-400 hover:text-slate-200 rounded-lg cursor-pointer"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => {
+                                setEditDescriptionInput(currentFamilyPhoto.mbrMediaDescription || '');
+                                setIsEditingDescription(true);
+                              }}
+                              className="group flex items-center justify-center gap-2 bg-slate-900/70 hover:bg-slate-900/90 text-slate-300 hover:text-white px-4 py-1.5 rounded-full border border-slate-800 hover:border-slate-700 cursor-pointer transition-all mx-auto text-center"
+                              title="Click to edit photo description"
+                            >
+                              <span className="text-xs md:text-sm font-serif truncate max-w-md">
+                                {currentFamilyPhoto.mbrMediaDescription || (
+                                  <span className="italic text-slate-400 group-hover:text-slate-300">Enter a Description</span>
+                                )}
+                              </span>
+                              <Edit3 className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-400 shrink-0 transition-colors" />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
+
+                    {/* Next Photo Button */}
+                    <button
+                      type="button"
+                      onClick={handleNextFamilyPhoto}
+                      className="absolute right-4 z-20 p-3 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white border border-slate-700/60 shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                      title="Next Photo (Right Arrow)"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center text-slate-300 py-12 px-6 space-y-4 max-w-md mx-auto">
+                    <div className="p-4 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-3xl">
+                      <Images className="w-10 h-10" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <h4 className="font-serif text-lg font-bold text-slate-100">No Family Photos Found</h4>
+                      <p className="text-xs font-serif text-slate-400 leading-relaxed">
+                        No photos with the category <span className="text-blue-400 font-semibold">"Family"</span> were found in your gallery. Click the button below to upload family photos.
+                      </p>
+                    </div>
+                    <label
+                      htmlFor="family-gallery-upload-empty"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold font-sans cursor-pointer shadow-md transition-all hover:scale-105 active:scale-95"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Add Family Photos</span>
+                    </label>
+                    <input
+                      id="family-gallery-upload-empty"
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                      onChange={handleUploadFamilyPhoto}
+                      disabled={uploadingFamilyPhoto}
+                      className="hidden"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom Thumbnail Strip */}
+              {activeFamilyPhotos.length > 1 && (
+                <div className="px-6 py-3 border-t border-slate-800 bg-slate-950/80 shrink-0 overflow-x-auto">
+                  <div className="flex items-center justify-center gap-2.5 min-w-max mx-auto">
+                    {activeFamilyPhotos.map((item, idx) => {
+                      const isCurrent = idx === currentFamilyPhotoIndex;
+                      return (
+                        <button
+                          key={item.mbrMediaId || idx}
+                          type="button"
+                          onClick={() => setCurrentFamilyPhotoIndex(idx)}
+                          className={`relative w-12 h-12 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
+                            isCurrent
+                              ? 'border-blue-500 scale-105 shadow-md ring-2 ring-blue-500/40'
+                              : 'border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-600'
+                          }`}
+                        >
+                          <img
+                            src={resolveMediaUrl(item.mbrMediaPath)}
+                            alt={`Thumbnail ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </motion.div>
           </div>
         )}
