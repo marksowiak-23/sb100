@@ -13,6 +13,8 @@ interface StoryEditorPanelProps {
   topicTitle?: string;
   topicId?: string;
   componentName?: string;
+  subordinateId?: string;
+  subordinateName?: string;
   isSandbox?: boolean;
   onClose: () => void;
 }
@@ -81,6 +83,8 @@ export default function StoryEditorPanel({
   topicTitle = 'Section',
   topicId = 'general',
   componentName,
+  subordinateId,
+  subordinateName,
   isSandbox = true,
   onClose
 }: StoryEditorPanelProps) {
@@ -120,16 +124,16 @@ export default function StoryEditorPanel({
 
   useEffect(() => {
     loadStories();
-  }, [topicId, isSandbox, componentName]);
+  }, [topicId, isSandbox, componentName, subordinateId]);
 
   const loadStories = async () => {
     setLoading(true);
     setError(null);
     try {
-      const finalStoryTypeCd = componentName || componentNameMap[topicId] || topicId;
+      const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
 
       if (isSandbox) {
-        const key = `sandbox_stories_${finalStoryTypeCd}`;
+        const key = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
         const saved = sessionStorage.getItem(key);
         let list: Partial<MbrStory>[] = [];
         if (saved) {
@@ -138,13 +142,14 @@ export default function StoryEditorPanel({
           list = (DEFAULT_STORIES[topicId] || [
             {
               mbrStoryId: `st_${topicId}_1`,
-              mbrStoryTitle: `${topicTitle} Memories & Reflections`,
-              mbrStoryContent: `Write your story notes and reflections for ${topicTitle} here...`,
+              mbrStoryTitle: subordinateName ? `Story of ${subordinateName}` : `${topicTitle} Memories & Reflections`,
+              mbrStoryContent: `Write your story notes and reflections for ${subordinateName || topicTitle} here...`,
               mbrStoryPublishStatusCd: 'Draft'
             }
           ]).map(s => ({
             ...s,
             mbrStoryTypeCd: finalStoryTypeCd,
+            mbrStorySubordinateId: subordinateId || undefined,
             mbrStoryVersion: s.mbrStoryVersion || 1
           }));
           sessionStorage.setItem(key, JSON.stringify(list));
@@ -170,7 +175,18 @@ export default function StoryEditorPanel({
         }
 
         const dbStories = await taskApi.getStories(currentMbrId);
-        const filtered = dbStories.filter((s) => s.mbrStoryTypeCd === finalStoryTypeCd);
+        const filtered = dbStories.filter((s) => {
+          const isFamilyType = (s.mbrStoryTypeCd === 'sbMbrStryFamly' || s.mbrStoryTypeCd === 'Family');
+          const matchesType = isFamilyType || s.mbrStoryTypeCd === finalStoryTypeCd;
+          if (!matchesType) return false;
+
+          if (subordinateId) {
+            return s.mbrStorySubordinateId === subordinateId;
+          } else if (topicId === 'family') {
+            return !s.mbrStorySubordinateId;
+          }
+          return true;
+        });
 
         if (filtered.length > 0) {
           // Select max mbrStoryVersion if multiple stories exist
@@ -203,11 +219,14 @@ export default function StoryEditorPanel({
 
   const handleCreateNew = () => {
     const newId = `temp_${Date.now()}`;
+    const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
     const newStory: Partial<MbrStory> = {
       mbrStoryId: newId,
-      mbrStoryTitle: `New ${topicTitle} Story`,
+      mbrStoryTitle: subordinateName ? `Story of ${subordinateName}` : `New ${topicTitle} Story`,
       mbrStoryContent: '',
-      mbrStoryPublishStatusCd: 'Draft'
+      mbrStoryPublishStatusCd: 'Draft',
+      mbrStoryTypeCd: finalStoryTypeCd,
+      mbrStorySubordinateId: subordinateId || undefined
     };
     setStories((prev) => [...prev, newStory]);
     setActiveStoryId(newId);
@@ -245,7 +264,8 @@ export default function StoryEditorPanel({
         }
       }
 
-      const finalStoryTypeCd = componentName || componentNameMap[topicId] || topicId;
+      const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
+      const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
 
       // Find original version from active story
       const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
@@ -261,6 +281,7 @@ export default function StoryEditorPanel({
           mbrStoryContent: content,
           mbrStoryPublishStatusCd: 'Published',
           mbrStoryTypeCd: finalStoryTypeCd,
+          mbrStorySubordinateId: subordinateId || undefined,
           mbrMbrId: currentMbrId,
           mbrStoryVersion: version,
           mbrStoryThreadID: activeThreadId,
@@ -275,7 +296,7 @@ export default function StoryEditorPanel({
             nextList.push({ ...updatedOriginalStory, mbrStoryId: originalId });
           }
           setStories(nextList);
-          sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+          sessionStorage.setItem(sandboxKey, JSON.stringify(nextList));
           const updatedTarget = nextList.find((s) => s.mbrStoryId === originalId) || { ...updatedOriginalStory, mbrStoryId: originalId };
           selectStory(updatedTarget);
           setSuccessMsg('Published draft changes to original story, and removed draft copy!');
@@ -308,6 +329,7 @@ export default function StoryEditorPanel({
         mbrStoryContent: content,
         mbrStoryPublishStatusCd: status,
         mbrStoryTypeCd: finalStoryTypeCd,
+        mbrStorySubordinateId: subordinateId || undefined,
         mbrMbrId: currentMbrId,
         mbrStoryVersion: version,
         mbrStoryThreadID: activeThreadId,
@@ -328,7 +350,7 @@ export default function StoryEditorPanel({
           nextList.push(sandboxStory);
         }
         setStories(nextList);
-        sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+        sessionStorage.setItem(sandboxKey, JSON.stringify(nextList));
         setSuccessMsg('Story saved successfully to Sandbox!');
       } else {
         let savedResult: MbrStory;
@@ -428,7 +450,8 @@ export default function StoryEditorPanel({
         }
       }
 
-      const finalStoryTypeCd = componentName || componentNameMap[topicId] || topicId;
+      const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
+      const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
       const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
 
       // Check if publishing a draft story that references an original published story
@@ -439,6 +462,7 @@ export default function StoryEditorPanel({
           mbrStoryContent: content,
           mbrStoryPublishStatusCd: 'Published',
           mbrStoryTypeCd: finalStoryTypeCd,
+          mbrStorySubordinateId: subordinateId || undefined,
           mbrMbrId: currentMbrId,
           mbrStoryVersion: activeStory.mbrStoryVersion || 1,
           mbrStoryThreadID: activeThreadId,
@@ -453,7 +477,7 @@ export default function StoryEditorPanel({
             nextList.push({ ...updatedOriginalStory, mbrStoryId: originalId });
           }
           setStories(nextList);
-          sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+          sessionStorage.setItem(sandboxKey, JSON.stringify(nextList));
           const updatedTarget = nextList.find((s) => s.mbrStoryId === originalId) || { ...updatedOriginalStory, mbrStoryId: originalId };
           selectStory(updatedTarget);
           setSuccessMsg('Published draft changes to original story, and removed draft copy!');
@@ -483,6 +507,7 @@ export default function StoryEditorPanel({
           mbrStoryContent: content,
           mbrStoryPublishStatusCd: 'Published',
           mbrStoryTypeCd: finalStoryTypeCd,
+          mbrStorySubordinateId: subordinateId || undefined,
           mbrMbrId: currentMbrId,
           mbrStoryVersion: activeStory ? (activeStory.mbrStoryVersion || 1) : 1,
           mbrStoryThreadID: activeThreadId,
@@ -498,7 +523,7 @@ export default function StoryEditorPanel({
             s.mbrStoryId === activeStoryId ? sandboxStory : s
           );
           setStories(nextList);
-          sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+          sessionStorage.setItem(sandboxKey, JSON.stringify(nextList));
           setStatus('Published');
           setSuccessMsg('Story published successfully in Sandbox!');
         } else {
@@ -549,7 +574,8 @@ export default function StoryEditorPanel({
           }
         }
 
-        const finalStoryTypeCd = componentName || componentNameMap[topicId] || topicId;
+        const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
+        const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
         const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
         const currentVersion = activeStory ? (activeStory.mbrStoryVersion || 1) : 1;
         const originalId = activeStory?.mbrStoryOriginalId || (activeStoryId && !activeStoryId.startsWith('temp_') ? activeStoryId : undefined);
@@ -559,6 +585,7 @@ export default function StoryEditorPanel({
           mbrStoryContent: content,
           mbrStoryPublishStatusCd: 'Draft',
           mbrStoryTypeCd: finalStoryTypeCd,
+          mbrStorySubordinateId: subordinateId || undefined,
           mbrMbrId: currentMbrId,
           mbrStoryVersion: currentVersion + 1,
           mbrStoryThreadID: activeThreadId,
@@ -574,7 +601,7 @@ export default function StoryEditorPanel({
           };
           const nextList = [sandboxStory, ...stories];
           setStories(nextList);
-          sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+          sessionStorage.setItem(sandboxKey, JSON.stringify(nextList));
           setActiveStoryId(newId);
           setStatus('Draft');
           setSuccessMsg('Created new draft story copied from published story.');
@@ -780,7 +807,7 @@ export default function StoryEditorPanel({
             <button
               type="button"
               onClick={() => {
-                const compName = componentName || componentNameMap[topicId] || topicId;
+                const compName = (subordinateId || componentName === 'sbMbrStryFamilyMember') ? 'sbMbrStryFamilyMember' : (componentName || componentNameMap[topicId] || topicId);
                 window.dispatchEvent(new CustomEvent('open-story-mate', {
                   detail: {
                     componentName: compName,

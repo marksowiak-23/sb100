@@ -739,7 +739,7 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
                   </div>
                 </div>
 
-                {/* Card Action Buttons (Photo Gallery, Edit & Delete) */}
+                {/* Card Action Buttons (Photo Gallery, Story Editor, Edit & Delete) */}
                 <div className="flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => handleOpenFamilyMemberGalleryModal(member)}
@@ -747,6 +747,21 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
                     className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                   >
                     <Images className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
+                      detail: {
+                        topicId: 'family',
+                        topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
+                        componentName: 'sbMbrStryFamilyMember',
+                        subordinateId: member.mbrFamilyId,
+                        subordinateName: `${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`
+                      }
+                    }))}
+                    title={`Story Editor for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
+                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => handleOpenEditModal(member)}
@@ -763,6 +778,7 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
+
               </div>
             ))}
           </div>

@@ -33,7 +33,13 @@ export default function CenterColumn({
   onSaveActiveContent
 }: CenterColumnProps) {
   const [showStoryMate, setShowStoryMate] = useState(false);
-  const [storyEditorConfig, setStoryEditorConfig] = useState<{ topicId: string; topicTitle: string; componentName?: string } | null>(null);
+  const [storyEditorConfig, setStoryEditorConfig] = useState<{
+    topicId: string;
+    topicTitle: string;
+    componentName?: string;
+    subordinateId?: string;
+    subordinateName?: string;
+  } | null>(null);
 
   // Hide StoryMate panel and StoryEditor panel whenever the active topic/section changes
   const [storyMateConfig, setStoryMateConfig] = useState<{
@@ -84,7 +90,9 @@ export default function CenterColumn({
       setStoryEditorConfig({
         topicId: detail.topicId || activeSection,
         topicTitle: detail.topicTitle || 'Section',
-        componentName: detail.componentName
+        componentName: detail.componentName,
+        subordinateId: detail.subordinateId || detail.mbrStorySubordinateId,
+        subordinateName: detail.subordinateName
       });
       setTimeout(() => {
         const el = document.getElementById('story-editor-panel');
@@ -149,6 +157,8 @@ export default function CenterColumn({
           topicId={storyEditorConfig.topicId}
           topicTitle={storyEditorConfig.topicTitle}
           componentName={storyEditorConfig.componentName}
+          subordinateId={storyEditorConfig.subordinateId}
+          subordinateName={storyEditorConfig.subordinateName}
           isSandbox={isSandbox}
           onClose={() => setStoryEditorConfig(null)}
         />

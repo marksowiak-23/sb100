@@ -32,6 +32,12 @@ const FALLBACK_INTENT_MAP: Record<string, { intentName: string; desc: string; in
     inst: 'Ask sensory questions about family heritage, home atmosphere, parents, grandparents, and key family moments.',
     prompt: 'Can you share a cherished memory about a family member or a special moment you spent together?'
   },
+  sbMbrStryFamilyMember: {
+    intentName: 'Family Member Story',
+    desc: 'Capture personal stories, cherished memories, and milestones about a specific family member.',
+    inst: 'Ask sensory and reflective questions focusing on the specific family member, their personality, shared experiences, and life legacy.',
+    prompt: 'What special memory or story would you like to record about this family member?'
+  },
   sbMbrStryResidence: {
     intentName: 'Residencies & Living Places',
     desc: 'Explore past homes, neighborhoods, sensory details of living spaces, and life transitions.',
