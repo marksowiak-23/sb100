@@ -5,9 +5,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Briefcase, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, BookOpen } from 'lucide-react';
+import { Briefcase, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, BookOpen, Images } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
 
 interface SbMbrStryEmploymentProps {
   isSandbox: boolean;
@@ -68,6 +69,7 @@ export default function SbMbrStryEmployment({ isSandbox }: SbMbrStryEmploymentPr
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
 
   const [mbrId, setMbrId] = useState<string>('9edb4311-a4bc-428a-8317-833f0f08fea1');
   const [employmentList, setEmploymentList] = useState<Employment[]>([]);
@@ -302,6 +304,13 @@ export default function SbMbrStryEmployment({ isSandbox }: SbMbrStryEmploymentPr
         {/* Toggle Mode Buttons */}
         {!isEditing && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowGalleryModal(true)}
+              className="p-2.5 text-slate-400 hover:text-emerald-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title="Employment Photo Gallery"
+            >
+              <Images className="w-3.5 h-3.5 text-emerald-600" />
+            </button>
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'employment', topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' } }))}
               className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
@@ -587,6 +596,15 @@ export default function SbMbrStryEmployment({ isSandbox }: SbMbrStryEmploymentPr
           </div>
         </div>
       )}
+      <SbPhotoGalleryModal
+        isOpen={showGalleryModal}
+        onClose={() => setShowGalleryModal(false)}
+        mbrId={mbrId}
+        categoryCd="Employment"
+        categoryTitle="Employment"
+        isSandbox={isSandbox}
+        maxPhotos={40}
+      />
       <AdminComponentTag name="SbMbrStryEmployment" />
     </div>
   );

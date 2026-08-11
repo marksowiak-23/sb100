@@ -29,6 +29,7 @@ export interface MbrStory {
   mbrStoryCreatedAt: string;
   mbrStoryUpdatedAt: string;
   mbrStoryThreadID?: string;
+  mbrStorySubordinateId?: string;
   mbrMbrId: string;
   chIntentId?: string;
   mbrStoryOriginalId?: string;

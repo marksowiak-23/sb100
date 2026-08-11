@@ -5,9 +5,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GraduationCap, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, BookOpen } from 'lucide-react';
+import { GraduationCap, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, BookOpen, Images } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
 
 interface SbMbrStryEducationProps {
   isSandbox: boolean;
@@ -61,6 +62,7 @@ export default function SbMbrStryEducation({ isSandbox }: SbMbrStryEducationProp
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
 
   const [mbrId, setMbrId] = useState<string>('9edb4311-a4bc-428a-8317-833f0f08fea1');
   const [educationList, setEducationList] = useState<Education[]>([]);
@@ -290,6 +292,13 @@ export default function SbMbrStryEducation({ isSandbox }: SbMbrStryEducationProp
         {/* Toggle Mode Buttons */}
         {!isEditing && (
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowGalleryModal(true)}
+              className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title="Education Photo Gallery"
+            >
+              <Images className="w-3.5 h-3.5 text-blue-600" />
+            </button>
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'education', topicTitle: 'Education and Training', componentName: 'sbMbrStryEducation' } }))}
               className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
@@ -546,6 +555,15 @@ export default function SbMbrStryEducation({ isSandbox }: SbMbrStryEducationProp
           </div>
         </div>
       )}
+      <SbPhotoGalleryModal
+        isOpen={showGalleryModal}
+        onClose={() => setShowGalleryModal(false)}
+        mbrId={mbrId}
+        categoryCd="Education"
+        categoryTitle="Education"
+        isSandbox={isSandbox}
+        maxPhotos={40}
+      />
       <AdminComponentTag name="SbMbrStryEducation" />
     </div>
   );

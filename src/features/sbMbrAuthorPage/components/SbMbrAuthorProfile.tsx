@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save } from 'lucide-react';
 import { taskApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
 
 interface SbMbrAuthorProfileProps {
   isSandbox: boolean;
@@ -105,7 +106,10 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
     try {
       const media = await taskApi.getMemberMedia(targetMbrId);
       if (media && media.length > 0) {
-        setGalleryItems(media);
+        const profilePhotos = media.filter(
+          (m) => (m.mbrMediaCategoryCd || '').toLowerCase() === 'profile'
+        );
+        setGalleryItems(profilePhotos);
       }
     } catch (err) {
       console.error("Error fetching gallery items for author profile:", err);
@@ -410,184 +414,18 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
         </div>
       )}
 
-      {/* Photo Gallery Lightbox Modal Dialog */}
-      <AnimatePresence>
-        {isGalleryModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
-            {/* Backdrop Overlay */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsGalleryModalOpen(false)}
-              className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
-            />
-
-            {/* Dialog Window */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="relative w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
-            >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/90 text-white shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 bg-blue-500/20 text-blue-400 rounded-xl">
-                    <Images className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-serif font-bold text-base text-slate-100">{fullName} — Photo Gallery</h3>
-                    <p className="text-xs text-slate-400 font-mono">
-                      Photo {activeGalleryItems.length > 0 ? currentGalleryIndex + 1 : 0} of {activeGalleryItems.length}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setIsGalleryModalOpen(false)}
-                  className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
-                  title="Close Gallery (Esc)"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {/* Main Photo Viewing Stage */}
-              <div className="relative flex-grow flex items-center justify-center bg-black/60 p-4 min-h-[300px] md:min-h-[400px] overflow-hidden select-none">
-                {activeGalleryItems.length > 0 ? (
-                  <>
-                    {/* Previous Photo Button */}
-                    <button
-                      type="button"
-                      onClick={handlePrevPhoto}
-                      className="absolute left-4 z-20 p-3 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white border border-slate-700/60 shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                      title="Previous Photo (Left Arrow)"
-                    >
-                      <ChevronLeft className="w-6 h-6" />
-                    </button>
-
-                    {/* Current Active Photo & Editable Description */}
-                    <motion.div
-                      key={currentGalleryItem?.mbrMediaId || currentGalleryIndex}
-                      initial={{ opacity: 0, scale: 0.96 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex flex-col items-center justify-center max-h-[58vh] w-full"
-                    >
-                      <img
-                        src={resolveMediaUrl(currentGalleryItem?.mbrMediaPath)}
-                        alt={currentGalleryItem?.mbrMediaOriginalFilename || 'Gallery Photo'}
-                        className="max-h-[44vh] max-w-full object-contain rounded-2xl shadow-xl border border-slate-800"
-                      />
-
-                      {/* Photo Description Editable Control */}
-                      {currentGalleryItem && (
-                        <div className="mt-3 max-w-xl w-full px-4 select-text">
-                          {isEditingDescription ? (
-                            <div className="flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-blue-500/60 shadow-lg">
-                              <input
-                                type="text"
-                                value={editDescriptionInput}
-                                onChange={(e) => setEditDescriptionInput(e.target.value)}
-                                placeholder="Enter a Description"
-                                className="flex-grow bg-transparent text-slate-100 text-xs font-serif px-3 py-1 outline-none placeholder-slate-500"
-                                autoFocus
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') handleSavePhotoDescription();
-                                  if (e.key === 'Escape') setIsEditingDescription(false);
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={handleSavePhotoDescription}
-                                disabled={savingDescription}
-                                className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold font-sans flex items-center gap-1 cursor-pointer transition-colors shrink-0"
-                              >
-                                {savingDescription ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                                <span>Save</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setIsEditingDescription(false)}
-                                className="p-1 text-slate-400 hover:text-slate-200 rounded-lg cursor-pointer"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ) : (
-                            <div
-                              onClick={() => {
-                                setEditDescriptionInput(currentGalleryItem.mbrMediaDescription || '');
-                                setIsEditingDescription(true);
-                              }}
-                              className="group flex items-center justify-center gap-2 bg-slate-900/70 hover:bg-slate-900/90 text-slate-300 hover:text-white px-4 py-1.5 rounded-full border border-slate-800 hover:border-slate-700 cursor-pointer transition-all mx-auto text-center"
-                              title="Click to edit photo description"
-                            >
-                              <span className="text-xs md:text-sm font-serif truncate max-w-md">
-                                {currentGalleryItem.mbrMediaDescription || (
-                                  <span className="italic text-slate-400 group-hover:text-slate-300">Enter a Description</span>
-                                )}
-                              </span>
-                              <Edit3 className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-400 shrink-0 transition-colors" />
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </motion.div>
-
-                    {/* Next Photo Button */}
-                    <button
-                      type="button"
-                      onClick={handleNextPhoto}
-                      className="absolute right-4 z-20 p-3 rounded-full bg-slate-900/80 hover:bg-slate-800 text-white border border-slate-700/60 shadow-lg hover:scale-110 active:scale-95 transition-all cursor-pointer"
-                      title="Next Photo (Right Arrow)"
-                    >
-                      <ChevronRight className="w-6 h-6" />
-                    </button>
-                  </>
-                ) : (
-                  <div className="text-center text-slate-400 py-12">
-                    <Images className="w-12 h-12 mx-auto opacity-30 mb-2" />
-                    <p className="text-sm font-serif">No gallery photos available.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Bottom Thumbnail Navigation Strip */}
-              {activeGalleryItems.length > 1 && (
-                <div className="px-6 py-3 border-t border-slate-800 bg-slate-950/80 shrink-0 overflow-x-auto">
-                  <div className="flex items-center justify-center gap-2.5 min-w-max mx-auto">
-                    {activeGalleryItems.map((item, idx) => {
-                      const isCurrent = idx === currentGalleryIndex;
-                      return (
-                        <button
-                          key={item.mbrMediaId || idx}
-                          type="button"
-                          onClick={() => setCurrentGalleryIndex(idx)}
-                          className={`relative w-12 h-12 rounded-xl overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${
-                            isCurrent
-                              ? 'border-blue-500 scale-105 shadow-md ring-2 ring-blue-500/40'
-                              : 'border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-600'
-                          }`}
-                        >
-                          <img
-                            src={resolveMediaUrl(item.mbrMediaPath)}
-                            alt={`Thumbnail ${idx + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Photo Gallery Reusable Modal Dialog */}
+      {profile?.mbrId && (
+        <SbPhotoGalleryModal
+          isOpen={isGalleryModalOpen}
+          onClose={() => setIsGalleryModalOpen(false)}
+          mbrId={profile.mbrId}
+          categoryCd="Profile"
+          categoryTitle="Profile"
+          isSandbox={isSandbox}
+          maxPhotos={20}
+        />
+      )}
 
       <AdminComponentTag name="SbMbrAuthorProfile" />
     </div>
