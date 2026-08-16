@@ -11,7 +11,7 @@ import { MEMBER_STORIES } from '../constants/memberData';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbPublicPageFeatureProps {
-  setActiveTab: (tab: 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia') => void;
+  setActiveTab: (tab: 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia') => void;
   onClickReadStory: (storyId: string) => void;
   onSelectLogonType?: (type: 'Google' | 'Apple') => void;
 }

@@ -19,7 +19,6 @@ import { taskApi } from '@/src/services/api';
 
 // Import our layouts and feature components.
 import MainLayout from '@/src/layouts/MainLayout';
-import { GreetingCard, StatsGrid } from '@/src/features/greeting';
 import { ConnectionSettings } from '@/src/features/settings';
 import { AccountLookup } from '@/src/features/account-settings';
 import { SbPublicPageFeature } from '@/src/features/sbPublicPage';
@@ -34,7 +33,7 @@ import { AdminCacheManagement } from '@/src/features/admin-cache';
 import { AdminMediaManagement } from '@/src/features/admin-media';
 
 // Define a TypeScript type to restrict activeTab to only these string values.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'mbrProfile' | 'mbrPreferences' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
+type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'mbrProfile' | 'mbrPreferences' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
 
 export default function App() {
   // --- STATE DEFINITIONS ---
@@ -46,10 +45,6 @@ export default function App() {
   const [previousTab, setPreviousTab] = useState<TabType>('sbPublicPage');
   const [selectedMemberId, setSelectedMemberId] = useState<string>('m1');
   const [logonType, setLogonType] = useState<'Google' | 'Apple'>('Google');
-  
-  // Stores the name inputted in the greeting card. This is shared between GreetingCard 
-  // and StatsGrid.
-  const [name, setName] = useState('');
   
   // Tracks whether the health check network request is currently active.
   const [loading, setLoading] = useState(true);
@@ -203,23 +198,6 @@ export default function App() {
       {/* AnimatePresence coordinates transition effects between our screens. */}
       {/* mode="wait" ensures the old screen completes its fade-out before the new one fades in. */}
       <AnimatePresence mode="wait">
-        
-        {/* If the active tab is 'greeting', render the greeting feature components */}
-        {activeTab === 'greeting' && (
-          <motion.div
-            key="greeting-view"
-            initial={{ opacity: 0, y: 15 }} // Starting state for slide-in animation
-            animate={{ opacity: 1, y: 0 }}  // Final rendering state
-            exit={{ opacity: 0, y: -15 }}   // State when transitioning away
-            transition={{ duration: 0.4 }}  // Animation timing
-            className="w-full flex flex-col items-center justify-center"
-          >
-            {/* Component Composition: passing data (props) down to children */}
-            <GreetingCard name={name} setName={setName} />
-            <StatsGrid name={name} />
-          </motion.div>
-        )}
-
         {/* If the active tab is 'settings', render connection configurations */}
         {activeTab === 'settings' && (
           <motion.div

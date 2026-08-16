@@ -9,7 +9,7 @@ import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 // Restrict values for the tab parameter.
-type TabType = 'greeting' | 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
+type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
 
 // Define the interface (contract) for the props this component expects to receive.
 // React components receive data from their parent component via "props" (properties).
@@ -252,19 +252,6 @@ export default function MainLayout({
                             }`}
                           >
                             Settings
-                          </div>
-                          <div
-                            onClick={() => {
-                              setActiveTab('greeting');
-                              setDropdownOpen(false);
-                            }}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                              activeTab === 'greeting'
-                                ? 'bg-white/10 text-white font-bold'
-                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                            }`}
-                          >
-                            Greeting Screen
                           </div>
                         </div>
                       )}
