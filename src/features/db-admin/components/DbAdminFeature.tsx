@@ -260,7 +260,6 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrPrefTheme', label: 'UI Theme', type: 'string', required: false, placeholder: 'System / Light / Dark' },
       { name: 'mbrPrefNotificationsInd', label: 'Enable Notifications', type: 'boolean', required: true },
       { name: 'mbrPrefAutoSaveInd', label: 'Enable Auto Save', type: 'boolean', required: true },
-      { name: 'adminDisplayComponentName', label: 'Admin Display Component Name', type: 'boolean', required: true },
       { name: 'mbrPrefJson', label: 'Custom Preferences (JSON)', type: 'string', required: false }
     ]
   },
@@ -340,7 +339,6 @@ const getInitialMockData = (tableId: string): any[] => {
           mbrPrefTheme: 'System',
           mbrPrefNotificationsInd: true,
           mbrPrefAutoSaveInd: true,
-          adminDisplayComponentName: true,
           mbrPrefCreatedAt: now,
           mbrPrefUpdatedAt: now
         }

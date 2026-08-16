@@ -99,15 +99,13 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   const [selectedTheme, setSelectedTheme] = useState<string>('System');
   const [notificationsInd, setNotificationsInd] = useState<boolean>(true);
   const [autoSaveInd, setAutoSaveInd] = useState<boolean>(true);
-  const [adminDisplayComponentName, setAdminDisplayComponentName] = useState<boolean>(true);
 
   // Initial reference state for dirty comparison
   const [initialPrefs, setInitialPrefs] = useState({
     selectedWriterId: '',
     selectedTheme: 'System',
     notificationsInd: true,
-    autoSaveInd: true,
-    adminDisplayComponentName: true
+    autoSaveInd: true
   });
 
   // Calculate form dirty state
@@ -116,10 +114,9 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
       selectedWriterId !== initialPrefs.selectedWriterId ||
       selectedTheme !== initialPrefs.selectedTheme ||
       notificationsInd !== initialPrefs.notificationsInd ||
-      autoSaveInd !== initialPrefs.autoSaveInd ||
-      adminDisplayComponentName !== initialPrefs.adminDisplayComponentName
+      autoSaveInd !== initialPrefs.autoSaveInd
     );
-  }, [selectedWriterId, selectedTheme, notificationsInd, autoSaveInd, adminDisplayComponentName, initialPrefs]);
+  }, [selectedWriterId, selectedTheme, notificationsInd, autoSaveInd, initialPrefs]);
 
   // Sync dirty state with parent handler
   useEffect(() => {
@@ -201,24 +198,18 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
       const defaultWriter = prefRecord?.chWriterId || writerList[0]?.chWriterId || '';
       const defaultNotif = prefRecord?.mbrPrefNotificationsInd ?? true;
       const defaultAutoSave = prefRecord?.mbrPrefAutoSaveInd ?? true;
-      const defaultAdminDisplay = prefRecord?.adminDisplayComponentName ?? true;
 
       setMbrPrefId(prefRecord?.mbrPrefId || null);
       setSelectedWriterId(defaultWriter);
       setSelectedTheme(activeTheme);
       setNotificationsInd(defaultNotif);
       setAutoSaveInd(defaultAutoSave);
-      setAdminDisplayComponentName(defaultAdminDisplay);
-
-      sessionStorage.setItem('adminDisplayComponentName', String(defaultAdminDisplay));
-      window.dispatchEvent(new Event('admin-display-component-changed'));
 
       setInitialPrefs({
         selectedWriterId: defaultWriter,
         selectedTheme: activeTheme,
         notificationsInd: defaultNotif,
-        autoSaveInd: defaultAutoSave,
-        adminDisplayComponentName: defaultAdminDisplay
+        autoSaveInd: defaultAutoSave
       });
 
     } catch (err: any) {
@@ -242,12 +233,8 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         mbrPrefTheme: selectedTheme,
         mbrPrefNotificationsInd: notificationsInd,
         mbrPrefAutoSaveInd: autoSaveInd,
-        adminDisplayComponentName: adminDisplayComponentName,
         mbrPrefJson: null
       };
-
-      sessionStorage.setItem('adminDisplayComponentName', String(adminDisplayComponentName));
-      window.dispatchEvent(new Event('admin-display-component-changed'));
 
       sessionStorage.setItem('mbrPrefTheme', selectedTheme);
       sessionStorage.setItem('theme', selectedTheme);
@@ -269,8 +256,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         selectedWriterId,
         selectedTheme,
         notificationsInd,
-        autoSaveInd,
-        adminDisplayComponentName
+        autoSaveInd
       };
       setInitialPrefs(newInit);
       setSuccess("Member preferences saved successfully!");
@@ -543,23 +529,6 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
                     type="checkbox"
                     checked={autoSaveInd}
                     onChange={(e) => setAutoSaveInd(e.target.checked)}
-                    className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
-                  />
-                </div>
-
-                {/* Admin Display Component Name Toggle */}
-                <div className="flex items-center justify-between p-3 bg-white border border-[#EFECE7] rounded-xl">
-                  <div className="flex items-center gap-2.5">
-                    <Sliders className="w-4 h-4 text-slate-500" />
-                    <div>
-                      <h5 className="text-xs font-serif font-bold text-slate-700">Admin Display Component Name</h5>
-                      <p className="text-[10px] text-slate-400 font-serif">Display component names in administrative panels</p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={adminDisplayComponentName}
-                    onChange={(e) => setAdminDisplayComponentName(e.target.checked)}
                     className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
                   />
                 </div>

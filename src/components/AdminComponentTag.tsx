@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
 interface AdminComponentTagProps {
   name: string;
@@ -13,28 +13,14 @@ interface AdminComponentTagProps {
 /**
  * AdminComponentTag
  * Displays the React code component name in the lower right-hand corner of a panel
- * in relatively small font, only if adminDisplayComponentName is set to True.
+ * in relatively small font, controlled globally via the VITE_ADMIN_DISPLAY_COMPONENT_NAME
+ * environment variable.
  */
 export function AdminComponentTag({ name, className = '' }: AdminComponentTagProps) {
-  const [enabled, setEnabled] = useState<boolean>(() => {
-    const stored = sessionStorage.getItem('adminDisplayComponentName');
-    return stored !== null ? stored === 'true' : true;
-  });
+  const envVal = import.meta.env.VITE_ADMIN_DISPLAY_COMPONENT_NAME;
+  const isEnabled = envVal === 'true' || envVal === true || envVal === '1';
 
-  useEffect(() => {
-    const handleStorage = () => {
-      const stored = sessionStorage.getItem('adminDisplayComponentName');
-      setEnabled(stored !== null ? stored === 'true' : true);
-    };
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('admin-display-component-changed', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('admin-display-component-changed', handleStorage);
-    };
-  }, []);
-
-  if (!enabled) return null;
+  if (!isEnabled) return null;
 
   return (
     <div
