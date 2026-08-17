@@ -18,7 +18,7 @@ interface SbMbrHomePageFeatureProps {
 export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPage }: SbMbrHomePageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter logic: Checks if query string exists inside username, location, or tags list.
+  // Filter logic: Checks if query string exists inside member name, location, or tags list.
   const filteredMembers = MEMBER_STORIES.filter((member) => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return true;

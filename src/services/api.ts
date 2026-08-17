@@ -10,7 +10,6 @@ export interface HealthCheckResponse {
 
 export interface User {
   user_id: string;
-  username: string;
   email: string;
   is_active: boolean;
   created_at: string;
@@ -93,12 +92,12 @@ export const taskApi = {
   },
 
   /**
-   * Fetch list of user accounts, optionally filtered by username (with wildcards).
+   * Fetch list of user accounts, optionally filtered by email (with wildcards).
    */
-  async getUsers(username?: string): Promise<User[]> {
+  async getUsers(email?: string): Promise<User[]> {
     let url = `${API_BASE_URL}/users`;
-    if (username) {
-      url += `?username=${encodeURIComponent(username)}`;
+    if (email) {
+      url += `?email=${encodeURIComponent(email)}`;
     }
     const response = await fetch(url, {
       method: 'GET',
@@ -107,6 +106,19 @@ export const taskApi = {
       },
     });
     return handleResponse<User[]>(response);
+  },
+
+  /**
+   * Fetch a user account by email address.
+   */
+  async getUserByEmail(email: string): Promise<User> {
+    const response = await fetch(`${API_BASE_URL}/users/email/${encodeURIComponent(email)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<User>(response);
   },
 
   /**

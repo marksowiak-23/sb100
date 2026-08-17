@@ -39,9 +39,8 @@ const TABLES: TableDefinition[] = [
     name: 'Users',
     endpoint: '/users',
     primaryKey: 'user_id',
-    searchField: 'username',
+    searchField: 'email',
     fields: [
-      { name: 'username', label: 'Username', type: 'string', required: true, placeholder: 'e.g. johndoe' },
       { name: 'email', label: 'Email', type: 'string', required: true, placeholder: 'e.g. john@example.com' },
       { name: 'is_active', label: 'Active Status', type: 'boolean', required: true }
     ]
@@ -287,9 +286,9 @@ const getInitialMockData = (tableId: string): any[] => {
   switch (tableId) {
     case 'users':
       return [
-        { user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', username: 'eleanor_author', email: 'eleanor.ross@storybook.ai', is_active: true, created_at: now, updated_at: now },
-        { user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', username: 'james_narrator', email: 'james@memoirhub.com', is_active: true, created_at: now, updated_at: now },
-        { user_id: 'cf650da5-ef31-419b-a083-d9d1326be8ad', username: 'admin_marks', email: 'admin@storybook.ai', is_active: true, created_at: now, updated_at: now }
+        { user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', email: 'eleanor.ross@storybook.ai', is_active: true, created_at: now, updated_at: now },
+        { user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', email: 'james@memoirhub.com', is_active: true, created_at: now, updated_at: now },
+        { user_id: 'cf650da5-ef31-419b-a083-d9d1326be8ad', email: 'admin@storybook.ai', is_active: true, created_at: now, updated_at: now }
       ];
     case 'mbrs':
       return [

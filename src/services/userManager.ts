@@ -10,12 +10,12 @@ export interface LogonResult {
 
 export const userManager = {
   /**
-   * Performs user logon check using the backend GET /users/username/{username} endpoint.
+   * Performs user logon check using the backend GET /users/email/{email} endpoint.
    * If found, returns success and the user record. If not found or error, returns failure.
    */
-  async userLogon(username: string): Promise<LogonResult> {
+  async userLogon(email: string): Promise<LogonResult> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/username/${encodeURIComponent(username)}`, {
+      const response = await fetch(`${API_BASE_URL}/users/email/${encodeURIComponent(email)}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -26,13 +26,12 @@ export const userManager = {
         const user = await response.json();
         return { success: true, user };
       } else {
-        // Fallback for local sandbox testing if backend is offline and username is msowiak
-        if (username === 'msowiak') {
+        // Fallback for local sandbox testing if backend is offline and email is mark.sowiak@gmail.com
+        if (email === 'mark.sowiak@gmail.com' || email === 'msowiak') {
           return {
             success: true,
             user: {
               user_id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-              username: 'msowiak',
               email: 'mark.sowiak@gmail.com',
               is_active: true,
               created_at: '2026-07-01T08:00:00Z',
@@ -43,13 +42,12 @@ export const userManager = {
         return { success: false, error: 'User record not found' };
       }
     } catch (err: any) {
-      // Fallback for local sandbox testing if backend is offline and username is msowiak
-      if (username === 'msowiak') {
+      // Fallback for local sandbox testing if backend is offline
+      if (email === 'mark.sowiak@gmail.com' || email === 'msowiak') {
         return {
           success: true,
           user: {
             user_id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-            username: 'msowiak',
             email: 'mark.sowiak@gmail.com',
             is_active: true,
             created_at: '2026-07-01T08:00:00Z',

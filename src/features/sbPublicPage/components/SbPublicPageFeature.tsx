@@ -19,7 +19,7 @@ interface SbPublicPageFeatureProps {
 export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, onSelectLogonType }: SbPublicPageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter logic: Checks if query string exists inside username, location, or tags list.
+  // Filter logic: Checks if query string exists inside member name, location, or tags list.
   const filteredMembers = MEMBER_STORIES.filter((member) => {
     const query = searchQuery.trim().toLowerCase();
     if (!query) return true;

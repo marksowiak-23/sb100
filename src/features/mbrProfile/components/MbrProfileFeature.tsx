@@ -210,10 +210,10 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
             setInitialData({ formData: loadedForm, previewImage: finalPreview });
           }
         } catch (err: any) {
-          // If profile is not found (404), we auto-populate a draft to let them create it!
           if (err.message.includes('404') || err.message.includes('not found')) {
             console.log("No member profile found, initializing creation draft");
-            const names = u.username.split('.');
+            const emailPrefix = u.email ? u.email.split('@')[0] : 'mark.sowiak';
+            const names = emailPrefix.split('.');
             const draftForm = {
               mbrFirstName: names[0] ? names[0].charAt(0).toUpperCase() + names[0].slice(1) : 'Mark',
               mbrLastName: names[1] ? names[1].charAt(0).toUpperCase() + names[1].slice(1) : 'Sowiak',

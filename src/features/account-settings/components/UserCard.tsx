@@ -44,12 +44,12 @@ const UserCard: React.FC<UserCardProps> = ({ user }) => {
         {/* --- USER PROFILE HEADER --- */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            {/* Grab first two characters of username for avatar representation */}
+            {/* Grab first two characters of email for avatar representation */}
             <div className="w-10 h-10 bg-slate-50 border border-[#EFECE7] rounded-xl flex items-center justify-center text-slate-655 font-serif font-bold text-sm">
-              {user.username.substring(0, 2).toUpperCase()}
+              {user.email.substring(0, 2).toUpperCase()}
             </div>
             <div>
-              <h4 className="font-serif font-bold text-slate-800 text-base">{user.username}</h4>
+              <h4 className="font-serif font-bold text-slate-800 text-base">{user.email}</h4>
               {/* Dynamic status chip formatting */}
               <span
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mt-1 border ${

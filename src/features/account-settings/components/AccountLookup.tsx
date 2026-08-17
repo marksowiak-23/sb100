@@ -24,7 +24,7 @@ interface AccountLookupProps {
 export default function AccountLookup({ isSandbox }: AccountLookupProps) {
   // --- STATE FOR USER SELECTION AND LOGIC ---
   // Tracks user input in search field.
-  const [searchUsername, setSearchUsername] = useState('');
+  const [searchEmail, setSearchEmail] = useState('');
   // Stores array of matching users fetched from the datasource.
   const [searchUsersResults, setSearchUsersResults] = useState<ApiUser[]>([]);
   // Boolean flag displaying a loading spinner during network roundtrips.
@@ -56,13 +56,13 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
     try {
       if (isSandbox) {
         // MOCK DATA QUERY:
-        // Runs standard JS array filter matching usernames against our wildcard utility.
-        const results = SANDBOX_USERS.filter(u => matchUser(u.username, searchUsername.trim()));
+        // Runs standard JS array filter matching emails against our wildcard utility.
+        const results = SANDBOX_USERS.filter(u => matchUser(u.email, searchEmail.trim()));
         setSearchUsersResults(results);
       } else {
         // LIVE NETWORK QUERY:
         // Contacts the FastAPI server database using the SDK wrapper.
-        const results = await taskApi.getUsers(searchUsername.trim() || undefined);
+        const results = await taskApi.getUsers(searchEmail.trim() || undefined);
         setSearchUsersResults(results);
       }
     } catch (err: any) {
@@ -120,11 +120,11 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-blue-50/20 border border-blue-100 p-5 rounded-2xl">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-blue-600/10 border border-blue-600/20 text-blue-700 rounded-xl flex items-center justify-center font-bold text-sm shrink-0">
-                {currentUser.username.substring(0, 2).toUpperCase()}
+                {currentUser.email.substring(0, 2).toUpperCase()}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-serif font-bold text-slate-800 text-base leading-none">{currentUser.username}</span>
+                  <span className="font-serif font-bold text-slate-800 text-base leading-none">{currentUser.email}</span>
                   <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-bold bg-blue-600 text-white rounded-full uppercase tracking-wider">
                     Active
                   </span>
@@ -159,12 +159,12 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
           <div className="relative flex-grow">
             <input
               type="text"
-              value={searchUsername}
-              onChange={(e) => setSearchUsername(e.target.value)}
-              placeholder="Enter username (e.g. john_doe, john*, *smith)..."
+              value={searchEmail}
+              onChange={(e) => setSearchEmail(e.target.value)}
+              placeholder="Enter email address (e.g. mark*, *gmail.com, john.doe@example.com)..."
               className="w-full bg-slate-50/70 hover:bg-slate-50 focus:bg-white text-slate-800 placeholder-slate-400 text-xs md:text-sm rounded-xl border border-[#EFECE7] outline-none py-3.5 pl-11 pr-4 transition-all duration-150 focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
             />
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           </div>
           {/* Submit button. Disabled during network fetching requests to prevent duplicate requests. */}
           <button

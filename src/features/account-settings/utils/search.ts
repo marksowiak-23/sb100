@@ -15,10 +15,10 @@ export const matchWildcard = (str: string, rule: string): boolean => {
 /**
  * Filter users based on input query (supporting wildcard '*')
  */
-export const matchUser = (username: string, query: string): boolean => {
+export const matchUser = (text: string, query: string): boolean => {
   if (!query) return true;
   if (query.includes('*')) {
-    return matchWildcard(username, query);
+    return matchWildcard(text, query);
   }
-  return username.toLowerCase().includes(query.toLowerCase());
+  return text.toLowerCase().includes(query.toLowerCase());
 };

@@ -32,8 +32,8 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab }: SbMbrLogo
       if (!active) return;
 
       try {
-        // Pass "msowiak" to get the user record as requested
-        const result = await userManager.userLogon('msowiak');
+        // Pass "mark.sowiak@gmail.com" to get the user record by email
+        const result = await userManager.userLogon('mark.sowiak@gmail.com');
 
         if (!active) return;
 
