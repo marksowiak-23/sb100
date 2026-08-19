@@ -4,7 +4,6 @@
  */
 
 import React from 'react';
-import { MemberStory } from '../constants/memberData';
 import HeroCarousel from './HeroCarousel';
 import SbPublicSearchCard from './SbPublicSearchCard';
 import SbMemberSearchResults from './SbMemberSearchResults';
@@ -13,7 +12,8 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 interface CenterColumnProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  members: MemberStory[];
+  members: any[];
+  loading?: boolean;
   onClickReadStory?: (memberId: string) => void;
 }
 
@@ -21,6 +21,7 @@ export default function CenterColumn({
   searchQuery,
   setSearchQuery,
   members,
+  loading = false,
   onClickReadStory
 }: CenterColumnProps) {
   return (
@@ -37,6 +38,7 @@ export default function CenterColumn({
       {/* --- SEARCH RESULTS & STORIES FEED --- */}
       <SbMemberSearchResults
         members={members}
+        loading={loading}
         onClickReadStory={onClickReadStory}
       />
 
@@ -44,3 +46,4 @@ export default function CenterColumn({
     </div>
   );
 }
+

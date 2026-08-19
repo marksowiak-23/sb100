@@ -123,6 +123,48 @@ export const taskApi = {
   },
 
   /**
+   * Fetch a member profile by member ID (mbrId).
+   */
+  async getMemberById(mbrId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbrs/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Fetch members list with optional query, name, location filters, and limit/skip.
+   */
+  async getMembers(params?: { query?: string; name?: string; location?: string; limit?: number; skip?: number }): Promise<any[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.query) searchParams.append('query', params.query);
+    if (params?.name) searchParams.append('name', params.name);
+    if (params?.location) searchParams.append('location', params.location);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbrs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<any[]>(response);
+  },
+
+  /**
    * Fetch member profile by their associated user ID.
    */
   async getMemberByUserId(userId: string): Promise<any> {

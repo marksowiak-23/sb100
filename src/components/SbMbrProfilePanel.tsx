@@ -6,12 +6,16 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
 
 interface SbMbrProfilePanelProps {
-  isSandbox: boolean;
+  key?: React.Key;
+  isSandbox?: boolean;
+  profile?: any;
+  memberId?: string;
+  onClickReadStory?: (memberId: string) => void;
 }
 
-export default function SbMbrProfilePanel({ isSandbox }: SbMbrProfilePanelProps) {
+export default function SbMbrProfilePanel({ isSandbox = false, profile: propProfile, memberId, onClickReadStory }: SbMbrProfilePanelProps) {
   const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(propProfile || null);
   const [galleryItems, setGalleryItems] = useState<MbrMedia[]>([]);
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
@@ -23,20 +27,53 @@ export default function SbMbrProfilePanel({ isSandbox }: SbMbrProfilePanelProps)
 
   // Session storage state for introduction accordion panel collapse persistence
   const [isIntroCollapsed, setIsIntroCollapsed] = useState<boolean>(() => {
-    return sessionStorage.getItem('author_intro_collapsed') === 'true';
+    const key = propProfile?.mbrId ? `author_intro_collapsed_${propProfile.mbrId}` : 'author_intro_collapsed';
+    return sessionStorage.getItem(key) === 'true';
   });
 
   const toggleIntroAccordion = () => {
     setIsIntroCollapsed((prev) => {
       const nextState = !prev;
-      sessionStorage.setItem('author_intro_collapsed', String(nextState));
+      const key = profile?.mbrId ? `author_intro_collapsed_${profile.mbrId}` : 'author_intro_collapsed';
+      sessionStorage.setItem(key, String(nextState));
       return nextState;
     });
   };
 
   useEffect(() => {
-    loadAuthorProfile();
-  }, [isSandbox]);
+    if (propProfile) {
+      const cachedPic = sessionStorage.getItem(`session_pic_${propProfile.mbrId}`);
+      setProfile({
+        ...propProfile,
+        mbrProfilePic: resolveMediaUrl(cachedPic || propProfile.mbrProfilePic)
+      });
+      fetchGallery(propProfile.mbrId);
+      setLoading(false);
+    } else if (memberId) {
+      loadProfileById(memberId);
+    } else {
+      loadAuthorProfile();
+    }
+  }, [isSandbox, propProfile, memberId]);
+
+  const loadProfileById = async (targetId: string) => {
+    setLoading(true);
+    try {
+      const mbr = await taskApi.getMemberById(targetId);
+      if (mbr) {
+        const cachedPic = sessionStorage.getItem(`session_pic_${mbr.mbrId}`);
+        setProfile({
+          ...mbr,
+          mbrProfilePic: resolveMediaUrl(cachedPic || mbr.mbrProfilePic)
+        });
+        fetchGallery(mbr.mbrId);
+      }
+    } catch (err) {
+      console.error("Error loading member profile by ID:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadAuthorProfile = async () => {
     setLoading(true);
@@ -426,6 +463,29 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
           maxPhotos={20}
         />
       )}
+
+      {/* --- LOWER RIGHT ACTION LINK: READ STORY --- */}
+      <div className="pt-3 border-t border-[#EFECE7] flex items-center justify-end">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const targetMbrId = profile?.mbrId || profile?.id || memberId || '';
+            if (onClickReadStory && targetMbrId) {
+              onClickReadStory(targetMbrId);
+            } else if (targetMbrId) {
+              window.dispatchEvent(new CustomEvent('open-member-story', { detail: { memberId: targetMbrId } }));
+            }
+          }}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-serif font-bold rounded-xl shadow-xs hover:shadow transition-all duration-150 cursor-pointer active:scale-95 group"
+          title="Read member's public story"
+        >
+          <BookOpen className="w-3.5 h-3.5 text-blue-200 group-hover:text-white transition-colors" />
+          <span>Read Story</span>
+          <ChevronRight className="w-3 h-3 text-blue-200 group-hover:translate-x-0.5 transition-transform" />
+        </button>
+      </div>
 
       <AdminComponentTag name="SbMbrProfilePanel" />
     </div>

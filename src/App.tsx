@@ -130,6 +130,17 @@ export default function App() {
     setActiveTab('sbMbrStoryPage');
   };
 
+  useEffect(() => {
+    const handleStoryEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ memberId: string }>;
+      if (customEvent.detail?.memberId) {
+        handleReadStory(customEvent.detail.memberId);
+      }
+    };
+    window.addEventListener('open-member-story', handleStoryEvent);
+    return () => window.removeEventListener('open-member-story', handleStoryEvent);
+  }, [activeTab]);
+
   // --- RENDERING (JSX) ---
   // App.tsx returns JSX (HTML-like syntax inside Javascript).
   // We compose MainLayout as our primary shell structure, then render the appropriate 

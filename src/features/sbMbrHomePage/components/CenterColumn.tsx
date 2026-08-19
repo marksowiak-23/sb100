@@ -4,15 +4,15 @@
  */
 
 import React from 'react';
-import { Search, Info, HelpCircle, Users } from 'lucide-react';
-import { MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
-import MemberCard from '@/src/features/sbPublicPage/components/MemberCard';
+import { Search, Info, HelpCircle, Users, Loader2 } from 'lucide-react';
+import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  members: MemberStory[];
+  members: any[];
+  loading?: boolean;
   onClickReadStory?: (memberId: string) => void;
 }
 
@@ -20,6 +20,7 @@ export default function CenterColumn({
   searchQuery,
   setSearchQuery,
   members,
+  loading = false,
   onClickReadStory
 }: CenterColumnProps) {
   return (
@@ -44,7 +45,7 @@ export default function CenterColumn({
               Find a Member
             </h3>
           </div>
-          <HelpCircle className="w-4 h-4 text-slate-350 cursor-pointer hover:text-slate-400 transition-colors" title="Search by name, location, or tag" />
+          <HelpCircle className="w-4 h-4 text-slate-350 cursor-pointer hover:text-slate-400 transition-colors" title="Search by name or location" />
         </div>
 
         <form onSubmit={(e) => e.preventDefault()} className="flex gap-2">
@@ -53,7 +54,7 @@ export default function CenterColumn({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by name, location, tags..."
+              placeholder="Search by name or location..."
               className="w-full bg-slate-50/70 hover:bg-slate-50 focus:bg-white text-slate-800 placeholder-slate-400 text-xs md:text-sm rounded-2xl border border-[#EFECE7] outline-none py-3.5 pl-11 pr-4 transition-all duration-150 shadow-sm focus:border-slate-800 focus:ring-1 focus:ring-slate-800"
             />
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -67,18 +68,23 @@ export default function CenterColumn({
         </form>
       </div>
 
-      {/* --- STORIES FEED --- */}
+      {/* --- MEMBERS FEED --- */}
       <div className="space-y-4">
         <div className="flex items-center justify-between border-b border-[#EFECE7] pb-2">
           <h3 className="font-serif text-sm font-bold text-slate-850">
-            Recent Life Chapters
+            {searchQuery.trim() ? 'Search Results' : 'Recent Members'}
           </h3>
           <span className="text-xs text-slate-400 font-medium">
-            Showing {members.length} members
+            {loading ? 'Searching...' : `Showing ${members.length} member${members.length === 1 ? '' : 's'}`}
           </span>
         </div>
 
-        {members.length === 0 ? (
+        {loading ? (
+          <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl py-12 px-6 text-center shadow-xs flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+            <span className="text-xs text-slate-400 font-serif">Loading members...</span>
+          </div>
+        ) : members.length === 0 ? (
           /* Empty Search results placeholder */
           <div className="bg-[#FDFCFB] border border-[#EFECE7] border-dashed rounded-3xl py-12 px-6 text-center shadow-sm">
             <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-[#EFECE7] text-slate-400">
@@ -86,17 +92,18 @@ export default function CenterColumn({
             </div>
             <h4 className="text-slate-800 font-serif font-bold mb-1">No members match your search</h4>
             <p className="text-slate-400 text-xs max-w-xs mx-auto leading-relaxed font-serif">
-              Try searching for different names, states, or tag keywords.
+              Try searching for different names (e.g. Eleanor) or locations (e.g. Portland, OR).
             </p>
           </div>
         ) : (
-          /* Render filtered list feed */
-          <div className="flex flex-col gap-5">
+          /* Render member profile cards using SbMbrProfilePanel */
+          <div className="flex flex-col gap-6">
             {members.map((member) => (
-              <MemberCard
-                key={member.id}
-                member={member}
-                onClickReadStory={() => onClickReadStory && onClickReadStory(member.id)}
+              <SbMbrProfilePanel
+                key={member.mbrId || member.id}
+                profile={member}
+                isSandbox={false}
+                onClickReadStory={onClickReadStory}
               />
             ))}
           </div>

@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
-import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
+import { MEMBER_STORIES, MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
+import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrStoryPageFeatureProps {
@@ -37,9 +38,36 @@ export default function SbMbrStoryPageFeature({
   onClickBack
 }: SbMbrStoryPageFeatureProps) {
   const [activeSection, setActiveSection] = useState('family');
+  const [liveMember, setLiveMember] = useState<MemberStory | null>(null);
+
+  useEffect(() => {
+    if (!memberId) return;
+    const staticM = MEMBER_STORIES.find((m) => m.id === memberId);
+    if (staticM) {
+      setLiveMember(staticM);
+      return;
+    }
+    taskApi.getMemberById(memberId).then((mbr) => {
+      if (mbr) {
+        setLiveMember({
+          id: mbr.mbrId,
+          name: `${mbr.mbrFirstName || ''} ${mbr.mbrLastName || ''}`.trim() || 'Member',
+          location: mbr.mbrLivesCityState || mbr.mbrFromCityState || 'Storybook Member',
+          tags: ['Memoirs', 'Family', 'Heritage'],
+          joinedDate: mbr.mbrCreatedAt ? new Date(mbr.mbrCreatedAt).getFullYear().toString() : '2025',
+          avatarUrl: resolveMediaUrl(mbr.mbrProfilePic),
+          avatarInitials: `${mbr.mbrFirstName?.[0] || ''}${mbr.mbrLastName?.[0] || ''}`.toUpperCase() || 'SB',
+          chaptersCount: 1,
+          excerpt: mbr.mbrIntroduction || 'Preserving a lifetime of heritage, stories, and connections.'
+        });
+      }
+    }).catch((err) => {
+      console.warn("Failed to load member for story page:", err);
+    });
+  }, [memberId]);
 
   // Look up current member
-  const member = MEMBER_STORIES.find((m) => m.id === memberId) || MEMBER_STORIES[0];
+  const member = liveMember || MEMBER_STORIES.find((m) => m.id === memberId) || MEMBER_STORIES[0];
 
   // Retrieve active section contents
   const getActiveContent = (): string[] => {

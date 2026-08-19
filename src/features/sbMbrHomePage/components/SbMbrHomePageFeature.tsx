@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
-import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
+import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrHomePageFeatureProps {
@@ -17,18 +17,43 @@ interface SbMbrHomePageFeatureProps {
 
 export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPage }: SbMbrHomePageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [members, setMembers] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // Filter logic: Checks if query string exists inside member name, location, or tags list.
-  const filteredMembers = MEMBER_STORIES.filter((member) => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return true;
+  // Fetch top 5 recent members on load, or search by query (name, location) on query change
+  useEffect(() => {
+    let isCancelled = false;
+    setLoading(true);
 
-    const nameMatch = member.name.toLowerCase().includes(query);
-    const locationMatch = member.location.toLowerCase().includes(query);
-    const tagsMatch = member.tags.some((tag) => tag.toLowerCase().includes(query));
+    const timer = setTimeout(async () => {
+      try {
+        const queryTrimmed = searchQuery.trim();
+        let result: any[] = [];
+        if (queryTrimmed) {
+          result = await taskApi.getMembers({ query: queryTrimmed });
+        } else {
+          result = await taskApi.getMembers({ limit: 5 });
+        }
+        if (!isCancelled) {
+          setMembers(result || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch members for member home page search:", err);
+        if (!isCancelled) {
+          setMembers([]);
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    }, 250);
 
-    return nameMatch || locationMatch || tagsMatch;
-  });
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
 
   return (
     <div className="w-full relative">
@@ -41,12 +66,13 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
           <LeftColumn onClickAuthorPage={onClickAuthorPage} />
         </div>
 
-        {/* Center Column Section: Main welcome hero, Search Bar box, and Dynamic Stories feed */}
+        {/* Center Column Section: Main welcome hero, Search Bar box, and Dynamic Members feed */}
         <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
           <CenterColumn
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
-            members={filteredMembers}
+            members={members}
+            loading={loading}
             onClickReadStory={onClickReadStory}
           />
         </div>
