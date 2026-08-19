@@ -4,6 +4,7 @@
  */
 
 import React from 'react';
+import { Mail } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbPublicAuthCardProps {
@@ -60,14 +61,23 @@ export default function SbPublicAuthCard({ setActiveTab, onSelectLogonType }: Sb
           </svg>
           <span>Continue with Apple</span>
         </button>
+
+        {/* Email & Password Sign In Option */}
+        <button
+          onClick={() => setActiveTab('sbMbrLogon')}
+          className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs rounded-2xl transition-all duration-150 cursor-pointer mt-0.5"
+        >
+          <Mail className="w-3.5 h-3.5 text-slate-500" />
+          <span>Sign In with Email</span>
+        </button>
       </div>
 
       <div className="text-center pt-2 border-t border-slate-50">
         <span className="text-[10px] text-slate-400 font-semibold">
           Don't have an account?{' '}
           <button
-            onClick={() => alert('Opening membership sign-up application...')}
-            className="text-blue-600 hover:underline cursor-pointer"
+            onClick={() => setActiveTab('sbMbrRegister')}
+            className="text-blue-600 hover:underline font-bold cursor-pointer"
           >
             Sign up
           </button>

@@ -42,6 +42,7 @@ const TABLES: TableDefinition[] = [
     searchField: 'email',
     fields: [
       { name: 'email', label: 'Email', type: 'string', required: true, placeholder: 'e.g. john@example.com' },
+      { name: 'password_hash', label: 'Password Hash', type: 'string', required: false, placeholder: 'e.g. salt:hash or hashed string' },
       { name: 'is_active', label: 'Active Status', type: 'boolean', required: true }
     ]
   },
@@ -286,9 +287,9 @@ const getInitialMockData = (tableId: string): any[] => {
   switch (tableId) {
     case 'users':
       return [
-        { user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', email: 'eleanor.ross@storybook.ai', is_active: true, created_at: now, updated_at: now },
-        { user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', email: 'james@memoirhub.com', is_active: true, created_at: now, updated_at: now },
-        { user_id: 'cf650da5-ef31-419b-a083-d9d1326be8ad', email: 'admin@storybook.ai', is_active: true, created_at: now, updated_at: now }
+        { user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', email: 'eleanor.ross@storybook.ai', password_hash: 'c1a74d2b1f8e9a0b:3e2d1c0b9a8f7e6d5c4b3a21', is_active: true, created_at: now, updated_at: now },
+        { user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', email: 'james@memoirhub.com', password_hash: '8f9e0a1b2c3d4e5f:6a5b4c3d2e1f0a9b8c7d6e5f', is_active: true, created_at: now, updated_at: now },
+        { user_id: 'cf650da5-ef31-419b-a083-d9d1326be8ad', email: 'admin@storybook.ai', password_hash: '4d5e6f7a8b9c0d1e:2f3e4d5c6b7a8f9e0d1c2b3a', is_active: true, created_at: now, updated_at: now }
       ];
     case 'mbrs':
       return [

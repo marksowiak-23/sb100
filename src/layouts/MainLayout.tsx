@@ -9,7 +9,8 @@ import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 // Restrict values for the tab parameter.
-type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
+type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'sbMbrRegister' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
+
 
 // Define the interface (contract) for the props this component expects to receive.
 // React components receive data from their parent component via "props" (properties).
@@ -97,7 +98,7 @@ export default function MainLayout({
         {/* --- STATUS INDICATOR & ACCOUNT MENU --- */}
         <div className="flex items-center gap-6">
           {/* Member Profile Thumbnail */}
-          {activeTab !== 'sbPublicPage' && (
+          {activeTab !== 'sbPublicPage' && activeTab !== 'sbMbrLogon' && activeTab !== 'sbMbrRegister' && (
             <button
               onClick={() => setActiveTab('mbrProfile')}
               className="w-8 h-8 rounded-xl overflow-hidden border border-slate-700 hover:border-slate-500 transition-all cursor-pointer shrink-0 flex items-center justify-center shadow-md bg-slate-900"
@@ -116,7 +117,7 @@ export default function MainLayout({
           )}
 
           {/* Account Dropdown Menu */}
-          {activeTab !== 'sbPublicPage' && (
+          {activeTab !== 'sbPublicPage' && activeTab !== 'sbMbrLogon' && activeTab !== 'sbMbrRegister' && (
             <div className="relative">
               <button
                 onClick={() => setDropdownOpen(!isDropdownOpen)}
