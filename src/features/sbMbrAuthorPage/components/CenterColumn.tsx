@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import StoryMatePanel from './StoryMatePanel';
 import StoryEditorPanel from './StoryEditorPanel';
-import SbMbrAuthorProfile from './SbMbrAuthorProfile';
+import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
 import SbMbrStryFamily from './SbMbrStryFamily';
 import SbMbrStryResidence from './SbMbrStryResidence';
@@ -120,7 +120,7 @@ export default function CenterColumn({
       </div>
 
       {/* --- PROFILE SUMMARY CARD --- */}
-      <SbMbrAuthorProfile isSandbox={isSandbox} />
+      <SbMbrProfilePanel isSandbox={isSandbox} />
 
       {/* --- FAMILY DIRECTORY PANEL --- */}
       {activeSection === 'family' && (

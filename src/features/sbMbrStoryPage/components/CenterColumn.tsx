@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
-import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
+import SbMbrProfileFakePanel from '@/src/components/SbMbrProfileFakePanel';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
@@ -33,7 +33,7 @@ export default function CenterColumn({
       </div>
 
       {/* --- PROFILE SUMMARY CARD --- */}
-      <SbMbrProfilePanel member={member} />
+      <SbMbrProfileFakePanel member={member} />
 
       {/* --- ACTIVE SECTION CONTENT AREA --- */}
       <SbMbrBookEditor sectionTitle={activeSection} content={activeContent} readOnly={true} />
