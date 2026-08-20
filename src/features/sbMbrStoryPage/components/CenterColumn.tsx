@@ -1,8 +1,14 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
-import SbMbrProfileFakePanel from '@/src/components/SbMbrProfileFakePanel';
+import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
+import SbMbrStryFamily from '@/src/components/SbMbrStryFamily';
+import SbMbrStryResidence from '@/src/components/SbMbrStryResidence';
+import SbMbrStryActivity from '@/src/components/SbMbrStryActivity';
+import SbMbrStryAchievement from '@/src/components/SbMbrStryAchievement';
+import SbMbrStryEducation from '@/src/components/SbMbrStryEducation';
+import SbMbrStryEmployment from '@/src/components/SbMbrStryEmployment';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
@@ -33,10 +39,42 @@ export default function CenterColumn({
       </div>
 
       {/* --- PROFILE SUMMARY CARD --- */}
-      <SbMbrProfileFakePanel member={member} />
+      <SbMbrProfilePanel memberId={member.id} profile={member} isSandbox={false} />
 
-      {/* --- ACTIVE SECTION CONTENT AREA --- */}
-      <SbMbrBookEditor sectionTitle={activeSection} content={activeContent} readOnly={true} />
+      {/* --- FAMILY DIRECTORY PANEL --- */}
+      {activeSection === 'family' && (
+        <SbMbrStryFamily memberId={member.id} isSandbox={false} readOnly={true} />
+      )}
+
+      {/* --- RESIDENCES PANEL --- */}
+      {activeSection === 'residencies' && (
+        <SbMbrStryResidence memberId={member.id} isSandbox={false} readOnly={true} />
+      )}
+
+      {/* --- ACTIVITIES & HOBBIES PANEL --- */}
+      {activeSection === 'hobbies' && (
+        <SbMbrStryActivity memberId={member.id} isSandbox={false} readOnly={true} />
+      )}
+
+      {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
+      {activeSection === 'achievements' && (
+        <SbMbrStryAchievement memberId={member.id} isSandbox={false} readOnly={true} />
+      )}
+
+      {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
+      {activeSection === 'education' && (
+        <SbMbrStryEducation memberId={member.id} isSandbox={false} readOnly={true} />
+      )}
+
+      {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
+      {activeSection === 'employment' && (
+        <SbMbrStryEmployment memberId={member.id} isSandbox={false} readOnly={true} />
+      )}
+
+      {/* --- ACTIVE SECTION CONTENT AREA (for other custom text sections) --- */}
+      {!['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(activeSection) && (
+        <SbMbrBookEditor sectionTitle={activeSection} content={activeContent} readOnly={true} />
+      )}
 
       <AdminComponentTag name="CenterColumn" />
     </div>

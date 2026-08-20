@@ -9,12 +9,12 @@ import StoryMatePanel from './StoryMatePanel';
 import StoryEditorPanel from './StoryEditorPanel';
 import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
-import SbMbrStryFamily from './SbMbrStryFamily';
-import SbMbrStryResidence from './SbMbrStryResidence';
-import SbMbrStryActivity from './SbMbrStryActivity';
-import SbMbrStryAchievement from './SbMbrStryAchievement';
-import SbMbrStryEducation from './SbMbrStryEducation';
-import SbMbrStryEmployment from './SbMbrStryEmployment';
+import SbMbrStryFamily from '@/src/components/SbMbrStryFamily';
+import SbMbrStryResidence from '@/src/components/SbMbrStryResidence';
+import SbMbrStryActivity from '@/src/components/SbMbrStryActivity';
+import SbMbrStryAchievement from '@/src/components/SbMbrStryAchievement';
+import SbMbrStryEducation from '@/src/components/SbMbrStryEducation';
+import SbMbrStryEmployment from '@/src/components/SbMbrStryEmployment';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {

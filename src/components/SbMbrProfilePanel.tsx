@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save } from 'lucide-react';
 import { taskApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
+import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
 
@@ -45,9 +46,11 @@ export default function SbMbrProfilePanel({ isSandbox = false, profile: propProf
       const cachedPic = sessionStorage.getItem(`session_pic_${propProfile.mbrId}`);
       setProfile({
         ...propProfile,
-        mbrProfilePic: resolveMediaUrl(cachedPic || propProfile.mbrProfilePic)
+        mbrProfilePic: resolveMediaUrl(cachedPic || propProfile.mbrProfilePic || propProfile.avatarUrl)
       });
-      fetchGallery(propProfile.mbrId);
+      if (propProfile.mbrId) {
+        fetchGallery(propProfile.mbrId);
+      }
       setLoading(false);
     } else if (memberId) {
       loadProfileById(memberId);
@@ -59,6 +62,21 @@ export default function SbMbrProfilePanel({ isSandbox = false, profile: propProf
   const loadProfileById = async (targetId: string) => {
     setLoading(true);
     try {
+      const staticM = MEMBER_STORIES.find((m) => m.id === targetId);
+      if (staticM) {
+        setProfile({
+          mbrId: staticM.id,
+          mbrFirstName: staticM.name.split(' ')[0] || staticM.name,
+          mbrLastName: staticM.name.split(' ').slice(1).join(' ') || '',
+          mbrLivesCityState: staticM.location,
+          mbrFromCityState: staticM.location,
+          mbrIntroduction: staticM.excerpt,
+          mbrProfilePic: staticM.avatarUrl,
+          mbrCreatedAt: `${staticM.joinedDate}-01-01T00:00:00Z`
+        });
+        setLoading(false);
+        return;
+      }
       const mbr = await taskApi.getMemberById(targetId);
       if (mbr) {
         const cachedPic = sessionStorage.getItem(`session_pic_${mbr.mbrId}`);
@@ -70,6 +88,19 @@ export default function SbMbrProfilePanel({ isSandbox = false, profile: propProf
       }
     } catch (err) {
       console.error("Error loading member profile by ID:", err);
+      const staticM = MEMBER_STORIES.find((m) => m.id === targetId);
+      if (staticM) {
+        setProfile({
+          mbrId: staticM.id,
+          mbrFirstName: staticM.name.split(' ')[0] || staticM.name,
+          mbrLastName: staticM.name.split(' ').slice(1).join(' ') || '',
+          mbrLivesCityState: staticM.location,
+          mbrFromCityState: staticM.location,
+          mbrIntroduction: staticM.excerpt,
+          mbrProfilePic: staticM.avatarUrl,
+          mbrCreatedAt: `${staticM.joinedDate}-01-01T00:00:00Z`
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -270,10 +301,13 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
     );
   }
 
-  const fullName = `${profile.mbrFirstName} ${profile.mbrMiddleName ? profile.mbrMiddleName + ' ' : ''}${profile.mbrLastName}`;
+  const firstName = profile.mbrFirstName || (profile.name ? profile.name.split(' ')[0] : '');
+  const lastName = profile.mbrLastName || (profile.name ? profile.name.split(' ').slice(1).join(' ') : '');
+  const middleName = profile.mbrMiddleName ? profile.mbrMiddleName + ' ' : '';
+  const fullName = profile.name || `${firstName} ${middleName}${lastName}`.trim() || 'Storybook Member';
   
   // Initials for avatar fallback
-  const initials = (profile.mbrFirstName?.[0] || '') + (profile.mbrLastName?.[0] || '').toUpperCase();
+  const initials = (profile.mbrFirstName?.[0] || '') + (profile.mbrLastName?.[0] || '') || (profile.name ? profile.name.split(' ').map((w: string) => w[0]).join('').toUpperCase() : 'SB');
 
   // Calculate Age from mbrBirthDate
   const calculateAge = (birthDateStr?: string): number | null => {
@@ -294,11 +328,12 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
   };
 
   const age = calculateAge(profile.mbrBirthDate) ?? (isSandbox ? 64 : null);
-  const livesIn = profile.mbrLivesCityState || (isSandbox ? 'Portland, OR' : null);
+  const livesIn = profile.mbrLivesCityState || profile.location || (isSandbox ? 'Portland, OR' : null);
   const fromLocation = profile.mbrFromCityState || (isSandbox ? 'Coos Bay, OR' : null);
   const worksAt = profile.mbrWorkAt || (isSandbox ? 'Lincoln Elementary School' : null);
   const studiedAt = profile.mbrStudiedAt || (isSandbox ? 'University of Oregon' : null);
   const relationshipStatus = profile.mbrRelationshipStatusCd || (isSandbox ? 'Widowed' : null);
+  const introductionText = profile.mbrIntroduction || profile.excerpt;
 
   return (
     <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
@@ -408,7 +443,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
       </div>
 
       {/* Divider and Collapsible Accordion Introduction Section */}
-      {profile.mbrIntroduction && (
+      {introductionText && (
         <div className="pt-3 border-t border-[#EFECE7]">
           {/* Accordion Header Button */}
           <button
@@ -442,7 +477,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
               >
                 <div className="pl-3.5 border-l-2 border-slate-500 max-h-60 overflow-y-auto pr-1">
                   <p className="text-slate-600 font-serif leading-relaxed text-xs md:text-sm italic whitespace-pre-line">
-                    "{profile.mbrIntroduction}"
+                    "{introductionText}"
                   </p>
                 </div>
               </motion.div>

@@ -11,7 +11,9 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
 
 interface SbMbrStryAchievementProps {
-  isSandbox: boolean;
+  isSandbox?: boolean;
+  memberId?: string;
+  readOnly?: boolean;
 }
 
 interface Achievement {
@@ -39,7 +41,7 @@ const SANDBOX_ACHIEVEMENTS: Achievement[] = [
   }
 ];
 
-export default function SbMbrStryAchievement({ isSandbox }: SbMbrStryAchievementProps) {
+export default function SbMbrStryAchievement({ isSandbox = false, memberId, readOnly = false }: SbMbrStryAchievementProps) {
   // --- STATE VARIABLES ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -48,7 +50,7 @@ export default function SbMbrStryAchievement({ isSandbox }: SbMbrStryAchievement
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
 
-  const [mbrId, setMbrId] = useState<string>('9edb4311-a4bc-428a-8317-833f0f08fea1');
+  const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
   const [achievementList, setAchievementList] = useState<Achievement[]>([]);
   const [editList, setEditList] = useState<Achievement[]>([]);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
@@ -56,31 +58,33 @@ export default function SbMbrStryAchievement({ isSandbox }: SbMbrStryAchievement
   // --- INITIAL DATA FETCH ---
   useEffect(() => {
     loadData();
-  }, [isSandbox]);
+  }, [isSandbox, memberId]);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
       // 1. Fetch logged-in user and lookup member profile ID
-      let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      const userStr = sessionStorage.getItem('user');
-      if (userStr) {
-        const u = JSON.parse(userStr);
-        if (isSandbox) {
-          const savedMbr = sessionStorage.getItem('sandbox_mbr');
-          if (savedMbr) {
-            const mbr = JSON.parse(savedMbr);
-            currentMbrId = mbr.mbrId;
-          }
-        } else {
-          try {
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              currentMbrId = mbrProfile.mbrId;
+      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+      if (!memberId) {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          if (isSandbox) {
+            const savedMbr = sessionStorage.getItem('sandbox_mbr');
+            if (savedMbr) {
+              const mbr = JSON.parse(savedMbr);
+              currentMbrId = mbr.mbrId;
             }
-          } catch (e) {
-            console.warn("Could not retrieve member profile ID from DB, falling back to Eleanor Hartwell UUID:", e);
+          } else {
+            try {
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+              if (mbrProfile && mbrProfile.mbrId) {
+                currentMbrId = mbrProfile.mbrId;
+              }
+            } catch (e) {
+              console.warn("Could not retrieve member profile ID from DB, falling back to Eleanor Hartwell UUID:", e);
+            }
           }
         }
       }
@@ -102,8 +106,22 @@ export default function SbMbrStryAchievement({ isSandbox }: SbMbrStryAchievement
         const filtered = allAchievements.filter((a) => a.mbrId === currentMbrId);
         setAchievementList(filtered);
       } else {
-        const dbAchievements = await taskApi.getAchievements(currentMbrId);
-        setAchievementList(dbAchievements);
+        try {
+          const dbAchievements = await taskApi.getAchievements(currentMbrId);
+          if (dbAchievements && dbAchievements.length > 0) {
+            setAchievementList(dbAchievements);
+          } else if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
+            setAchievementList(SANDBOX_ACHIEVEMENTS);
+          } else {
+            setAchievementList([]);
+          }
+        } catch (err) {
+          if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
+            setAchievementList(SANDBOX_ACHIEVEMENTS);
+          } else {
+            throw err;
+          }
+        }
       }
     } catch (err: any) {
       setError(`Failed to load achievements: ${err.message}`);
@@ -261,28 +279,32 @@ export default function SbMbrStryAchievement({ isSandbox }: SbMbrStryAchievement
             >
               <Images className="w-3.5 h-3.5 text-amber-600" />
             </button>
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'achievements', topicTitle: 'Achievements', componentName: 'sbMbrStryAchievement' } }))}
-              className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title="Story Editor"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-            </button>
-            <button
-              onClick={() => alert('Opening Privacy settings for achievements...')}
-              className="p-2.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title="Privacy settings"
-            >
-              <ShieldAlert className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={handleStartEdit}
-              disabled={loading}
-              title="Edit Achievements"
-              className="p-2.5 text-slate-500 hover:text-slate-805 hover:bg-slate-100/80 rounded-xl border border-slate-200 transition-all duration-150 cursor-pointer disabled:opacity-50"
-            >
-              <Edit3 className="w-4.5 h-4.5" />
-            </button>
+            {!readOnly && (
+              <>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'achievements', topicTitle: 'Achievements', componentName: 'sbMbrStryAchievement' } }))}
+                  className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                  title="Story Editor"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+                </button>
+                <button
+                  onClick={() => alert('Opening Privacy settings for achievements...')}
+                  className="p-2.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                  title="Privacy settings"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={handleStartEdit}
+                  disabled={loading}
+                  title="Edit Achievements"
+                  className="p-2.5 text-slate-500 hover:text-slate-805 hover:bg-slate-100/80 rounded-xl border border-slate-200 transition-all duration-150 cursor-pointer disabled:opacity-50"
+                >
+                  <Edit3 className="w-4.5 h-4.5" />
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -331,12 +353,14 @@ export default function SbMbrStryAchievement({ isSandbox }: SbMbrStryAchievement
           <div className="bg-slate-50/50 border border-slate-100 border-dashed py-10 px-4 rounded-2xl text-center">
             <Trophy className="w-8 h-8 text-slate-300 mx-auto mb-2" />
             <p className="text-xs font-serif text-slate-500 italic">No achievements registered.</p>
-            <button
-              onClick={handleStartEdit}
-              className="mt-3 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
-            >
-              <Plus className="w-3 h-3" /> Add Achievements
-            </button>
+            {!readOnly && (
+              <button
+                onClick={handleStartEdit}
+                className="mt-3 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-blue-600 hover:text-blue-700 cursor-pointer"
+              >
+                <Plus className="w-3 h-3" /> Add Achievements
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

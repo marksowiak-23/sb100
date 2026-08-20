@@ -151,7 +151,6 @@ const RELATIONSHIP_ORDER: Record<string, number> = {
   'Spouse': 17,
   'Partner': 18,
   'Step Son': 19,
-  'Step Daughter': 20
 };
 
 const getRelationshipRank = (cd?: string): number => {
@@ -159,27 +158,26 @@ const getRelationshipRank = (cd?: string): number => {
   return RELATIONSHIP_ORDER[cd] ?? 50;
 };
 
-export const sortFamilyList = (list: FamilyMember[]): FamilyMember[] => {
+const sortFamilyList = (list: FamilyMember[]): FamilyMember[] => {
   return [...list].sort((a, b) => {
-    const rankA = getRelationshipRank(a.mbrFamilyRelationshipCd);
-    const rankB = getRelationshipRank(b.mbrFamilyRelationshipCd);
-    if (rankA !== rankB) {
-      return rankA - rankB;
-    }
+    const relA = a.mbrFamilyRelationshipCd.toLowerCase();
+    const relB = b.mbrFamilyRelationshipCd.toLowerCase();
+    if (relA === 'spouse' && relB !== 'spouse') return -1;
+    if (relB === 'spouse' && relA !== 'spouse') return 1;
     const nameA = `${a.mbrFamilyFirstNm} ${a.mbrFamilyLastNm}`.toLowerCase();
     const nameB = `${b.mbrFamilyFirstNm} ${b.mbrFamilyLastNm}`.toLowerCase();
     return nameA.localeCompare(nameB);
   });
 };
 
-export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
+export default function SbMbrStryFamily({ isSandbox = false, memberId, readOnly = false }: SbMbrStryFamilyProps) {
   // --- STATE VARIABLES ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   
-  const [mbrId, setMbrId] = useState<string>('9edb4311-a4bc-428a-8317-833f0f08fea1');
+  const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
   const [familyList, setFamilyList] = useState<FamilyMember[]>([]);
   const [relationshipCodes, setRelationshipCodes] = useState<any[]>(DEFAULT_RELATIONSHIPS);
 
@@ -199,6 +197,7 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
 
   // --- FAMILY PHOTO GALLERY STATE ---
   const [showFamilyGalleryModal, setShowFamilyGalleryModal] = useState(false);
+  const [selectedFamilyMemberForGallery, setSelectedFamilyMemberForGallery] = useState<FamilyMember | null>(null);
   const [activeGallerySubordinateId, setActiveGallerySubordinateId] = useState<string | null>(null);
   const [activeGalleryTitle, setActiveGalleryTitle] = useState<string>('Family');
   const [familyGalleryItems, setFamilyGalleryItems] = useState<MbrMedia[]>([]);
@@ -216,7 +215,7 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
   // --- INITIAL DATA FETCH ---
   useEffect(() => {
     loadData();
-  }, [isSandbox]);
+  }, [isSandbox, memberId]);
 
   const loadData = async () => {
     setLoading(true);
@@ -247,19 +246,23 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
         setRelationshipCodes(DEFAULT_RELATIONSHIPS);
       }
 
-      let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      const userStr = sessionStorage.getItem('user');
-      if (userStr && !isSandbox) {
-        try {
-          const u = JSON.parse(userStr);
-          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-          if (mbrProfile && mbrProfile.mbrId) {
-            currentMbrId = mbrProfile.mbrId;
-            setMbrId(currentMbrId);
+      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+      if (!memberId) {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr && !isSandbox) {
+          try {
+            const u = JSON.parse(userStr);
+            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+            if (mbrProfile && mbrProfile.mbrId) {
+              currentMbrId = mbrProfile.mbrId;
+              setMbrId(currentMbrId);
+            }
+          } catch (e) {
+            console.warn("Could not retrieve member profile ID from DB, falling back to default Eleanor Hartwell UUID:", e);
           }
-        } catch (e) {
-          console.warn("Could not retrieve member profile ID from DB, falling back to default Eleanor Hartwell UUID:", e);
         }
+      } else {
+        setMbrId(memberId);
       }
 
       if (isSandbox) {
@@ -272,8 +275,22 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
           sessionStorage.setItem('sandbox_family', JSON.stringify(sorted));
         }
       } else {
-        const dbFamily = await taskApi.getFamilyMembers(currentMbrId);
-        setFamilyList(sortFamilyList(dbFamily));
+        try {
+          const dbFamily = await taskApi.getFamilyMembers(currentMbrId);
+          if (dbFamily && dbFamily.length > 0) {
+            setFamilyList(sortFamilyList(dbFamily));
+          } else if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
+            setFamilyList(sortFamilyList(SANDBOX_FAMILY));
+          } else {
+            setFamilyList([]);
+          }
+        } catch (err) {
+          if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
+            setFamilyList(sortFamilyList(SANDBOX_FAMILY));
+          } else {
+            throw err;
+          }
+        }
       }
     } catch (err: any) {
       setError(`Failed to load family directory: ${err.message}`);
@@ -622,13 +639,15 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
 
         {/* Action Header Buttons */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleOpenAddModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 border border-blue-600 font-sans"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Member</span>
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleOpenAddModal}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 border border-blue-600 font-sans"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Member</span>
+            </button>
+          )}
 
           {/* Photo Gallery Icon Button */}
           <button
@@ -639,20 +658,24 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
             <Images className="w-4 h-4 text-blue-600" />
           </button>
 
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' } }))}
-            className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-            title="Story Editor"
-          >
-            <BookOpen className="w-4 h-4 text-blue-500" />
-          </button>
-          <button
-            onClick={() => alert('Opening Privacy settings for family members...')}
-            className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-            title="Privacy settings"
-          >
-            <ShieldAlert className="w-4 h-4" />
-          </button>
+          {!readOnly && (
+            <>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' } }))}
+                className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                title="Story Editor"
+              >
+                <BookOpen className="w-4 h-4 text-blue-500" />
+              </button>
+              <button
+                onClick={() => alert('Opening Privacy settings for family members...')}
+                className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                title="Privacy settings"
+              >
+                <ShieldAlert className="w-4 h-4" />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -698,12 +721,14 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
         <div className="bg-slate-50/50 border border-slate-100 border-dashed py-10 px-4 rounded-2xl text-center">
           <Users className="w-8 h-8 text-slate-300 mx-auto mb-2" />
           <p className="text-xs font-serif text-slate-500 italic">No family members registered.</p>
-          <button
-            onClick={handleOpenAddModal}
-            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm transition-all"
-          >
-            <Plus className="w-3.5 h-3.5" /> Add Family Member
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleOpenAddModal}
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" /> Add Family Member
+            </button>
+          )}
         </div>
       ) : (
         /* FAMILY CARD GRID (Max 2 cards per row, 3 rows visible before scrolling) */
@@ -748,35 +773,39 @@ export default function SbMbrStryFamily({ isSandbox }: SbMbrStryFamilyProps) {
                   >
                     <Images className="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                      detail: {
-                        topicId: 'family',
-                        topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
-                        componentName: 'sbMbrStryFamilyMember',
-                        subordinateId: member.mbrFamilyId,
-                        subordinateName: `${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`
-                      }
-                    }))}
-                    title={`Story Editor for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
-                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleOpenEditModal(member)}
-                    title="Edit Family Member"
-                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => promptDeleteMember(member)}
-                    title="Delete Family Member"
-                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {!readOnly && (
+                    <>
+                      <button
+                        onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
+                          detail: {
+                            topicId: 'family',
+                            topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
+                            componentName: 'sbMbrStryFamilyMember',
+                            subordinateId: member.mbrFamilyId,
+                            subordinateName: `${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`
+                          }
+                        }))}
+                        title={`Story Editor for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
+                        className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <BookOpen className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleOpenEditModal(member)}
+                        title="Edit Family Member"
+                        className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => promptDeleteMember(member)}
+                        title="Delete Family Member"
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
 
               </div>

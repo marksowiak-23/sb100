@@ -11,7 +11,9 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
 
 interface SbMbrStryEmploymentProps {
-  isSandbox: boolean;
+  isSandbox?: boolean;
+  memberId?: string;
+  readOnly?: boolean;
 }
 
 interface Employment {
@@ -62,7 +64,7 @@ const SANDBOX_EMPLOYMENT: Employment[] = [
   }
 ];
 
-export default function SbMbrStryEmployment({ isSandbox }: SbMbrStryEmploymentProps) {
+export default function SbMbrStryEmployment({ isSandbox = false, memberId, readOnly = false }: SbMbrStryEmploymentProps) {
   // --- STATE ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,7 +73,7 @@ export default function SbMbrStryEmployment({ isSandbox }: SbMbrStryEmploymentPr
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [showGalleryModal, setShowGalleryModal] = useState(false);
 
-  const [mbrId, setMbrId] = useState<string>('9edb4311-a4bc-428a-8317-833f0f08fea1');
+  const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
   const [employmentList, setEmploymentList] = useState<Employment[]>([]);
   const [editList, setEditList] = useState<Employment[]>([]);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
@@ -79,31 +81,33 @@ export default function SbMbrStryEmployment({ isSandbox }: SbMbrStryEmploymentPr
   // --- FETCH DATA ---
   useEffect(() => {
     loadData();
-  }, [isSandbox]);
+  }, [isSandbox, memberId]);
 
   const loadData = async () => {
     setLoading(true);
     setError(null);
     try {
       // 1. Fetch parent member profile ID
-      let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      const userStr = sessionStorage.getItem('user');
-      if (userStr) {
-        const u = JSON.parse(userStr);
-        if (isSandbox) {
-          const savedMbr = sessionStorage.getItem('sandbox_mbr');
-          if (savedMbr) {
-            const mbr = JSON.parse(savedMbr);
-            currentMbrId = mbr.mbrId;
-          }
-        } else {
-          try {
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              currentMbrId = mbrProfile.mbrId;
+      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+      if (!memberId) {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          if (isSandbox) {
+            const savedMbr = sessionStorage.getItem('sandbox_mbr');
+            if (savedMbr) {
+              const mbr = JSON.parse(savedMbr);
+              currentMbrId = mbr.mbrId;
             }
-          } catch (e) {
-            console.warn("Could not retrieve member profile ID, falling back to Eleanor Hartwell UUID:", e);
+          } else {
+            try {
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+              if (mbrProfile && mbrProfile.mbrId) {
+                currentMbrId = mbrProfile.mbrId;
+              }
+            } catch (e) {
+              console.warn("Could not retrieve member profile ID, falling back to Eleanor Hartwell UUID:", e);
+            }
           }
         }
       }
@@ -125,8 +129,22 @@ export default function SbMbrStryEmployment({ isSandbox }: SbMbrStryEmploymentPr
         const filtered = allEmployment.filter(e => e.mbrId === currentMbrId);
         setEmploymentList(filtered);
       } else {
-        const dbEmployment = await taskApi.getEmployments(currentMbrId);
-        setEmploymentList(dbEmployment);
+        try {
+          const dbEmployment = await taskApi.getEmployments(currentMbrId);
+          if (dbEmployment && dbEmployment.length > 0) {
+            setEmploymentList(dbEmployment);
+          } else if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
+            setEmploymentList(SANDBOX_EMPLOYMENT);
+          } else {
+            setEmploymentList([]);
+          }
+        } catch (err) {
+          if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
+            setEmploymentList(SANDBOX_EMPLOYMENT);
+          } else {
+            throw err;
+          }
+        }
       }
     } catch (err: any) {
       setError(`Failed to load employment history: ${err.message}`);
@@ -311,28 +329,32 @@ export default function SbMbrStryEmployment({ isSandbox }: SbMbrStryEmploymentPr
             >
               <Images className="w-3.5 h-3.5 text-emerald-600" />
             </button>
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'employment', topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' } }))}
-              className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title="Story Editor"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-            </button>
-            <button
-              onClick={() => alert('Opening Privacy settings for employment...')}
-              className="p-2.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title="Privacy settings"
-            >
-              <ShieldAlert className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={handleStartEdit}
-              disabled={loading}
-              title="Edit Employment"
-              className="p-2.5 text-slate-500 hover:text-slate-805 hover:bg-slate-100/80 rounded-xl border border-slate-200 transition-all duration-150 cursor-pointer disabled:opacity-50"
-            >
-              <Edit3 className="w-4.5 h-4.5" />
-            </button>
+            {!readOnly && (
+              <>
+                <button
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'employment', topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' } }))}
+                  className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                  title="Story Editor"
+                >
+                  <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+                </button>
+                <button
+                  onClick={() => alert('Opening Privacy settings for employment...')}
+                  className="p-2.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                  title="Privacy settings"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={handleStartEdit}
+                  disabled={loading}
+                  title="Edit Employment"
+                  className="p-2.5 text-slate-500 hover:text-slate-805 hover:bg-slate-100/80 rounded-xl border border-slate-200 transition-all duration-150 cursor-pointer disabled:opacity-50"
+                >
+                  <Edit3 className="w-4.5 h-4.5" />
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -382,12 +404,14 @@ export default function SbMbrStryEmployment({ isSandbox }: SbMbrStryEmploymentPr
             <div className="bg-slate-50/50 border border-slate-100 border-dashed py-10 px-4 rounded-2xl text-center">
               <Briefcase className="w-8 h-8 text-slate-300 mx-auto mb-2" />
               <p className="text-xs font-serif text-slate-500 italic">No employment records registered.</p>
-              <button
-                onClick={handleStartEdit}
-                className="mt-3 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer"
-              >
-                <Plus className="w-3 h-3" /> Add Employment
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={handleStartEdit}
+                  className="mt-3 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" /> Add Employment
+                </button>
+              )}
             </div>
           ) : (
             <div className="relative border-l-2 border-slate-100 ml-3 pl-6 space-y-6 py-2">
