@@ -158,5 +158,23 @@ export const userManager = {
       }
       return { success: false, error: err.message || 'Logon Failed' };
     }
+  },
+
+  /**
+   * Logs out the current user by clearing out user session data.
+   */
+  userLogout(): void {
+    try {
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('sandbox_mbr');
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith('session_pic_')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+    } catch (e) {
+      console.warn('Error clearing session data on logout:', e);
+    }
   }
 };
+

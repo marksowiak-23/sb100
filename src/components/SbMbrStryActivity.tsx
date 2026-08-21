@@ -532,6 +532,7 @@ export default function SbMbrStryActivity({ isSandbox = false, memberId, readOnl
         categoryTitle="Activity"
         isSandbox={isSandbox}
         maxPhotos={40}
+        readOnly={readOnly}
       />
       <AdminComponentTag name="SbMbrStryActivity" />
     </div>

@@ -11,7 +11,9 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
 
 interface SbMbrStryFamilyProps {
-  isSandbox: boolean;
+  isSandbox?: boolean;
+  memberId?: string;
+  readOnly?: boolean;
 }
 
 interface FamilyMember {
@@ -1010,6 +1012,7 @@ export default function SbMbrStryFamily({ isSandbox = false, memberId, readOnly 
         subordinateId={activeGallerySubordinateId}
         isSandbox={isSandbox}
         maxPhotos={activeGallerySubordinateId ? 12 : 40}
+        readOnly={readOnly}
       />
 
       <AdminComponentTag name="SbMbrStryFamily" />

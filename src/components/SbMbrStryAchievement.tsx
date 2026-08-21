@@ -508,6 +508,7 @@ export default function SbMbrStryAchievement({ isSandbox = false, memberId, read
         categoryTitle="Achievements"
         isSandbox={isSandbox}
         maxPhotos={40}
+        readOnly={readOnly}
       />
       <AdminComponentTag name="SbMbrStryAchievement" />
     </div>

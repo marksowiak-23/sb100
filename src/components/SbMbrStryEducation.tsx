@@ -587,6 +587,7 @@ export default function SbMbrStryEducation({ isSandbox = false, memberId, readOn
         categoryTitle="Education"
         isSandbox={isSandbox}
         maxPhotos={40}
+        readOnly={readOnly}
       />
       <AdminComponentTag name="SbMbrStryEducation" />
     </div>

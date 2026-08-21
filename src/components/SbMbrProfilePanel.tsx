@@ -11,10 +11,11 @@ interface SbMbrProfilePanelProps {
   isSandbox?: boolean;
   profile?: any;
   memberId?: string;
+  readOnly?: boolean;
   onClickReadStory?: (memberId: string) => void;
 }
 
-export default function SbMbrProfilePanel({ isSandbox = false, profile: propProfile, memberId, onClickReadStory }: SbMbrProfilePanelProps) {
+export default function SbMbrProfilePanel({ isSandbox = false, profile: propProfile, memberId, readOnly = false, onClickReadStory }: SbMbrProfilePanelProps) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(propProfile || null);
   const [galleryItems, setGalleryItems] = useState<MbrMedia[]>([]);
@@ -496,6 +497,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
           categoryTitle="Profile"
           isSandbox={isSandbox}
           maxPhotos={20}
+          readOnly={readOnly}
         />
       )}
 

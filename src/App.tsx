@@ -46,6 +46,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('sbPublicPage');
   const [previousTab, setPreviousTab] = useState<TabType>('sbPublicPage');
   const [selectedMemberId, setSelectedMemberId] = useState<string>('m1');
+  const [targetStoryMemberId, setTargetStoryMemberId] = useState<string | null>(null);
   const [logonType, setLogonType] = useState<'Google' | 'Apple'>('Google');
   
   // Tracks whether the health check network request is currently active.
@@ -74,6 +75,9 @@ export default function App() {
   const handleTabChange = (newTab: TabType) => {
     if (newTab !== activeTab && activeTab !== 'mbrProfile') {
       setPreviousTab(activeTab);
+    }
+    if (newTab !== 'sbMbrRegister' && newTab !== 'sbMbrStoryPage' && newTab !== 'sbMbrLogon') {
+      setTargetStoryMemberId(null);
     }
     if (activeTab === 'mbrProfile' && isProfileDirty && newTab !== 'mbrProfile') {
       setPendingTab(newTab);
@@ -127,7 +131,13 @@ export default function App() {
   const handleReadStory = (memberId: string) => {
     setPreviousTab(activeTab);
     setSelectedMemberId(memberId);
-    setActiveTab('sbMbrStoryPage');
+    if (activeTab === 'sbPublicPage') {
+      setTargetStoryMemberId(memberId);
+      setActiveTab('sbMbrRegister');
+    } else {
+      setTargetStoryMemberId(null);
+      setActiveTab('sbMbrStoryPage');
+    }
   };
 
   useEffect(() => {
@@ -250,9 +260,13 @@ export default function App() {
             className="w-full"
           >
             <SbPublicPageFeature
-              setActiveTab={setActiveTab}
+              setActiveTab={(tab) => {
+                setTargetStoryMemberId(null);
+                handleTabChange(tab);
+              }}
               onClickReadStory={handleReadStory}
               onSelectLogonType={(type) => {
+                setTargetStoryMemberId(null);
                 setLogonType(type);
                 setActiveTab('sbMbrLogon');
               }}
@@ -292,7 +306,7 @@ export default function App() {
           >
             <SbMbrStoryPageFeature
               memberId={selectedMemberId}
-              onClickBack={() => setActiveTab(previousTab)}
+              onClickBack={() => setActiveTab('sbMbrHomePage')}
             />
           </motion.div>
         )}
@@ -325,6 +339,7 @@ export default function App() {
           >
             <SbMbrLogonFeature
               setActiveTab={setActiveTab}
+              targetStoryMemberId={targetStoryMemberId}
             />
           </motion.div>
         )}
@@ -340,6 +355,7 @@ export default function App() {
           >
             <SbMbrRegisterFeature
               setActiveTab={setActiveTab}
+              targetStoryMemberId={targetStoryMemberId}
             />
           </motion.div>
         )}

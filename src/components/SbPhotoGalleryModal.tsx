@@ -13,6 +13,7 @@ export interface SbPhotoGalleryModalProps {
   isSandbox: boolean;
   maxPhotos?: number;
   subordinateId?: string | null;
+  readOnly?: boolean;
 }
 
 export default function SbPhotoGalleryModal({
@@ -23,7 +24,8 @@ export default function SbPhotoGalleryModal({
   categoryTitle,
   isSandbox,
   maxPhotos = 40,
-  subordinateId
+  subordinateId,
+  readOnly = false
 }: SbPhotoGalleryModalProps) {
   const [loading, setLoading] = useState(false);
   const [mediaItems, setMediaItems] = useState<MbrMedia[]>([]);
@@ -32,11 +34,69 @@ export default function SbPhotoGalleryModal({
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [canUpload, setCanUpload] = useState(false);
 
   // Photo description editing state
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editDescriptionInput, setEditDescriptionInput] = useState('');
   const [savingDescription, setSavingDescription] = useState(false);
+
+  // Check ownership / author authorization
+  useEffect(() => {
+    let isMounted = true;
+    const checkCanUpload = async () => {
+      if (readOnly) {
+        if (isMounted) setCanUpload(false);
+        return;
+      }
+
+      if (isSandbox) {
+        const savedMbr = sessionStorage.getItem('sandbox_mbr');
+        if (savedMbr) {
+          try {
+            const mbr = JSON.parse(savedMbr);
+            if (isMounted) {
+              setCanUpload(!mbrId || mbr.mbrId === mbrId || mbrId === 'sandbox-id-eleanor' || mbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1');
+            }
+            return;
+          } catch {
+            if (isMounted) setCanUpload(true);
+            return;
+          }
+        }
+        if (isMounted) setCanUpload(true);
+        return;
+      }
+
+      const userStr = sessionStorage.getItem('user');
+      if (!userStr) {
+        if (isMounted) setCanUpload(false);
+        return;
+      }
+
+      try {
+        const u = JSON.parse(userStr);
+        const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+        if (isMounted) {
+          if (mbrProfile && mbrProfile.mbrId && mbrProfile.mbrId === mbrId) {
+            setCanUpload(true);
+          } else {
+            setCanUpload(false);
+          }
+        }
+      } catch (e) {
+        console.warn("Could not verify member profile ownership for photo upload:", e);
+        if (isMounted) setCanUpload(false);
+      }
+    };
+
+    if (isOpen) {
+      checkCanUpload();
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, mbrId, isSandbox, readOnly]);
 
   // Fetch photos for categoryCd when modal opens
   useEffect(() => {
@@ -274,41 +334,45 @@ export default function SbPhotoGalleryModal({
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Upload Photo Button with Limit Indicator */}
-              <label
-                htmlFor={`gallery-upload-${categoryCd}`}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-white rounded-xl text-xs font-bold font-sans transition-all ${
-                  mediaItems.length >= maxPhotos
-                    ? 'bg-slate-700 text-slate-400 border border-slate-600 cursor-not-allowed opacity-60'
-                    : uploading
-                      ? 'bg-blue-600 opacity-50 pointer-events-none'
-                      : 'bg-blue-600 hover:bg-blue-700 cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
-                }`}
-                title={mediaItems.length >= maxPhotos ? `Maximum limit of ${maxPhotos} photos reached` : `Upload ${categoryTitle} Photo`}
-              >
-                {uploading ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
-                    <span>Uploading...</span>
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload Photo ({mediaItems.length}/{maxPhotos})</span>
-                  </>
-                )}
-              </label>
-              <input
-                id={`gallery-upload-${categoryCd}`}
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
-                onChange={handleUploadPhoto}
-                disabled={uploading || mediaItems.length >= maxPhotos}
-                className="hidden"
-              />
+              {/* Upload Photo Button with Limit Indicator - only if canUpload */}
+              {canUpload && (
+                <>
+                  <label
+                    htmlFor={`gallery-upload-${categoryCd}`}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-white rounded-xl text-xs font-bold font-sans transition-all ${
+                      mediaItems.length >= maxPhotos
+                        ? 'bg-slate-700 text-slate-400 border border-slate-600 cursor-not-allowed opacity-60'
+                        : uploading
+                          ? 'bg-blue-600 opacity-50 pointer-events-none'
+                          : 'bg-blue-600 hover:bg-blue-700 cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+                    }`}
+                    title={mediaItems.length >= maxPhotos ? `Maximum limit of ${maxPhotos} photos reached` : `Upload ${categoryTitle} Photo`}
+                  >
+                    {uploading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Photo ({mediaItems.length}/{maxPhotos})</span>
+                      </>
+                    )}
+                  </label>
+                  <input
+                    id={`gallery-upload-${categoryCd}`}
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                    onChange={handleUploadPhoto}
+                    disabled={uploading || mediaItems.length >= maxPhotos}
+                    className="hidden"
+                  />
+                </>
+              )}
 
-              {/* Delete Current Photo Button */}
-              {mediaItems.length > 0 && currentPhoto && (
+              {/* Delete Current Photo Button - only if canUpload */}
+              {canUpload && mediaItems.length > 0 && currentPhoto && (
                 <button
                   type="button"
                   onClick={() => handleDeletePhoto(currentPhoto.mbrMediaId)}
@@ -389,7 +453,7 @@ export default function SbPhotoGalleryModal({
                   {/* Photo Description Editable Control */}
                   {currentPhoto && (
                     <div className="mt-3 max-w-xl w-full px-4 select-text">
-                      {isEditingDescription ? (
+                      {canUpload && isEditingDescription ? (
                         <div className="flex items-center gap-2 bg-slate-900/90 p-1.5 rounded-2xl border border-blue-500/60 shadow-lg">
                           <input
                             type="text"
@@ -420,7 +484,7 @@ export default function SbPhotoGalleryModal({
                             <X className="w-4 h-4" />
                           </button>
                         </div>
-                      ) : (
+                      ) : canUpload ? (
                         <div
                           onClick={() => {
                             setEditDescriptionInput(currentPhoto.mbrMediaDescription || '');
@@ -436,7 +500,13 @@ export default function SbPhotoGalleryModal({
                           </span>
                           <Edit3 className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-400 shrink-0 transition-colors" />
                         </div>
-                      )}
+                      ) : currentPhoto.mbrMediaDescription ? (
+                        <div className="flex items-center justify-center bg-slate-900/70 text-slate-300 px-4 py-1.5 rounded-full border border-slate-800 mx-auto text-center">
+                          <span className="text-xs md:text-sm font-serif truncate max-w-md">
+                            {currentPhoto.mbrMediaDescription}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                   )}
                 </motion.div>
@@ -460,16 +530,30 @@ export default function SbPhotoGalleryModal({
                 <div className="space-y-1.5">
                   <h4 className="font-serif text-lg font-bold text-slate-100">No {categoryTitle} Photos Found</h4>
                   <p className="text-xs font-serif text-slate-400 leading-relaxed">
-                    No photos with the category <span className="text-blue-400 font-semibold">"{categoryCd}"</span> were found in your gallery. Click the button below to upload {categoryTitle.toLowerCase()} photos.
+                    {canUpload
+                      ? `No photos with the category "${categoryCd}" were found in your gallery. Click the button below to upload ${categoryTitle.toLowerCase()} photos.`
+                      : `No photos are currently available for this section.`}
                   </p>
                 </div>
-                <label
-                  htmlFor={`gallery-upload-${categoryCd}`}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold font-sans cursor-pointer shadow-md transition-all hover:scale-105 active:scale-95"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Add {categoryTitle} Photos</span>
-                </label>
+                {canUpload && (
+                  <>
+                    <label
+                      htmlFor={`gallery-upload-${categoryCd}`}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold font-sans cursor-pointer shadow-md transition-all hover:scale-105 active:scale-95"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Add {categoryTitle} Photos</span>
+                    </label>
+                    <input
+                      id={`gallery-upload-${categoryCd}`}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                      onChange={handleUploadPhoto}
+                      disabled={uploading}
+                      className="hidden"
+                    />
+                  </>
+                )}
               </div>
             )}
           </div>

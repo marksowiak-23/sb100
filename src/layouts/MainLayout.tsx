@@ -6,6 +6,7 @@
 import React from 'react';
 import { User, ChevronDown, ChevronUp, BookOpen, Shield } from 'lucide-react';
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
+import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 // Restrict values for the tab parameter.
@@ -261,6 +262,8 @@ export default function MainLayout({
                     {/* Logout Action Option */}
                     <div
                       onClick={() => {
+                        userManager.userLogout();
+                        setProfilePic(null);
                         setActiveTab('sbPublicPage');
                         setDropdownOpen(false);
                       }}

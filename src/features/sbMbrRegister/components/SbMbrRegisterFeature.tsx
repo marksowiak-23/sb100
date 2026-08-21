@@ -11,9 +11,10 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrRegisterFeatureProps {
   setActiveTab: (tab: any) => void;
+  targetStoryMemberId?: string | null;
 }
 
-export default function SbMbrRegisterFeature({ setActiveTab }: SbMbrRegisterFeatureProps) {
+export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId }: SbMbrRegisterFeatureProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -51,7 +52,7 @@ export default function SbMbrRegisterFeature({ setActiveTab }: SbMbrRegisterFeat
       setErrorMessage('Please enter a password.');
       return;
     }
-    if (formData.password.length < 6) {
+    if (!formData.password.length || formData.password.length < 6) {
       setErrorMessage('Password must be at least 6 characters in length.');
       return;
     }
@@ -80,9 +81,13 @@ export default function SbMbrRegisterFeature({ setActiveTab }: SbMbrRegisterFeat
         sessionStorage.setItem('user', JSON.stringify(result.user));
         setIsSuccess(true);
 
-        // Transition gracefully to Member Home Page after short confirmation
+        // Transition gracefully to target member story page if requested, otherwise Member Home Page
         setTimeout(() => {
-          setActiveTab('sbMbrHomePage');
+          if (targetStoryMemberId) {
+            setActiveTab('sbMbrStoryPage');
+          } else {
+            setActiveTab('sbMbrHomePage');
+          }
         }, 1200);
       } else {
         setErrorMessage(result.error || 'Registration failed. Please try again.');
@@ -125,7 +130,7 @@ export default function SbMbrRegisterFeature({ setActiveTab }: SbMbrRegisterFeat
             Begin Your Story
           </h2>
           <p className="text-xs text-slate-450 font-serif">
-            Create your Storybook account and establish your author legacy
+            Share your journey. Discover theirs.
           </p>
         </div>
 

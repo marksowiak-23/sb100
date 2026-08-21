@@ -677,6 +677,7 @@ export default function SbMbrStryResidence({ isSandbox = false, memberId, readOn
         categoryTitle="Residencies"
         isSandbox={isSandbox}
         maxPhotos={40}
+        readOnly={readOnly}
       />
       <AdminComponentTag name="SbMbrStryResidence" />
     </div>

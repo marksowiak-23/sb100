@@ -12,6 +12,7 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 interface SbMbrLogonProps {
   logonType?: 'Google' | 'Apple';
   setActiveTab: (tab: any) => void;
+  targetStoryMemberId?: string | null;
 }
 
 /**
@@ -20,7 +21,7 @@ interface SbMbrLogonProps {
  * validates against backend, persists user record in session storage,
  * and navigates to the home page.
  */
-export default function SbMbrLogonFeature({ logonType, setActiveTab }: SbMbrLogonProps) {
+export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStoryMemberId }: SbMbrLogonProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -49,7 +50,11 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab }: SbMbrLogo
 
           await new Promise((resolve) => setTimeout(resolve, 800));
           if (!active) return;
-          setActiveTab('sbMbrHomePage');
+          if (targetStoryMemberId) {
+            setActiveTab('sbMbrStoryPage');
+          } else {
+            setActiveTab('sbMbrHomePage');
+          }
         } else {
           setStatusState('failed');
           setErrorMessage(result.error || 'Social authentication failed');
@@ -66,7 +71,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab }: SbMbrLogo
     return () => {
       active = false;
     };
-  }, [logonType, setActiveTab]);
+  }, [logonType, setActiveTab, targetStoryMemberId]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +96,11 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab }: SbMbrLogo
         setStatusState('success');
 
         setTimeout(() => {
-          setActiveTab('sbMbrHomePage');
+          if (targetStoryMemberId) {
+            setActiveTab('sbMbrStoryPage');
+          } else {
+            setActiveTab('sbMbrHomePage');
+          }
         }, 900);
       } else {
         setErrorMessage(result.error || 'Invalid email or password.');

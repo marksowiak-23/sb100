@@ -628,6 +628,7 @@ export default function SbMbrStryEmployment({ isSandbox = false, memberId, readO
         categoryTitle="Employment"
         isSandbox={isSandbox}
         maxPhotos={40}
+        readOnly={readOnly}
       />
       <AdminComponentTag name="SbMbrStryEmployment" />
     </div>

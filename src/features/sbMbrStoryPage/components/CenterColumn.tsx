@@ -39,7 +39,7 @@ export default function CenterColumn({
       </div>
 
       {/* --- PROFILE SUMMARY CARD --- */}
-      <SbMbrProfilePanel memberId={member.id} profile={member} isSandbox={false} />
+      <SbMbrProfilePanel memberId={member.id} profile={member} isSandbox={false} readOnly={true} />
 
       {/* --- FAMILY DIRECTORY PANEL --- */}
       {activeSection === 'family' && (
