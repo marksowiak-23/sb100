@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Lock } from 'lucide-react';
 import { MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
 import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
 import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
@@ -15,6 +15,7 @@ interface CenterColumnProps {
   member: MemberStory;
   activeSection: string;
   activeContent: string[];
+  lockedTopicIds?: string[];
   onClickBack: () => void;
 }
 
@@ -22,8 +23,11 @@ export default function CenterColumn({
   member,
   activeSection,
   activeContent,
+  lockedTopicIds = [],
   onClickBack
 }: CenterColumnProps) {
+  const isSectionLocked = lockedTopicIds.some(id => id.toLowerCase() === activeSection.toLowerCase());
+
   return (
     <div className="space-y-6 flex flex-col relative">
       
@@ -41,39 +45,56 @@ export default function CenterColumn({
       {/* --- PROFILE SUMMARY CARD --- */}
       <SbMbrProfilePanel memberId={member.id} profile={member} isSandbox={false} readOnly={true} />
 
-      {/* --- FAMILY DIRECTORY PANEL --- */}
-      {activeSection === 'family' && (
-        <SbMbrStryFamily memberId={member.id} isSandbox={false} readOnly={true} />
-      )}
+      {/* --- LOCKED SECTION RESTRICTION NOTICE --- */}
+      {isSectionLocked ? (
+        <div className="p-8 rounded-3xl bg-[#FDFCFB] border border-[#EFECE7] shadow-sm text-center flex flex-col items-center justify-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+            <Lock className="w-6 h-6" />
+          </div>
+          <h3 className="font-serif font-bold text-base text-slate-800">
+            Access Restricted
+          </h3>
+          <p className="text-xs text-slate-500 font-serif max-w-md leading-relaxed">
+            The author has set the <strong>{activeSection}</strong> chapter to private and has not granted viewing privileges for your member connection group.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* --- FAMILY DIRECTORY PANEL --- */}
+          {(activeSection.toLowerCase() === 'family') && (
+            <SbMbrStryFamily memberId={member.id} isSandbox={false} readOnly={true} />
+          )}
 
-      {/* --- RESIDENCES PANEL --- */}
-      {activeSection === 'residencies' && (
-        <SbMbrStryResidence memberId={member.id} isSandbox={false} readOnly={true} />
-      )}
+          {/* --- RESIDENCES PANEL --- */}
+          {(activeSection.toLowerCase() === 'residencies') && (
+            <SbMbrStryResidence memberId={member.id} isSandbox={false} readOnly={true} />
+          )}
 
-      {/* --- ACTIVITIES & HOBBIES PANEL --- */}
-      {activeSection === 'hobbies' && (
-        <SbMbrStryActivity memberId={member.id} isSandbox={false} readOnly={true} />
-      )}
+          {/* --- ACTIVITIES & HOBBIES PANEL --- */}
+          {(activeSection.toLowerCase() === 'hobbies') && (
+            <SbMbrStryActivity memberId={member.id} isSandbox={false} readOnly={true} />
+          )}
 
-      {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
-      {activeSection === 'achievements' && (
-        <SbMbrStryAchievement memberId={member.id} isSandbox={false} readOnly={true} />
-      )}
+          {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
+          {(activeSection.toLowerCase() === 'achievements') && (
+            <SbMbrStryAchievement memberId={member.id} isSandbox={false} readOnly={true} />
+          )}
 
-      {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
-      {activeSection === 'education' && (
-        <SbMbrStryEducation memberId={member.id} isSandbox={false} readOnly={true} />
-      )}
+          {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
+          {(activeSection.toLowerCase() === 'education') && (
+            <SbMbrStryEducation memberId={member.id} isSandbox={false} readOnly={true} />
+          )}
 
-      {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
-      {activeSection === 'employment' && (
-        <SbMbrStryEmployment memberId={member.id} isSandbox={false} readOnly={true} />
-      )}
+          {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
+          {(activeSection.toLowerCase() === 'employment') && (
+            <SbMbrStryEmployment memberId={member.id} isSandbox={false} readOnly={true} />
+          )}
 
-      {/* --- ACTIVE SECTION CONTENT AREA (for other custom text sections) --- */}
-      {!['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(activeSection) && (
-        <SbMbrBookEditor sectionTitle={activeSection} content={activeContent} readOnly={true} />
+          {/* --- ACTIVE SECTION CONTENT AREA (for other custom text sections) --- */}
+          {!['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(activeSection.toLowerCase()) && (
+            <SbMbrBookEditor sectionTitle={activeSection} content={activeContent} readOnly={true} />
+          )}
+        </>
       )}
 
       <AdminComponentTag name="CenterColumn" />

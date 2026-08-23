@@ -74,6 +74,15 @@ export default function MainLayout({
     loadProfilePic();
   }, [isSandbox, activeTab]);
 
+  const handleLogoClick = () => {
+    const userStr = sessionStorage.getItem('user');
+    if (userStr) {
+      setActiveTab('sbMbrHomePage');
+    } else {
+      setActiveTab('sbPublicPage');
+    }
+  };
+
   return (
     <div
       id="app-container"
@@ -85,15 +94,20 @@ export default function MainLayout({
         className="sticky top-0 h-16 px-6 md:px-8 flex items-center justify-between bg-[#0F1B35] border-b border-slate-900 shadow-md z-50"
       >
         {/* Logo and branding */}
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center border border-blue-400/20 shadow-md shadow-blue-500/10">
+        <button
+          type="button"
+          onClick={handleLogoClick}
+          className="flex items-center gap-3 text-left bg-transparent border-0 p-0 cursor-pointer group focus:outline-none"
+          title={sessionStorage.getItem('user') ? "Go to Member Home" : "Go to Home"}
+        >
+          <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center border border-blue-400/20 shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform">
             <BookOpen className="w-4 h-4 text-white" />
           </div>
-          <span className="font-serif font-black text-xl tracking-tight text-white flex items-center gap-0.5">
+          <span className="font-serif font-black text-xl tracking-tight text-white flex items-center gap-0.5 group-hover:opacity-95 transition-opacity">
             story<span className="text-blue-400 font-sans font-light">book</span>
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2"></span>
           </span>
-        </div>
+        </button>
 
 
         {/* --- STATUS INDICATOR & ACCOUNT MENU --- */}

@@ -123,32 +123,32 @@ export default function CenterColumn({
       <SbMbrProfilePanel isSandbox={isSandbox} />
 
       {/* --- FAMILY DIRECTORY PANEL --- */}
-      {activeSection === 'family' && (
+      {(activeSection.toLowerCase() === 'family') && (
         <SbMbrStryFamily isSandbox={isSandbox} />
       )}
 
       {/* --- RESIDENCES PANEL --- */}
-      {activeSection === 'residencies' && (
+      {(activeSection.toLowerCase() === 'residencies') && (
         <SbMbrStryResidence isSandbox={isSandbox} />
       )}
 
       {/* --- ACTIVITIES & HOBBIES PANEL --- */}
-      {activeSection === 'hobbies' && (
+      {(activeSection.toLowerCase() === 'hobbies') && (
         <SbMbrStryActivity isSandbox={isSandbox} />
       )}
 
       {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
-      {activeSection === 'achievements' && (
+      {(activeSection.toLowerCase() === 'achievements') && (
         <SbMbrStryAchievement isSandbox={isSandbox} />
       )}
 
       {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
-      {activeSection === 'education' && (
+      {(activeSection.toLowerCase() === 'education') && (
         <SbMbrStryEducation isSandbox={isSandbox} />
       )}
 
       {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
-      {activeSection === 'employment' && (
+      {(activeSection.toLowerCase() === 'employment') && (
         <SbMbrStryEmployment isSandbox={isSandbox} />
       )}
 

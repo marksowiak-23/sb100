@@ -37,8 +37,9 @@ export default function SbMbrStoryPageFeature({
   memberId,
   onClickBack
 }: SbMbrStoryPageFeatureProps) {
-  const [activeSection, setActiveSection] = useState('family');
+  const [activeSection, setActiveSection] = useState('Family');
   const [liveMember, setLiveMember] = useState<MemberStory | null>(null);
+  const [lockedTopicIds, setLockedTopicIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!memberId) return;
@@ -69,14 +70,148 @@ export default function SbMbrStoryPageFeature({
   // Look up current member
   const member = liveMember || MEMBER_STORIES.find((m) => m.id === memberId) || MEMBER_STORIES[0];
 
+  // Resolve permissions based on viewer's group assignment from story author
+  useEffect(() => {
+    const resolvePermissions = async () => {
+      try {
+        // 1. Determine logged-in member ID
+        let viewerMbrId: string | null = null;
+        const storedMbr = sessionStorage.getItem('sb_current_mbr');
+        if (storedMbr) {
+          try {
+            const parsed = JSON.parse(storedMbr);
+            if (parsed.mbrId) viewerMbrId = parsed.mbrId;
+          } catch {}
+        }
+        if (!viewerMbrId) {
+          const userStr = sessionStorage.getItem('user');
+          if (userStr) {
+            try {
+              const u = JSON.parse(userStr);
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+              if (mbrProfile && mbrProfile.mbrId) viewerMbrId = mbrProfile.mbrId;
+            } catch {}
+          }
+        }
+
+        // Author member ID (the member whose story is being viewed)
+        const storyAuthorMbrId = member.id === 'm1' ? 'e20986fa-0fb9-4081-ae5d-35bc8f504df0' : (member.id || memberId);
+
+        // If viewer is the author themselves, all topics are unlocked
+        if (viewerMbrId && storyAuthorMbrId && viewerMbrId === storyAuthorMbrId) {
+          setLockedTopicIds([]);
+          return;
+        }
+
+        // 2. Fetch topics
+        let topicsList: { topicId: string; topicName: string }[] = [];
+        try {
+          const fetchedTopics = await taskApi.getTopics();
+          if (fetchedTopics && fetchedTopics.length > 0) {
+            topicsList = fetchedTopics.map(t => ({ topicId: t.topicId, topicName: t.topicName }));
+          }
+        } catch (e) {
+          console.warn("Could not fetch topics:", e);
+        }
+
+        if (topicsList.length === 0) {
+          topicsList = [
+            { topicId: 't1', topicName: 'Family' },
+            { topicId: 't2', topicName: 'Residencies' },
+            { topicId: 't3', topicName: 'Achievements' },
+            { topicId: 't4', topicName: 'Education' },
+            { topicId: 't5', topicName: 'Employment' },
+            { topicId: 't6', topicName: 'Hobbies' }
+          ];
+        }
+
+        // 3. Find viewer's assigned group by looking up member connection:
+        // mbrId = storyAuthorMbrId, mbrConnectionMbrId = viewerMbrId
+        let assignedGrpId: string | null = null;
+        if (viewerMbrId && storyAuthorMbrId) {
+          try {
+            const connections = await taskApi.getMemberConnections({
+              mbrId: storyAuthorMbrId,
+              connectedMbrId: viewerMbrId
+            });
+            if (connections && connections.length > 0) {
+              const conn = connections[0];
+              const connGrps = await taskApi.getMemberConnectionGrps({
+                connectionId: conn.mbrConnectionId
+              });
+              if (connGrps && connGrps.length > 0) {
+                assignedGrpId = connGrps[0].grpId;
+              }
+            }
+          } catch (e) {
+            console.warn("Could not fetch member connection for permissions:", e);
+          }
+        }
+
+        // If no assigned group found, fallback to 'Public' group
+        let publicGrpId: string | null = null;
+        try {
+          const globals = await taskApi.getGroupsGlobal();
+          const pub = globals.find(g => g.grpName.toLowerCase() === 'public');
+          if (pub) publicGrpId = pub.grpId;
+        } catch {}
+        if (!publicGrpId) publicGrpId = 'g4';
+
+        const effectiveGrpId = assignedGrpId || publicGrpId;
+
+        // 4. Fetch author's member topic group privileges
+        let authorPrivs: any[] = [];
+        try {
+          authorPrivs = await taskApi.getMemberTopicGroupPrivs({ mbrId: storyAuthorMbrId });
+        } catch (e) {
+          console.warn("Could not fetch member topic group privileges:", e);
+        }
+
+        // 5. Evaluate privilege per topic
+        const locked: string[] = [];
+        for (const topic of topicsList) {
+          // If no assigned group and no public group fallback, lock
+          if (!effectiveGrpId) {
+            locked.push(topic.topicName);
+            continue;
+          }
+
+          const priv = authorPrivs.find(
+            p => (p.topicId === topic.topicId || p.topicId === topic.topicName) && p.grpId === effectiveGrpId
+          );
+
+          const privVal = priv?.privValueCd;
+          if (!privVal || privVal.toUpperCase() === 'NONE') {
+            locked.push(topic.topicName);
+          }
+        }
+
+        setLockedTopicIds(locked);
+
+        // If currently active section is locked, switch to first unlocked section
+        if (locked.some(id => id.toLowerCase() === activeSection.toLowerCase())) {
+          const firstUnlocked = topicsList.find(t => !locked.includes(t.topicName));
+          if (firstUnlocked) {
+            setActiveSection(firstUnlocked.topicName);
+          }
+        }
+      } catch (err) {
+        console.warn("Error resolving topic permissions:", err);
+      }
+    };
+
+    resolvePermissions();
+  }, [member.id, memberId]);
+
   // Retrieve active section contents
   const getActiveContent = (): string[] => {
-    if (member.id === 'm1' && STORY_CONTENTS.m1[activeSection]) {
-      return STORY_CONTENTS.m1[activeSection];
+    const secKey = activeSection.toLowerCase();
+    if (member.id === 'm1' && STORY_CONTENTS.m1[secKey]) {
+      return STORY_CONTENTS.m1[secKey];
     }
     
     // Dynamic fallback copy for other members
-    if (activeSection === 'introduction') {
+    if (secKey === 'introduction') {
       return [
         `${member.name} joined Storybook in ${member.joinedDate} to document a life lived across different eras. Residing in ${member.location}, they have already published ${member.chaptersCount} chapters of their memoirs, capturing personal anecdotes, family histories, and local transitions.`,
         `Their recollections focus heavily on themes of ${member.tags.join(', ')} — drawing connections between past events and the wisdom they hold today.`,
@@ -84,7 +219,7 @@ export default function SbMbrStoryPageFeature({
       ];
     }
     
-    if (activeSection === 'demographics') {
+    if (secKey === 'demographics') {
       return [
         `${member.name} was born and raised in ${member.location}. They have built a lifetime of experiences, establishing deep roots in their community while documenting their ancestry and descent.`,
         `As a member of the Storybook platform, they actively collaborate with family and friends to co-author and refine their life records. This section details their early education, family structure, marriages, and professional achievements.`
@@ -105,6 +240,7 @@ export default function SbMbrStoryPageFeature({
             activeSection={activeSection}
             setActiveSection={setActiveSection}
             memberName={member.name}
+            lockedTopicIds={lockedTopicIds}
           />
         </div>
 
@@ -114,6 +250,7 @@ export default function SbMbrStoryPageFeature({
             member={member}
             activeSection={activeSection}
             activeContent={getActiveContent()}
+            lockedTopicIds={lockedTopicIds}
             onClickBack={onClickBack}
           />
         </div>

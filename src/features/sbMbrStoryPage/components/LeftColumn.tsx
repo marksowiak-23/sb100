@@ -12,13 +12,15 @@ interface LeftColumnProps {
   activeSection: string;
   setActiveSection: (sec: string) => void;
   memberName: string;
+  lockedTopicIds?: string[];
   onClickBack?: () => void;
 }
 
 export default function LeftColumn({
   activeSection,
   setActiveSection,
-  memberName
+  memberName,
+  lockedTopicIds = []
 }: LeftColumnProps) {
   return (
     <div className="space-y-6 flex flex-col relative">
@@ -36,6 +38,7 @@ export default function LeftColumn({
       <SbStoryIndexPanel
         activeSection={activeSection}
         setActiveSection={setActiveSection}
+        lockedTopicIds={lockedTopicIds}
         showEditControls={false}
       />
 
