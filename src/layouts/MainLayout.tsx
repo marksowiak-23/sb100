@@ -180,6 +180,19 @@ export default function MainLayout({
                     >
                       Member Privacy
                     </div>
+                    <div
+                      onClick={() => {
+                        setActiveTab('mbrConnections');
+                        setDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                        activeTab === 'mbrConnections'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Member Connections
+                    </div>
                     {/* Administrator Nested Menu Group */}
                     <div className="border-t border-slate-800/80 my-1 pt-1">
                       <button

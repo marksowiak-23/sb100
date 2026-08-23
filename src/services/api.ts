@@ -991,6 +991,132 @@ export const taskApi = {
       },
     });
     return handleResponse<MbrTopicGroupPrivs>(response);
+  },
+
+  /**
+   * Fetch member connections with optional filtering.
+   */
+  async getMemberConnections(params?: { mbrId?: string; connectedMbrId?: string; skip?: number; limit?: number }): Promise<MbrConnection[]> {
+    const query = new URLSearchParams();
+    if (params?.mbrId) query.append('mbr_id', params.mbrId);
+    if (params?.connectedMbrId) query.append('connected_mbr_id', params.connectedMbrId);
+    if (params?.skip !== undefined) query.append('skip', params.skip.toString());
+    if (params?.limit !== undefined) query.append('limit', params.limit.toString());
+
+    const url = `${API_BASE_URL}/mbr-connections${query.toString() ? `?${query.toString()}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrConnection[]>(response);
+  },
+
+  /**
+   * Create a new member connection.
+   */
+  async createMemberConnection(conn: Partial<MbrConnection>): Promise<MbrConnection> {
+    const response = await fetch(`${API_BASE_URL}/mbr-connections`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(conn),
+    });
+    return handleResponse<MbrConnection>(response);
+  },
+
+  /**
+   * Update a member connection.
+   */
+  async updateMemberConnection(connectionId: string, conn: Partial<MbrConnection>): Promise<MbrConnection> {
+    const response = await fetch(`${API_BASE_URL}/mbr-connections/${connectionId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(conn),
+    });
+    return handleResponse<MbrConnection>(response);
+  },
+
+  /**
+   * Delete a member connection.
+   */
+  async deleteMemberConnection(connectionId: string): Promise<MbrConnection> {
+    const response = await fetch(`${API_BASE_URL}/mbr-connections/${connectionId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrConnection>(response);
+  },
+
+  /**
+   * Fetch member connection group associations.
+   */
+  async getMemberConnectionGrps(params?: { connectionId?: string; grpId?: string; skip?: number; limit?: number }): Promise<MbrConnectionGrp[]> {
+    const query = new URLSearchParams();
+    if (params?.connectionId) query.append('connection_id', params.connectionId);
+    if (params?.grpId) query.append('grp_id', params.grpId);
+    if (params?.skip !== undefined) query.append('skip', params.skip.toString());
+    if (params?.limit !== undefined) query.append('limit', params.limit.toString());
+
+    const url = `${API_BASE_URL}/mbr-connection-grps${query.toString() ? `?${query.toString()}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrConnectionGrp[]>(response);
+  },
+
+  /**
+   * Create a member connection group assignment.
+   */
+  async createMemberConnectionGrp(connGrp: Partial<MbrConnectionGrp>): Promise<MbrConnectionGrp> {
+    const response = await fetch(`${API_BASE_URL}/mbr-connection-grps`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(connGrp),
+    });
+    return handleResponse<MbrConnectionGrp>(response);
+  },
+
+  /**
+   * Update a member connection group assignment.
+   */
+  async updateMemberConnectionGrp(connectionGrpId: string, connGrp: Partial<MbrConnectionGrp>): Promise<MbrConnectionGrp> {
+    const response = await fetch(`${API_BASE_URL}/mbr-connection-grps/${connectionGrpId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(connGrp),
+    });
+    return handleResponse<MbrConnectionGrp>(response);
+  },
+
+  /**
+   * Delete a member connection group assignment.
+   */
+  async deleteMemberConnectionGrp(connectionGrpId: string): Promise<MbrConnectionGrp> {
+    const response = await fetch(`${API_BASE_URL}/mbr-connection-grps/${connectionGrpId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrConnectionGrp>(response);
   }
 };
 
