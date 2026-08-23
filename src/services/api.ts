@@ -52,6 +52,7 @@ export interface Topic {
   topicId: string;
   topicName: string;
   topicFullName?: string;
+  topicSortOrder?: number | null;
   topicCreatedAt?: string;
   topicUpdatedAt?: string;
 }
@@ -60,6 +61,7 @@ export interface GroupGlobal {
   grpId: string;
   grpName: string;
   grpDescription?: string;
+  grpSortOrder?: number | null;
   grpCreatedAt?: string;
   grpUpdatedAt?: string;
 }
@@ -68,6 +70,7 @@ export interface GroupCustom {
   grpId: string;
   mbrId: string;
   grpName: string;
+  grpSortOrder?: number | null;
   grpCreatedAt?: string;
   grpUpdatedAt?: string;
 }
@@ -868,6 +871,126 @@ export const taskApi = {
       },
     });
     return handleResponse<Cd>(response);
+  },
+
+  /**
+   * Fetch all topics.
+   */
+  async getTopics(query?: string, limit: number = 100, skip: number = 0): Promise<Topic[]> {
+    let url = `${API_BASE_URL}/topics?skip=${skip}&limit=${limit}`;
+    if (query && query.trim() !== '') {
+      url += `&query=${encodeURIComponent(query.trim())}`;
+    }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<Topic[]>(response);
+  },
+
+  /**
+   * Fetch all global groups.
+   */
+  async getGroupsGlobal(query?: string, limit: number = 100, skip: number = 0): Promise<GroupGlobal[]> {
+    let url = `${API_BASE_URL}/groupGlobals?skip=${skip}&limit=${limit}`;
+    if (query && query.trim() !== '') {
+      url += `&query=${encodeURIComponent(query.trim())}`;
+    }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<GroupGlobal[]>(response);
+  },
+
+  /**
+   * Fetch custom groups for a specific member.
+   */
+  async getGroupsCustom(mbrId: string, query?: string, limit: number = 100, skip: number = 0): Promise<GroupCustom[]> {
+    let url = `${API_BASE_URL}/groupCustoms?mbr_id=${encodeURIComponent(mbrId)}&skip=${skip}&limit=${limit}`;
+    if (query && query.trim() !== '') {
+      url += `&query=${encodeURIComponent(query.trim())}`;
+    }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<GroupCustom[]>(response);
+  },
+
+  /**
+   * Fetch member topic group privilege records.
+   */
+  async getMemberTopicGroupPrivs(params?: { mbrId?: string; topicId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrTopicGroupPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.topicId) searchParams.append('topic_id', params.topicId);
+    if (params?.grpId) searchParams.append('grp_id', params.grpId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-group-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicGroupPrivs[]>(response);
+  },
+
+  /**
+   * Create a single member topic group privilege record.
+   */
+  async createMemberTopicGroupPriv(priv: Partial<MbrTopicGroupPrivs>): Promise<MbrTopicGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-group-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicGroupPrivs>(response);
+  },
+
+  /**
+   * Update a member topic group privilege record.
+   */
+  async updateMemberTopicGroupPriv(privId: string, priv: Partial<MbrTopicGroupPrivs>): Promise<MbrTopicGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-group-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicGroupPrivs>(response);
+  },
+
+  /**
+   * Delete a member topic group privilege record.
+   */
+  async deleteMemberTopicGroupPriv(privId: string): Promise<MbrTopicGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-group-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicGroupPrivs>(response);
   }
 };
 

@@ -29,12 +29,13 @@ import { SbMbrLogonFeature } from '@/src/features/sbMbrLogon';
 import { SbMbrRegisterFeature } from '@/src/features/sbMbrRegister';
 import { MbrProfileFeature } from '@/src/features/mbrProfile';
 import MbrPreferencesFeature from '@/src/features/mbrPreferences/components/MbrPreferencesFeature';
+import { MbrPrivacyFeature } from '@/src/features/mbrPrivacy';
 import DbAdminFeature from '@/src/features/db-admin/components/DbAdminFeature';
 import { AdminCacheManagement } from '@/src/features/admin-cache';
 import { AdminMediaManagement } from '@/src/features/admin-media';
 
 // Define a TypeScript type to restrict activeTab to only these string values.
-type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'sbMbrRegister' | 'mbrProfile' | 'mbrPreferences' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
+type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'sbMbrRegister' | 'mbrProfile' | 'mbrPreferences' | 'mbrPrivacy' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
 
 
 export default function App() {
@@ -387,6 +388,23 @@ export default function App() {
             className="w-full flex justify-center"
           >
             <MbrPreferencesFeature
+              isSandbox={isSandbox}
+              onClickBack={() => forceNavigateAway()}
+              onDirtyChange={setIsProfileDirty}
+            />
+          </motion.div>
+        )}
+        {/* If the active tab is 'mbrPrivacy', render the member privacy & permissions settings screen */}
+        {activeTab === 'mbrPrivacy' && (
+          <motion.div
+            key="mbrPrivacy-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full flex justify-center"
+          >
+            <MbrPrivacyFeature
               isSandbox={isSandbox}
               onClickBack={() => forceNavigateAway()}
               onDirtyChange={setIsProfileDirty}

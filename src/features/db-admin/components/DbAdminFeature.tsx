@@ -109,7 +109,8 @@ const TABLES: TableDefinition[] = [
     searchField: 'grpName',
     fields: [
       { name: 'mbrId', label: 'Owner Member ID (UUID)', type: 'uuid', required: true },
-      { name: 'grpName', label: 'Group Name', type: 'string', required: true, placeholder: 'e.g. Close Circle' }
+      { name: 'grpName', label: 'Group Name', type: 'string', required: true, placeholder: 'e.g. Close Circle' },
+      { name: 'grpSortOrder', label: 'Group Sort Order', type: 'number', required: false, placeholder: 'e.g. 10' }
     ]
   },
   {
@@ -120,7 +121,8 @@ const TABLES: TableDefinition[] = [
     searchField: 'grpName',
     fields: [
       { name: 'grpName', label: 'Group Name', type: 'string', required: true, placeholder: 'e.g. Family' },
-      { name: 'grpDescription', label: 'Group Description', type: 'string', required: false, placeholder: 'e.g. Immediate and extended family' }
+      { name: 'grpDescription', label: 'Group Description', type: 'string', required: false, placeholder: 'e.g. Immediate and extended family' },
+      { name: 'grpSortOrder', label: 'Group Sort Order', type: 'number', required: false, placeholder: 'e.g. 10' }
     ]
   },
   {
@@ -335,7 +337,8 @@ const TABLES: TableDefinition[] = [
     searchField: 'topicName',
     fields: [
       { name: 'topicName', label: 'Topic Name', type: 'string', required: true, placeholder: 'e.g. topicFamily' },
-      { name: 'topicFullName', label: 'Topic Full Name', type: 'string', required: false, placeholder: 'e.g. Family & Heritage Stories' }
+      { name: 'topicFullName', label: 'Topic Full Name', type: 'string', required: false, placeholder: 'e.g. Family & Heritage Stories' },
+      { name: 'topicSortOrder', label: 'Topic Sort Order', type: 'number', required: false, placeholder: 'e.g. 10' }
     ]
   },
   {
@@ -434,12 +437,12 @@ const getInitialMockData = (tableId: string): any[] => {
       ];
     case 'groupGlobal':
       return [
-        { grpId: 'gg-1', grpName: 'Family', grpDescription: 'Immediate and extended family members', grpCreatedAt: now, grpUpdatedAt: now },
-        { grpId: 'gg-2', grpName: 'Friends', grpDescription: 'Close friends and peers', grpCreatedAt: now, grpUpdatedAt: now }
+        { grpId: 'gg-1', grpName: 'Family', grpDescription: 'Immediate and extended family members', grpSortOrder: 10, grpCreatedAt: now, grpUpdatedAt: now },
+        { grpId: 'gg-2', grpName: 'Friends', grpDescription: 'Close friends and peers', grpSortOrder: 20, grpCreatedAt: now, grpUpdatedAt: now }
       ];
     case 'groupCustom':
       return [
-        { grpId: 'gc-1', mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', grpName: 'Sailing Crew', grpCreatedAt: now, grpUpdatedAt: now }
+        { grpId: 'gc-1', mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', grpName: 'Sailing Crew', grpSortOrder: 10, grpCreatedAt: now, grpUpdatedAt: now }
       ];
     case 'mbrTopicGroupPrivs':
       return [

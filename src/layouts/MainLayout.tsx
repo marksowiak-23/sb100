@@ -10,7 +10,7 @@ import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 // Restrict values for the tab parameter.
-type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'sbMbrRegister' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
+type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'mbrPrivacy' | 'sbMbrLogon' | 'sbMbrRegister' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
 
 
 // Define the interface (contract) for the props this component expects to receive.
@@ -166,6 +166,19 @@ export default function MainLayout({
                       }`}
                     >
                       Member Preferences
+                    </div>
+                    <div
+                      onClick={() => {
+                        setActiveTab('mbrPrivacy');
+                        setDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                        activeTab === 'mbrPrivacy'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Member Privacy
                     </div>
                     {/* Administrator Nested Menu Group */}
                     <div className="border-t border-slate-800/80 my-1 pt-1">
