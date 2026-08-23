@@ -177,12 +177,30 @@ export default function StoryEditorPanel({
         const dbStories = await taskApi.getStories(currentMbrId);
         const filtered = dbStories.filter((s) => {
           const isFamilyType = (s.mbrStoryTypeCd === 'sbMbrStryFamly' || s.mbrStoryTypeCd === 'Family');
-          const matchesType = isFamilyType || s.mbrStoryTypeCd === finalStoryTypeCd;
+          const isResidencyType = (s.mbrStoryTypeCd === 'sbMbrStryResidence' || s.mbrStoryTypeCd === 'Residencies' || s.mbrStoryTypeCd === 'Residence');
+          const isAchievementType = (s.mbrStoryTypeCd === 'sbMbrStryAchievement' || s.mbrStoryTypeCd === 'Achievements' || s.mbrStoryTypeCd === 'Achievement');
+          const isEducationType = (s.mbrStoryTypeCd === 'sbMbrStryEducation' || s.mbrStoryTypeCd === 'Education');
+          const isActivityType = (s.mbrStoryTypeCd === 'sbMbrStryActivity' || s.mbrStoryTypeCd === 'Activities' || s.mbrStoryTypeCd === 'Activities and Hobbies' || s.mbrStoryTypeCd === 'Hobbies' || s.mbrStoryTypeCd === 'Activity');
+          
+          let matchesType = false;
+          if (topicId?.toLowerCase() === 'family' || finalStoryTypeCd === 'sbMbrStryFamly') {
+            matchesType = isFamilyType;
+          } else if (topicId?.toLowerCase() === 'residencies' || finalStoryTypeCd === 'sbMbrStryResidence') {
+            matchesType = isResidencyType;
+          } else if (topicId?.toLowerCase() === 'achievements' || finalStoryTypeCd === 'sbMbrStryAchievement') {
+            matchesType = isAchievementType;
+          } else if (topicId?.toLowerCase() === 'education' || finalStoryTypeCd === 'sbMbrStryEducation') {
+            matchesType = isEducationType;
+          } else if (topicId?.toLowerCase() === 'hobbies' || topicId?.toLowerCase() === 'activities' || finalStoryTypeCd === 'sbMbrStryActivity') {
+            matchesType = isActivityType;
+          } else {
+            matchesType = s.mbrStoryTypeCd === finalStoryTypeCd || s.mbrStoryTypeCd?.toLowerCase() === topicId?.toLowerCase();
+          }
           if (!matchesType) return false;
 
           if (subordinateId) {
             return s.mbrStorySubordinateId === subordinateId;
-          } else if (topicId === 'family') {
+          } else if (topicId?.toLowerCase() === 'family') {
             return !s.mbrStorySubordinateId;
           }
           return true;
