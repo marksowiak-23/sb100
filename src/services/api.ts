@@ -48,6 +48,67 @@ export interface MbrMedia {
   mbrMediaUpdatedAt?: string;
 }
 
+export interface Topic {
+  topicId: string;
+  topicName: string;
+  topicFullName?: string;
+  topicCreatedAt?: string;
+  topicUpdatedAt?: string;
+}
+
+export interface GroupGlobal {
+  grpId: string;
+  grpName: string;
+  grpDescription?: string;
+  grpCreatedAt?: string;
+  grpUpdatedAt?: string;
+}
+
+export interface GroupCustom {
+  grpId: string;
+  mbrId: string;
+  grpName: string;
+  grpCreatedAt?: string;
+  grpUpdatedAt?: string;
+}
+
+export interface MbrTopicGroupPrivs {
+  privId: string;
+  mbrId: string;
+  topicId: string;
+  grpId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrConnection {
+  mbrConnectionId: string;
+  mbrId: string;
+  mbrConnectionMbrId: string;
+  mbrConnectionCreatedAt?: string;
+  mbrConnectionUpdatedAt?: string;
+}
+
+export interface MbrConnectionGrp {
+  mbrConnectionGrpId: string;
+  mbrConnectionId: string;
+  grpId: string;
+  mbrConnectionGrpCreatedAt?: string;
+  mbrConnectionGrpUpdatedAt?: string;
+}
+
+export interface Cd {
+  cdId: string;
+  cdTag: string;
+  cdValue: string;
+  cdLabel?: string | null;
+  cdSortOrder?: number | null;
+  cdDesc?: string | null;
+  cdCreatedAt?: string;
+  cdUpdatedAt?: string;
+}
+
 export interface SignedUrlResponse {
   bucket: string;
   object_name: string;
@@ -55,6 +116,7 @@ export interface SignedUrlResponse {
   method: string;
   expiration_minutes: number;
 }
+
 
 
 
@@ -733,6 +795,79 @@ export const taskApi = {
       },
     });
     return handleResponse<MbrMedia>(response);
+  },
+
+  /**
+   * Fetch code lookup records from the cd table, optionally filtered by cdTag.
+   */
+  async getCds(tag?: string, limit: number = 200, skip: number = 0): Promise<Cd[]> {
+    let url = `${API_BASE_URL}/cds?skip=${skip}&limit=${limit}`;
+    if (tag && tag.trim() !== '') {
+      url += `&tag=${encodeURIComponent(tag.trim())}`;
+    }
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<Cd[]>(response);
+  },
+
+  /**
+   * Fetch a single code record by cdId.
+   */
+  async getCdById(cdId: string): Promise<Cd> {
+    const response = await fetch(`${API_BASE_URL}/cds/${cdId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<Cd>(response);
+  },
+
+  /**
+   * Create a new code record.
+   */
+  async createCd(cd: Partial<Cd>): Promise<Cd> {
+    const response = await fetch(`${API_BASE_URL}/cds`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(cd),
+    });
+    return handleResponse<Cd>(response);
+  },
+
+  /**
+   * Update an existing code record.
+   */
+  async updateCd(cdId: string, cd: Partial<Cd>): Promise<Cd> {
+    const response = await fetch(`${API_BASE_URL}/cds/${cdId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(cd),
+    });
+    return handleResponse<Cd>(response);
+  },
+
+  /**
+   * Delete a code record.
+   */
+  async deleteCd(cdId: string): Promise<Cd> {
+    const response = await fetch(`${API_BASE_URL}/cds/${cdId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<Cd>(response);
   }
 };
 
@@ -800,75 +935,6 @@ export const adminDbApi = {
       },
     });
     return handleResponse<{ status: string; message: string }>(response);
-  },
-
-  /**
-   * Fetch all media records for a specific member ID.
-   */
-  async getMemberMedia(mbrId: string): Promise<MbrMedia[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media/member/${mbrId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    return handleResponse<MbrMedia[]>(response);
-  },
-
-  /**
-   * Fetch a single member media record by ID.
-   */
-  async getMemberMediaById(mbrMediaId: string): Promise<MbrMedia> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    return handleResponse<MbrMedia>(response);
-  },
-
-  /**
-   * Create a new member media record.
-   */
-  async createMemberMedia(mbrMedia: Partial<MbrMedia>): Promise<MbrMedia> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(mbrMedia),
-    });
-    return handleResponse<MbrMedia>(response);
-  },
-
-  /**
-   * Update an existing member media record.
-   */
-  async updateMemberMedia(mbrMediaId: string, mbrMedia: Partial<MbrMedia>): Promise<MbrMedia> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(mbrMedia),
-    });
-    return handleResponse<MbrMedia>(response);
-  },
-
-  /**
-   * Delete a member media record.
-   */
-  async deleteMemberMedia(mbrMediaId: string): Promise<MbrMedia> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media/${mbrMediaId}`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    return handleResponse<MbrMedia>(response);
   }
 };
 

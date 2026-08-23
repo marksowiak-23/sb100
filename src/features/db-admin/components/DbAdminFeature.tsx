@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Database, Search, Plus, Edit2, Trash2, 
@@ -32,23 +32,100 @@ interface TableDefinition {
   fields: TableField[];
 }
 
-// All 12 tables mapped with their respective columns, endpoints, and data types
+// All 22 system tables mapped with their respective columns, endpoints, and data types
 const TABLES: TableDefinition[] = [
   {
-    id: 'users',
-    name: 'Users',
-    endpoint: '/users',
-    primaryKey: 'user_id',
-    searchField: 'email',
+    id: 'cd',
+    name: 'cd',
+    endpoint: '/cds',
+    primaryKey: 'cdId',
+    searchField: 'cdTag',
     fields: [
-      { name: 'email', label: 'Email', type: 'string', required: true, placeholder: 'e.g. john@example.com' },
-      { name: 'password_hash', label: 'Password Hash', type: 'string', required: false, placeholder: 'e.g. salt:hash or hashed string' },
-      { name: 'is_active', label: 'Active Status', type: 'boolean', required: true }
+      { name: 'cdTag', label: 'Code Tag', type: 'string', required: true, placeholder: 'e.g. RELATIONSHIP' },
+      { name: 'cdValue', label: 'Code Value', type: 'string', required: true, placeholder: 'e.g. SPOUSE' },
+      { name: 'cdLabel', label: 'Code Label', type: 'string', required: false, placeholder: 'e.g. Spouse' },
+      { name: 'cdSortOrder', label: 'Sort Order', type: 'number', required: false },
+      { name: 'cdDesc', label: 'Description', type: 'string', required: false }
     ]
   },
   {
-    id: 'mbrs',
-    name: 'Member Profiles',
+    id: 'chInst',
+    name: 'chInst',
+    endpoint: '/chInsts',
+    primaryKey: 'chInstId',
+    searchField: 'chInstName',
+    fields: [
+      { name: 'chInstName', label: 'Instruction Name', type: 'string', required: true },
+      { name: 'chInstContent', label: 'Content (System Prompts)', type: 'textarea', required: true },
+      { name: 'chInstActInd', label: 'Active Indicator', type: 'boolean', required: true },
+      { name: 'chInstParentId', label: 'Parent Instruction ID (UUID)', type: 'uuid', required: false }
+    ]
+  },
+  {
+    id: 'chIntent',
+    name: 'chIntent',
+    endpoint: '/chIntents',
+    primaryKey: 'chIntentId',
+    searchField: 'chIntentName',
+    fields: [
+      { name: 'chIntentName', label: 'Intent Name', type: 'string', required: true },
+      { name: 'chIntentDesc', label: 'Description', type: 'textarea', required: false },
+      { name: 'chIntentActInd', label: 'Active Indicator', type: 'boolean', required: true },
+      { name: 'chInstId', label: 'Instruction ID (UUID)', type: 'uuid', required: false }
+    ]
+  },
+  {
+    id: 'chPrompt',
+    name: 'chPrompt',
+    endpoint: '/chPrompts',
+    primaryKey: 'chPromptId',
+    searchField: 'chPromptName',
+    fields: [
+      { name: 'chPromptName', label: 'Prompt Name', type: 'string', required: true },
+      { name: 'chPromptContent', label: 'Prompt Content', type: 'textarea', required: false },
+      { name: 'chPromptActInd', label: 'Active Indicator', type: 'boolean', required: true },
+      { name: 'chPromptVersion', label: 'Version', type: 'number', required: true },
+      { name: 'chIntentId', label: 'Intent ID (UUID)', type: 'uuid', required: true }
+    ]
+  },
+  {
+    id: 'chWriter',
+    name: 'chWriter',
+    endpoint: '/chWriters',
+    primaryKey: 'chWriterId',
+    searchField: 'chWriterName',
+    fields: [
+      { name: 'chWriterName', label: 'Persona Name', type: 'string', required: true, placeholder: 'e.g. Everyday Eddie' },
+      { name: 'chWriterDesc', label: 'Description', type: 'string', required: false, placeholder: 'e.g. Common & Informal' },
+      { name: 'chWriterPrompt', label: 'System Prompt', type: 'textarea', required: true, placeholder: 'Writing mode instructions...' },
+      { name: 'chWriterActInd', label: 'Active Indicator', type: 'boolean', required: true }
+    ]
+  },
+  {
+    id: 'groupCustom',
+    name: 'groupCustom',
+    endpoint: '/groupCustoms',
+    primaryKey: 'grpId',
+    searchField: 'grpName',
+    fields: [
+      { name: 'mbrId', label: 'Owner Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'grpName', label: 'Group Name', type: 'string', required: true, placeholder: 'e.g. Close Circle' }
+    ]
+  },
+  {
+    id: 'groupGlobal',
+    name: 'groupGlobal',
+    endpoint: '/groupGlobals',
+    primaryKey: 'grpId',
+    searchField: 'grpName',
+    fields: [
+      { name: 'grpName', label: 'Group Name', type: 'string', required: true, placeholder: 'e.g. Family' },
+      { name: 'grpDescription', label: 'Group Description', type: 'string', required: false, placeholder: 'e.g. Immediate and extended family' }
+    ]
+  },
+  {
+    id: 'mbr',
+    name: 'mbr',
     endpoint: '/mbrs',
     primaryKey: 'mbrId',
     searchField: 'mbrLastName',
@@ -65,14 +142,95 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrWorkAt', label: 'Works At', type: 'string', required: false },
       { name: 'mbrStudiedAt', label: 'Studied At', type: 'string', required: false },
       { name: 'mbrEmailAddress', label: 'Email Address', type: 'string', required: false },
-      { name: 'mbrIntroduction', label: 'Introduction', type: 'string', required: false },
+      { name: 'mbrIntroduction', label: 'Introduction', type: 'textarea', required: false },
       { name: 'mbrProfilePic', label: 'Profile Picture URL', type: 'string', required: false },
       { name: 'user_id', label: 'Associated User ID (UUID)', type: 'uuid', required: false }
     ]
   },
   {
-    id: 'mbr_families',
-    name: 'Member Families',
+    id: 'mbrAchievements',
+    name: 'mbrAchievements',
+    endpoint: '/mbr-achievements',
+    primaryKey: 'mbrAchievementId',
+    searchField: 'mbrAchievementTitle',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrAchievementTitle', label: 'Title', type: 'string', required: true },
+      { name: 'mbrAchievementDescription', label: 'Description', type: 'textarea', required: false },
+      { name: 'mbrAchievementDate', label: 'Achievement Date', type: 'date', required: false }
+    ]
+  },
+  {
+    id: 'mbrActivity',
+    name: 'mbrActivity',
+    endpoint: '/mbr-activities',
+    primaryKey: 'mbrActivityId',
+    searchField: 'mbrActivityName',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrActivityName', label: 'Activity Name', type: 'string', required: true },
+      { name: 'mbrActivityDescription', label: 'Description', type: 'textarea', required: false },
+      { name: 'mbrActivityFrequencyCd', label: 'Frequency Code', type: 'string', required: false }
+    ]
+  },
+  {
+    id: 'mbrConnection',
+    name: 'mbrConnection',
+    endpoint: '/mbr-connections',
+    primaryKey: 'mbrConnectionId',
+    searchField: 'mbrId',
+    fields: [
+      { name: 'mbrId', label: 'Owner Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connected Member ID (UUID)', type: 'uuid', required: true }
+    ]
+  },
+  {
+    id: 'mbrConnectionGrp',
+    name: 'mbrConnectionGrp',
+    endpoint: '/mbr-connection-grps',
+    primaryKey: 'mbrConnectionGrpId',
+    searchField: 'grpId',
+    fields: [
+      { name: 'mbrConnectionId', label: 'Connection ID (UUID)', type: 'uuid', required: true },
+      { name: 'grpId', label: 'Group ID (UUID)', type: 'uuid', required: true }
+    ]
+  },
+  {
+    id: 'mbrEducation',
+    name: 'mbrEducation',
+    endpoint: '/mbr-educations',
+    primaryKey: 'mbrEducationId',
+    searchField: 'mbrEducationInstitutionalNm',
+    fields: [
+      { name: 'mbrID', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrEducationInstitutionalNm', label: 'School Name', type: 'string', required: true },
+      { name: 'mbrEducationDegreeCd', label: 'Degree Code', type: 'string', required: true },
+      { name: 'mbrEducationDesc', label: 'Description/Field of Study', type: 'textarea', required: false },
+      { name: 'mbrEducationStartDate', label: 'Start Date', type: 'date', required: false },
+      { name: 'mbrEducationEndDate', label: 'End Date', type: 'date', required: false }
+    ]
+  },
+  {
+    id: 'mbrEmployment',
+    name: 'mbrEmployment',
+    endpoint: '/mbr-employments',
+    primaryKey: 'mbrEmploymentId',
+    searchField: 'mbrEmploymentCompany',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrEmployementPosition', label: 'Job Title', type: 'string', required: true },
+      { name: 'mbrEmployementPositionResp', label: 'Responsibilities', type: 'textarea', required: false },
+      { name: 'mbrEmploymentCompany', label: 'Company Name', type: 'string', required: true },
+      { name: 'mbrEmployementLocation', label: 'Location', type: 'string', required: false },
+      { name: 'mbrEmploymentTypeCd', label: 'Employment Type Code', type: 'string', required: false },
+      { name: 'mbrEmploymentStartDate', label: 'Start Date', type: 'date', required: false },
+      { name: 'mbrEmploymentEndDate', label: 'End Date', type: 'date', required: false },
+      { name: 'mbrEmploymentDescription', label: 'Job Description', type: 'textarea', required: false }
+    ]
+  },
+  {
+    id: 'mbrFamily',
+    name: 'mbrFamily',
     endpoint: '/mbr-families',
     primaryKey: 'mbrFamilyId',
     searchField: 'mbrFamilyLastNm',
@@ -81,25 +239,44 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrFamilyRelationshipCd', label: 'Relationship Code', type: 'string', required: true },
       { name: 'mbrFamilyFirstNm', label: 'First Name', type: 'string', required: true },
       { name: 'mbrFamilyMiddleNm', label: 'Middle Name', type: 'string', required: false },
-      { name: 'mbrFamilyLastNm', label: 'Last Name', type: 'string', required: true }
+      { name: 'mbrFamilyLastNm', label: 'Last Name', type: 'string', required: true },
+      { name: 'mbrFamilyBirthDt', label: 'Birth Date', type: 'date', required: false }
     ]
   },
   {
-    id: 'cds',
-    name: 'Lookup Codes',
-    endpoint: '/cds',
-    primaryKey: 'cdId',
-    searchField: 'cdTag',
+    id: 'mbrMedia',
+    name: 'mbrMedia',
+    endpoint: '/mbr-media',
+    primaryKey: 'mbrMediaId',
+    searchField: 'mbrMediaPath',
     fields: [
-      { name: 'cdTag', label: 'Code Tag', type: 'string', required: true, placeholder: 'e.g. RELATIONSHIP' },
-      { name: 'cdValue', label: 'Code Value', type: 'string', required: true, placeholder: 'e.g. SPOUSE' },
-      { name: 'cdSortOrder', label: 'Sort Order', type: 'number', required: false },
-      { name: 'cdDesc', label: 'Description', type: 'string', required: false }
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrMediaSubordinateId', label: 'Subordinate Entity ID (UUID)', type: 'uuid', required: false },
+      { name: 'mbrMediaPath', label: 'Media Cloud Path / URL', type: 'string', required: true, placeholder: 'e.g. member/{mbrId}/profile/gallery/{file}' },
+      { name: 'mbrMediaOriginalFilename', label: 'Original Filename', type: 'string', required: false },
+      { name: 'mbrMediaMimeType', label: 'MIME Type', type: 'string', required: false, placeholder: 'image/jpeg' },
+      { name: 'mbrMediaCategoryCd', label: 'Category Code', type: 'string', required: false, placeholder: 'Profile / Gallery' },
+      { name: 'mbrMediaDescription', label: 'Description / Caption', type: 'textarea', required: false }
     ]
   },
   {
-    id: 'mbr_residences',
-    name: 'Member Residences',
+    id: 'mbrPreferences',
+    name: 'mbrPreferences',
+    endpoint: '/mbr-preferences',
+    primaryKey: 'mbrPrefId',
+    searchField: 'mbrPrefTheme',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'chWriterId', label: 'Story Craft Persona ID (UUID)', type: 'uuid', required: false },
+      { name: 'mbrPrefTheme', label: 'UI Theme', type: 'string', required: false, placeholder: 'System / Light / Dark' },
+      { name: 'mbrPrefNotificationsInd', label: 'Enable Notifications', type: 'boolean', required: true },
+      { name: 'mbrPrefAutoSaveInd', label: 'Enable Auto Save', type: 'boolean', required: true },
+      { name: 'mbrPrefJson', label: 'Custom Preferences (JSON)', type: 'textarea', required: false }
+    ]
+  },
+  {
+    id: 'mbrResidence',
+    name: 'mbrResidence',
     endpoint: '/mbr-residences',
     primaryKey: 'mbrResidenceId',
     searchField: 'mbrResidenceCity',
@@ -117,107 +294,8 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
-    id: 'mbr_activities',
-    name: 'Member Activities',
-    endpoint: '/mbr-activities',
-    primaryKey: 'mbrActivityId',
-    searchField: 'mbrActivityName',
-    fields: [
-      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
-      { name: 'mbrActivityName', label: 'Activity Name', type: 'string', required: true },
-      { name: 'mbrActivityDescription', label: 'Description', type: 'string', required: false },
-      { name: 'mbrActivityFrequencyCd', label: 'Frequency Code', type: 'string', required: false }
-    ]
-  },
-  {
-    id: 'mbr_achievements',
-    name: 'Member Achievements',
-    endpoint: '/mbr-achievements',
-    primaryKey: 'mbrAchievementId',
-    searchField: 'mbrAchievementTitle',
-    fields: [
-      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
-      { name: 'mbrAchievementTitle', label: 'Title', type: 'string', required: true },
-      { name: 'mbrAchievementDescription', label: 'Description', type: 'string', required: false },
-      { name: 'mbrAchievementDate', label: 'Achievement Date', type: 'date', required: false }
-    ]
-  },
-  {
-    id: 'mbr_educations',
-    name: 'Member Educations',
-    endpoint: '/mbr-educations',
-    primaryKey: 'mbrEducationId',
-    searchField: 'mbrEducationInstitutionalNm',
-    fields: [
-      { name: 'mbrID', label: 'Member ID (UUID)', type: 'uuid', required: true },
-      { name: 'mbrEducationInstitutionalNm', label: 'School Name', type: 'string', required: true },
-      { name: 'mbrEducationDegreeCd', label: 'Degree Code', type: 'string', required: true },
-      { name: 'mbrEducationDesc', label: 'Description/Field of Study', type: 'string', required: false },
-      { name: 'mbrEducationStartDate', label: 'Start Date', type: 'date', required: false },
-      { name: 'mbrEducationEndDate', label: 'End Date', type: 'date', required: false }
-    ]
-  },
-  {
-    id: 'mbr_employments',
-    name: 'Member Employments',
-    endpoint: '/mbr-employments',
-    primaryKey: 'mbrEmploymentId',
-    searchField: 'mbrEmploymentCompany',
-    fields: [
-      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
-      { name: 'mbrEmployementPosition', label: 'Job Title', type: 'string', required: true },
-      { name: 'mbrEmployementPositionResp', label: 'Responsibilities', type: 'string', required: false },
-      { name: 'mbrEmploymentCompany', label: 'Company Name', type: 'string', required: true },
-      { name: 'mbrEmployementLocation', label: 'Location', type: 'string', required: false },
-      { name: 'mbrEmploymentTypeCd', label: 'Employment Type Code', type: 'string', required: false },
-      { name: 'mbrEmploymentStartDate', label: 'Start Date', type: 'date', required: false },
-      { name: 'mbrEmploymentEndDate', label: 'End Date', type: 'date', required: false },
-      { name: 'mbrEmploymentDescription', label: 'Job Description', type: 'string', required: false }
-    ]
-  },
-  {
-    id: 'chInsts',
-    name: 'Chatbot Instructions',
-    endpoint: '/chInsts',
-    primaryKey: 'chInstId',
-    searchField: 'chInstName',
-    fields: [
-      { name: 'chInstName', label: 'Instruction Name', type: 'string', required: true },
-      { name: 'chInstContent', label: 'Content (System Prompts)', type: 'string', required: true },
-      { name: 'chInstActInd', label: 'Active Indicator', type: 'boolean', required: true },
-      { name: 'chInstParentId', label: 'Parent ID (UUID)', type: 'uuid', required: false }
-    ]
-  },
-  {
-    id: 'chIntents',
-    name: 'Chatbot Intents',
-    endpoint: '/chIntents',
-    primaryKey: 'chIntentId',
-    searchField: 'chIntentName',
-    fields: [
-      { name: 'chIntentName', label: 'Intent Name', type: 'string', required: true },
-      { name: 'chIntentDesc', label: 'Description', type: 'string', required: false },
-      { name: 'chIntentActInd', label: 'Active Indicator', type: 'boolean', required: true },
-      { name: 'chInstId', label: 'Instruction ID (UUID)', type: 'uuid', required: false }
-    ]
-  },
-  {
-    id: 'chPrompts',
-    name: 'Chatbot Prompts',
-    endpoint: '/chPrompts',
-    primaryKey: 'chPromptId',
-    searchField: 'chPromptName',
-    fields: [
-      { name: 'chPromptName', label: 'Prompt Name', type: 'string', required: true },
-      { name: 'chPromptContent', label: 'Prompt Content', type: 'string', required: false },
-      { name: 'chPromptActInd', label: 'Active Indicator', type: 'boolean', required: true },
-      { name: 'chPromptVersion', label: 'Version', type: 'number', required: true },
-      { name: 'chIntentId', label: 'Intent ID (UUID)', type: 'uuid', required: true }
-    ]
-  },
-  {
-    id: 'mbr_stories',
-    name: 'Member Stories',
+    id: 'mbrStory',
+    name: 'mbrStory',
     endpoint: '/mbr-stories',
     primaryKey: 'mbrStoryId',
     searchField: 'mbrStoryTitle',
@@ -226,57 +304,50 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrStoryTypeCd', label: 'Story Type Code', type: 'string', required: true },
       { name: 'mbrStoryPublishStatusCd', label: 'Publish Status Code', type: 'string', required: true },
       { name: 'mbrStoryTitle', label: 'Title', type: 'string', required: true },
-      { name: 'mbrStoryContent', label: 'Content', type: 'string', required: false },
+      { name: 'mbrStoryContent', label: 'Content', type: 'textarea', required: false },
       { name: 'mbrStoryVersion', label: 'Version', type: 'number', required: true },
       { name: 'mbrStoryStartDate', label: 'Start Date', type: 'date', required: false },
       { name: 'mbrStoryEndDate', label: 'End Date', type: 'date', required: false },
       { name: 'mbrStoryThreadID', label: 'Story Thread ID', type: 'string', required: false },
       { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false },
-      { name: 'mbrStoryOriginalId', label: 'Original Published Story ID (UUID)', type: 'uuid', required: false }
+      { name: 'mbrStoryOriginalId', label: 'Original Published Story ID (UUID)', type: 'uuid', required: false },
+      { name: 'mbrStorySubordinateId', label: 'Subordinate Entity ID (UUID)', type: 'uuid', required: false }
     ]
   },
   {
-    id: 'chWriters',
-    name: 'Story Craft Personas',
-    endpoint: '/chWriters',
-    primaryKey: 'chWriterId',
-    searchField: 'chWriterName',
-    fields: [
-      { name: 'chWriterName', label: 'Persona Name', type: 'string', required: true, placeholder: 'e.g. Everyday Eddie' },
-      { name: 'chWriterDesc', label: 'Description', type: 'string', required: false, placeholder: 'e.g. Common & Informal' },
-      { name: 'chWriterPrompt', label: 'System Prompt', type: 'textarea', required: true, placeholder: 'Writing mode instructions...' },
-      { name: 'chWriterActInd', label: 'Active Indicator', type: 'boolean', required: true }
-    ]
-  },
-  {
-    id: 'mbrPreferences',
-    name: 'Member Preferences',
-    endpoint: '/mbr-preferences',
-    primaryKey: 'mbrPrefId',
-    searchField: 'mbrPrefTheme',
+    id: 'mbrTopicGroupPrivs',
+    name: 'mbrTopicGroupPrivs',
+    endpoint: '/mbr-topic-group-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
     fields: [
       { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
-      { name: 'chWriterId', label: 'Story Craft Persona ID (UUID)', type: 'uuid', required: false },
-      { name: 'mbrPrefTheme', label: 'UI Theme', type: 'string', required: false, placeholder: 'System / Light / Dark' },
-      { name: 'mbrPrefNotificationsInd', label: 'Enable Notifications', type: 'boolean', required: true },
-      { name: 'mbrPrefAutoSaveInd', label: 'Enable Auto Save', type: 'boolean', required: true },
-      { name: 'mbrPrefJson', label: 'Custom Preferences (JSON)', type: 'string', required: false }
+      { name: 'topicId', label: 'Topic ID (UUID)', type: 'uuid', required: true },
+      { name: 'grpId', label: 'Group ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
     ]
   },
   {
-    id: 'mbr_medias',
-    name: 'Member Media Assets',
-    endpoint: '/mbr-media',
-    primaryKey: 'mbrMediaId',
-    searchField: 'mbrMediaPath',
+    id: 'topic',
+    name: 'topic',
+    endpoint: '/topics',
+    primaryKey: 'topicId',
+    searchField: 'topicName',
     fields: [
-      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
-      { name: 'mbrMediaSubordinateId', label: 'Subordinate Entity ID (UUID)', type: 'uuid', required: false },
-      { name: 'mbrMediaPath', label: 'Media Cloud Path / URL', type: 'string', required: true, placeholder: 'e.g. member/{mbrId}/profile/gallery/{file}' },
-      { name: 'mbrMediaOriginalFilename', label: 'Original Filename', type: 'string', required: false },
-      { name: 'mbrMediaMimeType', label: 'MIME Type', type: 'string', required: false, placeholder: 'image/jpeg' },
-      { name: 'mbrMediaCategoryCd', label: 'Category Code', type: 'string', required: false, placeholder: 'Profile / Gallery' },
-      { name: 'mbrMediaDescription', label: 'Description / Caption', type: 'string', required: false }
+      { name: 'topicName', label: 'Topic Name', type: 'string', required: true, placeholder: 'e.g. topicFamily' },
+      { name: 'topicFullName', label: 'Topic Full Name', type: 'string', required: false, placeholder: 'e.g. Family & Heritage Stories' }
+    ]
+  },
+  {
+    id: 'user',
+    name: 'user',
+    endpoint: '/users',
+    primaryKey: 'user_id',
+    searchField: 'email',
+    fields: [
+      { name: 'email', label: 'Email', type: 'string', required: true, placeholder: 'e.g. john@example.com' },
+      { name: 'password_hash', label: 'Password Hash', type: 'string', required: false, placeholder: 'e.g. salt:hash or hashed string' },
+      { name: 'is_active', label: 'Active Status', type: 'boolean', required: true }
     ]
   }
 ];
@@ -285,37 +356,37 @@ const TABLES: TableDefinition[] = [
 const getInitialMockData = (tableId: string): any[] => {
   const now = new Date().toISOString();
   switch (tableId) {
-    case 'users':
+    case 'user':
       return [
         { user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', email: 'eleanor.ross@storybook.ai', password_hash: 'c1a74d2b1f8e9a0b:3e2d1c0b9a8f7e6d5c4b3a21', is_active: true, created_at: now, updated_at: now },
         { user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', email: 'james@memoirhub.com', password_hash: '8f9e0a1b2c3d4e5f:6a5b4c3d2e1f0a9b8c7d6e5f', is_active: true, created_at: now, updated_at: now },
         { user_id: 'cf650da5-ef31-419b-a083-d9d1326be8ad', email: 'admin@storybook.ai', password_hash: '4d5e6f7a8b9c0d1e:2f3e4d5c6b7a8f9e0d1c2b3a', is_active: true, created_at: now, updated_at: now }
       ];
-    case 'mbrs':
+    case 'mbr':
       return [
         { mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', mbrFirstName: 'Eleanor', mbrLastName: 'Ross', mbrMiddleName: 'Grace', mbrBirthDate: '1945-05-12', mbrGenderCd: 'Female', mbrIntroduction: 'Born in Chicago, Eleanor lived through the space age and taught English for 35 years.', mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format', mbrCreatedAt: now, mbrUpdatedAt: now },
         { mbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341', user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', mbrFirstName: 'James', mbrLastName: 'Carter', mbrMiddleName: 'Dean', mbrBirthDate: '1952-11-20', mbrGenderCd: 'Male', mbrIntroduction: 'Retired mechanical engineer and grandfather of four. Enthusiast of sailing and history.', mbrProfilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&auto=format', mbrCreatedAt: now, mbrUpdatedAt: now }
       ];
-    case 'cds':
+    case 'cd':
       return [
-        { cdId: 'a38fa492-c9a8-428a-923f-42a8b9f848ac', cdTag: 'GENDER', cdValue: 'MALE', cdSortOrder: 10, cdDesc: 'Male Category', cdCreatedAt: now, cdUpdatedAt: now },
-        { cdId: 'b78a9c1e-3a8f-410a-bb72-88fb98471c2a', cdTag: 'GENDER', cdValue: 'FEMALE', cdSortOrder: 20, cdDesc: 'Female Category', cdCreatedAt: now, cdUpdatedAt: now },
-        { cdId: '9fae87c6-218a-49bd-b87c-a87fb231d90a', cdTag: 'RELATIONSHIP', cdValue: 'SPOUSE', cdSortOrder: 10, cdDesc: 'Husband or Wife', cdCreatedAt: now, cdUpdatedAt: now },
-        { cdId: 'd62e10a2-21af-4cbb-9273-55e1c0c1b7a2', cdTag: 'RELATIONSHIP', cdValue: 'CHILD', cdSortOrder: 20, cdDesc: 'Son or Daughter', cdCreatedAt: now, cdUpdatedAt: now }
+        { cdId: 'a38fa492-c9a8-428a-923f-42a8b9f848ac', cdTag: 'GENDER', cdValue: 'FEMALE', cdLabel: 'Female', cdSortOrder: 10, cdDesc: 'Female Category', cdCreatedAt: now, cdUpdatedAt: now },
+        { cdId: 'b78a9c1e-3a8f-410a-bb72-88fb98471c2a', cdTag: 'GENDER', cdValue: 'MALE', cdLabel: 'Male', cdSortOrder: 20, cdDesc: 'Male Category', cdCreatedAt: now, cdUpdatedAt: now },
+        { cdId: 'd62e10a2-21af-4cbb-9273-55e1c0c1b7a2', cdTag: 'RELATIONSHIP', cdValue: 'CHILD', cdLabel: 'Child', cdSortOrder: 10, cdDesc: 'Son or Daughter', cdCreatedAt: now, cdUpdatedAt: now },
+        { cdId: '9fae87c6-218a-49bd-b87c-a87fb231d90a', cdTag: 'RELATIONSHIP', cdValue: 'SPOUSE', cdLabel: 'Spouse', cdSortOrder: 20, cdDesc: 'Husband or Wife', cdCreatedAt: now, cdUpdatedAt: now }
       ];
-    case 'chInsts':
+    case 'chInst':
       return [
         { chInstId: '7682e6f1-a9c1-4b11-a67b-12d8a0c24bdf', chInstName: 'Cassie General Base', chInstContent: 'You are Cassie, a helpful and warm co-writer chatbot.', chInstActInd: true, chInstCreatedAt: now, chInstUpdatedAt: now }
       ];
-    case 'chIntents':
+    case 'chIntent':
       return [
         { chIntentId: '98fac10e-a61f-49ff-88ec-a6cbef6542a1', chIntentName: 'Clarify Details', chIntentDesc: 'Ask the storyteller to elaborate on specific details in the scene.', chIntentActInd: true, chInstId: '7682e6f1-a9c1-4b11-a67b-12d8a0c24bdf', chIntentCreatedAt: now, chIntentUpdatedAt: now }
       ];
-    case 'chPrompts':
+    case 'chPrompt':
       return [
         { chPromptId: 'd7cf92f1-f8a1-43ee-b4c8-b2a123f9ab7c', chPromptName: 'Elaborate Sensory Prompt', chPromptContent: 'Prompt focusing on sights, smells, and sounds.', chPromptActInd: true, chPromptVersion: 1, chIntentId: '98fac10e-a61f-49ff-88ec-a6cbef6542a1', chPromptCreatedAt: now, chPromptUpdatedAt: now }
       ];
-    case 'mbr_stories':
+    case 'mbrStory':
       return [
         {
           mbrStoryId: 'st_fam_1',
@@ -343,7 +414,7 @@ const getInitialMockData = (tableId: string): any[] => {
           mbrPrefUpdatedAt: now
         }
       ];
-    case 'mbr_medias':
+    case 'mbrMedia':
       return [
         {
           mbrMediaId: 'm1a2b3c4-d5e6-7890-1234-56789abcdef0',
@@ -356,6 +427,32 @@ const getInitialMockData = (tableId: string): any[] => {
           mbrMediaCreatedAt: now
         }
       ];
+    case 'topic':
+      return [
+        { topicId: 't1-topic-fam', topicName: 'topicFamily', topicFullName: 'Family & Heritage Stories', topicCreatedAt: now, topicUpdatedAt: now },
+        { topicId: 't2-topic-res', topicName: 'topicResidence', topicFullName: 'Residences & Places Lived', topicCreatedAt: now, topicUpdatedAt: now }
+      ];
+    case 'groupGlobal':
+      return [
+        { grpId: 'gg-1', grpName: 'Family', grpDescription: 'Immediate and extended family members', grpCreatedAt: now, grpUpdatedAt: now },
+        { grpId: 'gg-2', grpName: 'Friends', grpDescription: 'Close friends and peers', grpCreatedAt: now, grpUpdatedAt: now }
+      ];
+    case 'groupCustom':
+      return [
+        { grpId: 'gc-1', mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', grpName: 'Sailing Crew', grpCreatedAt: now, grpUpdatedAt: now }
+      ];
+    case 'mbrTopicGroupPrivs':
+      return [
+        { privId: 'priv-1', mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', topicId: 't1-topic-fam', grpId: 'gg-1', privValueCd: 'READ', privCreatedAt: now, privUpdatedAt: now }
+      ];
+    case 'mbrConnection':
+      return [
+        { mbrConnectionId: 'conn-1', mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341', mbrConnectionCreatedAt: now, mbrConnectionUpdatedAt: now }
+      ];
+    case 'mbrConnectionGrp':
+      return [
+        { mbrConnectionGrpId: 'conngrp-1', mbrConnectionId: 'conn-1', grpId: 'gg-1', mbrConnectionGrpCreatedAt: now, mbrConnectionGrpUpdatedAt: now }
+      ];
     default:
       return [];
   }
@@ -366,8 +463,13 @@ interface DbAdminFeatureProps {
 }
 
 export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
+  // Sorted list of all 22 system tables by their actual table name
+  const sortedTables = useMemo(() => {
+    return [...TABLES].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  }, []);
+
   // Current active table
-  const [selectedTable, setSelectedTable] = useState<TableDefinition>(TABLES[0]);
+  const [selectedTable, setSelectedTable] = useState<TableDefinition>(sortedTables[0]);
   const [tableData, setTableData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -465,7 +567,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
       }
     });
     // For user creation, add password field since it is required in UserCreate
-    if (selectedTable.id === 'users') {
+    if (selectedTable.id === 'user') {
       initialForm['password'] = '';
     }
     setFormData(initialForm);
@@ -540,7 +642,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
     }
 
     // Special users override (allow password only on creation)
-    if (selectedTable.id === 'users' && !editingRow) {
+    if (selectedTable.id === 'user' && !editingRow) {
       payload['password'] = formData['password'] || 'DefaultP@ss123';
     }
 
@@ -616,7 +718,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
           <div>
             <h1 className="text-xl font-serif font-black tracking-tight">Database Administration Center</h1>
             <p className="text-xs text-slate-300 mt-1">
-              Select any of the 13 system tables to manage user accounts, storyteller profiles, chatbot states, and member stories.
+              Select any of the 22 system tables to manage user accounts, storyteller profiles, chatbot states, member stories, privacy privileges, groups, and connections.
             </p>
           </div>
         </div>
@@ -652,7 +754,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
           >
             <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
             <span className="flex-grow">{error}</span>
-            <button onClick={() => setError(null)} className="hover:text-rose-955 cursor-pointer">
+            <button onClick={() => setError(null)} className="hover:text-rose-950 cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </motion.div>
@@ -666,7 +768,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
           >
             <Check className="w-4 h-4 shrink-0 text-emerald-600" />
             <span className="flex-grow">{successMsg}</span>
-            <button onClick={() => setSuccessMsg(null)} className="hover:text-emerald-955 cursor-pointer">
+            <button onClick={() => setSuccessMsg(null)} className="hover:text-emerald-950 cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </motion.div>
@@ -683,12 +785,12 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
           <select
             value={selectedTable.id}
             onChange={(e) => {
-              const tbl = TABLES.find((t) => t.id === e.target.value);
+              const tbl = sortedTables.find((t) => t.id === e.target.value);
               if (tbl) setSelectedTable(tbl);
             }}
-            className="bg-white border border-[#EFECE7] text-slate-800 text-sm font-medium rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 cursor-pointer shadow-sm select-none"
+            className="bg-white border border-[#EFECE7] text-slate-800 text-sm font-medium font-mono rounded-xl px-4 py-2.5 focus:outline-none focus:border-blue-500 cursor-pointer shadow-sm select-none"
           >
-            {TABLES.map((t) => (
+            {sortedTables.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.name}
               </option>
@@ -776,7 +878,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
                             ) : cellVal !== null && cellVal !== undefined ? (
                               String(cellVal)
                             ) : (
-                              <span className="text-slate-305 italic text-slate-300">null</span>
+                              <span className="text-slate-300 italic">null</span>
                             )}
                           </td>
                         );
@@ -793,7 +895,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
                           <button
                             onClick={() => setDeletingRow(row)}
                             title="Delete Record"
-                            className="p-1.5 text-slate-505 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg cursor-pointer transition-all"
+                            className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg cursor-pointer transition-all"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -809,7 +911,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
 
         {/* PAGINATION FOOTER */}
         {filteredData.length > 0 && (
-          <div className="bg-slate-50/50 border-t border-[#EFECE7] px-6 py-4 flex items-center justify-between text-xs text-slate-550 select-none">
+          <div className="bg-slate-50/50 border-t border-[#EFECE7] px-6 py-4 flex items-center justify-between text-xs text-slate-500 select-none">
             <div>
               Showing <span className="font-semibold text-slate-800">{startIndex + 1}</span> to{' '}
               <span className="font-semibold text-slate-800">
@@ -921,7 +1023,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
                 ))}
 
                 {/* For User Creation, require password input */}
-                {selectedTable.id === 'users' && !editingRow && (
+                {selectedTable.id === 'user' && !editingRow && (
                   <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-bold text-slate-700 flex items-center gap-0.5">
                       Password <span className="text-rose-500">*</span>
@@ -982,13 +1084,13 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
                 <h3 className="text-sm font-serif font-black text-slate-800">Confirm Record Deletion</h3>
               </div>
 
-              <p className="text-xs text-slate-505 leading-relaxed">
+              <p className="text-xs text-slate-500 leading-relaxed">
                 Are you absolutely sure you want to delete this record from the{' '}
-                <span className="font-semibold text-slate-800">{selectedTable.name}</span> table? This action cannot
+                <span className="font-semibold font-mono text-slate-800">{selectedTable.name}</span> table? This action cannot
                 be undone.
               </p>
 
-              <div className="bg-slate-55 p-3 rounded-2xl border border-slate-100 font-mono text-[10px] text-slate-500 truncate select-all">
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 font-mono text-[10px] text-slate-500 truncate select-all">
                 ID: {deletingRow[selectedTable.primaryKey]}
               </div>
 

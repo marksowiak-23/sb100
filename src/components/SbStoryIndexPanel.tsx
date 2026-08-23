@@ -7,21 +7,26 @@ import React from 'react';
 import { BookOpen } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-export interface StorySection {
+export interface StoryTopic {
   id: string;
   label: string;
 }
 
+export type StorySection = StoryTopic;
+
 interface SbStoryIndexPanelProps {
-  activeSection: string;
-  setActiveSection: (sec: string) => void;
-  sections?: StorySection[];
+  activeSection?: string;
+  activeTopic?: string;
+  setActiveSection?: (topicId: string) => void;
+  setActiveTopic?: (topicId: string) => void;
+  topics?: StoryTopic[];
+  sections?: StoryTopic[];
   onEditStories?: () => void;
   onEditBiography?: () => void;
   showEditControls?: boolean;
 }
 
-const DEFAULT_SECTIONS: StorySection[] = [
+const DEFAULT_TOPICS: StoryTopic[] = [
   { id: 'family', label: 'Family' },
   { id: 'residencies', label: 'Residencies' },
   { id: 'achievements', label: 'Achievements' },
@@ -32,12 +37,22 @@ const DEFAULT_SECTIONS: StorySection[] = [
 
 export default function SbStoryIndexPanel({
   activeSection,
+  activeTopic,
   setActiveSection,
-  sections = DEFAULT_SECTIONS,
+  setActiveTopic,
+  topics,
+  sections,
   onEditStories,
   onEditBiography,
   showEditControls = true
 }: SbStoryIndexPanelProps) {
+  const currentActive = activeTopic || activeSection || 'family';
+  const handleSelect = (topicId: string) => {
+    if (setActiveTopic) setActiveTopic(topicId);
+    if (setActiveSection) setActiveSection(topicId);
+  };
+  const list = topics || sections || DEFAULT_TOPICS;
+
   return (
     <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
       <div className="flex items-center gap-2 pb-1 border-b border-[#EFECE7]">
@@ -47,20 +62,20 @@ export default function SbStoryIndexPanel({
         </h3>
       </div>
 
-      {/* Section List */}
+      {/* Topic List */}
       <nav className="flex flex-col gap-1.5">
-        {sections.map((sec) => (
+        {list.map((item) => (
           <button
-            key={sec.id}
+            key={item.id}
             type="button"
-            onClick={() => setActiveSection(sec.id)}
+            onClick={() => handleSelect(item.id)}
             className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-left text-xs font-serif transition-all duration-150 cursor-pointer ${
-              activeSection === sec.id
+              currentActive === item.id
                 ? 'text-slate-850 font-bold underline underline-offset-2 bg-slate-100/60'
                 : 'text-slate-650 hover:text-slate-850 hover:underline hover:underline-offset-2'
             }`}
           >
-            <span>{sec.label}</span>
+            <span>{item.label}</span>
           </button>
         ))}
       </nav>
@@ -92,3 +107,4 @@ export default function SbStoryIndexPanel({
     </div>
   );
 }
+
