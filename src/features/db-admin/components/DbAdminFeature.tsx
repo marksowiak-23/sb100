@@ -32,7 +32,7 @@ interface TableDefinition {
   fields: TableField[];
 }
 
-// All 22 system tables mapped with their respective columns, endpoints, and data types
+// All 23 system tables mapped with their respective columns, endpoints, and data types
 const TABLES: TableDefinition[] = [
   {
     id: 'cd',
@@ -99,6 +99,21 @@ const TABLES: TableDefinition[] = [
       { name: 'chWriterDesc', label: 'Description', type: 'string', required: false, placeholder: 'e.g. Common & Informal' },
       { name: 'chWriterPrompt', label: 'System Prompt', type: 'textarea', required: true, placeholder: 'Writing mode instructions...' },
       { name: 'chWriterActInd', label: 'Active Indicator', type: 'boolean', required: true }
+    ]
+  },
+  {
+    id: 'event',
+    name: 'event',
+    endpoint: '/events',
+    primaryKey: 'eventId',
+    searchField: 'eventCd',
+    fields: [
+      { name: 'eventSiteCd', label: 'Site Code', type: 'string', required: false, placeholder: 'e.g. SB' },
+      { name: 'eventActorId', label: 'Actor ID (UUID)', type: 'uuid', required: false, placeholder: 'Member or User UUID' },
+      { name: 'eventActorTypeCd', label: 'Actor Type Code', type: 'string', required: false, placeholder: 'e.g. MBR or USER' },
+      { name: 'eventCd', label: 'Event Code', type: 'string', required: false, placeholder: 'e.g. USER_LOGIN, STORY_CREATE' },
+      { name: 'eventDetail', label: 'Event Detail', type: 'textarea', required: false, placeholder: 'Event description or details...' },
+      { name: 'eventTagValue', label: 'Tag Value (JSON)', type: 'textarea', required: false, placeholder: 'e.g. {"action": "draft_save"}' }
     ]
   },
   {
@@ -456,6 +471,31 @@ const getInitialMockData = (tableId: string): any[] => {
       return [
         { mbrConnectionGrpId: 'conngrp-1', mbrConnectionId: 'conn-1', grpId: 'gg-1', mbrConnectionGrpCreatedAt: now, mbrConnectionGrpUpdatedAt: now }
       ];
+    case 'event':
+      return [
+        {
+          eventId: 'e1010101-2020-4318-ba28-7ee82c4fdbd1',
+          eventSiteCd: 'SB',
+          eventActorId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          eventActorTypeCd: 'MBR',
+          eventCd: 'MEMBER_LOGIN',
+          eventDetail: 'Eleanor Ross logged into StoryBook admin portal',
+          eventTagValue: { ip: '127.0.0.1', browser: 'Chrome' },
+          eventCreatedAt: now,
+          eventUpdatedAt: now
+        },
+        {
+          eventId: 'e2020202-3030-43f1-a1e8-780c85c2901a',
+          eventSiteCd: 'SB',
+          eventActorId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          eventActorTypeCd: 'MBR',
+          eventCd: 'STORY_CREATE',
+          eventDetail: 'Created new draft story: Sunday Mornings at Harold’s Dock',
+          eventTagValue: { storyId: 'st_fam_1', type: 'sbMbrStryFamly' },
+          eventCreatedAt: now,
+          eventUpdatedAt: now
+        }
+      ];
     default:
       return [];
   }
@@ -466,7 +506,7 @@ interface DbAdminFeatureProps {
 }
 
 export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
-  // Sorted list of all 22 system tables by their actual table name
+  // Sorted list of all 23 system tables by their actual table name
   const sortedTables = useMemo(() => {
     return [...TABLES].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   }, []);
@@ -585,6 +625,8 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
       // Clean dates for inputs
       if (field.type === 'date' && row[field.name]) {
         editForm[field.name] = String(row[field.name]).split('T')[0];
+      } else if (typeof row[field.name] === 'object' && row[field.name] !== null) {
+        editForm[field.name] = JSON.stringify(row[field.name], null, 2);
       } else {
         editForm[field.name] = row[field.name] ?? '';
       }
@@ -639,6 +681,12 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
         payload[field.name] = Boolean(val);
       } else if (val === '' || val === undefined) {
         payload[field.name] = null;
+      } else if (field.name === 'eventTagValue' && val) {
+        try {
+          payload[field.name] = typeof val === 'string' ? JSON.parse(val) : val;
+        } catch {
+          payload[field.name] = val;
+        }
       } else {
         payload[field.name] = val;
       }
@@ -721,7 +769,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
           <div>
             <h1 className="text-xl font-serif font-black tracking-tight">Database Administration Center</h1>
             <p className="text-xs text-slate-300 mt-1">
-              Select any of the 22 system tables to manage user accounts, storyteller profiles, chatbot states, member stories, privacy privileges, groups, and connections.
+              Select any of the 23 system tables to manage user accounts, storyteller profiles, chatbot states, member stories, privacy privileges, groups, connections, and audit events.
             </p>
           </div>
         </div>
@@ -878,6 +926,8 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
                               </span>
                             ) : field.type === 'date' ? (
                               cellVal ? String(cellVal).split('T')[0] : <span className="text-slate-300">-</span>
+                            ) : typeof cellVal === 'object' && cellVal !== null ? (
+                              JSON.stringify(cellVal)
                             ) : cellVal !== null && cellVal !== undefined ? (
                               String(cellVal)
                             ) : (
@@ -1003,14 +1053,14 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
                         onChange={(e) => handleInputChange(field.name, e.target.value)}
                         className="bg-white border border-[#EFECE7] text-slate-800 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 w-full"
                       />
-                    ) : field.type === 'textarea' || field.name === 'chWriterPrompt' || field.name === 'chInstContent' || field.name === 'chPromptContent' || field.name === 'mbrStoryContent' || field.name === 'mbrPrefJson' ? (
+                    ) : field.type === 'textarea' || field.name === 'chWriterPrompt' || field.name === 'chInstContent' || field.name === 'chPromptContent' || field.name === 'mbrStoryContent' || field.name === 'mbrPrefJson' || field.name === 'eventTagValue' || field.name === 'eventDetail' ? (
                       <textarea
                         required={field.required}
-                        rows={5}
+                        rows={field.name === 'eventTagValue' ? 4 : 5}
                         placeholder={field.placeholder}
                         value={formData[field.name] || ''}
                         onChange={(e) => handleInputChange(field.name, e.target.value)}
-                        className="bg-white border border-[#EFECE7] text-slate-800 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-blue-500 w-full resize-y font-serif leading-relaxed"
+                        className={`bg-white border border-[#EFECE7] text-slate-800 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-blue-500 w-full resize-y ${field.name === 'eventTagValue' ? 'font-mono text-[11px]' : 'font-serif leading-relaxed'}`}
                       />
                     ) : (
                       <input

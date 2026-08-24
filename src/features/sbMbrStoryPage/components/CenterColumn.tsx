@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Lock } from 'lucide-react';
 import { MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
 import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
@@ -9,6 +9,7 @@ import SbMbrStryActivity from '@/src/components/SbMbrStryActivity';
 import SbMbrStryAchievement from '@/src/components/SbMbrStryAchievement';
 import SbMbrStryEducation from '@/src/components/SbMbrStryEducation';
 import SbMbrStryEmployment from '@/src/components/SbMbrStryEmployment';
+import StoryEditorPanel from '@/src/features/sbMbrAuthorPage/components/StoryEditorPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
@@ -27,6 +28,39 @@ export default function CenterColumn({
   onClickBack
 }: CenterColumnProps) {
   const isSectionLocked = lockedTopicIds.some(id => id.toLowerCase() === activeSection.toLowerCase());
+  const [storyEditorConfig, setStoryEditorConfig] = useState<{
+    topicId: string;
+    topicTitle: string;
+    componentName?: string;
+    subordinateId?: string;
+    subordinateName?: string;
+  } | null>(null);
+
+  // Hide StoryEditor panel whenever the active topic/section changes
+  useEffect(() => {
+    setStoryEditorConfig(null);
+  }, [activeSection]);
+
+  useEffect(() => {
+    const handleOpenEditor = (e: any) => {
+      const detail = e.detail || {};
+      setStoryEditorConfig({
+        topicId: detail.topicId || activeSection,
+        topicTitle: detail.topicTitle || activeSection,
+        componentName: detail.componentName,
+        subordinateId: detail.subordinateId || detail.mbrStorySubordinateId,
+        subordinateName: detail.subordinateName
+      });
+      setTimeout(() => {
+        const el = document.getElementById('story-editor-panel');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    };
+    window.addEventListener('open-story-editor', handleOpenEditor);
+    return () => window.removeEventListener('open-story-editor', handleOpenEditor);
+  }, [activeSection]);
 
   return (
     <div className="space-y-6 flex flex-col relative">
@@ -93,6 +127,21 @@ export default function CenterColumn({
           {/* --- ACTIVE SECTION CONTENT AREA (for other custom text sections) --- */}
           {!['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(activeSection.toLowerCase()) && (
             <SbMbrBookEditor sectionTitle={activeSection} content={activeContent} readOnly={true} />
+          )}
+
+          {/* --- MEMBER STORIES VIEW PANEL --- */}
+          {storyEditorConfig && (
+            <StoryEditorPanel
+              topicId={storyEditorConfig.topicId}
+              topicTitle={storyEditorConfig.topicTitle}
+              componentName={storyEditorConfig.componentName}
+              subordinateId={storyEditorConfig.subordinateId}
+              subordinateName={storyEditorConfig.subordinateName}
+              memberId={member.id}
+              readOnly={true}
+              isSandbox={false}
+              onClose={() => setStoryEditorConfig(null)}
+            />
           )}
         </>
       )}

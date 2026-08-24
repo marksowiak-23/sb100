@@ -15,6 +15,8 @@ interface StoryEditorPanelProps {
   componentName?: string;
   subordinateId?: string;
   subordinateName?: string;
+  memberId?: string;
+  readOnly?: boolean;
   isSandbox?: boolean;
   onClose: () => void;
 }
@@ -85,6 +87,8 @@ export default function StoryEditorPanel({
   componentName,
   subordinateId,
   subordinateName,
+  memberId,
+  readOnly = false,
   isSandbox = true,
   onClose
 }: StoryEditorPanelProps) {
@@ -160,17 +164,21 @@ export default function StoryEditorPanel({
         }
       } else {
         // DB load
-        let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1'; // fallback
-        const userStr = sessionStorage.getItem('user');
-        if (userStr) {
-          try {
-            const u = JSON.parse(userStr);
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              currentMbrId = mbrProfile.mbrId;
+        let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1'; // fallback
+        if (currentMbrId === 'm1') {
+          currentMbrId = 'e20986fa-0fb9-4081-ae5d-35bc8f504df0';
+        } else if (!memberId) {
+          const userStr = sessionStorage.getItem('user');
+          if (userStr) {
+            try {
+              const u = JSON.parse(userStr);
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+              if (mbrProfile && mbrProfile.mbrId) {
+                currentMbrId = mbrProfile.mbrId;
+              }
+            } catch (e) {
+              console.warn("Could not retrieve member profile ID from DB, falling back to default Eleanor Hartwell UUID:", e);
             }
-          } catch (e) {
-            console.warn("Could not retrieve member profile ID from DB, falling back to default Eleanor Hartwell UUID:", e);
           }
         }
 
@@ -210,7 +218,8 @@ export default function StoryEditorPanel({
           // Select max mbrStoryVersion if multiple stories exist
           const sorted = [...filtered].sort((a, b) => (b.mbrStoryVersion || 0) - (a.mbrStoryVersion || 0));
           setStories(sorted);
-          selectStory(sorted[0]);
+          const defaultStory = (readOnly ? sorted.find(s => (s.mbrStoryPublishStatusCd || '').toLowerCase() === 'published') : null) || sorted[0];
+          selectStory(defaultStory);
         } else {
           setStories([]);
           setActiveStoryId(null);
@@ -659,16 +668,16 @@ export default function StoryEditorPanel({
           </div>
           <div>
             <h3 className="font-serif text-base font-bold text-slate-800 leading-tight">
-              Story Editor — {topicTitle}
+              {readOnly ? `Member Stories — ${topicTitle}` : `Story Editor — ${topicTitle}`}
             </h3>
             <p className="text-[10px] text-slate-400 font-medium tracking-wide">
-              Craft narrative stories and personal memoirs for this section
+              {readOnly ? 'View narrative stories and personal memoirs for this section' : 'Craft narrative stories and personal memoirs for this section'}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {!isEditing && (
+          {!readOnly && !isEditing && (
             <button
               onClick={handleCreateNew}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer"
@@ -763,13 +772,15 @@ export default function StoryEditorPanel({
         <div className="bg-slate-50/50 border border-slate-100 border-dashed py-10 px-4 rounded-2xl text-center flex flex-col items-center justify-center gap-3">
           <FileText className="w-8 h-8 text-slate-350" />
           <p className="text-xs font-serif text-slate-500 italic">No stories found for this section.</p>
-          <button
-            onClick={handleCreateNew}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-blue-500/10 active:scale-95 border border-blue-600 font-sans"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Add Story</span>
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleCreateNew}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-blue-500/10 active:scale-95 border border-blue-600 font-sans"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Story</span>
+            </button>
+          )}
         </div>
       ) : isEditing ? (
         /* EDIT MODE */
@@ -882,42 +893,44 @@ export default function StoryEditorPanel({
                   {status || 'Draft'}
                 </span>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={confirmDelete}
-                  title="Delete Story"
-                  className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-150 rounded-xl cursor-pointer transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={confirmPublish}
-                  disabled={status === 'Published'}
-                  title={status === 'Published' ? 'Story is already Published' : 'Publish Story'}
-                  className={`p-2 border rounded-xl transition-colors ${
-                    status === 'Published'
-                      ? 'text-emerald-600 bg-emerald-50/60 border-emerald-200 opacity-60 cursor-not-allowed'
-                      : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border-slate-200 hover:border-emerald-150 cursor-pointer'
-                  }`}
-                >
-                  <Globe className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handlePrivacyClick}
-                  title="Privacy Settings"
-                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-                >
-                  <ShieldAlert className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleEditClick}
-                  disabled={saving}
-                  title={status.toLowerCase() === 'published' ? 'Edit Published Story (Creates a new Draft copy)' : 'Edit Story'}
-                  className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl cursor-pointer transition-colors flex items-center gap-1"
-                >
-                  <Edit3 className="w-4 h-4" />
-                </button>
-              </div>
+              {!readOnly && (
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={confirmDelete}
+                    title="Delete Story"
+                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-150 rounded-xl cursor-pointer transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={confirmPublish}
+                    disabled={status === 'Published'}
+                    title={status === 'Published' ? 'Story is already Published' : 'Publish Story'}
+                    className={`p-2 border rounded-xl transition-colors ${
+                      status === 'Published'
+                        ? 'text-emerald-600 bg-emerald-50/60 border-emerald-200 opacity-60 cursor-not-allowed'
+                        : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border-slate-200 hover:border-emerald-150 cursor-pointer'
+                    }`}
+                  >
+                    <Globe className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handlePrivacyClick}
+                    title="Privacy Settings"
+                    className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                  >
+                    <ShieldAlert className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleEditClick}
+                    disabled={saving}
+                    title={status.toLowerCase() === 'published' ? 'Edit Published Story (Creates a new Draft copy)' : 'Edit Story'}
+                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl cursor-pointer transition-colors flex items-center gap-1"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
 
             {content ? (

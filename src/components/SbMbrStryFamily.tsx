@@ -660,23 +660,23 @@ export default function SbMbrStryFamily({ isSandbox = false, memberId, readOnly 
             <Images className="w-4 h-4 text-blue-600" />
           </button>
 
+          {/* Storybook Icon Button */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' } }))}
+            className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+            title={readOnly ? "View Member Stories" : "Story Editor"}
+          >
+            <BookOpen className="w-4 h-4 text-blue-500" />
+          </button>
+
           {!readOnly && (
-            <>
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' } }))}
-                className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-                title="Story Editor"
-              >
-                <BookOpen className="w-4 h-4 text-blue-500" />
-              </button>
-              <button
-                onClick={() => alert('Opening Privacy settings for family members...')}
-                className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-                title="Privacy settings"
-              >
-                <ShieldAlert className="w-4 h-4" />
-              </button>
-            </>
+            <button
+              onClick={() => alert('Opening Privacy settings for family members...')}
+              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title="Privacy settings"
+            >
+              <ShieldAlert className="w-4 h-4" />
+            </button>
           )}
         </div>
       </div>
@@ -775,23 +775,23 @@ export default function SbMbrStryFamily({ isSandbox = false, memberId, readOnly 
                   >
                     <Images className="w-3.5 h-3.5" />
                   </button>
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
+                      detail: {
+                        topicId: 'family',
+                        topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
+                        componentName: 'sbMbrStryFamilyMember',
+                        subordinateId: member.mbrFamilyId,
+                        subordinateName: `${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`
+                      }
+                    }))}
+                    title={readOnly ? `View Stories for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}` : `Story Editor for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
+                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+                  </button>
                   {!readOnly && (
                     <>
-                      <button
-                        onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                          detail: {
-                            topicId: 'family',
-                            topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
-                            componentName: 'sbMbrStryFamilyMember',
-                            subordinateId: member.mbrFamilyId,
-                            subordinateName: `${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`
-                          }
-                        }))}
-                        title={`Story Editor for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
-                        className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <BookOpen className="w-3.5 h-3.5" />
-                      </button>
                       <button
                         onClick={() => handleOpenEditModal(member)}
                         title="Edit Family Member"

@@ -17,6 +17,27 @@ export interface User {
   updated_at: string;
 }
 
+export interface Mbr {
+  mbrId: string;
+  mbrFirstName: string;
+  mbrLastName: string;
+  mbrMiddleName?: string;
+  mbrBirthDate?: string;
+  mbrDeathDate?: string;
+  mbrGenderCd?: string;
+  mbrRelationshipStatusCd?: string;
+  mbrLivesCityState?: string;
+  mbrFromCityState?: string;
+  mbrWorkAt?: string;
+  mbrStudiedAt?: string;
+  mbrEmailAddress?: string;
+  mbrIntroduction?: string;
+  mbrProfilePic?: string;
+  mbrCreatedAt?: string;
+  mbrUpdatedAt?: string;
+  user_id?: string;
+}
+
 export interface MbrStory {
   mbrStoryId: string;
   mbrStoryTypeCd: string;
@@ -110,6 +131,18 @@ export interface Cd {
   cdDesc?: string | null;
   cdCreatedAt?: string;
   cdUpdatedAt?: string;
+}
+
+export interface EventRecord {
+  eventId: string;
+  eventSiteCd?: string;
+  eventActorId?: string;
+  eventActorTypeCd?: string;
+  eventCd?: string;
+  eventDetail?: string;
+  eventTagValue?: any;
+  eventCreatedAt?: string;
+  eventUpdatedAt?: string;
 }
 
 export interface SignedUrlResponse {

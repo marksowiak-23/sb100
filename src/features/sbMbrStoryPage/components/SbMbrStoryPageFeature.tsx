@@ -148,16 +148,14 @@ export default function SbMbrStoryPageFeature({
           }
         }
 
-        // If no assigned group found, fallback to 'Public' group
+        // Find 'Public' group ID
         let publicGrpId: string | null = null;
         try {
           const globals = await taskApi.getGroupsGlobal();
           const pub = globals.find(g => g.grpName.toLowerCase() === 'public');
           if (pub) publicGrpId = pub.grpId;
         } catch {}
-        if (!publicGrpId) publicGrpId = 'g4';
-
-        const effectiveGrpId = assignedGrpId || publicGrpId;
+        if (!publicGrpId) publicGrpId = '13efcbad-d840-44ad-9b50-d6d2218e5cac';
 
         // 4. Fetch author's member topic group privileges
         let authorPrivs: any[] = [];
@@ -167,21 +165,31 @@ export default function SbMbrStoryPageFeature({
           console.warn("Could not fetch member topic group privileges:", e);
         }
 
-        // 5. Evaluate privilege per topic
+        // 5. Evaluate privilege per topic:
+        // All members are implied to be in the Public group.
+        // Therefore, any topic with the public priv set to READ or WRITE should not be locked.
+        // In addition, if the viewer is assigned to a specific group, and that group has READ or WRITE priv, it should not be locked.
         const locked: string[] = [];
         for (const topic of topicsList) {
-          // If no assigned group and no public group fallback, lock
-          if (!effectiveGrpId) {
-            locked.push(topic.topicName);
-            continue;
+          // Check Public group privilege
+          const publicPriv = authorPrivs.find(
+            p => (p.topicId === topic.topicId || p.topicId === topic.topicName) && p.grpId === publicGrpId
+          );
+          const publicPrivVal = publicPriv?.privValueCd?.toUpperCase();
+          const hasPublicAccess = publicPrivVal === 'READ' || publicPrivVal === 'WRITE';
+
+          // Check viewer's assigned group privilege (if assigned to a specific connection group)
+          let hasAssignedAccess = false;
+          if (assignedGrpId) {
+            const assignedPriv = authorPrivs.find(
+              p => (p.topicId === topic.topicId || p.topicId === topic.topicName) && p.grpId === assignedGrpId
+            );
+            const assignedPrivVal = assignedPriv?.privValueCd?.toUpperCase();
+            hasAssignedAccess = assignedPrivVal === 'READ' || assignedPrivVal === 'WRITE';
           }
 
-          const priv = authorPrivs.find(
-            p => (p.topicId === topic.topicId || p.topicId === topic.topicName) && p.grpId === effectiveGrpId
-          );
-
-          const privVal = priv?.privValueCd;
-          if (!privVal || privVal.toUpperCase() === 'NONE') {
+          // If neither Public nor Assigned group grants READ/WRITE access, topic is locked
+          if (!hasPublicAccess && !hasAssignedAccess) {
             locked.push(topic.topicName);
           }
         }
@@ -190,7 +198,7 @@ export default function SbMbrStoryPageFeature({
 
         // If currently active section is locked, switch to first unlocked section
         if (locked.some(id => id.toLowerCase() === activeSection.toLowerCase())) {
-          const firstUnlocked = topicsList.find(t => !locked.includes(t.topicName));
+          const firstUnlocked = topicsList.find(t => !locked.some(lid => lid.toLowerCase() === t.topicName.toLowerCase()));
           if (firstUnlocked) {
             setActiveSection(firstUnlocked.topicName);
           }

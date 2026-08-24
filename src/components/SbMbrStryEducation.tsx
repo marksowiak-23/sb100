@@ -317,15 +317,16 @@ export default function SbMbrStryEducation({ isSandbox = false, memberId, readOn
             >
               <Images className="w-3.5 h-3.5 text-blue-600" />
             </button>
+            {/* Storybook Icon Button */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'education', topicTitle: 'Education and Training', componentName: 'sbMbrStryEducation' } }))}
+              className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title={readOnly ? "View Member Stories" : "Story Editor"}
+            >
+              <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+            </button>
             {!readOnly && (
               <>
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'education', topicTitle: 'Education and Training', componentName: 'sbMbrStryEducation' } }))}
-                  className="p-2.5 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-                  title="Story Editor"
-                >
-                  <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                </button>
                 <button
                   onClick={() => alert('Opening Privacy settings for education...')}
                   className="p-2.5 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"

@@ -10,7 +10,7 @@ import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 // Restrict values for the tab parameter.
-type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'mbrPrivacy' | 'sbMbrLogon' | 'sbMbrRegister' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
+type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'mbrPrivacy' | 'mbrConnections' | 'sbMbrLogon' | 'sbMbrRegister' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
 
 
 // Define the interface (contract) for the props this component expects to receive.
