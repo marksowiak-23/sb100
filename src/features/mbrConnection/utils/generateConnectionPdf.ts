@@ -35,12 +35,8 @@ export function generateConnectionPdf({
   });
 
   // Determine Filter Name Label
-  let filterLabel = 'All Members';
-  if (groupFilter === 'ASSIGNED') {
-    filterLabel = 'Assigned Members Only';
-  } else if (groupFilter === 'UNASSIGNED') {
-    filterLabel = 'Unassigned Members (None)';
-  } else if (groupFilter !== 'ALL') {
+  let filterLabel = 'All Connections';
+  if (groupFilter !== 'ALL' && groupFilter !== 'ASSIGNED') {
     const matchedGroup = groups.find(g => g.grpId === groupFilter);
     filterLabel = matchedGroup ? `Group: ${matchedGroup.grpName}` : 'Custom Filter';
   }

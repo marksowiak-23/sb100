@@ -3,7 +3,44 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My SB App</title>
+    
+    <!-- Primary Search Engine Meta Tags -->
+    <title>StoryBook — Share Your Story, Inspire the World & Connect</title>
+    <meta name="title" content="StoryBook — Share Your Story, Inspire the World & Connect" />
+    <meta name="description" content="StoryBook is the creative storytelling and social connection platform where people of all ages share real life moments, personal journeys, adventures, and meaningful memories." />
+    <meta name="keywords" content="share your story, storytelling platform, personal journeys, life experiences, creative writing, connect with friends, true stories, young writers, story community, digital memoirs, life moments" />
+    <meta name="author" content="StoryBook" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#FDFCFB" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="StoryBook" />
+    <meta property="og:title" content="StoryBook — Share Your Story, Inspire the World & Connect" />
+    <meta property="og:description" content="Share what makes your journey unique. Explore authentic stories, connect with friends, and inspire others on StoryBook." />
+    <meta property="og:image" content="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&h=630&fit=crop" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="StoryBook — Share Your Story, Inspire the World & Connect" />
+    <meta name="twitter:description" content="Share what makes your journey unique. Explore authentic stories, connect with friends, and inspire others on StoryBook." />
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&h=630&fit=crop" />
+
+    <!-- Structured Data (JSON-LD) for Search Engines -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "StoryBook",
+        "url": "https://storybook.ai",
+        "description": "StoryBook is the creative storytelling and social connection platform where people of all ages share real life moments, personal journeys, adventures, and meaningful memories.",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://storybook.ai/?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

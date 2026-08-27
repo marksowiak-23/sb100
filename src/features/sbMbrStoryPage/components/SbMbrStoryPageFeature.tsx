@@ -10,6 +10,7 @@ import RightColumn from './RightColumn';
 import { MEMBER_STORIES, MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import PageSeo from '@/src/components/PageSeo';
 
 interface SbMbrStoryPageFeatureProps {
   memberId: string;
@@ -239,6 +240,31 @@ export default function SbMbrStoryPageFeature({
 
   return (
     <div className="w-full relative">
+      <PageSeo
+        title={`${member.name}'s Story & Experiences`}
+        description={member.excerpt || `Read the personal journey, experiences, and stories shared by ${member.name} on StoryBook.`}
+        keywords={`real life stories, ${member.name}, ${member.location || ''}, personal journey, creative writing, true stories, storybook`}
+        ogType="article"
+        ogTitle={`${member.name}'s Story & Experiences`}
+        ogDescription={member.excerpt || `Discover the stories and life moments shared by ${member.name} on StoryBook.`}
+        ogImage={member.avatarUrl}
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "Article",
+          "headline": `${member.name}'s Story & Journey`,
+          "description": member.excerpt || 'A life story and journey on StoryBook.',
+          "author": {
+            "@type": "Person",
+            "name": member.name
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "StoryBook",
+            "url": "https://storybook.ai"
+          },
+          "image": member.avatarUrl || undefined
+        }}
+      />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
         
         {/* Left Column Sidebar */}

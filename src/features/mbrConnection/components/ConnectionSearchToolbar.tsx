@@ -46,11 +46,7 @@ export default function ConnectionSearchToolbar({
         {/* Counts overview and Print PDF */}
         <div className="flex items-center gap-4 flex-wrap justify-end">
           <div className="flex items-center gap-3 text-xs font-semibold text-slate-500 dark:text-slate-400">
-            <span>Total: <strong className="text-slate-800 dark:text-slate-200">{totalMembers}</strong></span>
-            <span>•</span>
-            <span>Assigned: <strong className="text-blue-600 dark:text-blue-400">{assignedCount}</strong></span>
-            <span>•</span>
-            <span>Unassigned: <strong className="text-amber-600 dark:text-amber-400">{unassignedCount}</strong></span>
+            <span>Connections: <strong className="text-slate-800 dark:text-slate-200">{totalMembers}</strong></span>
           </div>
 
           {onPrintPdf && (
@@ -76,50 +72,30 @@ export default function ConnectionSearchToolbar({
           type="button"
           onClick={() => onGroupFilterChange('ALL')}
           className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-            groupFilter === 'ALL'
+            groupFilter === 'ALL' || groupFilter === 'ASSIGNED'
               ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold shadow-xs'
               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
           }`}
         >
-          All Members
-        </button>
-        <button
-          type="button"
-          onClick={() => onGroupFilterChange('ASSIGNED')}
-          className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-            groupFilter === 'ASSIGNED'
-              ? 'bg-blue-600 text-white font-bold shadow-xs'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-          }`}
-        >
-          Assigned
-        </button>
-        <button
-          type="button"
-          onClick={() => onGroupFilterChange('UNASSIGNED')}
-          className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-            groupFilter === 'UNASSIGNED'
-              ? 'bg-amber-600 text-white font-bold shadow-xs'
-              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-          }`}
-        >
-          Unassigned (None)
+          All Connections
         </button>
 
-        {groups.map(grp => (
-          <button
-            key={grp.grpId}
-            type="button"
-            onClick={() => onGroupFilterChange(grp.grpId)}
-            className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-              groupFilter === grp.grpId
-                ? 'bg-indigo-600 text-white font-bold shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
-            }`}
-          >
-            {grp.grpName}
-          </button>
-        ))}
+        {groups
+          .filter(grp => grp.grpName.toLowerCase() !== 'public')
+          .map(grp => (
+            <button
+              key={grp.grpId}
+              type="button"
+              onClick={() => onGroupFilterChange(grp.grpId)}
+              className={`px-3 py-1 rounded-lg font-medium transition-all cursor-pointer ${
+                groupFilter === grp.grpId
+                  ? 'bg-indigo-600 text-white font-bold shadow-xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+              }`}
+            >
+              {grp.grpName}
+            </button>
+          ))}
       </div>
     </div>
   );

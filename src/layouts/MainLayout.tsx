@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { User, ChevronDown, ChevronUp, BookOpen, Shield } from 'lucide-react';
+import { User, ChevronDown, ChevronUp, BookOpen, Shield, Home, Users, MessageSquare, Bell, CheckCircle2, MessageCircle } from 'lucide-react';
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -38,32 +38,55 @@ export default function MainLayout({
   children
 }: MainLayoutProps) {
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
+  const [isMessagingOpen, setIsMessagingOpen] = React.useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = React.useState(true);
   const [profilePic, setProfilePic] = React.useState<string | null>(null);
+  const [userName, setUserName] = React.useState<string>('StoryBook Member');
+
+  const isMemberLoggedIn = Boolean(
+    (activeTab !== 'sbPublicPage' && activeTab !== 'sbMbrLogon' && activeTab !== 'sbMbrRegister') ||
+    sessionStorage.getItem('user') ||
+    sessionStorage.getItem('sb_current_mbr')
+  ) && activeTab !== 'sbPublicPage' && activeTab !== 'sbMbrLogon' && activeTab !== 'sbMbrRegister';
 
   React.useEffect(() => {
     const loadProfilePic = async () => {
       const userStr = sessionStorage.getItem('user');
-      if (!userStr) {
+      const storedMbr = sessionStorage.getItem('sb_current_mbr');
+      if (!userStr && !storedMbr) {
         setProfilePic(null);
         return;
       }
       try {
-        const u = JSON.parse(userStr);
-        if (isSandbox) {
-          const savedMbr = sessionStorage.getItem('sandbox_mbr');
-          if (savedMbr) {
-            const mbr = JSON.parse(savedMbr);
-            setProfilePic(mbr.mbrProfilePic || null);
-          } else {
-            setProfilePic('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format');
+        if (storedMbr) {
+          const parsed = JSON.parse(storedMbr);
+          if (parsed.mbrFirstName) {
+            setUserName(`${parsed.mbrFirstName} ${parsed.mbrLastName || ''}`.trim());
           }
-        } else {
-          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-          if (mbrProfile) {
-            const cachedPic = sessionStorage.getItem(`session_pic_${mbrProfile.mbrId}`);
-            const resolved = resolveMediaUrl(cachedPic || mbrProfile.mbrProfilePic);
-            setProfilePic(resolved || null);
+          if (parsed.mbrProfilePic) {
+            setProfilePic(resolveMediaUrl(parsed.mbrProfilePic));
+          }
+        }
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          if (isSandbox) {
+            const savedMbr = sessionStorage.getItem('sandbox_mbr');
+            if (savedMbr) {
+              const mbr = JSON.parse(savedMbr);
+              setProfilePic(mbr.mbrProfilePic || null);
+              if (mbr.mbrFirstName) setUserName(`${mbr.mbrFirstName} ${mbr.mbrLastName || ''}`.trim());
+            } else {
+              setProfilePic('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format');
+            }
+          } else {
+            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+            if (mbrProfile) {
+              if (mbrProfile.mbrFirstName) setUserName(`${mbrProfile.mbrFirstName} ${mbrProfile.mbrLastName || ''}`.trim());
+              const cachedPic = sessionStorage.getItem(`session_pic_${mbrProfile.mbrId}`);
+              const resolved = resolveMediaUrl(cachedPic || mbrProfile.mbrProfilePic);
+              setProfilePic(resolved || null);
+            }
           }
         }
       } catch (e) {
@@ -91,14 +114,14 @@ export default function MainLayout({
       {/* --- HEADER SECTION --- */}
       <header
         id="app-header"
-        className="sticky top-0 h-16 px-6 md:px-8 flex items-center justify-between bg-[#0F1B35] border-b border-slate-900 shadow-md z-50"
+        className="sticky top-0 h-16 px-4 sm:px-6 md:px-8 flex items-center justify-between bg-[#0F1B35] border-b border-slate-900 shadow-md z-50"
       >
         {/* Logo and branding */}
         <button
           type="button"
           onClick={handleLogoClick}
-          className="flex items-center gap-3 text-left bg-transparent border-0 p-0 cursor-pointer group focus:outline-none"
-          title={sessionStorage.getItem('user') ? "Go to Member Home" : "Go to Home"}
+          className="flex items-center gap-3 text-left bg-transparent border-0 p-0 cursor-pointer group focus:outline-none shrink-0 mr-4"
+          title={isMemberLoggedIn ? "Go to Member Home" : "Go to Home"}
         >
           <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center border border-blue-400/20 shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform">
             <BookOpen className="w-4 h-4 text-white" />
@@ -110,41 +133,262 @@ export default function MainLayout({
         </button>
 
 
-        {/* --- STATUS INDICATOR & ACCOUNT MENU --- */}
-        <div className="flex items-center gap-6">
-          {/* Member Profile Thumbnail */}
-          {activeTab !== 'sbPublicPage' && activeTab !== 'sbMbrLogon' && activeTab !== 'sbMbrRegister' && (
+        {/* --- HEADER CONTROLS --- */}
+        <div className="flex items-center gap-3 sm:gap-6 h-full">
+          {/* --- LOGGED-IN HEADER NAVIGATION (Home, My Network, Messaging, Notifications, Me) --- */}
+          {isMemberLoggedIn ? (
+            <nav className="flex items-center h-full gap-0.5 sm:gap-2 md:gap-4">
+            {/* 1. Home */}
             <button
-              onClick={() => setActiveTab('mbrProfile')}
-              className="w-8 h-8 rounded-xl overflow-hidden border border-slate-700 hover:border-slate-500 transition-all cursor-pointer shrink-0 flex items-center justify-center shadow-md bg-slate-900"
-              title="Edit Profile"
+              type="button"
+              onClick={() => {
+                setActiveTab('sbMbrHomePage');
+                setDropdownOpen(false);
+                setIsMessagingOpen(false);
+                setIsNotificationsOpen(false);
+              }}
+              className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
+                activeTab === 'sbMbrHomePage'
+                  ? 'text-white border-b-2 border-white font-bold'
+                  : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
+              }`}
+              title="Member Home"
             >
-              {profilePic ? (
-                <img
-                  src={profilePic}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="w-4 h-4 text-slate-305" />
-              )}
+              <Home className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
+              <span className="text-[11px] font-sans tracking-tight leading-none">Home</span>
             </button>
-          )}
 
-          {/* Account Dropdown Menu */}
-          {activeTab !== 'sbPublicPage' && activeTab !== 'sbMbrLogon' && activeTab !== 'sbMbrRegister' && (
-            <div className="relative">
+            {/* 2. Author */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('sbMbrAuthorPage');
+                setDropdownOpen(false);
+                setIsMessagingOpen(false);
+                setIsNotificationsOpen(false);
+              }}
+              className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
+                activeTab === 'sbMbrAuthorPage'
+                  ? 'text-white border-b-2 border-white font-bold'
+                  : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
+              }`}
+              title="Author Page"
+            >
+              <BookOpen className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
+              <span className="text-[11px] font-sans tracking-tight leading-none">Author</span>
+            </button>
+
+            {/* 3. Connections */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('mbrConnections');
+                setDropdownOpen(false);
+                setIsMessagingOpen(false);
+                setIsNotificationsOpen(false);
+              }}
+              className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
+                activeTab === 'mbrConnections'
+                  ? 'text-white border-b-2 border-white font-bold'
+                  : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
+              }`}
+              title="Connections & Groups"
+            >
+              <Users className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
+              <span className="text-[11px] font-sans tracking-tight leading-none">Connections</span>
+            </button>
+
+            {/* 3. Messaging */}
+            <div className="relative h-full flex items-center">
               <button
-                onClick={() => setDropdownOpen(!isDropdownOpen)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold font-serif transition-all duration-150 cursor-pointer border ${
-                  isDropdownOpen
-                    ? 'bg-white/10 text-white border-white/10'
-                    : 'text-slate-300 hover:text-white border-transparent hover:bg-white/5'
+                type="button"
+                onClick={() => {
+                  setIsMessagingOpen(!isMessagingOpen);
+                  setIsNotificationsOpen(false);
+                  setDropdownOpen(false);
+                }}
+                className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
+                  isMessagingOpen
+                    ? 'text-white border-b-2 border-white font-bold'
+                    : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
                 }`}
+                title="Messaging"
               >
-                <User className="w-3.5 h-3.5" />
-                <span>Account</span>
-                <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                <div className="relative">
+                  <MessageSquare className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
+                  <span className="absolute -top-0.5 -right-1 w-2 h-2 bg-blue-500 rounded-full ring-2 ring-[#0F1B35]" />
+                </div>
+                <span className="text-[11px] font-sans tracking-tight leading-none">Messaging</span>
+              </button>
+
+              {/* Messaging Popover Panel */}
+              {isMessagingOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 cursor-default"
+                    onClick={() => setIsMessagingOpen(false)}
+                  />
+                  <div className="absolute right-0 top-16 w-80 bg-[#0F1B35] border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                    <div className="p-3.5 border-b border-slate-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <MessageSquare className="w-4 h-4 text-blue-400" />
+                        <h4 className="font-serif font-bold text-xs text-white">Messaging</h4>
+                      </div>
+                      <span className="text-[10px] text-blue-400 font-medium">New Chat</span>
+                    </div>
+
+                    <div className="p-2 space-y-1 max-h-72 overflow-y-auto">
+                      <div className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-blue-600/30 border border-blue-400/40 text-blue-300 flex items-center justify-center text-xs font-bold shrink-0">
+                          EV
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-xs font-bold text-slate-200 truncate">Eleanor Vance</h5>
+                            <span className="text-[9px] text-slate-400 font-mono">2h ago</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 truncate">Loved your latest childhood memoir chapter!</p>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-emerald-600/30 border border-emerald-400/40 text-emerald-300 flex items-center justify-center text-xs font-bold shrink-0">
+                          JS
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between">
+                            <h5 className="text-xs font-bold text-slate-200 truncate">James Sterling</h5>
+                            <span className="text-[9px] text-slate-400 font-mono">1d ago</span>
+                          </div>
+                          <p className="text-[11px] text-slate-300 truncate">Added new photos from the Pacific Coast trip.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-2.5 bg-slate-900/80 border-t border-slate-800 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsMessagingOpen(false);
+                          setActiveTab('sbMbrHomePage');
+                        }}
+                        className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
+                      >
+                        View all in Member Workspace →
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* 4. Notifications */}
+            <div className="relative h-full flex items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNotificationsOpen(!isNotificationsOpen);
+                  setIsMessagingOpen(false);
+                  setDropdownOpen(false);
+                }}
+                className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
+                  isNotificationsOpen
+                    ? 'text-white border-b-2 border-white font-bold'
+                    : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
+                }`}
+                title="Notifications"
+              >
+                <div className="relative">
+                  <Bell className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
+                  <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full min-w-[15px] text-center leading-tight shadow-xs">
+                    3
+                  </span>
+                </div>
+                <span className="text-[11px] font-sans tracking-tight leading-none">Notifications</span>
+              </button>
+
+              {/* Notifications Popover Panel */}
+              {isNotificationsOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40 cursor-default"
+                    onClick={() => setIsNotificationsOpen(false)}
+                  />
+                  <div className="absolute right-0 top-16 w-80 bg-[#0F1B35] border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                    <div className="p-3.5 border-b border-slate-800 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-4 h-4 text-rose-400" />
+                        <h4 className="font-serif font-bold text-xs text-white">Notifications</h4>
+                      </div>
+                      <span className="text-[10px] text-slate-300">3 unread</span>
+                    </div>
+
+                    <div className="p-2 space-y-1 max-h-72 overflow-y-auto">
+                      <div className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer flex items-start gap-2.5">
+                        <Users className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-slate-200 leading-snug">
+                            <strong className="text-white">Eleanor Vance</strong> accepted your connection request.
+                          </p>
+                          <span className="text-[10px] text-slate-400 font-mono">15m ago</span>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer flex items-start gap-2.5">
+                        <BookOpen className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-slate-200 leading-snug">
+                            <strong className="text-white">James Sterling</strong> published a new story chapter.
+                          </p>
+                          <span className="text-[10px] text-slate-400 font-mono">2h ago</span>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 rounded-xl hover:bg-white/5 transition-colors cursor-pointer flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs text-slate-200 leading-snug">
+                            Your profile story was updated successfully.
+                          </p>
+                          <span className="text-[10px] text-slate-400 font-mono">1d ago</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* 5. Me / Account Dropdown */}
+            <div className="relative h-full flex items-center pl-1 sm:pl-2 border-l border-slate-800/80">
+              <button
+                type="button"
+                onClick={() => {
+                  setDropdownOpen(!isDropdownOpen);
+                  setIsMessagingOpen(false);
+                  setIsNotificationsOpen(false);
+                }}
+                className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[58px] px-2 relative transition-all cursor-pointer group ${
+                  isDropdownOpen || ['mbrProfile', 'mbrPreferences', 'mbrPrivacy'].includes(activeTab)
+                    ? 'text-white border-b-2 border-white font-bold'
+                    : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
+                }`}
+                title="Account Menu"
+              >
+                <div className="w-5 h-5 rounded-full overflow-hidden border border-slate-500 mb-0.5 flex items-center justify-center bg-slate-800 shrink-0 group-hover:border-white transition-colors">
+                  {profilePic ? (
+                    <img
+                      src={profilePic}
+                      alt="Me"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User className="w-3 h-3 text-slate-200" />
+                  )}
+                </div>
+                <span className="text-[11px] font-sans tracking-tight leading-none flex items-center gap-0.5">
+                  Me <ChevronDown className={`w-2.5 h-2.5 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                </span>
               </button>
 
               {isDropdownOpen && (
@@ -154,7 +398,24 @@ export default function MainLayout({
                     className="fixed inset-0 z-40 cursor-default"
                     onClick={() => setDropdownOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-44 bg-[#0F1B35] border border-slate-800 rounded-xl shadow-xl z-50 py-1.5 overflow-hidden">
+                  <div className="absolute right-0 top-16 w-52 bg-[#0F1B35] border border-slate-800 rounded-2xl shadow-2xl z-50 py-2 overflow-hidden">
+                    {/* User Mini Card */}
+                    <div className="px-4 py-2 border-b border-slate-800 mb-1">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-700 bg-slate-900 shrink-0 flex items-center justify-center">
+                          {profilePic ? (
+                            <img src={profilePic} alt="User" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-4 h-4 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-white truncate font-serif">{userName}</h4>
+                          <p className="text-[10px] text-blue-400">View & Edit Profile</p>
+                        </div>
+                      </div>
+                    </div>
+
                     <div
                       onClick={() => {
                         setActiveTab('mbrProfile');
@@ -205,8 +466,9 @@ export default function MainLayout({
                           : 'text-slate-300 hover:bg-white/5 hover:text-white'
                       }`}
                     >
-                      Member Connections
+                      My Connections
                     </div>
+
                     {/* Administrator Nested Menu Group */}
                     <div className="border-t border-slate-800/80 my-1 pt-1">
                       <button
@@ -307,7 +569,7 @@ export default function MainLayout({
                         setActiveTab('sbPublicPage');
                         setDropdownOpen(false);
                       }}
-                      className="border-t border-slate-800 mt-1 px-4 py-2.5 text-xs font-semibold text-rose-400 hover:bg-rose-950/20 hover:text-rose-300 cursor-pointer transition-colors"
+                      className="border-t border-slate-800 mt-1 px-4 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-950/20 hover:text-rose-300 cursor-pointer transition-colors"
                     >
                       Logout
                     </div>
@@ -315,7 +577,26 @@ export default function MainLayout({
                 </>
               )}
             </div>
-          )}
+          </nav>
+        ) : (
+          /* Public Header Navigation */
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab('sbMbrLogon')}
+              className="px-4 py-2 rounded-xl text-xs font-serif font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+            >
+              Log In
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('sbMbrRegister')}
+              className="px-4 py-2 rounded-xl text-xs font-serif font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs hover:shadow transition-all cursor-pointer"
+            >
+              Sign Up
+            </button>
+          </div>
+        )}
 
           <div className="text-right">
             <div className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-mono">

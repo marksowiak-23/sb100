@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save } from 'lucide-react';
+import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save, Users, UserCheck, UserPlus } from 'lucide-react';
 import { taskApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
 import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
+import SbConnectModal from '@/src/components/SbConnectModal';
 
 interface SbMbrProfilePanelProps {
   key?: React.Key;
@@ -12,15 +13,50 @@ interface SbMbrProfilePanelProps {
   profile?: any;
   memberId?: string;
   readOnly?: boolean;
+  isConnected?: boolean;
+  connectionGrpName?: string;
+  viewerMbrId?: string | null;
+  showConnectButton?: boolean;
+  onConnectSuccess?: () => void;
   onClickReadStory?: (memberId: string) => void;
 }
 
-export default function SbMbrProfilePanel({ isSandbox = false, profile: propProfile, memberId, readOnly = false, onClickReadStory }: SbMbrProfilePanelProps) {
+export default function SbMbrProfilePanel({
+  isSandbox = false,
+  profile: propProfile,
+  memberId,
+  readOnly = false,
+  isConnected: propIsConnected,
+  connectionGrpName: propConnectionGrpName,
+  viewerMbrId: propViewerMbrId,
+  showConnectButton = true,
+  onConnectSuccess,
+  onClickReadStory
+}: SbMbrProfilePanelProps) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(propProfile || null);
   const [galleryItems, setGalleryItems] = useState<MbrMedia[]>([]);
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
+
+  // Resolved viewer member ID
+  const [resolvedViewerId, setResolvedViewerId] = useState<string | null>(propViewerMbrId || null);
+
+  useEffect(() => {
+    if (propViewerMbrId) {
+      setResolvedViewerId(propViewerMbrId);
+      return;
+    }
+    const storedMbr = sessionStorage.getItem('sb_current_mbr');
+    if (storedMbr) {
+      try {
+        const parsed = JSON.parse(storedMbr);
+        if (parsed.mbrId) setResolvedViewerId(parsed.mbrId);
+      } catch {}
+    }
+  }, [propViewerMbrId]);
 
   // --- PHOTO DESCRIPTION EDIT STATE ---
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -335,6 +371,10 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
   const relationshipStatus = profile.mbrRelationshipStatusCd || (isSandbox ? 'Widowed' : null);
   const introductionText = profile.mbrIntroduction || profile.excerpt;
 
+  const isConnected = propIsConnected ?? profile?.isConnected ?? false;
+  const connectionGrpName = propConnectionGrpName ?? profile?.connectionGrpName ?? profile?.grpName ?? '';
+  const isSelf = Boolean(resolvedViewerId && profile?.mbrId && resolvedViewerId === profile.mbrId);
+
   return (
     <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
       {/* Top Header & Metadata Block */}
@@ -500,8 +540,62 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
         />
       )}
 
-      {/* --- LOWER RIGHT ACTION LINK: READ STORY --- */}
-      <div className="pt-3 border-t border-[#EFECE7] flex items-center justify-end">
+      {/* Connect Modal Dialog */}
+      {profile?.mbrId && (
+        <SbConnectModal
+          isOpen={isConnectModalOpen}
+          onClose={() => setIsConnectModalOpen(false)}
+          targetMember={profile}
+          viewerMbrId={resolvedViewerId}
+          onSuccess={() => {
+            setRequestSent(true);
+            if (onConnectSuccess) {
+              onConnectSuccess();
+            }
+          }}
+        />
+      )}
+
+      {/* --- LOWER ACTION BAR (Connection Status/Action on Left, Read Story on Right) --- */}
+      <div className="pt-3 border-t border-[#EFECE7] flex items-center justify-between gap-3">
+        {/* LOWER LEFT: Connection Icon & Group Name OR Connect Button */}
+        <div className="flex items-center min-h-[32px]">
+          {isSelf ? null : isConnected ? (
+            <div
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50/95 text-emerald-800 border border-emerald-200/90 rounded-xl text-xs font-serif shadow-2xs transition-all hover:bg-emerald-100/90"
+              title={connectionGrpName ? `Connection Group: ${connectionGrpName}` : 'Connected Member'}
+            >
+              <Users className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span className="font-semibold text-xs tracking-tight">
+                {connectionGrpName ? connectionGrpName : 'Connected'}
+              </span>
+            </div>
+          ) : requestSent ? (
+            <div
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 rounded-xl text-xs font-serif shadow-2xs"
+              title="Connection request sent"
+            >
+              <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="font-semibold text-xs tracking-tight">Inquiry Sent</span>
+            </div>
+          ) : showConnectButton ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsConnectModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 rounded-xl text-xs font-serif font-semibold shadow-2xs hover:shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              title="Connect with this member"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+              <span>Connect</span>
+            </button>
+          ) : null}
+        </div>
+
+        {/* LOWER RIGHT: Read Story Button */}
         <button
           type="button"
           onClick={(e) => {
@@ -514,7 +608,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
               window.dispatchEvent(new CustomEvent('open-member-story', { detail: { memberId: targetMbrId } }));
             }
           }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-serif font-bold rounded-xl shadow-xs hover:shadow transition-all duration-150 cursor-pointer active:scale-95 group"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-serif font-bold rounded-xl shadow-xs hover:shadow transition-all duration-150 cursor-pointer active:scale-95 group shrink-0"
           title="Read member's public story"
         >
           <BookOpen className="w-3.5 h-3.5 text-blue-200 group-hover:text-white transition-colors" />

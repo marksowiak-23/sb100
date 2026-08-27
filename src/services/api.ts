@@ -145,6 +145,20 @@ export interface EventRecord {
   eventUpdatedAt?: string;
 }
 
+export interface MbrContact {
+  mbrContactId: string;
+  mbrId: string;
+  mbrContactEmail?: string;
+  mbrContactMsg?: string;
+  mbrContactReasonCd?: string;
+  mbrContactResponseInd?: number;
+  mbrContactResponseDt?: string;
+  mbrContactMbrId?: string;
+  grpId?: string;
+  mbrContactCreatedAt?: string;
+  mbrContactUpdatedAt?: string;
+}
+
 export interface SignedUrlResponse {
   bucket: string;
   object_name: string;
@@ -1150,6 +1164,91 @@ export const taskApi = {
       },
     });
     return handleResponse<MbrConnectionGrp>(response);
+  },
+
+  /**
+   * Fetch member contact records for a given member ID.
+   */
+  async getMemberContacts(mbrId: string): Promise<MbrContact[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-contacts/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    return handleResponse<MbrContact[]>(response);
+  },
+
+  /**
+   * Fetch member contact records where contactMbrId is the recipient member.
+   */
+  async getMemberContactsByRecipient(contactMbrId: string): Promise<MbrContact[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-contacts?contact_mbr_id=${contactMbrId}&limit=100&t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    return handleResponse<MbrContact[]>(response);
+  },
+
+  /**
+   * Fetch all member contact records.
+   */
+  async getAllMemberContacts(): Promise<MbrContact[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-contacts?limit=200&t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    return handleResponse<MbrContact[]>(response);
+  },
+
+  /**
+   * Create a member contact inquiry record.
+   */
+  async createMemberContact(contact: Partial<MbrContact>): Promise<MbrContact> {
+    const response = await fetch(`${API_BASE_URL}/mbr-contacts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(contact)
+    });
+    return handleResponse<MbrContact>(response);
+  },
+
+  /**
+   * Update a member contact record.
+   */
+  async updateMemberContact(contactId: string, contact: Partial<MbrContact>): Promise<MbrContact> {
+    const response = await fetch(`${API_BASE_URL}/mbr-contacts/${contactId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(contact)
+    });
+    return handleResponse<MbrContact>(response);
+  },
+
+  /**
+   * Delete a member contact record.
+   */
+  async deleteMemberContact(contactId: string): Promise<MbrContact> {
+    const response = await fetch(`${API_BASE_URL}/mbr-contacts/${contactId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrContact>(response);
   }
 };
 

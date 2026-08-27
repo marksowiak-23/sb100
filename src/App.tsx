@@ -63,19 +63,23 @@ export default function App() {
   // Determines if the app should run using offline sandbox data. If the backend is unreachable, this falls back to true.
   const [isSandbox, setIsSandbox] = useState(false);
 
-  // Unsaved member profile changes guard state
+  // Unsaved member profile and connections changes guard state
   const [isProfileDirty, setIsProfileDirty] = useState(false);
+  const [isConnectionsDirty, setIsConnectionsDirty] = useState(false);
   const [showAppDiscardModal, setShowAppDiscardModal] = useState(false);
   const [pendingTab, setPendingTab] = useState<TabType | null>(null);
 
   const forceNavigateAway = (targetTab?: TabType) => {
     setIsProfileDirty(false);
-    const dest = (targetTab && targetTab !== 'mbrProfile') ? targetTab : (previousTab && previousTab !== 'mbrProfile' ? previousTab : 'sbMbrHomePage');
+    setIsConnectionsDirty(false);
+    const dest = (targetTab && targetTab !== 'mbrProfile' && targetTab !== 'mbrConnections') 
+      ? targetTab 
+      : (previousTab && previousTab !== 'mbrProfile' && previousTab !== 'mbrConnections' ? previousTab : 'sbMbrHomePage');
     setActiveTab(dest);
   };
 
   const handleTabChange = (newTab: TabType) => {
-    if (newTab !== activeTab && activeTab !== 'mbrProfile') {
+    if (newTab !== activeTab && activeTab !== 'mbrProfile' && activeTab !== 'mbrConnections') {
       setPreviousTab(activeTab);
     }
     if (newTab !== 'sbMbrRegister' && newTab !== 'sbMbrStoryPage' && newTab !== 'sbMbrLogon') {
@@ -84,6 +88,8 @@ export default function App() {
     if (activeTab === 'mbrProfile' && isProfileDirty && newTab !== 'mbrProfile') {
       setPendingTab(newTab);
       setShowAppDiscardModal(true);
+    } else if (activeTab === 'mbrConnections' && isConnectionsDirty && newTab !== 'mbrConnections') {
+      window.dispatchEvent(new CustomEvent('attempt-connection-navigation', { detail: { targetTab: newTab } }));
     } else {
       setActiveTab(newTab);
     }
@@ -425,7 +431,8 @@ export default function App() {
             <MbrConnectionFeature
               isSandbox={isSandbox}
               onClickBack={() => forceNavigateAway()}
-              onDirtyChange={setIsProfileDirty}
+              onDirtyChange={setIsConnectionsDirty}
+              onNavigate={handleTabChange}
             />
           </motion.div>
         )}

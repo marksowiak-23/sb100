@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { Loader2, AlertCircle, ArrowLeft, ShieldCheck, LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import PageSeo from '@/src/components/PageSeo';
 
 interface SbMbrLogonProps {
   logonType?: 'Google' | 'Apple';
@@ -113,12 +114,18 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
   };
 
   return (
-    <div className="w-full min-h-[75vh] flex items-center justify-center p-4 py-8 relative">
+    <div className="w-full max-w-md mx-auto py-12 px-4">
+      <PageSeo
+        title="Sign In | StoryBook Storytelling Community"
+        description="Sign in to your StoryBook account to write, share real life stories, connect with friends, and inspire others."
+        keywords="storybook login, storyteller sign in, creative community login, share your story, connect with friends"
+        robots="index, follow"
+      />
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.35 }}
-        className="w-full max-w-md bg-white border border-slate-100 rounded-3xl p-8 shadow-xl relative flex flex-col gap-6"
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 md:p-8 shadow-sm relative overflow-hidden"
       >
         {/* Top bar */}
         <div className="flex items-center justify-between gap-4">

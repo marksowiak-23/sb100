@@ -49,9 +49,9 @@ export default function SbMemberSearchResults({
       ) : (
         /* Render member cards using SbMbrProfilePanel */
         <div className="flex flex-col gap-6">
-          {members.map((member) => (
+          {Array.from(new Map(members.map(m => [m.mbrId || m.id, m])).values()).map((member, idx) => (
             <SbMbrProfilePanel
-              key={member.mbrId || member.id}
+              key={`${member.mbrId || member.id}-${idx}`}
               profile={member}
               isSandbox={false}
               onClickReadStory={onClickReadStory}

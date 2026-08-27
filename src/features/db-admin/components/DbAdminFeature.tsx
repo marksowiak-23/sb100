@@ -32,7 +32,7 @@ interface TableDefinition {
   fields: TableField[];
 }
 
-// All 23 system tables mapped with their respective columns, endpoints, and data types
+// All 24 system tables mapped with their respective columns, endpoints, and data types
 const TABLES: TableDefinition[] = [
   {
     id: 'cd',
@@ -199,6 +199,23 @@ const TABLES: TableDefinition[] = [
     fields: [
       { name: 'mbrId', label: 'Owner Member ID (UUID)', type: 'uuid', required: true },
       { name: 'mbrConnectionMbrId', label: 'Connected Member ID (UUID)', type: 'uuid', required: true }
+    ]
+  },
+  {
+    id: 'mbrContact',
+    name: 'mbrContact',
+    endpoint: '/mbr-contacts',
+    primaryKey: 'mbrContactId',
+    searchField: 'mbrContactEmail',
+    fields: [
+      { name: 'mbrId', label: 'Target Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrContactEmail', label: 'Contact Email', type: 'string', required: false, placeholder: 'e.g. contact@example.com' },
+      { name: 'mbrContactMsg', label: 'Contact Message', type: 'textarea', required: false, placeholder: 'Message content...' },
+      { name: 'mbrContactReasonCd', label: 'Reason Code', type: 'string', required: false, placeholder: 'e.g. INQUIRY, FEEDBACK' },
+      { name: 'mbrContactResponseInd', label: 'Response Indicator', type: 'number', required: false, placeholder: '0 = No, 1 = Yes' },
+      { name: 'mbrContactResponseDt', label: 'Response Date / Time', type: 'date', required: false },
+      { name: 'mbrContactMbrId', label: 'Sender Member ID (UUID)', type: 'uuid', required: false },
+      { name: 'grpId', label: 'Group ID (UUID)', type: 'uuid', required: false }
     ]
   },
   {
@@ -471,6 +488,22 @@ const getInitialMockData = (tableId: string): any[] => {
       return [
         { mbrConnectionGrpId: 'conngrp-1', mbrConnectionId: 'conn-1', grpId: 'gg-1', mbrConnectionGrpCreatedAt: now, mbrConnectionGrpUpdatedAt: now }
       ];
+    case 'mbrContact':
+      return [
+        {
+          mbrContactId: 'c1a2b3c4-1111-4318-ba28-7ee82c4fdbd1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrContactEmail: 'visitor@storybook.ai',
+          mbrContactMsg: 'Loved reading your story about Coos Bay harbor!',
+          mbrContactReasonCd: 'FEEDBACK',
+          mbrContactResponseInd: 1,
+          mbrContactResponseDt: now,
+          mbrContactMbrId: null,
+          grpId: null,
+          mbrContactCreatedAt: now,
+          mbrContactUpdatedAt: now
+        }
+      ];
     case 'event':
       return [
         {
@@ -506,7 +539,7 @@ interface DbAdminFeatureProps {
 }
 
 export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
-  // Sorted list of all 23 system tables by their actual table name
+  // Sorted list of all 24 system tables by their actual table name
   const sortedTables = useMemo(() => {
     return [...TABLES].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   }, []);
@@ -769,7 +802,7 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
           <div>
             <h1 className="text-xl font-serif font-black tracking-tight">Database Administration Center</h1>
             <p className="text-xs text-slate-300 mt-1">
-              Select any of the 23 system tables to manage user accounts, storyteller profiles, chatbot states, member stories, privacy privileges, groups, connections, and audit events.
+              Select any of the 24 system tables to manage user accounts, storyteller profiles, chatbot states, member stories, privacy privileges, groups, connections, contacts, and audit events.
             </p>
           </div>
         </div>

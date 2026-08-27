@@ -7,16 +7,16 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, 
-  Users, 
+  Send, 
   RotateCcw, 
-  Save, 
+  Trash2, 
   Loader2, 
   CheckCircle2, 
   AlertCircle 
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-interface ConnectionHeaderProps {
+interface RequestsHeaderProps {
   isDirty: boolean;
   saving: boolean;
   success: string | null;
@@ -24,20 +24,22 @@ interface ConnectionHeaderProps {
   onClickBack: () => void;
   onReset: () => void;
   onSave: () => void;
+  pendingWithdrawalsCount: number;
 }
 
-export default function ConnectionHeader({
+export default function RequestsHeader({
   isDirty,
   saving,
   success,
   error,
   onClickBack,
   onReset,
-  onSave
-}: ConnectionHeaderProps) {
+  onSave,
+  pendingWithdrawalsCount
+}: RequestsHeaderProps) {
   return (
     <div className="relative mb-8 pb-6 border-b border-slate-200 dark:border-slate-800">
-      <AdminComponentTag name="ConnectionHeader.tsx" />
+      <AdminComponentTag name="RequestsHeader.tsx" />
 
       {/* Navigation and Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -51,15 +53,15 @@ export default function ConnectionHeader({
             <span>Back</span>
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white">
-              <Users className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/20 text-white">
+              <Send className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">
-                My Connections
+                My Requests
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Organize other StoryBook members into your personal groups to control sharing and story access permissions.
+                Track pending outgoing connection requests sent to other members and withdraw them if needed.
               </p>
             </div>
           </div>
@@ -85,19 +87,23 @@ export default function ConnectionHeader({
             disabled={!isDirty || saving}
             className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold font-sans shadow-md transition-all cursor-pointer ${
               isDirty && !saving
-                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 active:scale-98'
+                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30 active:scale-98'
                 : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
             }`}
           >
             {saving ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Saving Connections...</span>
+                <span>Processing...</span>
               </>
             ) : (
               <>
-                <Save className="w-4 h-4" />
-                <span>Save Connection Settings</span>
+                <Trash2 className="w-4 h-4" />
+                <span>
+                  {pendingWithdrawalsCount > 0
+                    ? `Save ${pendingWithdrawalsCount} Withdrawal${pendingWithdrawalsCount > 1 ? 's' : ''}`
+                    : 'Save Changes'}
+                </span>
               </>
             )}
           </button>

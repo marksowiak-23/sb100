@@ -29,18 +29,18 @@ export default function MemberConnectionList({
       {loading ? (
         <div className="w-full h-72 flex flex-col items-center justify-center gap-3">
           <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-          <span className="text-sm font-medium text-slate-500 dark:text-slate-400">
-            Loading member directory and connection assignments...
+          <span className="text-sm font-medium text-slate-500 dark:text-slate-400 font-serif">
+            Loading your member connections...
           </span>
         </div>
       ) : memberList.length === 0 ? (
         <div className="w-full p-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
           <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
           <h3 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-1 font-serif">
-            No matching members found
+            No matching connections found
           </h3>
-          <p className="text-xs text-slate-400">
-            Try adjusting your search criteria or filter options.
+          <p className="text-xs text-slate-400 font-serif">
+            Try adjusting your search criteria or group filter options.
           </p>
         </div>
       ) : (

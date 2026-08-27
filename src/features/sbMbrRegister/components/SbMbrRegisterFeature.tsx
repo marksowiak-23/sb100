@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { UserPlus, Lock, Mail, User, Calendar, Eye, EyeOff, Loader2, AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import PageSeo from '@/src/components/PageSeo';
 
 interface SbMbrRegisterFeatureProps {
   setActiveTab: (tab: any) => void;
@@ -101,6 +102,12 @@ export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId
 
   return (
     <div className="w-full min-h-[80vh] flex items-center justify-center p-4 py-8 relative">
+      <PageSeo
+        title="Join StoryBook | Share Your Voice & Connect"
+        description="Start sharing your stories, life adventures, and creative milestones with a supportive global community of storytellers of all ages on StoryBook."
+        keywords="join storybook, sign up, share your voice, creative writing community, storyteller account, life moments, connect with people, write stories"
+        robots="index, follow"
+      />
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}

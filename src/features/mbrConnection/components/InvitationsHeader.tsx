@@ -7,7 +7,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, 
-  Users, 
+  Mail, 
   RotateCcw, 
   Save, 
   Loader2, 
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-interface ConnectionHeaderProps {
+interface InvitationsHeaderProps {
   isDirty: boolean;
   saving: boolean;
   success: string | null;
@@ -24,20 +24,22 @@ interface ConnectionHeaderProps {
   onClickBack: () => void;
   onReset: () => void;
   onSave: () => void;
+  pendingDecisionsCount: number;
 }
 
-export default function ConnectionHeader({
+export default function InvitationsHeader({
   isDirty,
   saving,
   success,
   error,
   onClickBack,
   onReset,
-  onSave
-}: ConnectionHeaderProps) {
+  onSave,
+  pendingDecisionsCount
+}: InvitationsHeaderProps) {
   return (
     <div className="relative mb-8 pb-6 border-b border-slate-200 dark:border-slate-800">
-      <AdminComponentTag name="ConnectionHeader.tsx" />
+      <AdminComponentTag name="InvitationsHeader.tsx" />
 
       {/* Navigation and Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -52,14 +54,14 @@ export default function ConnectionHeader({
           </button>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white">
-              <Users className="w-5 h-5" />
+              <Mail className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">
-                My Connections
+                My Invitations
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Organize other StoryBook members into your personal groups to control sharing and story access permissions.
+                Review connection requests and choose to Accept or Ignore each invitation.
               </p>
             </div>
           </div>
@@ -92,12 +94,16 @@ export default function ConnectionHeader({
             {saving ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Saving Connections...</span>
+                <span>Saving Decisions...</span>
               </>
             ) : (
               <>
                 <Save className="w-4 h-4" />
-                <span>Save Connection Settings</span>
+                <span>
+                  {pendingDecisionsCount > 0
+                    ? `Save ${pendingDecisionsCount} Decision${pendingDecisionsCount > 1 ? 's' : ''}`
+                    : 'Save Decisions'}
+                </span>
               </>
             )}
           </button>
