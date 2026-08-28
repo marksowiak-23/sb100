@@ -170,9 +170,11 @@ export default function SbConnectModal({
       });
 
       setSuccess(true);
+      window.dispatchEvent(new CustomEvent('invitations-updated'));
       if (onSuccess) {
         onSuccess();
       }
+
 
       // Auto close after 1.5s
       setTimeout(() => {

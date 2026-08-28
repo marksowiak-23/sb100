@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles } from 'lucide-react';
-import { taskApi, MbrStory } from '@/src/services/api';
+import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface StoryEditorPanelProps {
@@ -81,6 +81,25 @@ const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
   ]
 };
 
+const formatPublishedDate = (dateStr?: string | null) => {
+  if (!dateStr) return '—';
+  const parts = dateStr.split('T')[0].split('-');
+  if (parts.length === 3) {
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+  }
+  return dateStr;
+};
+
 export default function StoryEditorPanel({
   topicTitle = 'Section',
   topicId = 'general',
@@ -111,6 +130,7 @@ export default function StoryEditorPanel({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | undefined>(undefined);
   const [activeIntentId, setActiveIntentId] = useState<string | undefined>(undefined);
+  const [storyStatsMap, setStoryStatsMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
     const handleContentUpdate = (e: any) => {
@@ -218,11 +238,29 @@ export default function StoryEditorPanel({
           // Select max mbrStoryVersion if multiple stories exist
           const sorted = [...filtered].sort((a, b) => (b.mbrStoryVersion || 0) - (a.mbrStoryVersion || 0));
           setStories(sorted);
+
+          // Load story view stats for this member
+          try {
+            const stats = await mbrStoryStatApi.getMemberStoryStatsByMbrId(currentMbrId);
+            const map: Record<string, number> = {};
+            if (Array.isArray(stats)) {
+              stats.forEach((st) => {
+                if (st.mbrStoryId) {
+                  map[st.mbrStoryId] = st.mbrStoryStatViewedCnt || 0;
+                }
+              });
+            }
+            setStoryStatsMap(map);
+          } catch (statErr) {
+            console.warn("Could not retrieve story stats:", statErr);
+          }
+
           const defaultStory = (readOnly ? sorted.find(s => (s.mbrStoryPublishStatusCd || '').toLowerCase() === 'published') : null) || sorted[0];
           selectStory(defaultStory);
         } else {
           setStories([]);
           setActiveStoryId(null);
+          setStoryStatsMap({});
         }
       }
     } catch (err: any) {
@@ -231,6 +269,8 @@ export default function StoryEditorPanel({
       setLoading(false);
     }
   };
+
+  const recordedViewsRef = React.useRef<Set<string>>(new Set());
 
   const selectStory = (story: Partial<MbrStory>) => {
     setActiveStoryId(story.mbrStoryId || null);
@@ -242,6 +282,55 @@ export default function StoryEditorPanel({
     setIsEditing(false);
     setError(null);
     setSuccessMsg(null);
+
+    // Record View Activity if viewing another member's story
+    if (story.mbrStoryId && !story.mbrStoryId.startsWith('temp_')) {
+      (async () => {
+        try {
+          let viewerMbrId: string | null = null;
+          const storedMbr = sessionStorage.getItem('sb_current_mbr');
+          if (storedMbr) {
+            try {
+              const parsed = JSON.parse(storedMbr);
+              if (parsed.mbrId) viewerMbrId = parsed.mbrId;
+            } catch {}
+          }
+          if (!viewerMbrId) {
+            const userStr = sessionStorage.getItem('user');
+            if (userStr) {
+              try {
+                const u = JSON.parse(userStr);
+                const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+                if (mbrProfile && mbrProfile.mbrId) viewerMbrId = mbrProfile.mbrId;
+              } catch {}
+            }
+          }
+
+          const storyOwnerMbrId = story.mbrMbrId || (memberId === 'm1' ? 'e20986fa-0fb9-4081-ae5d-35bc8f504df0' : memberId);
+          if (viewerMbrId && storyOwnerMbrId && viewerMbrId !== storyOwnerMbrId) {
+            const viewKey = `${viewerMbrId}_${story.mbrStoryId}`;
+            if (!recordedViewsRef.current.has(viewKey)) {
+              recordedViewsRef.current.add(viewKey);
+              if (!isSandbox) {
+                await mbrStoryActivityApi.createStoryActivity({
+                  mbrId: storyOwnerMbrId,
+                  mbrStoryId: story.mbrStoryId,
+                  actMbrId: viewerMbrId,
+                  actTypeCd: 'VIEW',
+                  actDate: new Date().toISOString()
+                });
+                setStoryStatsMap((prev) => ({
+                  ...prev,
+                  [story.mbrStoryId!]: (prev[story.mbrStoryId!] || 0) + 1
+                }));
+              }
+            }
+          }
+        } catch (viewErr) {
+          console.warn("Could not record story view activity:", viewErr);
+        }
+      })();
+    }
   };
 
   const handleCreateNew = () => {
@@ -298,6 +387,8 @@ export default function StoryEditorPanel({
       const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
       const version = activeStory ? (activeStory.mbrStoryVersion || 1) : 1;
 
+      const todayDateStr = new Date().toISOString().split('T')[0];
+
       // Check if user is publishing a draft story that has an original published story reference
       const isPublishingDraftWithOriginal = (status || '').toLowerCase() === 'published' && activeStory && activeStory.mbrStoryOriginalId;
 
@@ -307,6 +398,7 @@ export default function StoryEditorPanel({
           mbrStoryTitle: title.trim(),
           mbrStoryContent: content,
           mbrStoryPublishStatusCd: 'Published',
+          mbrStoryPublishedDate: activeStory.mbrStoryPublishedDate || todayDateStr,
           mbrStoryTypeCd: finalStoryTypeCd,
           mbrStorySubordinateId: subordinateId || undefined,
           mbrMbrId: currentMbrId,
@@ -345,6 +437,7 @@ export default function StoryEditorPanel({
           setStories(nextList);
           selectStory(savedResult);
           setSuccessMsg('Published draft changes to original story, and removed draft copy!');
+          window.dispatchEvent(new CustomEvent('stats-updated'));
         }
         setIsEditing(false);
         return;
@@ -355,6 +448,7 @@ export default function StoryEditorPanel({
         mbrStoryTitle: title.trim(),
         mbrStoryContent: content,
         mbrStoryPublishStatusCd: status,
+        mbrStoryPublishedDate: (status || '').toLowerCase() === 'published' ? (activeStory?.mbrStoryPublishedDate || todayDateStr) : activeStory?.mbrStoryPublishedDate,
         mbrStoryTypeCd: finalStoryTypeCd,
         mbrStorySubordinateId: subordinateId || undefined,
         mbrMbrId: currentMbrId,
@@ -481,6 +575,8 @@ export default function StoryEditorPanel({
       const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
       const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
 
+      const todayDateStr = new Date().toISOString().split('T')[0];
+
       // Check if publishing a draft story that references an original published story
       if (activeStory && activeStory.mbrStoryOriginalId) {
         const originalId = activeStory.mbrStoryOriginalId;
@@ -488,6 +584,7 @@ export default function StoryEditorPanel({
           mbrStoryTitle: title.trim() || 'Untitled Story',
           mbrStoryContent: content,
           mbrStoryPublishStatusCd: 'Published',
+          mbrStoryPublishedDate: todayDateStr,
           mbrStoryTypeCd: finalStoryTypeCd,
           mbrStorySubordinateId: subordinateId || undefined,
           mbrMbrId: currentMbrId,
@@ -526,6 +623,7 @@ export default function StoryEditorPanel({
           setStories(nextList);
           selectStory(savedResult);
           setSuccessMsg('Published draft changes to original story, and removed draft copy!');
+          window.dispatchEvent(new CustomEvent('stats-updated'));
         }
       } else {
         const updatedStory: Partial<MbrStory> = {
@@ -533,6 +631,7 @@ export default function StoryEditorPanel({
           mbrStoryTitle: title.trim() || 'Untitled Story',
           mbrStoryContent: content,
           mbrStoryPublishStatusCd: 'Published',
+          mbrStoryPublishedDate: todayDateStr,
           mbrStoryTypeCd: finalStoryTypeCd,
           mbrStorySubordinateId: subordinateId || undefined,
           mbrMbrId: currentMbrId,
@@ -567,6 +666,7 @@ export default function StoryEditorPanel({
           setActiveStoryId(savedResult.mbrStoryId);
           setStatus('Published');
           setSuccessMsg('Story published successfully to database!');
+          window.dispatchEvent(new CustomEvent('stats-updated'));
         }
       }
       setShowPublishModal(false);
@@ -730,34 +830,62 @@ export default function StoryEditorPanel({
         )}
       </AnimatePresence>
 
-      {/* --- STORY SELECTOR TABS --- */}
-      {!isEditing && stories.length > 1 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
-          {stories.map((s) => {
-            const sStatus = s.mbrStoryPublishStatusCd || 'Draft';
-            const isPub = sStatus.toLowerCase() === 'published';
-            const isActive = activeStoryId === s.mbrStoryId;
-            return (
-              <button
-                key={s.mbrStoryId}
-                onClick={() => selectStory(s)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-serif font-bold whitespace-nowrap transition-all cursor-pointer border flex items-center gap-2 ${
-                  isActive
-                    ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                }`}
-              >
-                <span>{s.mbrStoryTitle || 'Untitled Story'}</span>
-                <span className={`px-1.5 py-0.2 rounded-full text-[8px] font-bold uppercase font-mono border ${
-                  isActive
-                    ? isPub ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40' : 'bg-amber-500/20 text-amber-300 border-amber-400/40'
-                    : isPub ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
-                }`}>
-                  {sStatus}
-                </span>
-              </button>
-            );
-          })}
+      {/* --- STORIES TABLE --- */}
+      {!isEditing && stories.length > 0 && (
+        <div className="bg-white border border-[#EFECE7] rounded-2xl overflow-hidden shadow-xs">
+          <div className="max-h-[225px] overflow-y-auto scrollbar-thin">
+            <table className="w-full table-fixed text-left text-xs border-collapse">
+              <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-xs border-b border-[#EFECE7] z-10">
+                <tr>
+                  <th className="py-2.5 px-4 font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Title
+                  </th>
+                  <th className="py-2.5 px-3 font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right w-20 shrink-0">
+                    Views
+                  </th>
+                  <th className="py-2.5 px-4 font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right w-32 shrink-0">
+                    Published Date
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EFECE7]">
+                {stories.map((s) => {
+                  const isActive = activeStoryId === s.mbrStoryId;
+                  const formattedDate = formatPublishedDate(s.mbrStoryPublishedDate);
+                  const viewCount = (s.mbrStoryId && storyStatsMap[s.mbrStoryId] !== undefined) ? storyStatsMap[s.mbrStoryId] : 0;
+                  return (
+                    <tr
+                      key={s.mbrStoryId}
+                      onClick={() => selectStory(s)}
+                      className={`cursor-pointer transition-colors duration-150 ${
+                        isActive
+                          ? 'bg-slate-100/90 font-bold text-slate-900'
+                          : 'hover:bg-slate-50/80 text-slate-700'
+                      }`}
+                    >
+                      <td className="py-2.5 px-4 font-serif">
+                        <div className="flex items-start gap-2">
+                          {isActive && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-800 shrink-0 mt-1.5" />
+                          )}
+                          <span className="whitespace-normal break-words leading-snug">
+                            {s.mbrStoryTitle || 'Untitled Story'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-[11px] text-slate-600 align-top pt-3">
+                        {viewCount.toLocaleString()}
+                      </td>
+                      <td className="py-2.5 px-4 text-right font-mono text-[11px] text-slate-500 whitespace-nowrap align-top pt-3">
+                        {formattedDate}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+
+            </table>
+          </div>
         </div>
       )}
 
@@ -798,30 +926,15 @@ export default function StoryEditorPanel({
             />
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex flex-col gap-1.5 flex-1">
-              <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                Publish Status
-              </label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value)}
-                className="bg-white border border-[#EFECE7] rounded-xl text-xs font-bold text-slate-700 px-3 py-2 outline-none focus:border-slate-800 cursor-pointer"
-              >
-                <option value="Draft">Draft</option>
-                <option value="Published">Published</option>
-                <option value="Archived">Archived</option>
-              </select>
-            </div>
-            <div className="text-right text-[10px] font-mono text-slate-400 font-bold self-end pb-2">
-              {wordCount} words
-            </div>
-          </div>
-
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-              Story Content & Narrative
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                Story Content & Narrative
+              </label>
+              <span className="text-[10px] font-mono text-slate-400 font-bold">
+                {wordCount} words
+              </span>
+            </div>
             <textarea
               rows={7}
               value={content}

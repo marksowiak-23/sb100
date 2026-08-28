@@ -208,7 +208,8 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
         
         {/* Left Column Section: Brand name, scrollable new connections, biography checklist status, and existing connections */}
         <div className="lg:col-span-3">
-          <LeftColumn onClickAuthorPage={onClickAuthorPage} />
+          <LeftColumn onClickAuthorPage={onClickAuthorPage} onClickReadStory={onClickReadStory} />
+
         </div>
 
         {/* Center Column Section: Main welcome hero, Search Bar box, and Dynamic Members feed */}

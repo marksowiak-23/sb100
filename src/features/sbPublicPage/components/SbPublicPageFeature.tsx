@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
@@ -17,33 +17,41 @@ interface SbPublicPageFeatureProps {
   onSelectLogonType?: (type: 'Google' | 'Apple') => void;
 }
 
+const PAGE_SIZE = 5;
+const AUTO_SCROLL_LIMIT = 20;
+
 export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, onSelectLogonType }: SbPublicPageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
 
-  // Fetch top 5 recent members on load, or search by query (name, location) on query change
+  // Fetch initial 5 members on load or when searchQuery changes
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
+    setHasMore(true);
 
     const timer = setTimeout(async () => {
       try {
         const queryTrimmed = searchQuery.trim();
-        let result: any[] = [];
-        if (queryTrimmed) {
-          result = await taskApi.getMembers({ query: queryTrimmed });
-        } else {
-          result = await taskApi.getMembers({ limit: 5 });
-        }
+        const result = await taskApi.getMembers({
+          query: queryTrimmed || undefined,
+          limit: PAGE_SIZE,
+          skip: 0
+        });
+
         if (!isCancelled) {
           const uniqueList = Array.from(new Map((result || []).map((m: any) => [m.mbrId || m.id, m])).values());
           setMembers(uniqueList);
+          setHasMore((result || []).length === PAGE_SIZE);
         }
       } catch (err) {
         console.error("Failed to fetch members for public search:", err);
         if (!isCancelled) {
           setMembers([]);
+          setHasMore(false);
         }
       } finally {
         if (!isCancelled) {
@@ -57,6 +65,53 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
       clearTimeout(timer);
     };
   }, [searchQuery]);
+
+  // Handler to fetch another 5 members
+  const handleLoadMore = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const queryTrimmed = searchQuery.trim();
+      const currentSkip = members.length;
+      const nextBatch = await taskApi.getMembers({
+        query: queryTrimmed || undefined,
+        limit: PAGE_SIZE,
+        skip: currentSkip
+      });
+
+      if (nextBatch && nextBatch.length > 0) {
+        setMembers((prev) => {
+          const combined = [...prev, ...nextBatch];
+          return Array.from(new Map(combined.map((m: any) => [m.mbrId || m.id, m])).values());
+        });
+        setHasMore(nextBatch.length === PAGE_SIZE);
+      } else {
+        setHasMore(false);
+      }
+    } catch (err) {
+      console.error("Failed to load more members:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loading, loadingMore, hasMore, searchQuery, members.length]);
+
+  // Infinite scroll listener: auto-fetch another 5 members when scrolling to the bottom until 20 are loaded
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loading || loadingMore || !hasMore) return;
+      if (members.length >= AUTO_SCROLL_LIMIT) return; // Stop auto-scrolling once 20 members are loaded
+
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const threshold = document.documentElement.scrollHeight - 300;
+
+      if (scrollPosition >= threshold) {
+        handleLoadMore();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleLoadMore, loading, loadingMore, hasMore, members.length]);
 
   return (
     <div className="w-full relative">
@@ -97,6 +152,9 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
             setSearchQuery={setSearchQuery}
             members={members}
             loading={loading}
+            loadingMore={loadingMore}
+            hasMore={hasMore}
+            onLoadMore={handleLoadMore}
             onClickReadStory={onClickReadStory}
           />
         </div>
@@ -111,4 +169,3 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     </div>
   );
 }
-

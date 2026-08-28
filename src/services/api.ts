@@ -160,6 +160,46 @@ export interface MbrContact {
   mbrContactUpdatedAt?: string;
 }
 
+export interface MbrStoryActivity {
+  actId: string;
+  mbrId: string;
+  mbrStoryId: string;
+  actTypeCd: string;
+  actMbrId?: string | null;
+  actDate?: string | null;
+  actCreatedAt?: string;
+  actUpdatedAt?: string;
+}
+
+export interface MbrStat {
+  statId: string;
+  mbrId: string;
+  statLastPublishedDt?: string | null;
+  statStoriesPublishedCnt: number;
+  statStoriesViewedCnt: number;
+  statFamilyStoryCnt?: number;
+  statResidenceCnt?: number;
+  statActivityCnt?: number;
+  statAchievementsCnt?: number;
+  statEducationCnt?: number;
+  statEmploymentCnt?: number;
+  statCreatedAt?: string;
+  statUpdatedAt?: string;
+}
+
+export interface MbrStoryStat {
+  mbrStoryStatId: string;
+  mbrId: string;
+  mbrStoryId: string;
+  mbrStoryStatViewedCnt: number;
+  mbrStoryStatCommentCnt: number;
+  mbrStoryStatLikedCnt: number;
+  mbrStoryStatCreatedAt?: string;
+  mbrStoryStatUpdatedAt?: string;
+}
+
+
+
 export interface SignedUrlResponse {
   bucket: string;
   object_name: string;
@@ -1252,6 +1292,275 @@ export const taskApi = {
     return handleResponse<MbrContact>(response);
   }
 };
+
+export const mbrStoryActivityApi = {
+  /**
+   * Get all story activities with pagination.
+   */
+  async getStoryActivities(skip: number = 0, limit: number = 100): Promise<MbrStoryActivity[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-activities?skip=${skip}&limit=${limit}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStoryActivity[]>(response);
+  },
+
+  /**
+   * Get a single story activity by ID.
+   */
+  async getStoryActivity(actId: string): Promise<MbrStoryActivity> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-activities/${actId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStoryActivity>(response);
+  },
+
+  /**
+   * Get story activities for a specific story ID.
+   */
+  async getStoryActivitiesByStoryId(mbrStoryId: string): Promise<MbrStoryActivity[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-activities/story/${mbrStoryId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStoryActivity[]>(response);
+  },
+
+  /**
+   * Get story activities for a specific member ID.
+   */
+  async getStoryActivitiesByMbrId(mbrId: string): Promise<MbrStoryActivity[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-activities/member/${mbrId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStoryActivity[]>(response);
+  },
+
+  /**
+   * Create a new story activity record.
+   */
+  async createStoryActivity(activity: Partial<MbrStoryActivity>): Promise<MbrStoryActivity> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-activities`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(activity)
+    });
+    return handleResponse<MbrStoryActivity>(response);
+  },
+
+  /**
+   * Update a story activity record.
+   */
+  async updateStoryActivity(actId: string, activity: Partial<MbrStoryActivity>): Promise<MbrStoryActivity> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-activities/${actId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(activity)
+    });
+    return handleResponse<MbrStoryActivity>(response);
+  },
+
+  /**
+   * Delete a story activity record.
+   */
+  async deleteStoryActivity(actId: string): Promise<MbrStoryActivity> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-activities/${actId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStoryActivity>(response);
+  }
+};
+
+export const mbrStatApi = {
+  /**
+   * Get all member stats with pagination.
+   */
+  async getMemberStats(skip: number = 0, limit: number = 100): Promise<MbrStat[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-stats?skip=${skip}&limit=${limit}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStat[]>(response);
+  },
+
+  /**
+   * Get a single member stat record by stat ID.
+   */
+  async getMemberStat(statId: string): Promise<MbrStat> {
+    const response = await fetch(`${API_BASE_URL}/mbr-stats/${statId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStat>(response);
+  },
+
+  /**
+   * Get a member stat record by member ID.
+   */
+  async getMemberStatByMbrId(mbrId: string): Promise<MbrStat> {
+    const response = await fetch(`${API_BASE_URL}/mbr-stats/member/${mbrId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStat>(response);
+  },
+
+  /**
+   * Create a new member stat record.
+   */
+  async createMemberStat(stat: Partial<MbrStat>): Promise<MbrStat> {
+    const response = await fetch(`${API_BASE_URL}/mbr-stats`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(stat)
+    });
+    return handleResponse<MbrStat>(response);
+  },
+
+  /**
+   * Update a member stat record.
+   */
+  async updateMemberStat(statId: string, stat: Partial<MbrStat>): Promise<MbrStat> {
+    const response = await fetch(`${API_BASE_URL}/mbr-stats/${statId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(stat)
+    });
+    return handleResponse<MbrStat>(response);
+  },
+
+  /**
+   * Delete a member stat record.
+   */
+  async deleteMemberStat(statId: string): Promise<MbrStat> {
+    const response = await fetch(`${API_BASE_URL}/mbr-stats/${statId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStat>(response);
+  }
+};
+
+export const mbrStoryStatApi = {
+  /**
+   * Get all member story stats with pagination.
+   */
+  async getMemberStoryStats(skip: number = 0, limit: number = 100): Promise<MbrStoryStat[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-stats?skip=${skip}&limit=${limit}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStoryStat[]>(response);
+  },
+
+  /**
+   * Get a single member story stat record by stat ID.
+   */
+  async getMemberStoryStat(storyStatId: string): Promise<MbrStoryStat> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-stats/${storyStatId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStoryStat>(response);
+  },
+
+  /**
+   * Get a member story stat record by story ID.
+   */
+  async getMemberStoryStatByStoryId(mbrStoryId: string): Promise<MbrStoryStat> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-stats/story/${mbrStoryId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStoryStat>(response);
+  },
+
+  /**
+   * Get member story stat records by member ID.
+   */
+  async getMemberStoryStatsByMbrId(mbrId: string): Promise<MbrStoryStat[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-stats/member/${mbrId}`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStoryStat[]>(response);
+  },
+
+
+  /**
+   * Create a new member story stat record.
+   */
+  async createMemberStoryStat(stat: Partial<MbrStoryStat>): Promise<MbrStoryStat> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-stats`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(stat)
+    });
+    return handleResponse<MbrStoryStat>(response);
+  },
+
+  /**
+   * Update a member story stat record.
+   */
+  async updateMemberStoryStat(storyStatId: string, stat: Partial<MbrStoryStat>): Promise<MbrStoryStat> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-stats/${storyStatId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(stat)
+    });
+    return handleResponse<MbrStoryStat>(response);
+  },
+
+  /**
+   * Delete a member story stat record.
+   */
+  async deleteMemberStoryStat(storyStatId: string): Promise<MbrStoryStat> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-stats/${storyStatId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrStoryStat>(response);
+  }
+};
+
 
 
 export const adminDbApi = {

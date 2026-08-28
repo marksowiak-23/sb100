@@ -32,7 +32,7 @@ interface TableDefinition {
   fields: TableField[];
 }
 
-// All 24 system tables mapped with their respective columns, endpoints, and data types
+// All 26 system tables mapped with their respective columns, endpoints, and data types
 const TABLES: TableDefinition[] = [
   {
     id: 'cd',
@@ -328,6 +328,25 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrStat',
+    name: 'mbrStat',
+    endpoint: '/mbr-stats',
+    primaryKey: 'statId',
+    searchField: 'mbrId',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'statLastPublishedDt', label: 'Last Published Date / Time', type: 'date', required: false },
+      { name: 'statStoriesPublishedCnt', label: 'Stories Published Count', type: 'number', required: true, placeholder: '0' },
+      { name: 'statStoriesViewedCnt', label: 'Stories Viewed Count', type: 'number', required: true, placeholder: '0' },
+      { name: 'statFamilyStoryCnt', label: 'Family Stories Count', type: 'number', required: false, placeholder: '0' },
+      { name: 'statResidenceCnt', label: 'Residences Count', type: 'number', required: false, placeholder: '0' },
+      { name: 'statActivityCnt', label: 'Activities Count', type: 'number', required: false, placeholder: '0' },
+      { name: 'statAchievementsCnt', label: 'Achievements Count', type: 'number', required: false, placeholder: '0' },
+      { name: 'statEducationCnt', label: 'Education Count', type: 'number', required: false, placeholder: '0' },
+      { name: 'statEmploymentCnt', label: 'Employment Count', type: 'number', required: false, placeholder: '0' }
+    ]
+  },
+  {
     id: 'mbrStory',
     name: 'mbrStory',
     endpoint: '/mbr-stories',
@@ -348,6 +367,36 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrStorySubordinateId', label: 'Subordinate Entity ID (UUID)', type: 'uuid', required: false }
     ]
   },
+  {
+    id: 'mbrStoryActivity',
+    name: 'mbrStoryActivity',
+    endpoint: '/mbr-story-activities',
+    primaryKey: 'actId',
+    searchField: 'actTypeCd',
+    fields: [
+      { name: 'mbrId', label: 'Story Owner Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrStoryId', label: 'Story ID (UUID)', type: 'uuid', required: true },
+      { name: 'actTypeCd', label: 'Activity Type Code', type: 'string', required: true, placeholder: 'e.g. VIEW, LIKE, SHARE, PLAY' },
+      { name: 'actMbrId', label: 'Actor Member ID (UUID)', type: 'uuid', required: false },
+      { name: 'actDate', label: 'Activity Date / Time', type: 'date', required: false }
+    ]
+  },
+  {
+    id: 'mbrStoryStat',
+    name: 'mbrStoryStat',
+    endpoint: '/mbr-story-stats',
+    primaryKey: 'mbrStoryStatId',
+    searchField: 'mbrStoryId',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrStoryId', label: 'Story ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrStoryStatViewedCnt', label: 'Stories Viewed Count', type: 'number', required: true, placeholder: '0' },
+      { name: 'mbrStoryStatCommentCnt', label: 'Stories Comment Count', type: 'number', required: true, placeholder: '0' },
+      { name: 'mbrStoryStatLikedCnt', label: 'Stories Liked Count', type: 'number', required: true, placeholder: '0' }
+    ]
+  },
+
+
   {
     id: 'mbrTopicGroupPrivs',
     name: 'mbrTopicGroupPrivs',
@@ -436,6 +485,52 @@ const getInitialMockData = (tableId: string): any[] => {
           mbrStoryUpdatedAt: now
         }
       ];
+    case 'mbrStat':
+      return [
+        {
+          statId: 'stat-mock-01',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          statLastPublishedDt: now,
+          statStoriesPublishedCnt: 5,
+          statStoriesViewedCnt: 42,
+          statFamilyStoryCnt: 3,
+          statResidenceCnt: 2,
+          statActivityCnt: 4,
+          statAchievementsCnt: 1,
+          statEducationCnt: 2,
+          statEmploymentCnt: 3,
+          statCreatedAt: now,
+          statUpdatedAt: now
+        }
+      ];
+    case 'mbrStoryActivity':
+      return [
+        {
+          actId: 'act-mock-01',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrStoryId: 'st_fam_1',
+          actTypeCd: 'VIEW',
+          actMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          actDate: now,
+          actCreatedAt: now,
+          actUpdatedAt: now
+        }
+      ];
+    case 'mbrStoryStat':
+      return [
+        {
+          mbrStoryStatId: 'storystat-mock-01',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrStoryId: 'st_fam_1',
+          mbrStoryStatViewedCnt: 35,
+          mbrStoryStatCommentCnt: 8,
+          mbrStoryStatLikedCnt: 14,
+          mbrStoryStatCreatedAt: now,
+          mbrStoryStatUpdatedAt: now
+        }
+      ];
+
+
     case 'mbrPreferences':
       return [
         {

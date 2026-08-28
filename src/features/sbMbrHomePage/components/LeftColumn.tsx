@@ -5,22 +5,23 @@
 
 import React from 'react';
 import SbBrandHeaderCard from './SbBrandHeaderCard';
-import SbMyNewConnectionsCard from './SbMyNewConnectionsCard';
-import SbMyStorybookStatusCard from './SbMyStorybookStatusCard';
 import SbMyConnectionsCard from './SbMyConnectionsCard';
+import SbMyStorybookStatusCard from './SbMyStorybookStatusCard';
+import SbMbrStats from './SbMbrStats';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface LeftColumnProps {
   onClickAuthorPage?: () => void;
+  onClickReadStory?: (memberId: string) => void;
 }
 
-export default function LeftColumn({ onClickAuthorPage }: LeftColumnProps) {
+export default function LeftColumn({ onClickAuthorPage, onClickReadStory }: LeftColumnProps) {
   return (
     <div className="space-y-8 flex flex-col relative">
       <SbBrandHeaderCard />
-      <SbMyNewConnectionsCard />
+      <SbMyConnectionsCard onClickMember={onClickReadStory} />
       <SbMyStorybookStatusCard onClickAuthorPage={onClickAuthorPage} />
-      <SbMyConnectionsCard />
+      <SbMbrStats />
       <AdminComponentTag name="LeftColumn" />
     </div>
   );

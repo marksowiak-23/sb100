@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
+    "services:start": "powershell -ExecutionPolicy Bypass -File ./scripts/start_all_services.ps1",
+    "services:stop": "powershell -ExecutionPolicy Bypass -File ./scripts/stop_all_services.ps1",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",

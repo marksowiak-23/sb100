@@ -43,6 +43,7 @@ export default function MainLayout({
   const [isAdminMenuOpen, setIsAdminMenuOpen] = React.useState(true);
   const [profilePic, setProfilePic] = React.useState<string | null>(null);
   const [userName, setUserName] = React.useState<string>('StoryBook Member');
+  const [invitationCount, setInvitationCount] = React.useState<number>(0);
 
   const isMemberLoggedIn = Boolean(
     (activeTab !== 'sbPublicPage' && activeTab !== 'sbMbrLogon' && activeTab !== 'sbMbrRegister') ||
@@ -96,6 +97,66 @@ export default function MainLayout({
     
     loadProfilePic();
   }, [isSandbox, activeTab]);
+
+  const loadInvitationCount = React.useCallback(async () => {
+    try {
+      const userStr = sessionStorage.getItem('user');
+      const storedMbr = sessionStorage.getItem('sb_current_mbr');
+      if (!userStr && !storedMbr && (activeTab === 'sbPublicPage' || activeTab === 'sbMbrLogon' || activeTab === 'sbMbrRegister')) {
+        setInvitationCount(0);
+        return;
+      }
+
+      let currentMbrId = 'e20986fa-0fb9-4081-ae5d-35bc8f504df0'; // fallback
+      if (storedMbr) {
+        try {
+          const parsed = JSON.parse(storedMbr);
+          if (parsed.mbrId) currentMbrId = parsed.mbrId;
+        } catch {}
+      } else if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+          if (mbrProfile && mbrProfile.mbrId) {
+            currentMbrId = mbrProfile.mbrId;
+          }
+        } catch {}
+      }
+
+      if (isSandbox) {
+        const rawContactsStr = sessionStorage.getItem(`sandbox_mbr_contacts_${currentMbrId}`);
+        if (rawContactsStr) {
+          const rawContacts: any[] = JSON.parse(rawContactsStr);
+          const pending = rawContacts.filter(c => (c.mbrContactMbrId === currentMbrId || c.mbrId !== currentMbrId) && c.mbrContactResponseInd !== 1);
+          setInvitationCount(pending.length);
+        } else {
+          // Default initial mock invitations for Sandbox
+          setInvitationCount(2);
+        }
+      } else {
+        const incoming = await taskApi.getMemberContactsByRecipient(currentMbrId);
+        const pending = (incoming || []).filter(c => c.mbrContactResponseInd !== 1);
+        setInvitationCount(pending.length);
+      }
+    } catch (e) {
+      console.warn("Could not load contact invitation count:", e);
+    }
+  }, [isSandbox, activeTab]);
+
+  React.useEffect(() => {
+    loadInvitationCount();
+
+    const handleUpdate = () => {
+      loadInvitationCount();
+    };
+
+    window.addEventListener('invitations-updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('invitations-updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, [loadInvitationCount]);
 
   const handleLogoClick = () => {
     const userStr = sessionStorage.getItem('user');
@@ -192,9 +253,19 @@ export default function MainLayout({
                   ? 'text-white border-b-2 border-white font-bold'
                   : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
               }`}
-              title="Connections & Groups"
+              title={invitationCount > 0 ? `Connections & Groups (${invitationCount} pending invitation${invitationCount > 1 ? 's' : ''})` : "Connections & Groups"}
             >
-              <Users className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
+              <div className="relative">
+                <Users className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
+                {invitationCount > 0 && (
+                  <span
+                    className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 bg-rose-600 text-white font-mono text-[9.5px] font-bold rounded-full flex items-center justify-center ring-2 ring-[#0F1B35] shadow-xs"
+                    title={`${invitationCount} pending invitation${invitationCount > 1 ? 's' : ''} waiting for you`}
+                  >
+                    {invitationCount > 99 ? '99+' : invitationCount}
+                  </span>
+                )}
+              </div>
               <span className="text-[11px] font-sans tracking-tight leading-none">Connections</span>
             </button>
 
@@ -460,13 +531,18 @@ export default function MainLayout({
                         setActiveTab('mbrConnections');
                         setDropdownOpen(false);
                       }}
-                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors flex items-center justify-between ${
                         activeTab === 'mbrConnections'
                           ? 'bg-white/10 text-white font-bold'
                           : 'text-slate-300 hover:bg-white/5 hover:text-white'
                       }`}
                     >
-                      My Connections
+                      <span>My Connections</span>
+                      {invitationCount > 0 && (
+                        <span className="px-1.5 py-0.5 text-[9.5px] font-mono font-bold bg-rose-600 text-white rounded-full leading-none">
+                          {invitationCount}
+                        </span>
+                      )}
                     </div>
 
                     {/* Administrator Nested Menu Group */}

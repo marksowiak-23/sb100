@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save, Users, UserCheck, UserPlus } from 'lucide-react';
-import { taskApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
+import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save, Users, UserCheck, UserPlus, Clock } from 'lucide-react';
+import { taskApi, mbrStatApi, resolveMediaUrl, MbrMedia, MbrStat } from '@/src/services/api';
 import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
@@ -36,6 +36,7 @@ export default function SbMbrProfilePanel({
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(propProfile || null);
   const [galleryItems, setGalleryItems] = useState<MbrMedia[]>([]);
+  const [mbrStat, setMbrStat] = useState<MbrStat | null>(null);
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
@@ -87,6 +88,7 @@ export default function SbMbrProfilePanel({
       });
       if (propProfile.mbrId) {
         fetchGallery(propProfile.mbrId);
+        fetchStats(propProfile.mbrId);
       }
       setLoading(false);
     } else if (memberId) {
@@ -95,6 +97,41 @@ export default function SbMbrProfilePanel({
       loadAuthorProfile();
     }
   }, [isSandbox, propProfile, memberId]);
+
+  const fetchStats = async (targetMbrId: string) => {
+    if (!targetMbrId) return;
+    const realMbrId = targetMbrId === 'm1' ? 'e20986fa-0fb9-4081-ae5d-35bc8f504df0' : targetMbrId;
+    if (isSandbox || targetMbrId.startsWith('sandbox-')) {
+      setMbrStat({
+        statId: 'mock-stat-1',
+        mbrId: realMbrId,
+        statStoriesPublishedCnt: propProfile?.statStoriesPublishedCnt ?? propProfile?.chaptersCount ?? 5,
+        statLastPublishedDt: propProfile?.statLastPublishedDt ?? propProfile?.statStoriesPublishedDt ?? '2026-08-15T14:30:00Z',
+        statStoriesViewedCnt: propProfile?.statStoriesViewedCnt ?? 42
+      });
+      return;
+    }
+    try {
+      const stat = await mbrStatApi.getMemberStatByMbrId(realMbrId);
+      if (stat) {
+        setMbrStat(stat);
+      } else {
+        setMbrStat(null);
+      }
+    } catch (err) {
+      if (propProfile?.statStoriesPublishedCnt !== undefined) {
+        setMbrStat({
+          statId: 'prop-stat',
+          mbrId: realMbrId,
+          statStoriesPublishedCnt: propProfile.statStoriesPublishedCnt,
+          statLastPublishedDt: propProfile.statLastPublishedDt ?? propProfile.statStoriesPublishedDt,
+          statStoriesViewedCnt: propProfile.statStoriesViewedCnt ?? 0
+        });
+      } else {
+        setMbrStat(null);
+      }
+    }
+  };
 
   const loadProfileById = async (targetId: string) => {
     setLoading(true);
@@ -111,6 +148,7 @@ export default function SbMbrProfilePanel({
           mbrProfilePic: staticM.avatarUrl,
           mbrCreatedAt: `${staticM.joinedDate}-01-01T00:00:00Z`
         });
+        fetchStats(staticM.id);
         setLoading(false);
         return;
       }
@@ -122,6 +160,7 @@ export default function SbMbrProfilePanel({
           mbrProfilePic: resolveMediaUrl(cachedPic || mbr.mbrProfilePic)
         });
         fetchGallery(mbr.mbrId);
+        fetchStats(mbr.mbrId);
       }
     } catch (err) {
       console.error("Error loading member profile by ID:", err);
@@ -137,6 +176,7 @@ export default function SbMbrProfilePanel({
           mbrProfilePic: staticM.avatarUrl,
           mbrCreatedAt: `${staticM.joinedDate}-01-01T00:00:00Z`
         });
+        fetchStats(staticM.id);
       }
     } finally {
       setLoading(false);
@@ -161,6 +201,7 @@ export default function SbMbrProfilePanel({
           const mbr = JSON.parse(savedMbr);
           setProfile(mbr);
           fetchGallery(mbr.mbrId);
+          fetchStats(mbr.mbrId);
         } else {
           // Fallback Eleanor Hartwell template
           const defaultMbr = {
@@ -185,6 +226,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
           };
           setProfile(defaultMbr);
           fetchGallery(defaultMbr.mbrId);
+          fetchStats(defaultMbr.mbrId);
         }
       } else {
         // --- LIVE DATABASE MODE ---
@@ -197,6 +239,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
             mbrProfilePic: resolveMediaUrl(cachedPic || mbr.mbrProfilePic)
           });
           fetchGallery(mbr.mbrId);
+          fetchStats(mbr.mbrId);
         }
       }
     } catch (err) {
@@ -371,6 +414,25 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
   const relationshipStatus = profile.mbrRelationshipStatusCd || (isSandbox ? 'Widowed' : null);
   const introductionText = profile.mbrIntroduction || profile.excerpt;
 
+  const formatPublishedDate = (dateStr?: string | null): string | null => {
+    if (!dateStr) return null;
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return null;
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return null;
+    }
+  };
+
+  const publishedCount = mbrStat?.statStoriesPublishedCnt ?? profile?.statStoriesPublishedCnt ?? profile?.chaptersCount ?? (isSandbox ? 5 : 0);
+  const rawLastPublishedDt = mbrStat?.statLastPublishedDt ?? profile?.statLastPublishedDt ?? profile?.statStoriesPublishedDt ?? (isSandbox ? '2026-08-15T14:30:00Z' : null);
+  const lastPublishedFormatted = formatPublishedDate(rawLastPublishedDt);
+
   const isConnected = propIsConnected ?? profile?.isConnected ?? false;
   const connectionGrpName = propConnectionGrpName ?? profile?.connectionGrpName ?? profile?.grpName ?? '';
   const isSelf = Boolean(resolvedViewerId && profile?.mbrId && resolvedViewerId === profile.mbrId);
@@ -478,6 +540,20 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
                 )}
               </div>
             )}
+
+            {/* Story Publication Stats */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-700">
+              <div className="flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">STORIES PUBLISHED:</span>
+                <span className="font-semibold text-slate-800">{publishedCount}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">LAST PUBLISHED:</span>
+                <span className="font-semibold text-slate-800">{lastPublishedFormatted || 'None'}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

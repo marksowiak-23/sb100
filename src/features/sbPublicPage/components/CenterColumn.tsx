@@ -14,6 +14,9 @@ interface CenterColumnProps {
   setSearchQuery: (query: string) => void;
   members: any[];
   loading?: boolean;
+  loadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
   onClickReadStory?: (memberId: string) => void;
 }
 
@@ -22,6 +25,9 @@ export default function CenterColumn({
   setSearchQuery,
   members,
   loading = false,
+  loadingMore = false,
+  hasMore = true,
+  onLoadMore,
   onClickReadStory
 }: CenterColumnProps) {
   return (
@@ -39,6 +45,9 @@ export default function CenterColumn({
       <SbMemberSearchResults
         members={members}
         loading={loading}
+        loadingMore={loadingMore}
+        hasMore={hasMore}
+        onLoadMore={onLoadMore}
         onClickReadStory={onClickReadStory}
       />
 
@@ -46,4 +55,3 @@ export default function CenterColumn({
     </div>
   );
 }
-

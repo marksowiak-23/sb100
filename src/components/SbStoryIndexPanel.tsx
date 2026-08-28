@@ -4,7 +4,19 @@
  */
 
 import React from 'react';
-import { BookOpen, Lock } from 'lucide-react';
+import { 
+  BookOpen, 
+  Lock, 
+  Users, 
+  Home, 
+  Trophy, 
+  GraduationCap, 
+  Briefcase, 
+  Palette,
+  FileText,
+  User,
+  Sparkles
+} from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 export interface StoryTopic {
@@ -37,6 +49,35 @@ const DEFAULT_TOPICS: StoryTopic[] = [
   { id: 'Hobbies', label: 'Activities and Hobbies' }
 ];
 
+function getTopicIcon(id: string, label: string = '') {
+  const normalized = (id + ' ' + label).toLowerCase();
+  if (normalized.includes('family') || normalized.includes('famly')) {
+    return Users;
+  }
+  if (normalized.includes('residen') || normalized.includes('home') || normalized.includes('house')) {
+    return Home;
+  }
+  if (normalized.includes('achieve') || normalized.includes('award') || normalized.includes('trophy')) {
+    return Trophy;
+  }
+  if (normalized.includes('educat') || normalized.includes('train') || normalized.includes('school') || normalized.includes('college')) {
+    return GraduationCap;
+  }
+  if (normalized.includes('employ') || normalized.includes('career') || normalized.includes('work') || normalized.includes('job')) {
+    return Briefcase;
+  }
+  if (normalized.includes('activ') || normalized.includes('hobbi') || normalized.includes('hobby') || normalized.includes('interest')) {
+    return Palette;
+  }
+  if (normalized.includes('biograph') || normalized.includes('bio') || normalized.includes('profile')) {
+    return User;
+  }
+  if (normalized.includes('stori') || normalized.includes('story')) {
+    return FileText;
+  }
+  return Sparkles;
+}
+
 export default function SbStoryIndexPanel({
   activeSection,
   activeTopic,
@@ -66,13 +107,14 @@ export default function SbStoryIndexPanel({
       </div>
 
       {/* Topic List */}
-      <nav className="flex flex-col gap-1.5">
+      <nav className="flex flex-col gap-1">
         {list.map((item) => {
           const isActive = currentActive?.toLowerCase() === item.id.toLowerCase();
           const isItemLocked = !!(
             item.isLocked ||
             (lockedTopicIds && lockedTopicIds.some(lid => lid.toLowerCase() === item.id.toLowerCase()))
           );
+          const IconComponent = getTopicIcon(item.id, item.label);
 
           return (
             <button
@@ -80,15 +122,24 @@ export default function SbStoryIndexPanel({
               type="button"
               disabled={isItemLocked}
               onClick={() => !isItemLocked && handleSelect(item.id)}
-              className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-left text-xs font-serif transition-all duration-150 ${
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-serif transition-all duration-150 ${
                 isItemLocked
                   ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60 bg-slate-50/50'
                   : isActive
-                  ? 'text-slate-850 font-bold underline underline-offset-2 bg-slate-100/60 cursor-pointer'
-                  : 'text-slate-650 hover:text-slate-850 hover:underline hover:underline-offset-2 cursor-pointer'
+                  ? 'text-slate-900 font-bold bg-slate-100/90 cursor-pointer shadow-xs'
+                  : 'text-slate-650 hover:text-slate-850 hover:bg-slate-50/80 cursor-pointer'
               }`}
             >
-              <span className="truncate">{item.label}</span>
+              <div className="flex items-center gap-2.5 min-w-0">
+                <IconComponent className={`w-3.5 h-3.5 shrink-0 ${
+                  isItemLocked 
+                    ? 'text-slate-400' 
+                    : isActive 
+                    ? 'text-slate-800' 
+                    : 'text-slate-400'
+                }`} />
+                <span className="truncate">{item.label}</span>
+              </div>
               {isItemLocked && (
                 <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 ml-2" />
               )}
@@ -106,16 +157,18 @@ export default function SbStoryIndexPanel({
           <button
             type="button"
             onClick={onEditStories || (() => alert('Editing Stories checklists...'))}
-            className="w-full text-left px-3 py-1 rounded-lg text-xs font-serif text-slate-650 hover:text-slate-850 hover:underline hover:underline-offset-2 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2 text-left px-3 py-1.5 rounded-lg text-xs font-serif text-slate-650 hover:text-slate-850 hover:bg-slate-50/80 transition-colors cursor-pointer"
           >
-            • Stories
+            <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>Stories</span>
           </button>
           <button
             type="button"
             onClick={onEditBiography || (() => alert('Editing Biography metadata details...'))}
-            className="w-full text-left px-3 py-1 rounded-lg text-xs font-serif text-slate-650 hover:text-slate-850 hover:underline hover:underline-offset-2 transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2 text-left px-3 py-1.5 rounded-lg text-xs font-serif text-slate-650 hover:text-slate-850 hover:bg-slate-50/80 transition-colors cursor-pointer"
           >
-            • Biography
+            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>Biography</span>
           </button>
         </div>
       )}
@@ -124,4 +177,3 @@ export default function SbStoryIndexPanel({
     </div>
   );
 }
-

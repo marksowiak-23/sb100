@@ -764,7 +764,9 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
       setTimeout(() => setSuccess(null), 4000);
 
       await loadData();
+      window.dispatchEvent(new CustomEvent('invitations-updated'));
     } catch (err: any) {
+
       console.error("Failed to save invitation responses:", err);
       setError(err?.message || "Failed to save invitation responses. Please check server status.");
     } finally {
