@@ -47,6 +47,7 @@ export interface MbrStory {
   mbrStoryVersion: number;
   mbrStoryStartDate?: string;
   mbrStoryEndDate?: string;
+  mbrStoryPublishedDate?: string;
   mbrStoryCreatedAt: string;
   mbrStoryUpdatedAt: string;
   mbrStoryThreadID?: string;

@@ -115,7 +115,7 @@ export default function CenterColumn({
           className="group inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-          <span>Back to Dashboard</span>
+          <span>Back</span>
         </button>
       </div>
 

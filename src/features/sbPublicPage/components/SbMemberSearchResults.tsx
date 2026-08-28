@@ -54,6 +54,7 @@ export default function SbMemberSearchResults({
               key={`${member.mbrId || member.id}-${idx}`}
               profile={member}
               isSandbox={false}
+              showConnectButton={false}
               onClickReadStory={onClickReadStory}
             />
           ))}
