@@ -1,28 +1,58 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { detectUserLocation, getCachedUserLocation, UserLocation } from '@/src/utils/userLocation';
 
 interface SbMbrHomePageFeatureProps {
   onClickReadStory?: (memberId: string) => void;
   onClickAuthorPage?: () => void;
 }
 
+const PAGE_SIZE = 5;
+const AUTO_SCROLL_LIMIT = 20;
+
 export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPage }: SbMbrHomePageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(getCachedUserLocation());
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [connectionsMap, setConnectionsMap] = useState<Map<string, { isConnected: boolean; grpName?: string }>>(new Map());
   const [viewerMbrId, setViewerMbrId] = useState<string | null>(null);
+
+  // Detect user location on initial mount and listen for updates
+  useEffect(() => {
+    let isMounted = true;
+    detectUserLocation().then((loc) => {
+      if (isMounted && loc) {
+        setUserLocation(loc);
+      }
+    });
+
+    const handleLocUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<UserLocation | null>;
+      if (isMounted) {
+        setUserLocation(customEvent.detail || null);
+      }
+    };
+
+    window.addEventListener('user_location:detected', handleLocUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('user_location:detected', handleLocUpdate);
+    };
+  }, []);
+
+  const handleRefreshLocation = useCallback(async () => {
+    const loc = await detectUserLocation(true);
+    if (loc) {
+      setUserLocation(loc);
+    }
+  }, []);
 
   // Load viewer connections and group names
   useEffect(() => {
@@ -121,7 +151,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
     };
   }, []);
 
-  // Fetch initial 5 members on load, or search by query (name, location) on query change
+  // Fetch initial 5 members on load or when searchQuery / userLocation changes
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
@@ -132,16 +162,17 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
         const queryTrimmed = searchQuery.trim();
         const result = await taskApi.getMembers({
           query: queryTrimmed || undefined,
-          limit: 5,
+          proximity: userLocation?.label || undefined,
+          proximity_lat: userLocation?.latitude,
+          proximity_lng: userLocation?.longitude,
+          limit: PAGE_SIZE,
           skip: 0
         });
 
         if (!isCancelled) {
           const uniqueList = Array.from(new Map((result || []).map((m: any) => [m.mbrId || m.id, m])).values());
           setMembers(uniqueList);
-          if ((result || []).length < 5) {
-            setHasMore(false);
-          }
+          setHasMore((result || []).length === PAGE_SIZE);
         }
       } catch (err) {
         console.error("Failed to fetch members for member home page search:", err);
@@ -160,45 +191,58 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [searchQuery]);
+  }, [searchQuery, userLocation]);
 
-  // Fetch 5 more members when the user scrolls to the bottom of the page
-  const loadMoreMembers = useCallback(async () => {
+  // Handler to fetch another 5 members
+  const handleLoadMore = useCallback(async () => {
     if (loading || loadingMore || !hasMore) return;
 
     setLoadingMore(true);
     try {
       const queryTrimmed = searchQuery.trim();
       const currentSkip = members.length;
-      const result = await taskApi.getMembers({
+      const nextBatch = await taskApi.getMembers({
         query: queryTrimmed || undefined,
-        limit: 5,
+        proximity: userLocation?.label || undefined,
+        proximity_lat: userLocation?.latitude,
+        proximity_lng: userLocation?.longitude,
+        limit: PAGE_SIZE,
         skip: currentSkip
       });
 
-      const fetchedList = result || [];
-      if (fetchedList.length < 5) {
-        setHasMore(false);
-      }
-
-      if (fetchedList.length > 0) {
-        setMembers(prev => {
-          const existingIds = new Set(prev.map((m: any) => m.mbrId || m.id));
-          const newUnique = fetchedList.filter((m: any) => !existingIds.has(m.mbrId || m.id));
-          if (newUnique.length === 0) {
-            setHasMore(false);
-            return prev;
-          }
-          return [...prev, ...newUnique];
+      if (nextBatch && nextBatch.length > 0) {
+        setMembers((prev) => {
+          const combined = [...prev, ...nextBatch];
+          return Array.from(new Map(combined.map((m: any) => [m.mbrId || m.id, m])).values());
         });
+        setHasMore(nextBatch.length === PAGE_SIZE);
+      } else {
+        setHasMore(false);
       }
     } catch (err) {
       console.error("Failed to load more members:", err);
-      setHasMore(false);
     } finally {
       setLoadingMore(false);
     }
-  }, [loading, loadingMore, hasMore, searchQuery, members.length]);
+  }, [loading, loadingMore, hasMore, searchQuery, userLocation, members.length]);
+
+  // Infinite scroll listener: auto-fetch another 5 members when scrolling to the bottom until 20 are loaded
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loading || loadingMore || !hasMore) return;
+      if (members.length >= AUTO_SCROLL_LIMIT) return; // Stop auto-scrolling once 20 members are loaded
+
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const threshold = document.documentElement.scrollHeight - 300;
+
+      if (scrollPosition >= threshold) {
+        handleLoadMore();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleLoadMore, loading, loadingMore, hasMore, members.length]);
 
   return (
     <div className="w-full relative">
@@ -209,7 +253,6 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
         {/* Left Column Section: Brand name, scrollable new connections, biography checklist status, and existing connections */}
         <div className="lg:col-span-3">
           <LeftColumn onClickAuthorPage={onClickAuthorPage} onClickReadStory={onClickReadStory} />
-
         </div>
 
         {/* Center Column Section: Main welcome hero, Search Bar box, and Dynamic Members feed */}
@@ -223,8 +266,10 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
             hasMore={hasMore}
             connectionsMap={connectionsMap}
             viewerMbrId={viewerMbrId}
-            onLoadMore={loadMoreMembers}
+            onLoadMore={handleLoadMore}
             onClickReadStory={onClickReadStory}
+            userLocation={userLocation}
+            onRefreshLocation={handleRefreshLocation}
           />
         </div>
 

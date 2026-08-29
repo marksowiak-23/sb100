@@ -1,13 +1,9 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React from 'react';
 import SbHeroWelcomeCard from './SbHeroWelcomeCard';
 import SbMbrSearchCard from './SbMbrSearchCard';
 import SbMbrSearchResults from './SbMbrSearchResults';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { UserLocation } from '@/src/utils/userLocation';
 
 interface CenterColumnProps {
   searchQuery: string;
@@ -20,6 +16,8 @@ interface CenterColumnProps {
   viewerMbrId?: string | null;
   onLoadMore?: () => void;
   onClickReadStory?: (memberId: string) => void;
+  userLocation?: UserLocation | null;
+  onRefreshLocation?: () => void;
 }
 
 export default function CenterColumn({
@@ -32,12 +30,19 @@ export default function CenterColumn({
   connectionsMap,
   viewerMbrId,
   onLoadMore,
-  onClickReadStory
+  onClickReadStory,
+  userLocation,
+  onRefreshLocation
 }: CenterColumnProps) {
   return (
     <div className="space-y-6 flex flex-col relative">
       <SbHeroWelcomeCard />
-      <SbMbrSearchCard searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+      <SbMbrSearchCard
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        userLocation={userLocation}
+        onRefreshLocation={onRefreshLocation}
+      />
       <SbMbrSearchResults
         searchQuery={searchQuery}
         members={members}
@@ -48,6 +53,7 @@ export default function CenterColumn({
         viewerMbrId={viewerMbrId}
         onLoadMore={onLoadMore}
         onClickReadStory={onClickReadStory}
+        userLocation={userLocation}
       />
       <AdminComponentTag name="CenterColumn" />
     </div>
