@@ -71,6 +71,8 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
         const result = await taskApi.getMembers({
           query: queryTrimmed || undefined,
           proximity: userLocation?.label || undefined,
+          proximity_lat: userLocation?.latitude,
+          proximity_lng: userLocation?.longitude,
           limit: PAGE_SIZE,
           skip: 0
         });
@@ -109,6 +111,8 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
       const nextBatch = await taskApi.getMembers({
         query: queryTrimmed || undefined,
         proximity: userLocation?.label || undefined,
+        proximity_lat: userLocation?.latitude,
+        proximity_lng: userLocation?.longitude,
         limit: PAGE_SIZE,
         skip: currentSkip
       });

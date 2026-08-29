@@ -33,6 +33,9 @@ export interface Mbr {
   mbrEmailAddress?: string;
   mbrIntroduction?: string;
   mbrProfilePic?: string;
+  mbrLat?: number;
+  mbrLng?: number;
+  mbrLocationCanonical?: string;
   mbrCreatedAt?: string;
   mbrUpdatedAt?: string;
   user_id?: string;
@@ -292,14 +295,25 @@ export const taskApi = {
   },
 
   /**
-   * Fetch members list with optional query, name, location filters, and limit/skip.
+   * Fetch members list with optional query, name, location filters, proximity, and limit/skip.
    */
-  async getMembers(params?: { query?: string; name?: string; location?: string; proximity?: string; limit?: number; skip?: number }): Promise<any[]> {
+  async getMembers(params?: {
+    query?: string;
+    name?: string;
+    location?: string;
+    proximity?: string;
+    proximity_lat?: number;
+    proximity_lng?: number;
+    limit?: number;
+    skip?: number;
+  }): Promise<any[]> {
     const searchParams = new URLSearchParams();
     if (params?.query) searchParams.append('query', params.query);
     if (params?.name) searchParams.append('name', params.name);
     if (params?.location) searchParams.append('location', params.location);
     if (params?.proximity) searchParams.append('proximity', params.proximity);
+    if (params?.proximity_lat !== undefined && params?.proximity_lat !== null) searchParams.append('proximity_lat', params.proximity_lat.toString());
+    if (params?.proximity_lng !== undefined && params?.proximity_lng !== null) searchParams.append('proximity_lng', params.proximity_lng.toString());
     if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
     if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
     searchParams.append('t', Date.now().toString());

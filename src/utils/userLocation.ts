@@ -16,12 +16,12 @@ export interface UserLocation {
 const STORAGE_KEY = 'sb_user_proximity_loc';
 
 /**
- * Retrieves the cached user location from session storage if available.
+ * Retrieves the cached user location from persistent local storage if available.
  */
 export function getCachedUserLocation(): UserLocation | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY) || sessionStorage.getItem(STORAGE_KEY);
     if (raw) {
       return JSON.parse(raw);
     }
@@ -138,6 +138,7 @@ async function detectLocationByIP(): Promise<UserLocation | null> {
 
 /**
  * Detects the user's location via HTML5 Geolocation, falling back to IP geolocation.
+ * Persists results in localStorage so users are not prompted on every browser session.
  */
 export async function detectUserLocation(forceRefresh = false): Promise<UserLocation | null> {
   if (typeof window === 'undefined') return null;
@@ -154,14 +155,14 @@ export async function detectUserLocation(forceRefresh = false): Promise<UserLoca
         navigator.geolocation.getCurrentPosition(
           (pos) => resolve(pos.coords),
           () => resolve(null),
-          { timeout: 4000, maximumAge: 300000, enableHighAccuracy: false }
+          { timeout: 4000, maximumAge: 86400000, enableHighAccuracy: false }
         );
       });
 
       if (coords) {
         const geoResult = await reverseGeocodeCoords(coords.latitude, coords.longitude);
         if (geoResult) {
-          sessionStorage.setItem(STORAGE_KEY, JSON.stringify(geoResult));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(geoResult));
           window.dispatchEvent(new CustomEvent('user_location:detected', { detail: geoResult }));
           return geoResult;
         }
@@ -174,7 +175,7 @@ export async function detectUserLocation(forceRefresh = false): Promise<UserLoca
   // 2. Try IP-based location detection
   const ipResult = await detectLocationByIP();
   if (ipResult) {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(ipResult));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ipResult));
     window.dispatchEvent(new CustomEvent('user_location:detected', { detail: ipResult }));
     return ipResult;
   }
@@ -183,10 +184,11 @@ export async function detectUserLocation(forceRefresh = false): Promise<UserLoca
 }
 
 /**
- * Clear cached user location.
+ * Clear cached user location from persistent storage.
  */
 export function clearUserLocation(): void {
   if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEY);
   sessionStorage.removeItem(STORAGE_KEY);
   window.dispatchEvent(new CustomEvent('user_location:detected', { detail: null }));
 }
