@@ -294,11 +294,12 @@ export const taskApi = {
   /**
    * Fetch members list with optional query, name, location filters, and limit/skip.
    */
-  async getMembers(params?: { query?: string; name?: string; location?: string; limit?: number; skip?: number }): Promise<any[]> {
+  async getMembers(params?: { query?: string; name?: string; location?: string; proximity?: string; limit?: number; skip?: number }): Promise<any[]> {
     const searchParams = new URLSearchParams();
     if (params?.query) searchParams.append('query', params.query);
     if (params?.name) searchParams.append('name', params.name);
     if (params?.location) searchParams.append('location', params.location);
+    if (params?.proximity) searchParams.append('proximity', params.proximity);
     if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
     if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
     searchParams.append('t', Date.now().toString());
@@ -1820,6 +1821,122 @@ export function resolveMediaUrl(url: string | null | undefined): string {
   }
   return url;
 }
+
+export interface SysConfig {
+  configId: string;
+  configTag: string;
+  configValue: string;
+  configType: 'STRING' | 'BOOLEAN' | 'NUMBER' | 'JSON' | string;
+  configGroup: 'FEATURES' | 'LIMITS' | 'SYSTEM' | 'AUTHENTICATION' | 'UI' | string;
+  configDesc?: string | null;
+  configCreatedAt: string;
+  configUpdatedAt: string;
+  configUpdatedBy?: string | null;
+}
+
+export const sysConfigApi = {
+  /**
+   * Fetch all dynamic system configuration properties with optional group filter.
+   */
+  async getSysConfigs(group?: string): Promise<SysConfig[]> {
+    const url = new URL(`${API_BASE_URL}/sys-configs`);
+    if (group) url.searchParams.append('group', group);
+    url.searchParams.append('t', Date.now().toString());
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+      },
+    });
+    return handleResponse<SysConfig[]>(response);
+  },
+
+  /**
+   * Fetch a single system configuration property by tag.
+   */
+  async getSysConfigByTag(configTag: string): Promise<SysConfig> {
+    const response = await fetch(`${API_BASE_URL}/sys-configs/${encodeURIComponent(configTag)}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+      },
+    });
+    return handleResponse<SysConfig>(response);
+  },
+
+  /**
+   * Fetch active in-memory configuration cache snapshot.
+   */
+  async getSysConfigCache(): Promise<{ properties: Record<string, string>; metadata: Record<string, any> }> {
+    const response = await fetch(`${API_BASE_URL}/sys-configs/cache?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+      },
+    });
+    return handleResponse<{ properties: Record<string, string>; metadata: Record<string, any> }>(response);
+  },
+
+  /**
+   * Create a new configuration tag.
+   */
+  async createSysConfig(config: Partial<SysConfig>): Promise<SysConfig> {
+    const response = await fetch(`${API_BASE_URL}/sys-configs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(config),
+    });
+    const result = await handleResponse<SysConfig>(response);
+    if (typeof window !== 'undefined' && result?.configTag) {
+      window.dispatchEvent(new CustomEvent('sysconfig:changed', { detail: result }));
+    }
+    return result;
+  },
+
+  /**
+   * Update an existing configuration tag's value or description.
+   */
+  async updateSysConfig(configTag: string, config: Partial<SysConfig>): Promise<SysConfig> {
+    const response = await fetch(`${API_BASE_URL}/sys-configs/${encodeURIComponent(configTag)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(config),
+    });
+    const result = await handleResponse<SysConfig>(response);
+    if (typeof window !== 'undefined' && result?.configTag) {
+      window.dispatchEvent(new CustomEvent('sysconfig:changed', { detail: result }));
+    }
+    return result;
+  },
+
+  /**
+   * Delete a configuration tag.
+   */
+  async deleteSysConfig(configTag: string): Promise<SysConfig> {
+    const response = await fetch(`${API_BASE_URL}/sys-configs/${encodeURIComponent(configTag)}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    const result = await handleResponse<SysConfig>(response);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('sysconfig:changed', { detail: { configTag, deleted: true } }));
+    }
+    return result;
+  }
+};
+
 
 
 

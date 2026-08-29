@@ -411,6 +411,21 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'sysConfig',
+    name: 'sysConfig',
+    endpoint: '/sys-configs',
+    primaryKey: 'configId',
+    searchField: 'configTag',
+    fields: [
+      { name: 'configTag', label: 'Config Tag / Key', type: 'string', required: true, placeholder: 'e.g. FEATURE_MEMBER_REGISTRATION' },
+      { name: 'configValue', label: 'Config Value', type: 'string', required: true, placeholder: 'e.g. true or 20 or https://...' },
+      { name: 'configType', label: 'Config Type', type: 'string', required: true, placeholder: 'STRING, BOOLEAN, NUMBER, JSON' },
+      { name: 'configGroup', label: 'Config Group', type: 'string', required: true, placeholder: 'FEATURES, LIMITS, SYSTEM, UI' },
+      { name: 'configDesc', label: 'Description', type: 'string', required: false, placeholder: 'Purpose of this configuration' },
+      { name: 'configUpdatedBy', label: 'Updated By', type: 'string', required: false, placeholder: 'Admin / System' }
+    ]
+  },
+  {
     id: 'topic',
     name: 'topic',
     endpoint: '/topics',
@@ -556,6 +571,12 @@ const getInitialMockData = (tableId: string): any[] => {
           mbrMediaDescription: 'Family gathered at Coos Bay harbor',
           mbrMediaCreatedAt: now
         }
+      ];
+    case 'sysConfig':
+      return [
+        { configId: 'cfg-1', configTag: 'FEATURE_MEMBER_REGISTRATION', configValue: 'true', configType: 'BOOLEAN', configGroup: 'FEATURES', configDesc: 'Allow new members to register publicly', configCreatedAt: now, configUpdatedAt: now, configUpdatedBy: 'Admin' },
+        { configId: 'cfg-2', configTag: 'PUBLIC_PAGE_PAGE_SIZE', configValue: '5', configType: 'NUMBER', configGroup: 'LIMITS', configDesc: 'Number of members loaded per batch', configCreatedAt: now, configUpdatedAt: now, configUpdatedBy: 'Admin' },
+        { configId: 'cfg-3', configTag: 'SYSTEM_APP_NAME', configValue: 'StoryBook', configType: 'STRING', configGroup: 'SYSTEM', configDesc: 'Application brand display title', configCreatedAt: now, configUpdatedAt: now, configUpdatedBy: 'Admin' }
       ];
     case 'topic':
       return [

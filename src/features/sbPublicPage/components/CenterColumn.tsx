@@ -9,6 +9,8 @@ import SbPublicSearchCard from './SbPublicSearchCard';
 import SbMemberSearchResults from './SbMemberSearchResults';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
+import { UserLocation } from '@/src/utils/userLocation';
+
 interface CenterColumnProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -18,6 +20,8 @@ interface CenterColumnProps {
   hasMore?: boolean;
   onLoadMore?: () => void;
   onClickReadStory?: (memberId: string) => void;
+  userLocation?: UserLocation | null;
+  onRefreshLocation?: () => void;
 }
 
 export default function CenterColumn({
@@ -28,7 +32,9 @@ export default function CenterColumn({
   loadingMore = false,
   hasMore = true,
   onLoadMore,
-  onClickReadStory
+  onClickReadStory,
+  userLocation,
+  onRefreshLocation
 }: CenterColumnProps) {
   return (
     <div className="space-y-8 flex flex-col relative">
@@ -39,6 +45,8 @@ export default function CenterColumn({
       <SbPublicSearchCard
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        userLocation={userLocation}
+        onRefreshLocation={onRefreshLocation}
       />
 
       {/* --- SEARCH RESULTS & STORIES FEED --- */}
@@ -49,6 +57,8 @@ export default function CenterColumn({
         hasMore={hasMore}
         onLoadMore={onLoadMore}
         onClickReadStory={onClickReadStory}
+        userLocation={userLocation}
+        searchQuery={searchQuery}
       />
 
       <AdminComponentTag name="CenterColumn" />

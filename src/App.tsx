@@ -34,9 +34,11 @@ import { MbrConnectionFeature } from '@/src/features/mbrConnection';
 import DbAdminFeature from '@/src/features/db-admin/components/DbAdminFeature';
 import { AdminCacheManagement } from '@/src/features/admin-cache';
 import { AdminMediaManagement } from '@/src/features/admin-media';
+import SystemPropertiesFeature from '@/src/features/systemProperties/components/SystemPropertiesFeature';
 
 // Define a TypeScript type to restrict activeTab to only these string values.
-type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'sbMbrRegister' | 'mbrProfile' | 'mbrPreferences' | 'mbrPrivacy' | 'mbrConnections' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
+type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'sbMbrRegister' | 'mbrProfile' | 'mbrPreferences' | 'mbrPrivacy' | 'mbrConnections' | 'db-admin' | 'adminCacheManagement' | 'adminMedia' | 'adminSystemProperties';
+
 
 
 export default function App() {
@@ -475,7 +477,21 @@ export default function App() {
             <AdminMediaManagement isSandbox={isSandbox} />
           </motion.div>
         )}
+        {/* If the active tab is 'adminSystemProperties', render the Dynamic System Properties Page */}
+        {activeTab === 'adminSystemProperties' && (
+          <motion.div
+            key="adminSystemProperties-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <SystemPropertiesFeature />
+          </motion.div>
+        )}
       </AnimatePresence>
     </MainLayout>
   );
+
 }

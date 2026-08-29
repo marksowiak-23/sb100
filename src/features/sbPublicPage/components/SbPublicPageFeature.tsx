@@ -10,6 +10,7 @@ import RightColumn from './RightColumn';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import PageSeo from '@/src/components/PageSeo';
+import { detectUserLocation, getCachedUserLocation, UserLocation } from '@/src/utils/userLocation';
 
 interface SbPublicPageFeatureProps {
   setActiveTab: (tab: 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia') => void;
@@ -22,12 +23,43 @@ const AUTO_SCROLL_LIMIT = 20;
 
 export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, onSelectLogonType }: SbPublicPageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(getCachedUserLocation());
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
 
-  // Fetch initial 5 members on load or when searchQuery changes
+  // Detect user location on initial mount
+  useEffect(() => {
+    let isMounted = true;
+    detectUserLocation().then((loc) => {
+      if (isMounted && loc) {
+        setUserLocation(loc);
+      }
+    });
+
+    const handleLocUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<UserLocation | null>;
+      if (isMounted) {
+        setUserLocation(customEvent.detail || null);
+      }
+    };
+
+    window.addEventListener('user_location:detected', handleLocUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('user_location:detected', handleLocUpdate);
+    };
+  }, []);
+
+  const handleRefreshLocation = useCallback(async () => {
+    const loc = await detectUserLocation(true);
+    if (loc) {
+      setUserLocation(loc);
+    }
+  }, []);
+
+  // Fetch initial 5 members on load or when searchQuery / userLocation changes
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
@@ -38,6 +70,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
         const queryTrimmed = searchQuery.trim();
         const result = await taskApi.getMembers({
           query: queryTrimmed || undefined,
+          proximity: userLocation?.label || undefined,
           limit: PAGE_SIZE,
           skip: 0
         });
@@ -64,7 +97,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [searchQuery]);
+  }, [searchQuery, userLocation]);
 
   // Handler to fetch another 5 members
   const handleLoadMore = useCallback(async () => {
@@ -75,6 +108,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
       const currentSkip = members.length;
       const nextBatch = await taskApi.getMembers({
         query: queryTrimmed || undefined,
+        proximity: userLocation?.label || undefined,
         limit: PAGE_SIZE,
         skip: currentSkip
       });
@@ -93,7 +127,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     } finally {
       setLoadingMore(false);
     }
-  }, [loading, loadingMore, hasMore, searchQuery, members.length]);
+  }, [loading, loadingMore, hasMore, searchQuery, userLocation, members.length]);
 
   // Infinite scroll listener: auto-fetch another 5 members when scrolling to the bottom until 20 are loaded
   useEffect(() => {
@@ -156,6 +190,8 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
             hasMore={hasMore}
             onLoadMore={handleLoadMore}
             onClickReadStory={onClickReadStory}
+            userLocation={userLocation}
+            onRefreshLocation={handleRefreshLocation}
           />
         </div>
 

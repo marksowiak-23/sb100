@@ -8,9 +8,12 @@ import { User, ChevronDown, ChevronUp, BookOpen, Shield, Home, Users, MessageSqu
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { SessionTimeoutModal } from '@/src/components/SessionTimeoutModal';
+import { useSessionTimeout } from '@/src/hooks/useSessionTimeout';
 
 // Restrict values for the tab parameter.
-type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'mbrPrivacy' | 'mbrConnections' | 'sbMbrLogon' | 'sbMbrRegister' | 'db-admin' | 'adminCacheManagement' | 'adminMedia';
+type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'mbrPrivacy' | 'mbrConnections' | 'sbMbrLogon' | 'sbMbrRegister' | 'db-admin' | 'adminCacheManagement' | 'adminMedia' | 'adminSystemProperties';
+
 
 
 // Define the interface (contract) for the props this component expects to receive.
@@ -50,6 +53,24 @@ export default function MainLayout({
     sessionStorage.getItem('user') ||
     sessionStorage.getItem('sb_current_mbr')
   ) && activeTab !== 'sbPublicPage' && activeTab !== 'sbMbrLogon' && activeTab !== 'sbMbrRegister';
+
+  const handleSessionTimeout = React.useCallback(() => {
+    userManager.userLogout();
+    setProfilePic(null);
+    setUserName('StoryBook Member');
+    setActiveTab('sbPublicPage');
+    setDropdownOpen(false);
+  }, [setActiveTab]);
+
+  const {
+    isWarningOpen,
+    remainingSeconds,
+    renewSession
+  } = useSessionTimeout({
+    isLoggedIn: isMemberLoggedIn,
+    onTimeout: handleSessionTimeout,
+    defaultTimeoutMinutes: 30
+  });
 
   React.useEffect(() => {
     const loadProfilePic = async () => {
@@ -622,16 +643,16 @@ export default function MainLayout({
                           </div>
                           <div
                             onClick={() => {
-                              setActiveTab('settings');
+                              setActiveTab('adminSystemProperties');
                               setDropdownOpen(false);
                             }}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                              activeTab === 'settings'
+                              activeTab === 'adminSystemProperties'
                                 ? 'bg-white/10 text-white font-bold'
                                 : 'text-slate-300 hover:bg-white/5 hover:text-white'
                             }`}
                           >
-                            Settings
+                            System Properties
                           </div>
                         </div>
                       )}
@@ -724,6 +745,15 @@ export default function MainLayout({
           </div>
         </div>
       </footer>
+
+      {/* Session Inactivity Timeout Warning Modal */}
+      <SessionTimeoutModal
+        isOpen={isWarningOpen && isMemberLoggedIn}
+        remainingSeconds={remainingSeconds}
+        onRenew={renewSession}
+        onLogout={handleSessionTimeout}
+      />
+
       <AdminComponentTag name="MainLayout" />
     </div>
   );

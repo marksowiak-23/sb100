@@ -8,6 +8,8 @@ import { Info, Loader2, ChevronDown } from 'lucide-react';
 import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
+import { UserLocation } from '@/src/utils/userLocation';
+
 interface SbMemberSearchResultsProps {
   members: any[];
   loading?: boolean;
@@ -15,6 +17,8 @@ interface SbMemberSearchResultsProps {
   hasMore?: boolean;
   onLoadMore?: () => void;
   onClickReadStory?: (memberId: string) => void;
+  userLocation?: UserLocation | null;
+  searchQuery?: string;
 }
 
 export default function SbMemberSearchResults({
@@ -23,16 +27,25 @@ export default function SbMemberSearchResults({
   loadingMore = false,
   hasMore = true,
   onLoadMore,
-  onClickReadStory
+  onClickReadStory,
+  userLocation,
+  searchQuery
 }: SbMemberSearchResultsProps) {
   const uniqueMembers = Array.from(new Map(members.map(m => [m.mbrId || m.id, m])).values());
 
   return (
     <div className="space-y-5 relative">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-        <h3 className="font-serif text-base font-bold text-slate-800">
-          Members
-        </h3>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-2 gap-1">
+        <div>
+          <h3 className="font-serif text-base font-bold text-slate-800 flex items-center gap-2">
+            <span>Community Members</span>
+          </h3>
+          <p className="text-[11px] text-slate-400 font-serif">
+            {userLocation && !searchQuery
+              ? `Nearby in ${userLocation.label} • Sorted by most recent published date`
+              : 'Sorted by most recent published date'}
+          </p>
+        </div>
         <span className="text-xs text-slate-400 font-medium">
           {loading 
             ? 'Searching...' 
