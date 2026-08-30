@@ -8,13 +8,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { GraduationCap, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, BookOpen, Images } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
+import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 
-interface SbMbrStryEducationProps {
+export interface MbrStoryEducationPanelProps {
   isSandbox?: boolean;
   memberId?: string;
   readOnly?: boolean;
 }
+
+export type SbMbrStryEducationProps = MbrStoryEducationPanelProps;
 
 interface Education {
   mbrEducationId: string;
@@ -57,7 +59,7 @@ const SANDBOX_EDUCATION: Education[] = [
   }
 ];
 
-export default function SbMbrStryEducation({ isSandbox = false, memberId, readOnly = false }: SbMbrStryEducationProps) {
+export default function MbrStoryEducationPanel({ isSandbox = false, memberId, readOnly = false }: MbrStoryEducationPanelProps) {
   // --- STATE VARIABLES ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -580,7 +582,7 @@ export default function SbMbrStryEducation({ isSandbox = false, memberId, readOn
           </div>
         </div>
       )}
-      <SbPhotoGalleryModal
+      <MbrPhotoGalleryPanel
         isOpen={showGalleryModal}
         onClose={() => setShowGalleryModal(false)}
         mbrId={mbrId}
@@ -590,7 +592,9 @@ export default function SbMbrStryEducation({ isSandbox = false, memberId, readOn
         maxPhotos={40}
         readOnly={readOnly}
       />
-      <AdminComponentTag name="SbMbrStryEducation" />
+      <AdminComponentTag name="mbrStoryEducationPanel" />
     </div>
   );
 }
+
+export { MbrStoryEducationPanel, MbrStoryEducationPanel as mbrStoryEducationPanel, MbrStoryEducationPanel as SbMbrStryEducation };

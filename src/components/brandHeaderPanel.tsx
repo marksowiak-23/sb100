@@ -6,17 +6,19 @@
 import React from 'react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-interface SbBrandHeaderProps {
+export interface BrandHeaderPanelProps {
   title?: string;
   tagline?: string;
   className?: string;
 }
 
-export default function SbBrandHeader({
+export type SbBrandHeaderProps = BrandHeaderPanelProps;
+
+export default function BrandHeaderPanel({
   title = 'Storybook',
   tagline = 'Where every life becomes literature',
   className = ''
-}: SbBrandHeaderProps) {
+}: BrandHeaderPanelProps) {
   return (
     <div className={`space-y-1 relative ${className}`}>
       <h1 className="font-serif text-3xl font-black text-slate-800 tracking-tight leading-none">
@@ -25,7 +27,9 @@ export default function SbBrandHeader({
       <p className="font-serif text-xs italic text-slate-500">
         {tagline}
       </p>
-      <AdminComponentTag name="SbBrandHeader" />
+      <AdminComponentTag name="brandHeaderPanel" />
     </div>
   );
 }
+
+export { BrandHeaderPanel, BrandHeaderPanel as brandHeaderPanel, BrandHeaderPanel as SbBrandHeader };

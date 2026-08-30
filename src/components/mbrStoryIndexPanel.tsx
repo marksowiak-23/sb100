@@ -27,7 +27,7 @@ export interface StoryTopic {
 
 export type StorySection = StoryTopic;
 
-interface SbStoryIndexPanelProps {
+export interface MbrStoryIndexPanelProps {
   activeSection?: string;
   activeTopic?: string;
   setActiveSection?: (topicId: string) => void;
@@ -40,7 +40,11 @@ interface SbStoryIndexPanelProps {
   showEditControls?: boolean;
 }
 
+export type SbStoryIndexPanelProps = MbrStoryIndexPanelProps;
+export type mbrStoryIndexPanelProps = MbrStoryIndexPanelProps;
+
 const DEFAULT_TOPICS: StoryTopic[] = [
+
   { id: 'Family', label: 'Family' },
   { id: 'Residencies', label: 'Residencies' },
   { id: 'Achievements', label: 'Achievements' },
@@ -78,7 +82,7 @@ function getTopicIcon(id: string, label: string = '') {
   return Sparkles;
 }
 
-export default function SbStoryIndexPanel({
+export default function MbrStoryIndexPanel({
   activeSection,
   activeTopic,
   setActiveSection,
@@ -89,7 +93,7 @@ export default function SbStoryIndexPanel({
   onEditStories,
   onEditBiography,
   showEditControls = true
-}: SbStoryIndexPanelProps) {
+}: MbrStoryIndexPanelProps) {
   const currentActive = activeTopic || activeSection || 'Family';
   const handleSelect = (topicId: string) => {
     if (setActiveTopic) setActiveTopic(topicId);
@@ -173,7 +177,10 @@ export default function SbStoryIndexPanel({
         </div>
       )}
 
-      <AdminComponentTag name="SbStoryIndexPanel" />
+      <AdminComponentTag name="mbrStoryIndexPanel" />
     </div>
   );
 }
+
+export { MbrStoryIndexPanel, MbrStoryIndexPanel as mbrStoryIndexPanel, MbrStoryIndexPanel as SbStoryIndexPanel };
+

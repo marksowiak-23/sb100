@@ -4,7 +4,7 @@ import { Images, ChevronLeft, ChevronRight, Upload, Trash2, X, Loader2, Save, Ed
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-export interface SbPhotoGalleryModalProps {
+export interface MbrPhotoGalleryPanelProps {
   isOpen: boolean;
   onClose: () => void;
   mbrId: string;
@@ -16,7 +16,10 @@ export interface SbPhotoGalleryModalProps {
   readOnly?: boolean;
 }
 
-export default function SbPhotoGalleryModal({
+export type SbPhotoGalleryModalProps = MbrPhotoGalleryPanelProps;
+export type mbrPhotoGalleryPanelProps = MbrPhotoGalleryPanelProps;
+
+export default function MbrPhotoGalleryPanel({
   isOpen,
   onClose,
   mbrId,
@@ -26,7 +29,7 @@ export default function SbPhotoGalleryModal({
   maxPhotos = 40,
   subordinateId,
   readOnly = false
-}: SbPhotoGalleryModalProps) {
+}: MbrPhotoGalleryPanelProps) {
   const [loading, setLoading] = useState(false);
   const [mediaItems, setMediaItems] = useState<MbrMedia[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -592,7 +595,10 @@ export default function SbPhotoGalleryModal({
         </motion.div>
       </div>
 
-      <AdminComponentTag name="SbPhotoGalleryModal" />
+      <AdminComponentTag name="mbrPhotoGalleryPanel" />
     </AnimatePresence>
   );
 }
+
+export { MbrPhotoGalleryPanel, MbrPhotoGalleryPanel as mbrPhotoGalleryPanel, MbrPhotoGalleryPanel as SbPhotoGalleryModal };
+

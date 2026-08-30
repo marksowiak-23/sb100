@@ -7,14 +7,14 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import StoryMatePanel from './StoryMatePanel';
 import StoryEditorPanel from './StoryEditorPanel';
-import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
-import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
-import SbMbrStryFamily from '@/src/components/SbMbrStryFamily';
-import SbMbrStryResidence from '@/src/components/SbMbrStryResidence';
-import SbMbrStryActivity from '@/src/components/SbMbrStryActivity';
-import SbMbrStryAchievement from '@/src/components/SbMbrStryAchievement';
-import SbMbrStryEducation from '@/src/components/SbMbrStryEducation';
-import SbMbrStryEmployment from '@/src/components/SbMbrStryEmployment';
+import MbrProfilePanel from '@/src/components/mbrProfilePanel';
+import MbrBookEditorPanel from '@/src/components/mbrBookEditorPanel';
+import MbrStoryFamilyPanel from '@/src/components/mbrStoryFamilyPanel';
+import MbrStoryResidencePanel from '@/src/components/mbrStoryResidencePanel';
+import MbrStoryActivityPanel from '@/src/components/mbrStoryActivityPanel';
+import MbrStoryAchievementPanel from '@/src/components/mbrStoryAchievementPanel';
+import MbrStoryEducationPanel from '@/src/components/mbrStoryEducationPanel';
+import MbrStoryEmploymentPanel from '@/src/components/mbrStoryEmploymentPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
@@ -120,36 +120,36 @@ export default function CenterColumn({
       </div>
 
       {/* --- PROFILE SUMMARY CARD --- */}
-      <SbMbrProfilePanel isSandbox={isSandbox} />
+      <MbrProfilePanel isSandbox={isSandbox} />
 
       {/* --- FAMILY DIRECTORY PANEL --- */}
       {(activeSection.toLowerCase() === 'family') && (
-        <SbMbrStryFamily isSandbox={isSandbox} />
+        <MbrStoryFamilyPanel isSandbox={isSandbox} />
       )}
 
       {/* --- RESIDENCES PANEL --- */}
       {(activeSection.toLowerCase() === 'residencies') && (
-        <SbMbrStryResidence isSandbox={isSandbox} />
+        <MbrStoryResidencePanel isSandbox={isSandbox} />
       )}
 
       {/* --- ACTIVITIES & HOBBIES PANEL --- */}
       {(activeSection.toLowerCase() === 'hobbies') && (
-        <SbMbrStryActivity isSandbox={isSandbox} />
+        <MbrStoryActivityPanel isSandbox={isSandbox} />
       )}
 
       {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
       {(activeSection.toLowerCase() === 'achievements') && (
-        <SbMbrStryAchievement isSandbox={isSandbox} />
+        <MbrStoryAchievementPanel isSandbox={isSandbox} />
       )}
 
       {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
       {(activeSection.toLowerCase() === 'education') && (
-        <SbMbrStryEducation isSandbox={isSandbox} />
+        <MbrStoryEducationPanel isSandbox={isSandbox} />
       )}
 
       {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
       {(activeSection.toLowerCase() === 'employment') && (
-        <SbMbrStryEmployment isSandbox={isSandbox} />
+        <MbrStoryEmploymentPanel isSandbox={isSandbox} />
       )}
 
       {storyEditorConfig && (

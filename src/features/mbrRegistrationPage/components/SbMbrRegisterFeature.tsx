@@ -85,9 +85,9 @@ export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId
         // Transition gracefully to target member story page if requested, otherwise Member Home Page
         setTimeout(() => {
           if (targetStoryMemberId) {
-            setActiveTab('sbMbrStoryPage');
+            setActiveTab('mbrStoryPage');
           } else {
-            setActiveTab('sbMbrHomePage');
+            setActiveTab('mbrHomePage');
           }
         }, 1200);
       } else {
@@ -118,7 +118,7 @@ export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId
         <div className="flex items-center justify-between gap-4 mb-6">
           <button
             type="button"
-            onClick={() => setActiveTab('sbPublicPage')}
+            onClick={() => setActiveTab('publicPage')}
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -349,7 +349,7 @@ export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId
                 Already have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => setActiveTab('sbMbrLogon')}
+                  onClick={() => setActiveTab('mbrLogonPage')}
                   className="text-blue-600 hover:underline font-semibold cursor-pointer"
                 >
                   Sign in

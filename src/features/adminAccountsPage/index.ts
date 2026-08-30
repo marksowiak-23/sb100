@@ -4,3 +4,5 @@
  */
 
 export { default as AccountLookup } from './components/AccountLookup';
+export { default as AdminAccounts } from './components/AccountLookup';
+export { default as AdminAccountsPage } from './components/AccountLookup';

@@ -32,7 +32,7 @@ interface TableDefinition {
   fields: TableField[];
 }
 
-// All 26 system tables mapped with their respective columns, endpoints, and data types
+// All 27 system tables mapped with their respective columns, endpoints, and data types
 const TABLES: TableDefinition[] = [
   {
     id: 'cd',
@@ -309,6 +309,25 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrSettings',
+    name: 'mbrSettings',
+    endpoint: '/mbr-settings',
+    primaryKey: 'mbrSettingsId',
+    searchField: 'mbrId',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrSettingsAllowPublicFlag', label: 'Allow Public Access', type: 'boolean', required: true },
+      { name: 'mbrSettingsShowBirthYr', label: 'Show Birth Year', type: 'boolean', required: true },
+      { name: 'mbrSettingsShowGender', label: 'Show Gender', type: 'boolean', required: true },
+      { name: 'mbrSettingsShowRelationship', label: 'Show Relationship', type: 'boolean', required: true },
+      { name: 'mbrSettingsShowTown', label: 'Show Town / Residence', type: 'boolean', required: true },
+      { name: 'mbrSettingsShowWorksAt', label: 'Show Works At', type: 'boolean', required: true },
+      { name: 'mbrSettingsShowStudiedAt', label: 'Show Studied At', type: 'boolean', required: true },
+      { name: 'mbrSettingsShowIntroduction', label: 'Show Introduction', type: 'boolean', required: true },
+      { name: 'mbrSettingsShowPhotoGallery', label: 'Show Photo Gallery', type: 'boolean', required: true }
+    ]
+  },
+  {
     id: 'mbrResidence',
     name: 'mbrResidence',
     endpoint: '/mbr-residences',
@@ -557,6 +576,24 @@ const getInitialMockData = (tableId: string): any[] => {
           mbrPrefAutoSaveInd: true,
           mbrPrefCreatedAt: now,
           mbrPrefUpdatedAt: now
+        }
+      ];
+    case 'mbrSettings':
+      return [
+        {
+          mbrSettingsId: 'sandbox-settings-id',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrSettingsAllowPublicFlag: true,
+          mbrSettingsShowBirthYr: true,
+          mbrSettingsShowGender: true,
+          mbrSettingsShowRelationship: true,
+          mbrSettingsShowTown: true,
+          mbrSettingsShowWorksAt: true,
+          mbrSettingsShowStudiedAt: true,
+          mbrSettingsShowIntroduction: true,
+          mbrSettingsShowPhotoGallery: true,
+          mbrSettingsCreatedAt: now,
+          mbrSettingsUpdatedAt: now
         }
       ];
     case 'mbrMedia':

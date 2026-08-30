@@ -1,13 +1,37 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "npm",
-			"script": "build",
-			"group": "build",
-			"problemMatcher": [],
-			"label": "npm: build",
-			"detail": "vite build"
-		}
-	]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "typescript",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Local:\\s+http"
+        }
+      },
+      "label": "npm: dev",
+      "detail": "vite --port=3000 --host=0.0.0.0"
+    },
+    {
+      "label": "Start All Services",
+      "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File ./scripts/start_all_services.ps1",
+      "problemMatcher": []
+    },
+    {
+      "type": "npm",
+      "script": "build",
+      "group": "build",
+      "problemMatcher": [],
+      "label": "npm: build",
+      "detail": "vite build"
+    }
+  ]
 }

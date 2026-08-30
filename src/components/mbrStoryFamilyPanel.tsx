@@ -8,13 +8,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, BookOpen, Images, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
+import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 
-interface SbMbrStryFamilyProps {
+export interface MbrStoryFamilyPanelProps {
   isSandbox?: boolean;
   memberId?: string;
   readOnly?: boolean;
 }
+
+export type SbMbrStryFamilyProps = MbrStoryFamilyPanelProps;
 
 interface FamilyMember {
   mbrFamilyId: string;
@@ -172,7 +174,7 @@ const sortFamilyList = (list: FamilyMember[]): FamilyMember[] => {
   });
 };
 
-export default function SbMbrStryFamily({ isSandbox = false, memberId, readOnly = false }: SbMbrStryFamilyProps) {
+export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readOnly = false }: MbrStoryFamilyPanelProps) {
   // --- STATE VARIABLES ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1003,7 +1005,7 @@ export default function SbMbrStryFamily({ isSandbox = false, memberId, readOnly 
       </AnimatePresence>
 
       {/* Reusable Photo Gallery Modal Dialog */}
-      <SbPhotoGalleryModal
+      <MbrPhotoGalleryPanel
         isOpen={showFamilyGalleryModal}
         onClose={() => setShowFamilyGalleryModal(false)}
         mbrId={mbrId}
@@ -1015,7 +1017,9 @@ export default function SbMbrStryFamily({ isSandbox = false, memberId, readOnly 
         readOnly={readOnly}
       />
 
-      <AdminComponentTag name="SbMbrStryFamily" />
+      <AdminComponentTag name="mbrStoryFamilyPanel" />
     </div>
   );
 }
+
+export { MbrStoryFamilyPanel, MbrStoryFamilyPanel as mbrStoryFamilyPanel, MbrStoryFamilyPanel as SbMbrStryFamily };

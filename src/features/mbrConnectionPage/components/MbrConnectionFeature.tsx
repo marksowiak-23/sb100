@@ -22,7 +22,7 @@ import InvitationsHeader from './InvitationsHeader';
 import InvitationsList from './InvitationsList';
 import RequestsHeader from './RequestsHeader';
 import RequestsList from './RequestsList';
-import SbBrandHeader from '@/src/components/SbBrandHeader';
+import BrandHeaderPanel from '@/src/components/brandHeaderPanel';
 import { generateConnectionPdf } from '../utils/generateConnectionPdf';
 
 export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyChange, onNavigate }: MbrConnectionFeatureProps) {
@@ -996,7 +996,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         
         {/* Left Column Section: Brand Header & "Manage my Connections" Menu */}
         <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
-          <SbBrandHeader />
+          <BrandHeaderPanel />
           <ManageConnectionsMenu
             activeSection={activeSection}
             onSelectSection={handleSelectSection}

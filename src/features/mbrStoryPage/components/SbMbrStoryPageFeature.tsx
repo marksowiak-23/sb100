@@ -7,7 +7,7 @@ import React, { useState, useEffect } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
-import { MEMBER_STORIES, MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
+import { MEMBER_STORIES, MemberStory } from '@/src/features/publicPage/constants/memberData';
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import PageSeo from '@/src/components/PageSeo';

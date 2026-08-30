@@ -2,19 +2,22 @@ import React, { useState } from 'react';
 import { ShieldAlert, Edit2 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-interface SbMbrBookEditorProps {
+export interface MbrBookEditorPanelProps {
   sectionTitle: string;
   content: string[];
   readOnly?: boolean;
   onSave?: (newContent: string[]) => void;
 }
 
-export default function SbMbrBookEditor({
+export type SbMbrBookEditorProps = MbrBookEditorPanelProps;
+export type mbrBookEditorPanelProps = MbrBookEditorPanelProps;
+
+export default function MbrBookEditorPanel({
   sectionTitle,
   content,
   readOnly = false,
   onSave
-}: SbMbrBookEditorProps) {
+}: MbrBookEditorPanelProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
 
@@ -117,7 +120,10 @@ export default function SbMbrBookEditor({
           </div>
         )}
       </div>
-      <AdminComponentTag name="SbMbrBookEditor" />
+      <AdminComponentTag name="mbrBookEditorPanel" />
     </div>
   );
 }
+
+export { MbrBookEditorPanel, MbrBookEditorPanel as mbrBookEditorPanel, MbrBookEditorPanel as SbMbrBookEditor };
+

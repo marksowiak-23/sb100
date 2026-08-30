@@ -19,25 +19,60 @@ import { taskApi } from '@/src/services/api';
 
 // Import our layouts and feature components.
 import MainLayout from '@/src/layouts/MainLayout';
-import { ConnectionSettings } from '@/src/features/settings';
-import { AccountLookup } from '@/src/features/account-settings';
-import { SbPublicPageFeature } from '@/src/features/sbPublicPage';
-import { SbMbrHomePageFeature } from '@/src/features/sbMbrHomePage';
-import { SbMbrStoryPageFeature } from '@/src/features/sbMbrStoryPage';
-import { SbMbrAuthorPageFeature } from '@/src/features/sbMbrAuthorPage';
-import { SbMbrLogonFeature } from '@/src/features/sbMbrLogon';
-import { SbMbrRegisterFeature } from '@/src/features/sbMbrRegister';
-import { MbrProfileFeature } from '@/src/features/mbrProfile';
-import MbrPreferencesFeature from '@/src/features/mbrPreferences/components/MbrPreferencesFeature';
-import { MbrPrivacyFeature } from '@/src/features/mbrPrivacy';
-import { MbrConnectionFeature } from '@/src/features/mbrConnection';
-import DbAdminFeature from '@/src/features/db-admin/components/DbAdminFeature';
-import { AdminCacheManagement } from '@/src/features/admin-cache';
-import { AdminMediaManagement } from '@/src/features/admin-media';
-import SystemPropertiesFeature from '@/src/features/systemProperties/components/SystemPropertiesFeature';
+import { ConnectionSettings, AdminConnectionsPage } from '@/src/features/adminConnectionsPage';
+import { AccountLookup, AdminAccountsPage } from '@/src/features/adminAccountsPage';
+import { PublicPageFeature, SbPublicPageFeature } from '@/src/features/publicPage';
+import { MbrHomePageFeature, SbMbrHomePageFeature } from '@/src/features/mbrHomePage';
+import { MbrStoryPageFeature, SbMbrStoryPageFeature } from '@/src/features/mbrStoryPage';
+import { MbrAuthorPageFeature, SbMbrAuthorPageFeature } from '@/src/features/mbrAuthorPage';
+import { MbrLogonPageFeature, SbMbrLogonFeature } from '@/src/features/mbrLogonPage';
+import { MbrRegistrationPageFeature, SbMbrRegisterFeature } from '@/src/features/mbrRegistrationPage';
+import { MbrProfileFeature } from '@/src/features/mbrProfilePage';
+import { MbrPreferencesFeature } from '@/src/features/mbrPreferencesPage';
+import { MbrPrivacyFeature } from '@/src/features/mbrPrivacySettingsPage';
+import { MbrConnectionFeature } from '@/src/features/mbrConnectionPage';
+import { DbAdminFeature, AdminDbPageFeature } from '@/src/features/adminDbPage';
+import { AdminCacheManagement, AdminCachePage } from '@/src/features/adminCachePage';
+import { AdminMediaManagement, AdminMediaPage } from '@/src/features/adminMediaPage';
+import { AdminPropertiesFeature, SystemPropertiesFeature } from '@/src/features/adminProperties';
 
 // Define a TypeScript type to restrict activeTab to only these string values.
-type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'sbMbrLogon' | 'sbMbrRegister' | 'mbrProfile' | 'mbrPreferences' | 'mbrPrivacy' | 'mbrConnections' | 'db-admin' | 'adminCacheManagement' | 'adminMedia' | 'adminSystemProperties';
+type TabType =
+  | 'workspace'
+  | 'adminConnectionsPage'
+  | 'admin-connections'
+  | 'settings'
+  | 'adminAccountsPage'
+  | 'admin-accounts'
+  | 'account-settings'
+  | 'publicPage'
+  | 'sbPublicPage'
+  | 'mbrHomePage'
+  | 'sbMbrHomePage'
+  | 'mbrStoryPage'
+  | 'sbMbrStoryPage'
+  | 'mbrAuthorPage'
+  | 'sbMbrAuthorPage'
+  | 'mbrLogonPage'
+  | 'sbMbrLogon'
+  | 'mbrRegistrationPage'
+  | 'sbMbrRegister'
+  | 'mbrProfilePage'
+  | 'mbrProfile'
+  | 'mbrPreferencesPage'
+  | 'mbrPreferences'
+  | 'mbrPrivacySettingsPage'
+  | 'mbrPrivacy'
+  | 'mbrConnectionPage'
+  | 'mbrConnections'
+  | 'adminDbPage'
+  | 'admin-db'
+  | 'adminCachePage'
+  | 'adminCacheManagement'
+  | 'adminMediaPage'
+  | 'adminMedia'
+  | 'adminProperties'
+  | 'adminSystemProperties';
 
 
 
@@ -47,8 +82,8 @@ export default function App() {
   // React monitors state variables. When a setterFunction is called, React re-renders 
   // the component with the new value.
   
-  const [activeTab, setActiveTab] = useState<TabType>('sbPublicPage');
-  const [previousTab, setPreviousTab] = useState<TabType>('sbPublicPage');
+  const [activeTab, setActiveTab] = useState<TabType>('publicPage');
+  const [previousTab, setPreviousTab] = useState<TabType>('publicPage');
   const [selectedMemberId, setSelectedMemberId] = useState<string>('m1');
   const [targetStoryMemberId, setTargetStoryMemberId] = useState<string | null>(null);
   const [logonType, setLogonType] = useState<'Google' | 'Apple'>('Google');
@@ -59,13 +94,12 @@ export default function App() {
   // Holds any error message strings if backend communication fails.
   const [error, setError] = useState<string | null>(null);
   
-  // Stores the health check status payload returned from the backend FastAPI service.
-  const [apiHealth, setApiHealth] = useState<{ status: string; database: string } | null>(null);
+  // Stores raw status info returned from the health API endpoint.
+  const [apiHealth, setApiHealth] = useState<HealthCheckResponse | null>(null);
   
-  // Determines if the app should run using offline sandbox data. If the backend is unreachable, this falls back to true.
-  const [isSandbox, setIsSandbox] = useState(false);
-
-  // Unsaved member profile and connections changes guard state
+  // Flag indicating if we are running against mock local data (isSandbox === true) 
+  // or a real backend API (isSandbox === false).
+  const [isSandbox, setIsSandbox] = useState(true);
   const [isProfileDirty, setIsProfileDirty] = useState(false);
   const [isConnectionsDirty, setIsConnectionsDirty] = useState(false);
   const [showAppDiscardModal, setShowAppDiscardModal] = useState(false);
@@ -74,23 +108,23 @@ export default function App() {
   const forceNavigateAway = (targetTab?: TabType) => {
     setIsProfileDirty(false);
     setIsConnectionsDirty(false);
-    const dest = (targetTab && targetTab !== 'mbrProfile' && targetTab !== 'mbrConnections') 
+    const dest = (targetTab && targetTab !== 'mbrProfile' && targetTab !== 'mbrProfilePage' && targetTab !== 'mbrConnections' && targetTab !== 'mbrConnectionPage') 
       ? targetTab 
-      : (previousTab && previousTab !== 'mbrProfile' && previousTab !== 'mbrConnections' ? previousTab : 'sbMbrHomePage');
+      : (previousTab && previousTab !== 'mbrProfile' && previousTab !== 'mbrProfilePage' && previousTab !== 'mbrConnections' && previousTab !== 'mbrConnectionPage' ? previousTab : 'mbrHomePage');
     setActiveTab(dest);
   };
 
   const handleTabChange = (newTab: TabType) => {
-    if (newTab !== activeTab && activeTab !== 'mbrProfile' && activeTab !== 'mbrConnections') {
+    if (newTab !== activeTab && activeTab !== 'mbrProfile' && activeTab !== 'mbrProfilePage' && activeTab !== 'mbrConnections' && activeTab !== 'mbrConnectionPage') {
       setPreviousTab(activeTab);
     }
-    if (newTab !== 'sbMbrRegister' && newTab !== 'sbMbrStoryPage' && newTab !== 'sbMbrLogon') {
+    if (newTab !== 'mbrRegistrationPage' && newTab !== 'sbMbrRegister' && newTab !== 'mbrStoryPage' && newTab !== 'sbMbrStoryPage' && newTab !== 'mbrLogonPage' && newTab !== 'sbMbrLogon') {
       setTargetStoryMemberId(null);
     }
-    if (activeTab === 'mbrProfile' && isProfileDirty && newTab !== 'mbrProfile') {
+    if ((activeTab === 'mbrProfile' || activeTab === 'mbrProfilePage') && isProfileDirty && newTab !== 'mbrProfile' && newTab !== 'mbrProfilePage') {
       setPendingTab(newTab);
       setShowAppDiscardModal(true);
-    } else if (activeTab === 'mbrConnections' && isConnectionsDirty && newTab !== 'mbrConnections') {
+    } else if ((activeTab === 'mbrConnections' || activeTab === 'mbrConnectionPage') && isConnectionsDirty && newTab !== 'mbrConnections' && newTab !== 'mbrConnectionPage') {
       window.dispatchEvent(new CustomEvent('attempt-connection-navigation', { detail: { targetTab: newTab } }));
     } else {
       setActiveTab(newTab);
@@ -104,6 +138,21 @@ export default function App() {
   useEffect(() => {
     loadHealth();
 
+    // Periodically re-check backend health if initially in Sandbox mode
+    const healthInterval = setInterval(() => {
+      taskApi.checkHealth()
+        .then((health) => {
+          if (health?.status === 'healthy') {
+            setApiHealth(health);
+            setIsSandbox(false);
+            clearInterval(healthInterval);
+          }
+        })
+        .catch(() => {
+          // Backend not ready yet, continue in Sandbox mode
+        });
+    }, 3000);
+
     // Synchronize application color theme (Default, Dark, Ocean, Forest)
     const applyGlobalTheme = () => {
       const savedTheme = sessionStorage.getItem('mbrPrefTheme') || sessionStorage.getItem('theme') || 'Default';
@@ -114,6 +163,7 @@ export default function App() {
     window.addEventListener('theme-changed', applyGlobalTheme);
     window.addEventListener('storage', applyGlobalTheme);
     return () => {
+      clearInterval(healthInterval);
       window.removeEventListener('theme-changed', applyGlobalTheme);
       window.removeEventListener('storage', applyGlobalTheme);
     };
@@ -141,12 +191,12 @@ export default function App() {
   const handleReadStory = (memberId: string) => {
     setPreviousTab(activeTab);
     setSelectedMemberId(memberId);
-    if (activeTab === 'sbPublicPage') {
+    if (activeTab === 'publicPage' || activeTab === 'sbPublicPage') {
       setTargetStoryMemberId(memberId);
-      setActiveTab('sbMbrRegister');
+      setActiveTab('mbrRegistrationPage');
     } else {
       setTargetStoryMemberId(null);
-      setActiveTab('sbMbrStoryPage');
+      setActiveTab('mbrStoryPage');
     }
   };
 
@@ -231,10 +281,10 @@ export default function App() {
       {/* AnimatePresence coordinates transition effects between our screens. */}
       {/* mode="wait" ensures the old screen completes its fade-out before the new one fades in. */}
       <AnimatePresence mode="wait">
-        {/* If the active tab is 'settings', render connection configurations */}
-        {activeTab === 'settings' && (
+        {/* If the active tab is 'adminConnectionsPage', 'admin-connections' or legacy 'settings', render connection configurations */}
+        {(activeTab === 'adminConnectionsPage' || activeTab === 'admin-connections' || activeTab === 'settings') && (
           <motion.div
-            key="settings-view"
+            key="adminConnectionsPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -245,10 +295,10 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* If the active tab is 'account-settings', render the user database search UI */}
-        {activeTab === 'account-settings' && (
+        {/* If the active tab is 'adminAccountsPage', 'admin-accounts' or legacy 'account-settings', render the user database search UI */}
+        {(activeTab === 'adminAccountsPage' || activeTab === 'admin-accounts' || activeTab === 'account-settings') && (
           <motion.div
-            key="account-settings-view"
+            key="adminAccountsPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -259,17 +309,17 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* If the active tab is 'sbPublicPage', render the three-column memoir layout */}
-        {activeTab === 'sbPublicPage' && (
+        {/* If the active tab is 'publicPage' or legacy 'sbPublicPage', render the three-column memoir layout */}
+        {(activeTab === 'publicPage' || activeTab === 'sbPublicPage') && (
           <motion.div
-            key="sbPublicPage-view"
+            key="publicPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <SbPublicPageFeature
+            <PublicPageFeature
               setActiveTab={(tab) => {
                 setTargetStoryMemberId(null);
                 handleTabChange(tab);
@@ -278,101 +328,101 @@ export default function App() {
               onSelectLogonType={(type) => {
                 setTargetStoryMemberId(null);
                 setLogonType(type);
-                setActiveTab('sbMbrLogon');
+                setActiveTab('mbrLogonPage');
               }}
             />
           </motion.div>
         )}
 
-        {/* If the active tab is 'sbMbrHomePage', render the home page dashboard */}
-        {activeTab === 'sbMbrHomePage' && (
+        {/* If the active tab is 'mbrHomePage' or legacy 'sbMbrHomePage', render the home page dashboard */}
+        {(activeTab === 'mbrHomePage' || activeTab === 'sbMbrHomePage') && (
           <motion.div
-            key="sbMbrHomePage-view"
+            key="mbrHomePage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <SbMbrHomePageFeature
+            <MbrHomePageFeature
               onClickReadStory={handleReadStory}
               onClickAuthorPage={() => {
                 setPreviousTab(activeTab);
-                setActiveTab('sbMbrAuthorPage');
+                setActiveTab('mbrAuthorPage');
               }}
             />
           </motion.div>
         )}
 
-        {/* If the active tab is 'sbMbrStoryPage', render the member story biography page */}
-        {activeTab === 'sbMbrStoryPage' && (
+        {/* If the active tab is 'mbrStoryPage' or legacy 'sbMbrStoryPage', render the member story biography page */}
+        {(activeTab === 'mbrStoryPage' || activeTab === 'sbMbrStoryPage') && (
           <motion.div
-            key="sbMbrStoryPage-view"
+            key="mbrStoryPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <SbMbrStoryPageFeature
+            <MbrStoryPageFeature
               memberId={selectedMemberId}
-              onClickBack={() => setActiveTab('sbMbrHomePage')}
+              onClickBack={() => setActiveTab('mbrHomePage')}
             />
           </motion.div>
         )}
 
-        {/* If the active tab is 'sbMbrAuthorPage', render the member co-writer workspace */}
-        {activeTab === 'sbMbrAuthorPage' && (
+        {/* If the active tab is 'mbrAuthorPage' or legacy 'sbMbrAuthorPage', render the member co-writer workspace */}
+        {(activeTab === 'mbrAuthorPage' || activeTab === 'sbMbrAuthorPage') && (
           <motion.div
-            key="sbMbrAuthorPage-view"
+            key="mbrAuthorPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <SbMbrAuthorPageFeature
+            <MbrAuthorPageFeature
               isSandbox={isSandbox}
-              onClickBack={() => setActiveTab('sbMbrHomePage')}
+              onClickBack={() => setActiveTab('mbrHomePage')}
             />
           </motion.div>
         )}
-        {/* If the active tab is 'sbMbrLogon', render the secure logon screen */}
-        {activeTab === 'sbMbrLogon' && (
+        {/* If the active tab is 'mbrLogonPage' or legacy 'sbMbrLogon', render the secure logon screen */}
+        {(activeTab === 'mbrLogonPage' || activeTab === 'sbMbrLogon') && (
           <motion.div
-            key="sbMbrLogon-view"
+            key="mbrLogonPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <SbMbrLogonFeature
+            <MbrLogonPageFeature
               setActiveTab={setActiveTab}
               targetStoryMemberId={targetStoryMemberId}
             />
           </motion.div>
         )}
-        {/* If the active tab is 'sbMbrRegister', render the member registration screen */}
-        {activeTab === 'sbMbrRegister' && (
+        {/* If the active tab is 'mbrRegistrationPage' or legacy 'sbMbrRegister', render the member registration screen */}
+        {(activeTab === 'mbrRegistrationPage' || activeTab === 'sbMbrRegister') && (
           <motion.div
-            key="sbMbrRegister-view"
+            key="mbrRegistrationPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <SbMbrRegisterFeature
+            <MbrRegistrationPageFeature
               setActiveTab={setActiveTab}
               targetStoryMemberId={targetStoryMemberId}
             />
           </motion.div>
         )}
-        {/* If the active tab is 'mbrProfile', render the member profile editing screen */}
-        {activeTab === 'mbrProfile' && (
+        {/* If the active tab is 'mbrProfilePage' or legacy 'mbrProfile', render the member profile editing screen */}
+        {(activeTab === 'mbrProfilePage' || activeTab === 'mbrProfile') && (
           <motion.div
-            key="mbrProfile-view"
+            key="mbrProfilePage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -386,10 +436,10 @@ export default function App() {
             />
           </motion.div>
         )}
-        {/* If the active tab is 'mbrPreferences', render the member preferences settings screen */}
-        {activeTab === 'mbrPreferences' && (
+        {/* If the active tab is 'mbrPreferencesPage' or legacy 'mbrPreferences', render the member preferences settings screen */}
+        {(activeTab === 'mbrPreferencesPage' || activeTab === 'mbrPreferences') && (
           <motion.div
-            key="mbrPreferences-view"
+            key="mbrPreferencesPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -403,10 +453,10 @@ export default function App() {
             />
           </motion.div>
         )}
-        {/* If the active tab is 'mbrPrivacy', render the member privacy & permissions settings screen */}
-        {activeTab === 'mbrPrivacy' && (
+        {/* If the active tab is 'mbrPrivacySettingsPage' or legacy 'mbrPrivacy', render the member privacy & permissions settings screen */}
+        {(activeTab === 'mbrPrivacySettingsPage' || activeTab === 'mbrPrivacy') && (
           <motion.div
-            key="mbrPrivacy-view"
+            key="mbrPrivacySettingsPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -420,10 +470,10 @@ export default function App() {
             />
           </motion.div>
         )}
-        {/* If the active tab is 'mbrConnections', render the member connections & group assignment screen */}
-        {activeTab === 'mbrConnections' && (
+        {/* If the active tab is 'mbrConnectionPage' or legacy 'mbrConnections', render the member connections & group assignment screen */}
+        {(activeTab === 'mbrConnectionPage' || activeTab === 'mbrConnections') && (
           <motion.div
-            key="mbrConnections-view"
+            key="mbrConnectionPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -438,10 +488,10 @@ export default function App() {
             />
           </motion.div>
         )}
-        {/* If the active tab is 'db-admin', render the Database Administration CRUD Center */}
-        {activeTab === 'db-admin' && (
+        {/* If the active tab is 'adminDbPage' or legacy 'admin-db', render the Database Administration CRUD Center */}
+        {(activeTab === 'adminDbPage' || activeTab === 'admin-db') && (
           <motion.div
-            key="db-admin-view"
+            key="adminDbPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -451,10 +501,10 @@ export default function App() {
             <DbAdminFeature isSandbox={isSandbox} />
           </motion.div>
         )}
-        {/* If the active tab is 'adminCacheManagement', render the Admin Cache Management Page */}
-        {activeTab === 'adminCacheManagement' && (
+        {/* If the active tab is 'adminCachePage' or legacy 'adminCacheManagement', render the Admin Cache Management Page */}
+        {(activeTab === 'adminCachePage' || activeTab === 'adminCacheManagement') && (
           <motion.div
-            key="adminCacheManagement-view"
+            key="adminCachePage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -464,10 +514,10 @@ export default function App() {
             <AdminCacheManagement isSandbox={isSandbox} />
           </motion.div>
         )}
-        {/* If the active tab is 'adminMedia', render the Admin Media Management Page */}
-        {activeTab === 'adminMedia' && (
+        {/* If the active tab is 'adminMediaPage' or legacy 'adminMedia', render the Admin Media Management Page */}
+        {(activeTab === 'adminMediaPage' || activeTab === 'adminMedia') && (
           <motion.div
-            key="adminMedia-view"
+            key="adminMediaPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -477,17 +527,17 @@ export default function App() {
             <AdminMediaManagement isSandbox={isSandbox} />
           </motion.div>
         )}
-        {/* If the active tab is 'adminSystemProperties', render the Dynamic System Properties Page */}
-        {activeTab === 'adminSystemProperties' && (
+        {/* If the active tab is 'adminProperties' or legacy 'adminSystemProperties', render the Dynamic System Properties Page */}
+        {(activeTab === 'adminProperties' || activeTab === 'adminSystemProperties') && (
           <motion.div
-            key="adminSystemProperties-view"
+            key="adminProperties-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
             className="w-full"
           >
-            <SystemPropertiesFeature />
+            <AdminPropertiesFeature />
           </motion.div>
         )}
       </AnimatePresence>

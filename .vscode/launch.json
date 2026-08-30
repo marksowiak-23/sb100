@@ -1,35 +1,26 @@
 {
   "version": "0.2.0",
   "configurations": [
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    
-    
-    
-
     {
-      "name": "Launch Chrome (Debug React App)",
-      "type": "pwa-chrome",
+      "name": "Launch StoryBook (Dev Server + Chrome)",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}",
+      "preLaunchTask": "npm: dev"
+    },
+    {
+      "name": "Launch Chrome (Existing Server)",
+      "type": "chrome",
       "request": "launch",
       "url": "http://localhost:3000",
       "webRoot": "${workspaceFolder}"
     },
     {
-      "name": "npm install",
+      "name": "Start All Services (Ecosystem)",
       "type": "node-terminal",
       "request": "launch",
-      "command": "npm install"
+      "command": "npm run services:start"
     },
     {
       "name": "npm run dev",

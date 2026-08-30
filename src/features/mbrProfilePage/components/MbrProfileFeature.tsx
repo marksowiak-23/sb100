@@ -8,12 +8,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Camera, User, Calendar, Save, ArrowLeft, Loader2, 
   CheckCircle2, AlertCircle, Image as ImageIcon, Sparkles, Upload,
-  AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Mail, Plus, Trash2, Check
+  AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Mail, Plus, Trash2, Check,
+  Sliders, ShieldCheck, Eye
 } from 'lucide-react';
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import StoryMatePanel from '@/src/features/sbMbrAuthorPage/components/StoryMatePanel';
+import StoryMatePanel from '@/src/features/mbrAuthorPage/components/StoryMatePanel';
 import ImageCropModal from './ImageCropModal';
+import MbrProfileDisplaySettingsPanel from './MbrProfileDisplaySettingsPanel';
+import BrandHeaderPanel from '@/src/components/brandHeaderPanel';
 
 interface MbrProfileFeatureProps {
   isSandbox: boolean;
@@ -25,6 +28,10 @@ interface MbrProfileFeatureProps {
 
 
 export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChange }: MbrProfileFeatureProps) {
+  // --- SUB-TAB STATE ---
+  const [activeSubTab, setActiveSubTab] = useState<'profile' | 'display-settings'>('profile');
+  const [isSettingsDirty, setIsSettingsDirty] = useState(false);
+
   // --- STATE DEFINITIONS ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -83,7 +90,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   }, []);
 
   // Compute dirty status (true if any field was changed from initial loaded state)
-  const isDirty = useMemo(() => {
+  const isProfileDirty = useMemo(() => {
     if (!initialData) return false;
     return (
       formData.mbrFirstName !== initialData.formData.mbrFirstName ||
@@ -103,6 +110,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
       previewImage !== initialData.previewImage
     );
   }, [formData, previewImage, initialData]);
+
+  const isDirty = isProfileDirty || isSettingsDirty;
 
   // Notify parent component of dirty state changes
   useEffect(() => {
@@ -623,7 +632,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   }
 
   return (
-    <div className="w-full max-w-3xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 md:p-10 shadow-[0_12px_40px_rgba(0,0,0,0.02)] animate-fade-in relative">
+    <div className="w-full max-w-5xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 md:p-9 shadow-[0_12px_40px_rgba(0,0,0,0.02)] animate-fade-in relative">
       
       {/* --- UNSAVED CHANGES CONFIRMATION MODAL --- */}
       <AnimatePresence>
@@ -676,220 +685,319 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         )}
       </AnimatePresence>
 
-      {/* --- HEADER --- */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#EFECE7] mb-8">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={handleAttemptBack}
-            className="p-2 bg-slate-50 hover:bg-slate-100 border border-[#EFECE7] text-slate-600 rounded-xl transition-all cursor-pointer"
-            title="Go Back"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-serif font-black text-slate-800 tracking-tight">Member Profile</h2>
-              <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
-                isSandbox ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-              }`}>
-                {isSandbox ? 'Sandbox' : 'sbDB100 Live'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-450 font-serif mt-0.5">Customize your biography narratives, demographics, and profile visual assets.</p>
-          </div>
-        </div>
-      </div>
-
-      {/* --- FEEDBACK ALERTS --- */}
-      {error && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }} 
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-2xl mb-6 text-xs font-serif leading-relaxed"
-        >
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-        </motion.div>
-      )}
-
-      {success && (
-        <motion.div 
-          initial={{ opacity: 0, y: -10 }} 
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl mb-6 text-xs font-serif leading-relaxed"
-        >
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
-          <span>{success}</span>
-        </motion.div>
-      )}
-
-      {/* --- PROFILE FORM --- */}
-      <form onSubmit={handleSubmit} className="space-y-8">
+      {/* --- TWO-COLUMN GRID LAYOUT --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* PROFILE PICTURE COLUMN */}
-        <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
-          <div className="flex items-center gap-2">
-            <Camera className="w-4 h-4 text-slate-650" />
-            <h3 className="font-serif text-sm font-bold text-slate-800">Profile Picture</h3>
+        {/* LEFT COLUMN: BRAND HEADER & NAVIGATION MENU */}
+        <aside className="lg:col-span-4 space-y-6">
+          <BrandHeaderPanel />
+
+          <div className="bg-white border border-[#EFECE7] rounded-3xl p-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono px-3 pt-2 pb-1 block">
+              Profile Navigation
+            </span>
+
+            {/* Menu Item 1: My Profile (Default) */}
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('profile')}
+              className={`w-full flex items-start gap-3.5 p-3 rounded-2xl text-left transition-all cursor-pointer ${
+                activeSubTab === 'profile'
+                  ? 'bg-blue-50/90 border border-blue-200/80 shadow-xs'
+                  : 'hover:bg-slate-50 border border-transparent text-slate-650 hover:text-slate-900'
+              }`}
+            >
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                activeSubTab === 'profile' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
+              }`}>
+                <User className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <span className={`text-xs font-bold font-serif ${
+                    activeSubTab === 'profile' ? 'text-blue-950 font-black' : 'text-slate-750'
+                  }`}>
+                    My Profile
+                  </span>
+                  {isProfileDirty && (
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes in profile" />
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-450 font-serif truncate mt-0.5">
+                  Demographics & Biography
+                </p>
+              </div>
+            </button>
+
+            {/* Menu Item 2: Profile Display Settings */}
+            <button
+              type="button"
+              onClick={() => setActiveSubTab('display-settings')}
+              className={`w-full flex items-start gap-3.5 p-3 rounded-2xl text-left transition-all cursor-pointer ${
+                activeSubTab === 'display-settings'
+                  ? 'bg-blue-50/90 border border-blue-200/80 shadow-xs'
+                  : 'hover:bg-slate-50 border border-transparent text-slate-650 hover:text-slate-900'
+              }`}
+            >
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                activeSubTab === 'display-settings' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
+              }`}>
+                <Sliders className="w-4 h-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-1">
+                  <span className={`text-xs font-bold font-serif ${
+                    activeSubTab === 'display-settings' ? 'text-blue-950 font-black' : 'text-slate-750'
+                  }`}>
+                    Profile Display Settings
+                  </span>
+                  {isSettingsDirty && (
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes in display settings" />
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-450 font-serif truncate mt-0.5">
+                  Public & Section Visibility
+                </p>
+              </div>
+            </button>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center gap-8">
-            {/* Avatar Preview & Upload Button */}
-            <div className="flex flex-col items-center gap-3 shrink-0">
-              <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-100 flex items-center justify-center relative">
-                {previewImage ? (
-                  <img 
-                    src={previewImage} 
-                    alt="Profile Preview" 
-                    className="w-full h-full object-cover" 
-                  />
-                ) : (
-                  <User className="w-12 h-12 text-slate-300" />
-                )}
-
-                {uploadingImage && (
-                  <div className="absolute inset-0 bg-slate-900/70 flex flex-col items-center justify-center text-white gap-1.5 z-10">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
-                    <span className="text-[9px] font-bold">Uploading...</span>
-                  </div>
-                )}
-              </div>
-              
-              <label 
-                htmlFor="avatar-upload" 
-                className={`inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm transition-all duration-150 ${
-                  uploadingImage ? 'opacity-50 pointer-events-none' : 'hover:scale-[1.02] active:scale-[0.98]'
-                }`}
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>{uploadingImage ? 'Uploading...' : 'Upload Image'}</span>
-              </label>
-              
-              <input 
-                id="avatar-upload"
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
-                onChange={handleImageChange}
-                disabled={uploadingImage}
-                className="hidden"
-              />
+          {/* Quick Context / Privacy Info Card */}
+          <div className="bg-slate-50/80 border border-[#EFECE7] rounded-3xl p-4.5 space-y-2.5 shadow-xs">
+            <div className="flex items-center gap-2 text-slate-800">
+              <ShieldCheck className="w-4 h-4 text-blue-600" />
+              <h4 className="text-xs font-bold font-serif">Display & Privacy Guidance</h4>
             </div>
+            <p className="text-[11px] text-slate-500 font-serif leading-relaxed">
+              Use <strong>My Profile</strong> to maintain your life details, locations, education, and photo gallery.
+            </p>
+            <p className="text-[11px] text-slate-500 font-serif leading-relaxed">
+              Use <strong>Profile Display Settings</strong> to toggle whether individual attributes are displayed on public and shared member views.
+            </p>
+          </div>
+        </aside>
 
-            {/* Member Photo Gallery Section in Vertical Scroll Window */}
-            <div className="flex-grow space-y-2.5 w-full">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Member Photo Gallery</span>
-                  <p className="text-[11px] text-slate-450 font-serif leading-relaxed">Add photos that will be displayed as part of your Member Profile to Friends, Family, and Others based upon your security preferences.</p>
+        {/* RIGHT COLUMN: MAIN CONTENT AREA & HEADER */}
+        <main className="lg:col-span-8 min-w-0 space-y-6">
+          
+          {/* Header Section */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#EFECE7]">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={handleAttemptBack}
+                className="p-2 bg-slate-50 hover:bg-slate-100 border border-[#EFECE7] text-slate-600 rounded-xl transition-all cursor-pointer shadow-xs"
+                title="Go Back"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-2xl font-serif font-black text-slate-800 tracking-tight">
+                    {activeSubTab === 'profile' ? 'My Profile' : 'Profile Display Settings'}
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-450 font-serif mt-0.5">
+                  {activeSubTab === 'profile' 
+                    ? 'Your story starts here with knowing your basic demographics and personal introduction.'
+                    : 'Control which attributes and sections of your member profile are visible to visitors and community members.'}
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* TAB 1: MY PROFILE FORM */}
+          {activeSubTab === 'profile' && (
+            <div>
+              {/* --- FEEDBACK ALERTS --- */}
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-2xl mb-6 text-xs font-serif leading-relaxed"
+                >
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </motion.div>
+              )}
+
+              {success && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }} 
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl mb-6 text-xs font-serif leading-relaxed"
+                >
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{success}</span>
+                </motion.div>
+              )}
+
+              {/* --- PROFILE FORM --- */}
+              <form onSubmit={handleSubmit} className="space-y-8">
+                
+                {/* PROFILE PICTURE COLUMN */}
+                <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-slate-650" />
+                    <h3 className="font-serif text-sm font-bold text-slate-800">Profile Picture</h3>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-center gap-8">
+                    {/* Avatar Preview & Upload Button */}
+                    <div className="flex flex-col items-center gap-3 shrink-0">
+                      <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-100 flex items-center justify-center relative">
+                        {previewImage ? (
+                          <img 
+                            src={previewImage} 
+                            alt="Profile Preview" 
+                            className="w-full h-full object-cover" 
+                          />
+                        ) : (
+                          <User className="w-12 h-12 text-slate-300" />
+                        )}
+
+                        {uploadingImage && (
+                          <div className="absolute inset-0 bg-slate-900/70 flex flex-col items-center justify-center text-white gap-1.5 z-10">
+                            <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+                            <span className="text-[9px] font-bold">Uploading...</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <label 
+                        htmlFor="avatar-upload" 
+                        className={`inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm transition-all duration-150 ${
+                          uploadingImage ? 'opacity-50 pointer-events-none' : 'hover:scale-[1.02] active:scale-[0.98]'
+                        }`}
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{uploadingImage ? 'Uploading...' : 'Upload Image'}</span>
+                      </label>
+                      
+                      <input 
+                        id="avatar-upload"
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                        onChange={handleImageChange}
+                        disabled={uploadingImage}
+                        className="hidden"
+                      />
+                    </div>
+
+                    {/* Member Photo Gallery Section in Vertical Scroll Window */}
+                    <div className="flex-grow space-y-2.5 w-full">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Member Photo Gallery</span>
+                          <p className="text-[11px] text-slate-450 font-serif leading-relaxed">Add photos that will be displayed as part of your Member Profile to Friends, Family, and Others based upon your security preferences.</p>
+                        </div>
+
+                        {/* Add Photo Button with (count/20) indicator */}
+                        <label 
+                          htmlFor="gallery-photo-upload" 
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                            galleryItems.length >= 20 
+                              ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                              : uploadingGalleryPhoto 
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200/80 opacity-50 pointer-events-none' 
+                                : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+                          }`}
+                          title={galleryItems.length >= 20 ? 'Maximum 20 photos reached' : 'Add Photo to Gallery'}
+                        >
+                          {uploadingGalleryPhoto ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                              <span>Adding...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Add Photo ({galleryItems.length}/20)</span>
+                            </>
+                          )}
+                        </label>
+                        <input 
+                          id="gallery-photo-upload"
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                          onChange={handleAddGalleryPhoto}
+                          disabled={uploadingGalleryPhoto || galleryItems.length >= 20}
+                          className="hidden"
+                        />
+                      </div>
+
+                      {/* Vertical Scrollable Container for Gallery Thumbnails */}
+                      <div className="max-h-[195px] overflow-y-auto pr-2 space-y-2 border border-[#EFECE7] rounded-2xl p-3 bg-white/70 shadow-inner min-h-[120px]">
+                        {loadingGallery ? (
+                          <div className="flex items-center justify-center h-24 text-slate-400 gap-2 text-xs font-serif">
+                            <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                            <span>Loading gallery photos...</span>
+                          </div>
+                        ) : galleryItems.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400 gap-1.5">
+                            <ImageIcon className="w-8 h-8 opacity-40 text-slate-400" />
+                            <p className="text-xs font-serif text-slate-500">No profile gallery photos saved yet.</p>
+                            <p className="text-[10px] text-slate-400 font-sans">Click "Add Photo" above to upload photos to your gallery.</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
+                            {galleryItems.map((item) => {
+                              const itemUrl = resolveMediaUrl(item.mbrMediaPath);
+                              const isDeleting = deletingMediaId === item.mbrMediaId;
+
+                              return (
+                                <div 
+                                  key={item.mbrMediaId}
+                                  className="group relative aspect-square rounded-2xl overflow-hidden border p-1 bg-white transition-all border-[#EFECE7] hover:border-slate-400 shadow-xs"
+                                  title={item.mbrMediaOriginalFilename || 'Member Gallery Photo'}
+                                >
+                                  <img 
+                                    src={itemUrl} 
+                                    alt={item.mbrMediaOriginalFilename || 'Gallery Thumbnail'} 
+                                    className="w-full h-full object-cover rounded-xl" 
+                                  />
+
+                                  {/* Delete Hover Action */}
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleDeleteGalleryPhoto(item.mbrMediaId, e)}
+                                    disabled={isDeleting}
+                                    className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-lg bg-red-600/90 hover:bg-red-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xs cursor-pointer z-10"
+                                    title="Delete photo from gallery"
+                                  >
+                                    {isDeleting ? (
+                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="w-3 h-3" />
+                                    )}
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Add Photo Button with (count/20) indicator */}
-                <label 
-                  htmlFor="gallery-photo-upload" 
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                    galleryItems.length >= 20 
-                      ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-                      : uploadingGalleryPhoto 
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200/80 opacity-50 pointer-events-none' 
-                        : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
-                  }`}
-                  title={galleryItems.length >= 20 ? 'Maximum 20 photos reached' : 'Add Photo to Gallery'}
-                >
-                  {uploadingGalleryPhoto ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
-                      <span>Adding...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add Photo ({galleryItems.length}/20)</span>
-                    </>
-                  )}
-                </label>
-                <input 
-                  id="gallery-photo-upload"
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
-                  onChange={handleAddGalleryPhoto}
-                  disabled={uploadingGalleryPhoto || galleryItems.length >= 20}
-                  className="hidden"
-                />
-              </div>
-
-              {/* Vertical Scrollable Container for Gallery Thumbnails */}
-              <div className="max-h-[195px] overflow-y-auto pr-2 space-y-2 border border-[#EFECE7] rounded-2xl p-3 bg-white/70 shadow-inner min-h-[120px]">
-                {loadingGallery ? (
-                  <div className="flex items-center justify-center h-24 text-slate-400 gap-2 text-xs font-serif">
-                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                    <span>Loading gallery photos...</span>
+                {/* DEMOGRAPHIC NAMES SECTION */}
+                <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4 text-slate-650" />
+                    <h3 className="font-serif text-sm font-bold text-slate-800">Demographics</h3>
                   </div>
-                ) : galleryItems.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400 gap-1.5">
-                    <ImageIcon className="w-8 h-8 opacity-40 text-slate-400" />
-                    <p className="text-xs font-serif text-slate-500">No profile gallery photos saved yet.</p>
-                    <p className="text-[10px] text-slate-400 font-sans">Click "Add Photo" above to upload photos to your gallery.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
-                    {galleryItems.map((item) => {
-                      const itemUrl = resolveMediaUrl(item.mbrMediaPath);
-                      const isDeleting = deletingMediaId === item.mbrMediaId;
 
-                      return (
-                        <div
-                          key={item.mbrMediaId}
-                          className="group relative aspect-square rounded-2xl overflow-hidden border p-1 bg-white transition-all border-[#EFECE7] hover:border-slate-400 shadow-xs"
-                          title={item.mbrMediaOriginalFilename || 'Member Gallery Photo'}
-                        >
-                          <img 
-                            src={itemUrl} 
-                            alt={item.mbrMediaOriginalFilename || 'Gallery Thumbnail'} 
-                            className="w-full h-full object-cover rounded-xl" 
-                          />
-
-                          {/* Delete Hover Action */}
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteGalleryPhoto(item.mbrMediaId, e)}
-                            disabled={isDeleting}
-                            className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-lg bg-red-600/90 hover:bg-red-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xs cursor-pointer z-10"
-                            title="Delete photo from gallery"
-                          >
-                            {isDeleting ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-3 h-3" />
-                            )}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* DEMOGRAPHIC NAMES SECTION */}
-        <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
-          <div className="flex items-center gap-2">
-            <User className="w-4 h-4 text-slate-650" />
-            <h3 className="font-serif text-sm font-bold text-slate-800">Demographics</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">First Name *</label>
-              <input 
-                type="text" 
-                value={formData.mbrFirstName}
-                onChange={(e) => setFormData((prev) => ({ ...prev, mbrFirstName: e.target.value }))}
-                className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
-                required
-              />
-            </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">First Name *</label>
+                      <input 
+                        type="text" 
+                        value={formData.mbrFirstName}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrFirstName: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
+                        required
+                      />
+                    </div>
             
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Middle Name</label>
@@ -1093,9 +1201,9 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
           
           <button
             type="submit"
-            disabled={saving || !isDirty}
+            disabled={saving || !isProfileDirty}
             className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold font-sans transition-all cursor-pointer flex items-center gap-2 shadow-sm disabled:bg-slate-200 disabled:text-slate-400 disabled:border disabled:border-slate-300/60 disabled:cursor-not-allowed disabled:shadow-none"
-            title={!isDirty ? "Make an edit to enable saving" : "Save changes to your member profile"}
+            title={!isProfileDirty ? "Make an edit to enable saving" : "Save changes to your member profile"}
           >
             {saving ? (
               <>
@@ -1112,6 +1220,19 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         </div>
 
       </form>
+    </div>
+  )}
+
+  {/* TAB 2: PROFILE DISPLAY SETTINGS */}
+  {activeSubTab === 'display-settings' && (
+    <MbrProfileDisplaySettingsPanel
+      isSandbox={isSandbox}
+      mbrId={mbrId}
+      onDirtyChange={setIsSettingsDirty}
+    />
+  )}
+        </main>
+      </div>
 
       <ImageCropModal
         isOpen={cropModalOpen}

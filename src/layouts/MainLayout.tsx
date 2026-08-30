@@ -8,13 +8,46 @@ import { User, ChevronDown, ChevronUp, BookOpen, Shield, Home, Users, MessageSqu
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import { SessionTimeoutModal } from '@/src/components/SessionTimeoutModal';
+import SessionTimeoutPanel from '@/src/components/sessionTimeoutPanel';
 import { useSessionTimeout } from '@/src/hooks/useSessionTimeout';
 
 // Restrict values for the tab parameter.
-type TabType = 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'mbrPrivacy' | 'mbrConnections' | 'sbMbrLogon' | 'sbMbrRegister' | 'db-admin' | 'adminCacheManagement' | 'adminMedia' | 'adminSystemProperties';
-
-
+type TabType =
+  | 'workspace'
+  | 'adminConnectionsPage'
+  | 'admin-connections'
+  | 'settings'
+  | 'adminAccountsPage'
+  | 'admin-accounts'
+  | 'account-settings'
+  | 'publicPage'
+  | 'sbPublicPage'
+  | 'mbrHomePage'
+  | 'sbMbrHomePage'
+  | 'mbrStoryPage'
+  | 'sbMbrStoryPage'
+  | 'mbrAuthorPage'
+  | 'sbMbrAuthorPage'
+  | 'mbrProfilePage'
+  | 'mbrProfile'
+  | 'mbrPreferencesPage'
+  | 'mbrPreferences'
+  | 'mbrPrivacySettingsPage'
+  | 'mbrPrivacy'
+  | 'mbrConnectionPage'
+  | 'mbrConnections'
+  | 'mbrLogonPage'
+  | 'sbMbrLogon'
+  | 'mbrRegistrationPage'
+  | 'sbMbrRegister'
+  | 'adminDbPage'
+  | 'admin-db'
+  | 'adminCachePage'
+  | 'adminCacheManagement'
+  | 'adminMediaPage'
+  | 'adminMedia'
+  | 'adminProperties'
+  | 'adminSystemProperties';
 
 // Define the interface (contract) for the props this component expects to receive.
 // React components receive data from their parent component via "props" (properties).
@@ -48,17 +81,25 @@ export default function MainLayout({
   const [userName, setUserName] = React.useState<string>('StoryBook Member');
   const [invitationCount, setInvitationCount] = React.useState<number>(0);
 
+  const isPublicView =
+    activeTab === 'publicPage' ||
+    activeTab === 'sbPublicPage' ||
+    activeTab === 'mbrLogonPage' ||
+    activeTab === 'sbMbrLogon' ||
+    activeTab === 'mbrRegistrationPage' ||
+    activeTab === 'sbMbrRegister';
+
   const isMemberLoggedIn = Boolean(
-    (activeTab !== 'sbPublicPage' && activeTab !== 'sbMbrLogon' && activeTab !== 'sbMbrRegister') ||
+    !isPublicView ||
     sessionStorage.getItem('user') ||
     sessionStorage.getItem('sb_current_mbr')
-  ) && activeTab !== 'sbPublicPage' && activeTab !== 'sbMbrLogon' && activeTab !== 'sbMbrRegister';
+  ) && !isPublicView;
 
   const handleSessionTimeout = React.useCallback(() => {
     userManager.userLogout();
     setProfilePic(null);
     setUserName('StoryBook Member');
-    setActiveTab('sbPublicPage');
+    setActiveTab('publicPage');
     setDropdownOpen(false);
   }, [setActiveTab]);
 
@@ -123,7 +164,7 @@ export default function MainLayout({
     try {
       const userStr = sessionStorage.getItem('user');
       const storedMbr = sessionStorage.getItem('sb_current_mbr');
-      if (!userStr && !storedMbr && (activeTab === 'sbPublicPage' || activeTab === 'sbMbrLogon' || activeTab === 'sbMbrRegister')) {
+      if (!userStr && !storedMbr && isPublicView) {
         setInvitationCount(0);
         return;
       }
@@ -162,7 +203,7 @@ export default function MainLayout({
     } catch (e) {
       console.warn("Could not load contact invitation count:", e);
     }
-  }, [isSandbox, activeTab]);
+  }, [isSandbox, isPublicView]);
 
   React.useEffect(() => {
     loadInvitationCount();
@@ -182,9 +223,9 @@ export default function MainLayout({
   const handleLogoClick = () => {
     const userStr = sessionStorage.getItem('user');
     if (userStr) {
-      setActiveTab('sbMbrHomePage');
+      setActiveTab('mbrHomePage');
     } else {
-      setActiveTab('sbPublicPage');
+      setActiveTab('publicPage');
     }
   };
 
@@ -224,13 +265,13 @@ export default function MainLayout({
             <button
               type="button"
               onClick={() => {
-                setActiveTab('sbMbrHomePage');
+                setActiveTab('mbrHomePage');
                 setDropdownOpen(false);
                 setIsMessagingOpen(false);
                 setIsNotificationsOpen(false);
               }}
               className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
-                activeTab === 'sbMbrHomePage'
+                activeTab === 'mbrHomePage' || activeTab === 'sbMbrHomePage'
                   ? 'text-white border-b-2 border-white font-bold'
                   : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
               }`}
@@ -244,13 +285,13 @@ export default function MainLayout({
             <button
               type="button"
               onClick={() => {
-                setActiveTab('sbMbrAuthorPage');
+                setActiveTab('mbrAuthorPage');
                 setDropdownOpen(false);
                 setIsMessagingOpen(false);
                 setIsNotificationsOpen(false);
               }}
               className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
-                activeTab === 'sbMbrAuthorPage'
+                activeTab === 'mbrAuthorPage' || activeTab === 'sbMbrAuthorPage'
                   ? 'text-white border-b-2 border-white font-bold'
                   : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
               }`}
@@ -362,7 +403,7 @@ export default function MainLayout({
                         type="button"
                         onClick={() => {
                           setIsMessagingOpen(false);
-                          setActiveTab('sbMbrHomePage');
+                          setActiveTab('mbrHomePage');
                         }}
                         className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
                       >
@@ -461,7 +502,7 @@ export default function MainLayout({
                   setIsNotificationsOpen(false);
                 }}
                 className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[58px] px-2 relative transition-all cursor-pointer group ${
-                  isDropdownOpen || ['mbrProfile', 'mbrPreferences', 'mbrPrivacy'].includes(activeTab)
+                  isDropdownOpen || ['mbrProfilePage', 'mbrProfile', 'mbrPreferencesPage', 'mbrPreferences', 'mbrPrivacySettingsPage', 'mbrPrivacy', 'mbrConnectionPage', 'mbrConnections'].includes(activeTab)
                     ? 'text-white border-b-2 border-white font-bold'
                     : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
                 }`}
@@ -510,50 +551,50 @@ export default function MainLayout({
 
                     <div
                       onClick={() => {
-                        setActiveTab('mbrProfile');
+                        setActiveTab('mbrProfilePage');
                         setDropdownOpen(false);
                       }}
                       className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
-                        activeTab === 'mbrProfile'
+                        activeTab === 'mbrProfilePage' || activeTab === 'mbrProfile'
                           ? 'bg-white/10 text-white font-bold'
                           : 'text-slate-300 hover:bg-white/5 hover:text-white'
                       }`}
                     >
-                      Member Profile
+                      My Profile
                     </div>
                     <div
                       onClick={() => {
-                        setActiveTab('mbrPreferences');
+                        setActiveTab('mbrPreferencesPage');
                         setDropdownOpen(false);
                       }}
                       className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
-                        activeTab === 'mbrPreferences'
+                        activeTab === 'mbrPreferencesPage' || activeTab === 'mbrPreferences'
                           ? 'bg-white/10 text-white font-bold'
                           : 'text-slate-300 hover:bg-white/5 hover:text-white'
                       }`}
                     >
-                      Member Preferences
+                      My Preferences
                     </div>
                     <div
                       onClick={() => {
-                        setActiveTab('mbrPrivacy');
+                        setActiveTab('mbrPrivacySettingsPage');
                         setDropdownOpen(false);
                       }}
                       className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
-                        activeTab === 'mbrPrivacy'
+                        activeTab === 'mbrPrivacySettingsPage' || activeTab === 'mbrPrivacy'
                           ? 'bg-white/10 text-white font-bold'
                           : 'text-slate-300 hover:bg-white/5 hover:text-white'
                       }`}
                     >
-                      Member Privacy
+                      My Privacy
                     </div>
                     <div
                       onClick={() => {
-                        setActiveTab('mbrConnections');
+                        setActiveTab('mbrConnectionPage');
                         setDropdownOpen(false);
                       }}
                       className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors flex items-center justify-between ${
-                        activeTab === 'mbrConnections'
+                        activeTab === 'mbrConnectionPage' || activeTab === 'mbrConnections'
                           ? 'bg-white/10 text-white font-bold'
                           : 'text-slate-300 hover:bg-white/5 hover:text-white'
                       }`}
@@ -591,11 +632,11 @@ export default function MainLayout({
                         <div className="pl-3 border-l border-slate-700/60 ml-4 my-1 space-y-0.5">
                           <div
                             onClick={() => {
-                              setActiveTab('account-settings');
+                              setActiveTab('adminAccountsPage');
                               setDropdownOpen(false);
                             }}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                              activeTab === 'account-settings'
+                              activeTab === 'adminAccountsPage' || activeTab === 'admin-accounts' || activeTab === 'account-settings'
                                 ? 'bg-white/10 text-white font-bold'
                                 : 'text-slate-300 hover:bg-white/5 hover:text-white'
                             }`}
@@ -604,11 +645,24 @@ export default function MainLayout({
                           </div>
                           <div
                             onClick={() => {
-                              setActiveTab('db-admin');
+                              setActiveTab('adminConnectionsPage');
                               setDropdownOpen(false);
                             }}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                              activeTab === 'db-admin'
+                              activeTab === 'adminConnectionsPage' || activeTab === 'admin-connections' || activeTab === 'settings'
+                                ? 'bg-white/10 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            Connection Settings
+                          </div>
+                          <div
+                            onClick={() => {
+                              setActiveTab('adminDbPage');
+                              setDropdownOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                              activeTab === 'adminDbPage' || activeTab === 'admin-db'
                                 ? 'bg-white/10 text-white font-bold'
                                 : 'text-slate-300 hover:bg-white/5 hover:text-white'
                             }`}
@@ -617,11 +671,11 @@ export default function MainLayout({
                           </div>
                           <div
                             onClick={() => {
-                              setActiveTab('adminCacheManagement');
+                              setActiveTab('adminCachePage');
                               setDropdownOpen(false);
                             }}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                              activeTab === 'adminCacheManagement'
+                              activeTab === 'adminCachePage' || activeTab === 'adminCacheManagement'
                                 ? 'bg-white/10 text-white font-bold'
                                 : 'text-slate-300 hover:bg-white/5 hover:text-white'
                             }`}
@@ -630,11 +684,11 @@ export default function MainLayout({
                           </div>
                           <div
                             onClick={() => {
-                              setActiveTab('adminMedia');
+                              setActiveTab('adminMediaPage');
                               setDropdownOpen(false);
                             }}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                              activeTab === 'adminMedia'
+                              activeTab === 'adminMediaPage' || activeTab === 'adminMedia'
                                 ? 'bg-white/10 text-white font-bold'
                                 : 'text-slate-300 hover:bg-white/5 hover:text-white'
                             }`}
@@ -643,11 +697,11 @@ export default function MainLayout({
                           </div>
                           <div
                             onClick={() => {
-                              setActiveTab('adminSystemProperties');
+                              setActiveTab('adminProperties');
                               setDropdownOpen(false);
                             }}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                              activeTab === 'adminSystemProperties'
+                              activeTab === 'adminProperties' || activeTab === 'adminSystemProperties'
                                 ? 'bg-white/10 text-white font-bold'
                                 : 'text-slate-300 hover:bg-white/5 hover:text-white'
                             }`}
@@ -663,7 +717,7 @@ export default function MainLayout({
                       onClick={() => {
                         userManager.userLogout();
                         setProfilePic(null);
-                        setActiveTab('sbPublicPage');
+                        setActiveTab('publicPage');
                         setDropdownOpen(false);
                       }}
                       className="border-t border-slate-800 mt-1 px-4 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-950/20 hover:text-rose-300 cursor-pointer transition-colors"
@@ -680,14 +734,14 @@ export default function MainLayout({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => setActiveTab('sbMbrLogon')}
+              onClick={() => setActiveTab('mbrLogonPage')}
               className="px-4 py-2 rounded-xl text-xs font-serif font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
             >
               Log In
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('sbMbrRegister')}
+              onClick={() => setActiveTab('mbrRegistrationPage')}
               className="px-4 py-2 rounded-xl text-xs font-serif font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs hover:shadow transition-all cursor-pointer"
             >
               Sign Up
@@ -731,7 +785,7 @@ export default function MainLayout({
           <div className="flex gap-4">
             <span className="text-emerald-400 font-semibold">● 0 Warnings</span>
             <span
-              onClick={() => setActiveTab('account-settings')}
+              onClick={() => setActiveTab('admin-accounts')}
               className="text-slate-300 hover:text-white underline cursor-pointer font-serif"
             >
               Inspect Database User Accounts
@@ -747,7 +801,7 @@ export default function MainLayout({
       </footer>
 
       {/* Session Inactivity Timeout Warning Modal */}
-      <SessionTimeoutModal
+      <SessionTimeoutPanel
         isOpen={isWarningOpen && isMemberLoggedIn}
         remainingSeconds={remainingSeconds}
         onRenew={renewSession}

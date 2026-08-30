@@ -9,7 +9,7 @@ import { UserPlus, X, Loader2, CheckCircle2, MessageSquare, Tag, Users } from 'l
 import { taskApi, GroupGlobal, GroupCustom, LookupCode } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-export interface SbConnectModalProps {
+export interface MbrConnectPanelProps {
   isOpen: boolean;
   onClose: () => void;
   targetMember: {
@@ -24,13 +24,16 @@ export interface SbConnectModalProps {
   onSuccess?: () => void;
 }
 
-export default function SbConnectModal({
+export type SbConnectModalProps = MbrConnectPanelProps;
+export type mbrConnectPanelProps = MbrConnectPanelProps;
+
+export default function MbrConnectPanel({
   isOpen,
   onClose,
   targetMember,
   viewerMbrId: propViewerMbrId,
   onSuccess
-}: SbConnectModalProps) {
+}: MbrConnectPanelProps) {
   const [loadingInitial, setLoadingInitial] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -371,9 +374,12 @@ export default function SbConnectModal({
             )}
           </form>
 
-          <AdminComponentTag name="SbConnectModal" />
+          <AdminComponentTag name="mbrConnectPanel" />
         </motion.div>
       </div>
     </AnimatePresence>
   );
 }
+
+export { MbrConnectPanel, MbrConnectPanel as mbrConnectPanel, MbrConnectPanel as SbConnectModal };
+

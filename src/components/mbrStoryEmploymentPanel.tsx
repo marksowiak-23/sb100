@@ -8,13 +8,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Briefcase, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, BookOpen, Images } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
+import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 
-interface SbMbrStryEmploymentProps {
+export interface MbrStoryEmploymentPanelProps {
   isSandbox?: boolean;
   memberId?: string;
   readOnly?: boolean;
 }
+
+export type SbMbrStryEmploymentProps = MbrStoryEmploymentPanelProps;
 
 interface Employment {
   mbrEmploymentId: string;
@@ -64,7 +66,7 @@ const SANDBOX_EMPLOYMENT: Employment[] = [
   }
 ];
 
-export default function SbMbrStryEmployment({ isSandbox = false, memberId, readOnly = false }: SbMbrStryEmploymentProps) {
+export default function MbrStoryEmploymentPanel({ isSandbox = false, memberId, readOnly = false }: MbrStoryEmploymentPanelProps) {
   // --- STATE ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -621,7 +623,7 @@ export default function SbMbrStryEmployment({ isSandbox = false, memberId, readO
           </div>
         </div>
       )}
-      <SbPhotoGalleryModal
+      <MbrPhotoGalleryPanel
         isOpen={showGalleryModal}
         onClose={() => setShowGalleryModal(false)}
         mbrId={mbrId}
@@ -631,7 +633,9 @@ export default function SbMbrStryEmployment({ isSandbox = false, memberId, readO
         maxPhotos={40}
         readOnly={readOnly}
       />
-      <AdminComponentTag name="SbMbrStryEmployment" />
+      <AdminComponentTag name="mbrStoryEmploymentPanel" />
     </div>
   );
 }
+
+export { MbrStoryEmploymentPanel, MbrStoryEmploymentPanel as mbrStoryEmploymentPanel, MbrStoryEmploymentPanel as SbMbrStryEmployment };

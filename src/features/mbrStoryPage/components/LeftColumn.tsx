@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { Camera, Lock } from 'lucide-react';
-import SbStoryIndexPanel from '@/src/components/SbStoryIndexPanel';
+import MbrStoryIndexPanel from '@/src/components/mbrStoryIndexPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface LeftColumnProps {
@@ -35,7 +35,7 @@ export default function LeftColumn({
       </div>
 
       {/* --- STORY INDEX PANEL --- */}
-      <SbStoryIndexPanel
+      <MbrStoryIndexPanel
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         lockedTopicIds={lockedTopicIds}

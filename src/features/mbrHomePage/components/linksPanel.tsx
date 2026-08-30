@@ -3,4 +3,4 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export { default } from '@/src/components/SbFooterLinksCard';
+export { default, linksPanel, LinksPanel, SbFooterLinksCard } from '@/src/components/linksPanel';

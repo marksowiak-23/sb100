@@ -8,12 +8,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, X, Sparkles, ShieldCheck, Users, Images, Heart, Compass, Feather } from 'lucide-react';
 import { AdminComponentTag } from './AdminComponentTag';
 
-interface SbAboutModalProps {
+export interface AboutModelPanelProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export default function SbAboutModal({ isOpen, onClose }: SbAboutModalProps) {
+export type SbAboutModalProps = AboutModelPanelProps;
+
+export default function AboutModelPanel({ isOpen, onClose }: AboutModelPanelProps) {
   // ESC key listener to close modal
   useEffect(() => {
     if (!isOpen) return;
@@ -200,10 +202,12 @@ export default function SbAboutModal({ isOpen, onClose }: SbAboutModalProps) {
               </button>
             </div>
 
-            <AdminComponentTag name="SbAboutModal" />
+            <AdminComponentTag name="aboutModelPanel" />
           </motion.div>
         </div>
       )}
     </AnimatePresence>
   );
 }
+
+export { AboutModelPanel, AboutModelPanel as aboutModelPanel, AboutModelPanel as SbAboutModal };

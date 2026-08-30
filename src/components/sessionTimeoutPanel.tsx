@@ -5,22 +5,25 @@
 
 import React from 'react';
 import { Clock, ShieldAlert, LogOut, RefreshCw } from 'lucide-react';
+import { AdminComponentTag } from './AdminComponentTag';
 
-interface SessionTimeoutModalProps {
+export interface SessionTimeoutPanelProps {
   isOpen: boolean;
   remainingSeconds: number;
   onRenew: () => void;
   onLogout: () => void;
 }
 
+export type SessionTimeoutModalProps = SessionTimeoutPanelProps;
+
 /**
- * SessionTimeoutModal Component
+ * SessionTimeoutPanel Component
  *
  * Displays a non-intrusive, high-contrast modal dialog when a user's session
  * is approaching expiration due to inactivity. Provides a 60-second live
  * countdown and options to renew the session or sign out immediately.
  */
-export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
+export const SessionTimeoutPanel: React.FC<SessionTimeoutPanelProps> = ({
   isOpen,
   remainingSeconds,
   onRenew,
@@ -124,7 +127,12 @@ export const SessionTimeoutModal: React.FC<SessionTimeoutModalProps> = ({
         <div className="mt-5 text-center text-[10px] text-slate-500">
           Auto-logout ensures your personal stories and records remain secure.
         </div>
+
+        <AdminComponentTag name="sessionTimeoutPanel" />
       </div>
     </div>
   );
 };
+
+export default SessionTimeoutPanel;
+export { SessionTimeoutPanel as sessionTimeoutPanel, SessionTimeoutPanel as SessionTimeoutModal };

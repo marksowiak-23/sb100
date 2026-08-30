@@ -13,7 +13,7 @@ import PageSeo from '@/src/components/PageSeo';
 import { detectUserLocation, getCachedUserLocation, UserLocation } from '@/src/utils/userLocation';
 
 interface SbPublicPageFeatureProps {
-  setActiveTab: (tab: 'workspace' | 'settings' | 'account-settings' | 'sbPublicPage' | 'sbMbrHomePage' | 'sbMbrStoryPage' | 'sbMbrAuthorPage' | 'mbrProfile' | 'mbrPreferences' | 'sbMbrLogon' | 'db-admin' | 'adminCacheManagement' | 'adminMedia') => void;
+  setActiveTab: (tab: any) => void;
   onClickReadStory: (storyId: string) => void;
   onSelectLogonType?: (type: 'Google' | 'Apple') => void;
 }
@@ -73,6 +73,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
           proximity: userLocation?.label || undefined,
           proximity_lat: userLocation?.latitude,
           proximity_lng: userLocation?.longitude,
+          public_only: true,
           limit: PAGE_SIZE,
           skip: 0
         });
@@ -113,6 +114,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
         proximity: userLocation?.label || undefined,
         proximity_lat: userLocation?.latitude,
         proximity_lng: userLocation?.longitude,
+        public_only: true,
         limit: PAGE_SIZE,
         skip: currentSkip
       });

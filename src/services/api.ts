@@ -137,6 +137,15 @@ export interface Cd {
   cdUpdatedAt?: string;
 }
 
+export type LookupCode = Cd | {
+  cdId?: string;
+  cdTag: string;
+  cdValue: string;
+  cdLabel?: string | null;
+  cdDescription?: string | null;
+  [key: string]: any;
+};
+
 export interface EventRecord {
   eventId: string;
   eventSiteCd?: string;
@@ -199,6 +208,22 @@ export interface MbrStoryStat {
   mbrStoryStatLikedCnt: number;
   mbrStoryStatCreatedAt?: string;
   mbrStoryStatUpdatedAt?: string;
+}
+
+export interface MbrSettings {
+  mbrSettingsId: string;
+  mbrId: string;
+  mbrSettingsAllowPublicFlag: boolean;
+  mbrSettingsShowBirthYr: boolean;
+  mbrSettingsShowGender: boolean;
+  mbrSettingsShowRelationship: boolean;
+  mbrSettingsShowTown: boolean;
+  mbrSettingsShowWorksAt: boolean;
+  mbrSettingsShowStudiedAt: boolean;
+  mbrSettingsShowIntroduction: boolean;
+  mbrSettingsShowPhotoGallery: boolean;
+  mbrSettingsCreatedAt?: string;
+  mbrSettingsUpdatedAt?: string;
 }
 
 
@@ -304,6 +329,7 @@ export const taskApi = {
     proximity?: string;
     proximity_lat?: number;
     proximity_lng?: number;
+    public_only?: boolean;
     limit?: number;
     skip?: number;
   }): Promise<any[]> {
@@ -314,6 +340,7 @@ export const taskApi = {
     if (params?.proximity) searchParams.append('proximity', params.proximity);
     if (params?.proximity_lat !== undefined && params?.proximity_lat !== null) searchParams.append('proximity_lat', params.proximity_lat.toString());
     if (params?.proximity_lng !== undefined && params?.proximity_lng !== null) searchParams.append('proximity_lng', params.proximity_lng.toString());
+    if (params?.public_only !== undefined) searchParams.append('public_only', params.public_only.toString());
     if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
     if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
     searchParams.append('t', Date.now().toString());
@@ -1948,6 +1975,90 @@ export const sysConfigApi = {
       window.dispatchEvent(new CustomEvent('sysconfig:changed', { detail: { configTag, deleted: true } }));
     }
     return result;
+  }
+};
+
+export const mbrSettingsApi = {
+  /**
+   * Fetch member settings by member ID.
+   */
+  async getMemberSettings(mbrId: string): Promise<MbrSettings> {
+    const response = await fetch(`${API_BASE_URL}/mbr-settings/member/${mbrId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrSettings>(response);
+  },
+
+  /**
+   * Fetch list of all member settings records.
+   */
+  async getSettingsList(skip = 0, limit = 100): Promise<MbrSettings[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-settings?skip=${skip}&limit=${limit}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrSettings[]>(response);
+  },
+
+  /**
+   * Fetch a member settings record by settings ID.
+   */
+  async getSettingsById(mbrSettingsId: string): Promise<MbrSettings> {
+    const response = await fetch(`${API_BASE_URL}/mbr-settings/${mbrSettingsId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrSettings>(response);
+  },
+
+  /**
+   * Create new member settings.
+   */
+  async createMemberSettings(settings: Partial<MbrSettings>): Promise<MbrSettings> {
+    const response = await fetch(`${API_BASE_URL}/mbr-settings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(settings),
+    });
+    return handleResponse<MbrSettings>(response);
+  },
+
+  /**
+   * Update member settings.
+   */
+  async updateMemberSettings(mbrSettingsId: string, settings: Partial<MbrSettings>): Promise<MbrSettings> {
+    const response = await fetch(`${API_BASE_URL}/mbr-settings/${mbrSettingsId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(settings),
+    });
+    return handleResponse<MbrSettings>(response);
+  },
+
+  /**
+   * Delete member settings.
+   */
+  async deleteMemberSettings(mbrSettingsId: string): Promise<{ message: string }> {
+    const response = await fetch(`${API_BASE_URL}/mbr-settings/${mbrSettingsId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<{ message: string }>(response);
   }
 };
 

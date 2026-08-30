@@ -8,13 +8,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Trophy, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, Sparkles, BookOpen, Images } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
+import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 
-interface SbMbrStryAchievementProps {
+export interface MbrStoryAchievementPanelProps {
   isSandbox?: boolean;
   memberId?: string;
   readOnly?: boolean;
 }
+
+export type SbMbrStryAchievementProps = MbrStoryAchievementPanelProps;
 
 interface Achievement {
   mbrAchievementId: string;
@@ -41,7 +43,7 @@ const SANDBOX_ACHIEVEMENTS: Achievement[] = [
   }
 ];
 
-export default function SbMbrStryAchievement({ isSandbox = false, memberId, readOnly = false }: SbMbrStryAchievementProps) {
+export default function MbrStoryAchievementPanel({ isSandbox = false, memberId, readOnly = false }: MbrStoryAchievementPanelProps) {
   // --- STATE VARIABLES ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -501,7 +503,7 @@ export default function SbMbrStryAchievement({ isSandbox = false, memberId, read
           </div>
         </div>
       )}
-      <SbPhotoGalleryModal
+      <MbrPhotoGalleryPanel
         isOpen={showGalleryModal}
         onClose={() => setShowGalleryModal(false)}
         mbrId={mbrId}
@@ -511,7 +513,9 @@ export default function SbMbrStryAchievement({ isSandbox = false, memberId, read
         maxPhotos={40}
         readOnly={readOnly}
       />
-      <AdminComponentTag name="SbMbrStryAchievement" />
+      <AdminComponentTag name="mbrStoryAchievementPanel" />
     </div>
   );
 }
+
+export { MbrStoryAchievementPanel, MbrStoryAchievementPanel as mbrStoryAchievementPanel, MbrStoryAchievementPanel as SbMbrStryAchievement };

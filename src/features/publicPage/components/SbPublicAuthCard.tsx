@@ -18,7 +18,7 @@ export default function SbPublicAuthCard({ setActiveTab, onSelectLogonType }: Sb
       onSelectLogonType(provider);
     } else {
       if (provider === 'Google') {
-        setActiveTab('sbMbrHomePage');
+        setActiveTab('mbrHomePage');
       } else {
         alert(`Initiating simulated ${provider} OAuth sign-in flow...`);
       }
@@ -64,7 +64,7 @@ export default function SbPublicAuthCard({ setActiveTab, onSelectLogonType }: Sb
 
         {/* Email & Password Sign In Option */}
         <button
-          onClick={() => setActiveTab('sbMbrLogon')}
+          onClick={() => setActiveTab('mbrLogonPage')}
           className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold text-xs rounded-2xl transition-all duration-150 cursor-pointer mt-0.5"
         >
           <Mail className="w-3.5 h-3.5 text-slate-500" />
@@ -76,7 +76,7 @@ export default function SbPublicAuthCard({ setActiveTab, onSelectLogonType }: Sb
         <span className="text-[10px] text-slate-400 font-semibold">
           Don't have an account?{' '}
           <button
-            onClick={() => setActiveTab('sbMbrRegister')}
+            onClick={() => setActiveTab('mbrRegistrationPage')}
             className="text-blue-600 hover:underline font-bold cursor-pointer"
           >
             Sign up

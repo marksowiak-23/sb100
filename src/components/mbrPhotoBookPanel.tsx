@@ -7,19 +7,22 @@ import React from 'react';
 import { Camera } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-interface SbPhotoBookPanelProps {
+export interface MbrPhotoBookPanelProps {
   onOpenPhotoBook?: () => void;
   title?: string;
   description?: string;
   buttonText?: string;
 }
 
-export default function SbPhotoBookPanel({
+export type SbPhotoBookPanelProps = MbrPhotoBookPanelProps;
+export type mbrPhotoBookPanelProps = MbrPhotoBookPanelProps;
+
+export default function MbrPhotoBookPanel({
   onOpenPhotoBook,
   title = 'Photo Book',
   description = 'Collect and arrange photos that bring your story to life.',
   buttonText = 'Open Photo Book'
-}: SbPhotoBookPanelProps) {
+}: MbrPhotoBookPanelProps) {
   return (
     <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
       <div className="flex items-center gap-2 pb-1 border-b border-[#EFECE7]">
@@ -41,7 +44,10 @@ export default function SbPhotoBookPanel({
         {buttonText}
       </button>
 
-      <AdminComponentTag name="SbPhotoBookPanel" />
+      <AdminComponentTag name="mbrPhotoBookPanel" />
     </div>
   );
 }
+
+export { MbrPhotoBookPanel, MbrPhotoBookPanel as mbrPhotoBookPanel, MbrPhotoBookPanel as SbPhotoBookPanel };
+

@@ -52,9 +52,9 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
           await new Promise((resolve) => setTimeout(resolve, 800));
           if (!active) return;
           if (targetStoryMemberId) {
-            setActiveTab('sbMbrStoryPage');
+            setActiveTab('mbrStoryPage');
           } else {
-            setActiveTab('sbMbrHomePage');
+            setActiveTab('mbrHomePage');
           }
         } else {
           setStatusState('failed');
@@ -98,9 +98,9 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
 
         setTimeout(() => {
           if (targetStoryMemberId) {
-            setActiveTab('sbMbrStoryPage');
+            setActiveTab('mbrStoryPage');
           } else {
-            setActiveTab('sbMbrHomePage');
+            setActiveTab('mbrHomePage');
           }
         }, 900);
       } else {
@@ -131,7 +131,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
         <div className="flex items-center justify-between gap-4">
           <button
             type="button"
-            onClick={() => setActiveTab('sbPublicPage')}
+            onClick={() => setActiveTab('publicPage')}
             className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -301,7 +301,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
                     if (res.success && res.user) {
                       sessionStorage.setItem('user', JSON.stringify(res.user));
                       setStatusState('success');
-                      setTimeout(() => setActiveTab('sbMbrHomePage'), 800);
+                      setTimeout(() => setActiveTab('mbrHomePage'), 800);
                     } else {
                       setStatusState('failed');
                       setErrorMessage(res.error || 'Google logon failed');
@@ -327,7 +327,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
                     if (res.success && res.user) {
                       sessionStorage.setItem('user', JSON.stringify(res.user));
                       setStatusState('success');
-                      setTimeout(() => setActiveTab('sbMbrHomePage'), 800);
+                      setTimeout(() => setActiveTab('mbrHomePage'), 800);
                     } else {
                       setStatusState('failed');
                       setErrorMessage(res.error || 'Apple logon failed');
@@ -349,7 +349,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
                 Don't have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => setActiveTab('sbMbrRegister')}
+                  onClick={() => setActiveTab('mbrRegistrationPage')}
                   className="text-blue-600 hover:underline font-semibold cursor-pointer"
                 >
                   Sign up

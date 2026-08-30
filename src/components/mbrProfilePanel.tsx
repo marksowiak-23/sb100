@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save, Users, UserCheck, UserPlus, Clock } from 'lucide-react';
-import { taskApi, mbrStatApi, resolveMediaUrl, MbrMedia, MbrStat } from '@/src/services/api';
-import { MEMBER_STORIES } from '@/src/features/sbPublicPage/constants/memberData';
+import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save, Users, UserCheck, UserPlus, Clock, User } from 'lucide-react';
+import { taskApi, mbrStatApi, mbrSettingsApi, resolveMediaUrl, MbrMedia, MbrStat, MbrSettings } from '@/src/services/api';
+import { MEMBER_STORIES } from '@/src/features/publicPage/constants/memberData';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
-import SbConnectModal from '@/src/components/SbConnectModal';
+import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
+import MbrConnectPanel from '@/src/components/mbrConnectPanel';
 
-interface SbMbrProfilePanelProps {
+export interface MbrProfilePanelProps {
   key?: React.Key;
   isSandbox?: boolean;
   profile?: any;
@@ -21,7 +21,10 @@ interface SbMbrProfilePanelProps {
   onClickReadStory?: (memberId: string) => void;
 }
 
-export default function SbMbrProfilePanel({
+export type SbMbrProfilePanelProps = MbrProfilePanelProps;
+export type mbrProfilePanelProps = MbrProfilePanelProps;
+
+export default function MbrProfilePanel({
   isSandbox = false,
   profile: propProfile,
   memberId,
@@ -32,9 +35,13 @@ export default function SbMbrProfilePanel({
   showConnectButton = true,
   onConnectSuccess,
   onClickReadStory
-}: SbMbrProfilePanelProps) {
+}: MbrProfilePanelProps) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(propProfile || null);
+  const [settings, setSettings] = useState<MbrSettings | null>(() => {
+    if (propProfile?.mbrSettings) return propProfile.mbrSettings;
+    return null;
+  });
   const [galleryItems, setGalleryItems] = useState<MbrMedia[]>([]);
   const [mbrStat, setMbrStat] = useState<MbrStat | null>(null);
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
@@ -89,6 +96,7 @@ export default function SbMbrProfilePanel({
       if (propProfile.mbrId) {
         fetchGallery(propProfile.mbrId);
         fetchStats(propProfile.mbrId);
+        fetchSettings(propProfile.mbrId);
       }
       setLoading(false);
     } else if (memberId) {
@@ -97,6 +105,29 @@ export default function SbMbrProfilePanel({
       loadAuthorProfile();
     }
   }, [isSandbox, propProfile, memberId]);
+
+  const fetchSettings = async (targetMbrId: string) => {
+    if (!targetMbrId) return;
+    const realMbrId = targetMbrId === 'm1' ? 'e20986fa-0fb9-4081-ae5d-35bc8f504df0' : targetMbrId;
+    if (isSandbox || targetMbrId.startsWith('sandbox-')) {
+      const saved = sessionStorage.getItem(`sandbox_settings_${realMbrId}`);
+      if (saved) {
+        try {
+          setSettings(JSON.parse(saved));
+          return;
+        } catch {}
+      }
+      return;
+    }
+    try {
+      const s = await mbrSettingsApi.getMemberSettings(realMbrId);
+      if (s) {
+        setSettings(s);
+      }
+    } catch {
+      // If no settings found, defaults to show all
+    }
+  };
 
   const fetchStats = async (targetMbrId: string) => {
     if (!targetMbrId) return;
@@ -161,6 +192,7 @@ export default function SbMbrProfilePanel({
         });
         fetchGallery(mbr.mbrId);
         fetchStats(mbr.mbrId);
+        fetchSettings(mbr.mbrId);
       }
     } catch (err) {
       console.error("Error loading member profile by ID:", err);
@@ -177,6 +209,7 @@ export default function SbMbrProfilePanel({
           mbrCreatedAt: `${staticM.joinedDate}-01-01T00:00:00Z`
         });
         fetchStats(staticM.id);
+        fetchSettings(staticM.id);
       }
     } finally {
       setLoading(false);
@@ -202,6 +235,7 @@ export default function SbMbrProfilePanel({
           setProfile(mbr);
           fetchGallery(mbr.mbrId);
           fetchStats(mbr.mbrId);
+          fetchSettings(mbr.mbrId);
         } else {
           // Fallback Eleanor Hartwell template
           const defaultMbr = {
@@ -227,6 +261,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
           setProfile(defaultMbr);
           fetchGallery(defaultMbr.mbrId);
           fetchStats(defaultMbr.mbrId);
+          fetchSettings(defaultMbr.mbrId);
         }
       } else {
         // --- LIVE DATABASE MODE ---
@@ -240,6 +275,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
           });
           fetchGallery(mbr.mbrId);
           fetchStats(mbr.mbrId);
+          fetchSettings(mbr.mbrId);
         }
       }
     } catch (err) {
@@ -437,6 +473,16 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
   const connectionGrpName = propConnectionGrpName ?? profile?.connectionGrpName ?? profile?.grpName ?? '';
   const isSelf = Boolean(resolvedViewerId && profile?.mbrId && resolvedViewerId === profile.mbrId);
 
+  // Settings visibility flags (if setting is FALSE, do not display label & value)
+  const showBirthYr = settings ? settings.mbrSettingsShowBirthYr !== false : true;
+  const showGender = settings ? settings.mbrSettingsShowGender !== false : true;
+  const showRelationship = settings ? settings.mbrSettingsShowRelationship !== false : true;
+  const showTown = settings ? settings.mbrSettingsShowTown !== false : true;
+  const showWorksAt = settings ? settings.mbrSettingsShowWorksAt !== false : true;
+  const showStudiedAt = settings ? settings.mbrSettingsShowStudiedAt !== false : true;
+  const showIntroduction = settings ? settings.mbrSettingsShowIntroduction !== false : true;
+  const showPhotoGallery = settings ? settings.mbrSettingsShowPhotoGallery !== false : true;
+
   return (
     <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
       {/* Top Header & Metadata Block */}
@@ -464,24 +510,26 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
             </h2>
 
             {/* Photo Gallery Icon Button */}
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentGalleryIndex(0);
-                setIsGalleryModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 rounded-xl text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-xs shrink-0"
-              title="Open Photo Gallery"
-            >
-              <Images className="w-3.5 h-3.5 text-blue-600" />
-              <span className="hidden sm:inline font-sans text-xs">Photo Gallery</span>
-            </button>
+            {showPhotoGallery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentGalleryIndex(0);
+                  setIsGalleryModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 rounded-xl text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-xs shrink-0"
+                title="Open Photo Gallery"
+              >
+                <Images className="w-3.5 h-3.5 text-blue-600" />
+                <span className="hidden sm:inline font-sans text-xs">Photo Gallery</span>
+              </button>
+            )}
           </div>
 
           {/* Metadata Rows */}
           <div className="space-y-1.5 text-xs">
             {/* Lives In & From */}
-            {(livesIn || fromLocation) && (
+            {showTown && (livesIn || fromLocation) && (
               <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-slate-700">
                 {livesIn && (
                   <div className="flex items-center gap-1.5">
@@ -504,7 +552,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
             )}
 
             {/* Works At */}
-            {worksAt && (
+            {showWorksAt && worksAt && (
               <div className="flex items-center gap-1.5 text-slate-700">
                 <Briefcase className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                 <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">WORKS AT:</span>
@@ -513,7 +561,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
             )}
 
             {/* Studied At */}
-            {studiedAt && (
+            {showStudiedAt && studiedAt && (
               <div className="flex items-center gap-1.5 text-slate-700">
                 <GraduationCap className="w-3.5 h-3.5 text-purple-500 shrink-0" />
                 <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">STUDIED AT:</span>
@@ -521,17 +569,24 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
               </div>
             )}
 
-            {/* Relationship Status & Age */}
-            {(relationshipStatus || age !== null) && (
+            {/* Relationship Status, Gender & Age */}
+            {((showRelationship && relationshipStatus) || (showGender && profile.mbrGenderCd) || (showBirthYr && age !== null)) && (
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-700">
-                {relationshipStatus && (
+                {showRelationship && relationshipStatus && (
                   <div className="flex items-center gap-1.5">
                     <Heart className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                     <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">RELATIONSHIP STATUS:</span>
                     <span className="font-semibold text-slate-800">{relationshipStatus}</span>
                   </div>
                 )}
-                {age !== null && (
+                {showGender && profile.mbrGenderCd && (
+                  <div className="flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">GENDER:</span>
+                    <span className="font-semibold text-slate-800">{profile.mbrGenderCd}</span>
+                  </div>
+                )}
+                {showBirthYr && age !== null && (
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
                     <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">AGE:</span>
@@ -559,7 +614,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
       </div>
 
       {/* Divider and Collapsible Accordion Introduction Section */}
-      {introductionText && (
+      {showIntroduction && introductionText && (
         <div className="pt-3 border-t border-[#EFECE7]">
           {/* Accordion Header Button */}
           <button
@@ -604,7 +659,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
 
       {/* Photo Gallery Reusable Modal Dialog */}
       {profile?.mbrId && (
-        <SbPhotoGalleryModal
+        <MbrPhotoGalleryPanel
           isOpen={isGalleryModalOpen}
           onClose={() => setIsGalleryModalOpen(false)}
           mbrId={profile.mbrId}
@@ -618,7 +673,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
 
       {/* Connect Modal Dialog */}
       {profile?.mbrId && (
-        <SbConnectModal
+        <MbrConnectPanel
           isOpen={isConnectModalOpen}
           onClose={() => setIsConnectModalOpen(false)}
           targetMember={profile}
@@ -693,7 +748,10 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
         </button>
       </div>
 
-      <AdminComponentTag name="SbMbrProfilePanel" />
+      <AdminComponentTag name="mbrProfilePanel" />
     </div>
   );
 }
+
+export { MbrProfilePanel, MbrProfilePanel as mbrProfilePanel, MbrProfilePanel as SbMbrProfilePanel };
+

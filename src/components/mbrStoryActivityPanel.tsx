@@ -8,13 +8,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Plus, Trash2, Edit3, Save, X, Loader2, AlertCircle, CheckCircle2, ShieldAlert, BookOpen, Images } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import SbPhotoGalleryModal from '@/src/components/SbPhotoGalleryModal';
+import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 
-interface SbMbrStryActivityProps {
+export interface MbrStoryActivityPanelProps {
   isSandbox?: boolean;
   memberId?: string;
   readOnly?: boolean;
 }
+
+export type SbMbrStryActivityProps = MbrStoryActivityPanelProps;
 
 interface Activity {
   mbrActivityId: string;
@@ -56,7 +58,7 @@ const SANDBOX_ACTIVITIES: Activity[] = [
   }
 ];
 
-export default function SbMbrStryActivity({ isSandbox = false, memberId, readOnly = false }: SbMbrStryActivityProps) {
+export default function MbrStoryActivityPanel({ isSandbox = false, memberId, readOnly = false }: MbrStoryActivityPanelProps) {
   // --- STATE VARIABLES ---
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -525,7 +527,7 @@ export default function SbMbrStryActivity({ isSandbox = false, memberId, readOnl
           </div>
         </div>
       )}
-      <SbPhotoGalleryModal
+      <MbrPhotoGalleryPanel
         isOpen={showGalleryModal}
         onClose={() => setShowGalleryModal(false)}
         mbrId={mbrId}
@@ -535,7 +537,9 @@ export default function SbMbrStryActivity({ isSandbox = false, memberId, readOnl
         maxPhotos={40}
         readOnly={readOnly}
       />
-      <AdminComponentTag name="SbMbrStryActivity" />
+      <AdminComponentTag name="mbrStoryActivityPanel" />
     </div>
   );
 }
+
+export { MbrStoryActivityPanel, MbrStoryActivityPanel as mbrStoryActivityPanel, MbrStoryActivityPanel as SbMbrStryActivity };

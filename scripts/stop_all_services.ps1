@@ -12,10 +12,11 @@ foreach ($p in $ports) {
         foreach ($conn in $connections) {
             $pidToKill = $conn.OwningProcess
             try {
+                cmd.exe /c "taskkill /F /T /PID $pidToKill" 2>$null | Out-Null
                 Stop-Process -Id $pidToKill -Force -ErrorAction SilentlyContinue
-                Write-Host " Terminated process $pidToKill listening on port $p" -ForegroundColor Green
+                Write-Host " Terminated process $($pidToKill) listening on port $p" -ForegroundColor Green
             } catch {
-                Write-Host " Could not terminate process $pidToKill: $($_.Exception.Message)" -ForegroundColor Red
+                Write-Host " Could not terminate process $($pidToKill): $($_.Exception.Message)" -ForegroundColor Red
             }
         }
     } else {

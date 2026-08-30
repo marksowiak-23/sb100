@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import SbBrandHeaderCard from './SbBrandHeaderCard';
+import BrandHeaderPanel from './brandHeaderPanel';
 import SbMyConnectionsCard from './SbMyConnectionsCard';
 import SbMyStorybookStatusCard from './SbMyStorybookStatusCard';
 import SbMbrStats from './SbMbrStats';
@@ -18,7 +18,7 @@ interface LeftColumnProps {
 export default function LeftColumn({ onClickAuthorPage, onClickReadStory }: LeftColumnProps) {
   return (
     <div className="space-y-8 flex flex-col relative">
-      <SbBrandHeaderCard />
+      <BrandHeaderPanel />
       <SbMyConnectionsCard onClickMember={onClickReadStory} />
       <SbMyStorybookStatusCard onClickAuthorPage={onClickAuthorPage} />
       <SbMbrStats />

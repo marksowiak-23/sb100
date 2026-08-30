@@ -1,6 +1,6 @@
 import React from 'react';
 import { Info, Loader2, ChevronDown } from 'lucide-react';
-import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
+import MbrProfilePanel from '@/src/components/mbrProfilePanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { UserLocation } from '@/src/utils/userLocation';
 
@@ -69,13 +69,13 @@ export default function SbMbrSearchResults({
           </p>
         </div>
       ) : (
-        /* Render member profile cards using SbMbrProfilePanel */
+        /* Render member profile cards using mbrProfilePanel */
         <div className="flex flex-col gap-6">
           {uniqueMembers.map((member, idx) => {
             const targetId = member.mbrId || member.id;
             const connInfo = connectionsMap?.get(targetId);
             return (
-              <SbMbrProfilePanel
+              <MbrProfilePanel
                 key={`${targetId}-${idx}`}
                 profile={member}
                 isSandbox={false}

@@ -4,14 +4,16 @@
  */
 
 import React, { useState } from 'react';
-import SbAboutModal from './SbAboutModal';
+import AboutModelPanel from './aboutModelPanel';
 import { AdminComponentTag } from './AdminComponentTag';
 
-interface SbFooterLinksCardProps {
+export interface LinksPanelProps {
   className?: string;
 }
 
-export default function SbFooterLinksCard({ className = '' }: SbFooterLinksCardProps) {
+export type SbFooterLinksCardProps = LinksPanelProps;
+
+export default function LinksPanel({ className = '' }: LinksPanelProps) {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   const footerLinks = [
@@ -48,9 +50,11 @@ export default function SbFooterLinksCard({ className = '' }: SbFooterLinksCardP
       </div>
 
       {/* About Modal Dialog */}
-      <SbAboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      <AboutModelPanel isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
 
-      <AdminComponentTag name="SbFooterLinksCard" />
+      <AdminComponentTag name="linksPanel" />
     </div>
   );
 }
+
+export { LinksPanel, LinksPanel as linksPanel, LinksPanel as SbFooterLinksCard };

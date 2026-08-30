@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Lock } from 'lucide-react';
-import { MemberStory } from '@/src/features/sbPublicPage/constants/memberData';
-import SbMbrProfilePanel from '@/src/components/SbMbrProfilePanel';
-import SbMbrBookEditor from '@/src/components/SbMbrBookEditor';
-import SbMbrStryFamily from '@/src/components/SbMbrStryFamily';
-import SbMbrStryResidence from '@/src/components/SbMbrStryResidence';
-import SbMbrStryActivity from '@/src/components/SbMbrStryActivity';
-import SbMbrStryAchievement from '@/src/components/SbMbrStryAchievement';
-import SbMbrStryEducation from '@/src/components/SbMbrStryEducation';
-import SbMbrStryEmployment from '@/src/components/SbMbrStryEmployment';
-import StoryEditorPanel from '@/src/features/sbMbrAuthorPage/components/StoryEditorPanel';
+import { MemberStory } from '@/src/features/publicPage/constants/memberData';
+import MbrProfilePanel from '@/src/components/mbrProfilePanel';
+import MbrBookEditorPanel from '@/src/components/mbrBookEditorPanel';
+import MbrStoryFamilyPanel from '@/src/components/mbrStoryFamilyPanel';
+import MbrStoryResidencePanel from '@/src/components/mbrStoryResidencePanel';
+import MbrStoryActivityPanel from '@/src/components/mbrStoryActivityPanel';
+import MbrStoryAchievementPanel from '@/src/components/mbrStoryAchievementPanel';
+import MbrStoryEducationPanel from '@/src/components/mbrStoryEducationPanel';
+import MbrStoryEmploymentPanel from '@/src/components/mbrStoryEmploymentPanel';
+import StoryEditorPanel from '@/src/features/mbrAuthorPage/components/StoryEditorPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
@@ -27,57 +27,54 @@ export default function CenterColumn({
   lockedTopicIds = [],
   onClickBack
 }: CenterColumnProps) {
-  const isSectionLocked = lockedTopicIds.some(id => id.toLowerCase() === activeSection.toLowerCase());
   const [storyEditorConfig, setStoryEditorConfig] = useState<{
     topicId: string;
     topicTitle: string;
     componentName?: string;
-    subordinateId?: string;
+    subordinateId?: string | null;
     subordinateName?: string;
   } | null>(null);
 
-  // Hide StoryEditor panel whenever the active topic/section changes
-  useEffect(() => {
-    setStoryEditorConfig(null);
-  }, [activeSection]);
+  // Check if active topic/section is locked for current user
+  const isSectionLocked = lockedTopicIds.some(
+    (id) => id.toLowerCase() === activeSection.toLowerCase()
+  );
 
+  // Listen for open-topic-stories custom events emitted by story panels
   useEffect(() => {
-    const handleOpenEditor = (e: any) => {
-      const detail = e.detail || {};
-      setStoryEditorConfig({
-        topicId: detail.topicId || activeSection,
-        topicTitle: detail.topicTitle || activeSection,
-        componentName: detail.componentName,
-        subordinateId: detail.subordinateId || detail.mbrStorySubordinateId,
-        subordinateName: detail.subordinateName
-      });
-      setTimeout(() => {
-        const el = document.getElementById('story-editor-panel');
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
+    const handleOpenStories = (event: any) => {
+      if (event.detail) {
+        setStoryEditorConfig({
+          topicId: event.detail.topicId || activeSection,
+          topicTitle: event.detail.topicTitle || activeSection,
+          componentName: event.detail.componentName,
+          subordinateId: event.detail.subordinateId || null,
+          subordinateName: event.detail.subordinateName
+        });
+      }
     };
-    window.addEventListener('open-story-editor', handleOpenEditor);
-    return () => window.removeEventListener('open-story-editor', handleOpenEditor);
+
+    window.addEventListener('open-topic-stories', handleOpenStories);
+    return () => {
+      window.removeEventListener('open-topic-stories', handleOpenStories);
+    };
   }, [activeSection]);
 
   return (
-    <div className="space-y-6 flex flex-col relative">
-      
-      {/* --- BACK NAVIGATION LINK --- */}
-      <div>
+    <div className="flex-1 min-w-0 flex flex-col gap-6 relative">
+      {/* Top Header / Back Action */}
+      <div className="flex items-center justify-between">
         <button
           onClick={onClickBack}
-          className="group inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
+          className="flex items-center gap-2 text-xs font-serif text-slate-500 hover:text-slate-800 transition-colors group cursor-pointer"
         >
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
+          <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
           <span>Back to Members</span>
         </button>
       </div>
 
       {/* --- PROFILE SUMMARY CARD --- */}
-      <SbMbrProfilePanel memberId={member.id} profile={member} isSandbox={false} readOnly={true} />
+      <MbrProfilePanel memberId={member.id} profile={member} isSandbox={false} readOnly={true} />
 
       {/* --- LOCKED SECTION RESTRICTION NOTICE --- */}
       {isSectionLocked ? (
@@ -96,37 +93,37 @@ export default function CenterColumn({
         <>
           {/* --- FAMILY DIRECTORY PANEL --- */}
           {(activeSection.toLowerCase() === 'family') && (
-            <SbMbrStryFamily memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryFamilyPanel memberId={member.id} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- RESIDENCES PANEL --- */}
           {(activeSection.toLowerCase() === 'residencies') && (
-            <SbMbrStryResidence memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryResidencePanel memberId={member.id} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- ACTIVITIES & HOBBIES PANEL --- */}
           {(activeSection.toLowerCase() === 'hobbies') && (
-            <SbMbrStryActivity memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryActivityPanel memberId={member.id} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
           {(activeSection.toLowerCase() === 'achievements') && (
-            <SbMbrStryAchievement memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryAchievementPanel memberId={member.id} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
           {(activeSection.toLowerCase() === 'education') && (
-            <SbMbrStryEducation memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryEducationPanel memberId={member.id} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
           {(activeSection.toLowerCase() === 'employment') && (
-            <SbMbrStryEmployment memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryEmploymentPanel memberId={member.id} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- ACTIVE SECTION CONTENT AREA (for other custom text sections) --- */}
           {!['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(activeSection.toLowerCase()) && (
-            <SbMbrBookEditor sectionTitle={activeSection} content={activeContent} readOnly={true} />
+            <MbrBookEditorPanel sectionTitle={activeSection} content={activeContent} readOnly={true} />
           )}
 
           {/* --- MEMBER STORIES VIEW PANEL --- */}

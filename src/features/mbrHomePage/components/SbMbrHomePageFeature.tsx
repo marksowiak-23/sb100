@@ -165,6 +165,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
           proximity: userLocation?.label || undefined,
           proximity_lat: userLocation?.latitude,
           proximity_lng: userLocation?.longitude,
+          public_only: true,
           limit: PAGE_SIZE,
           skip: 0
         });
@@ -206,6 +207,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
         proximity: userLocation?.label || undefined,
         proximity_lat: userLocation?.latitude,
         proximity_lng: userLocation?.longitude,
+        public_only: true,
         limit: PAGE_SIZE,
         skip: currentSkip
       });

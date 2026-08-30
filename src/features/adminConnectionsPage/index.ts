@@ -4,3 +4,5 @@
  */
 
 export { default as ConnectionSettings } from './components/ConnectionSettings';
+export { default as AdminConnections } from './components/ConnectionSettings';
+export { default as AdminConnectionsPage } from './components/ConnectionSettings';
