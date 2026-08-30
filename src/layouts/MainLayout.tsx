@@ -433,7 +433,10 @@ export default function MainLayout({
               >
                 <div className="relative">
                   <Bell className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
-                  <span className="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full min-w-[15px] text-center leading-tight shadow-xs">
+                  <span
+                    className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 bg-rose-600 text-white font-mono text-[9.5px] font-bold rounded-full flex items-center justify-center ring-2 ring-[#0F1B35] shadow-xs"
+                    title="3 new notifications"
+                  >
                     3
                   </span>
                 </div>

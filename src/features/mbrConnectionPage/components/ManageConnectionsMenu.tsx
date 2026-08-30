@@ -61,7 +61,7 @@ export default function ManageConnectionsMenu({
             >
               <Users className="w-4 h-4" />
             </div>
-            <span>Connections</span>
+            <span>My Connections</span>
           </div>
 
           <span
@@ -75,7 +75,7 @@ export default function ManageConnectionsMenu({
           </span>
         </button>
 
-        {/* Item 2: Invitations */}
+        {/* Item 2: My Invitations */}
         <button
           type="button"
           onClick={() => onSelectSection('invitations')}
@@ -95,7 +95,7 @@ export default function ManageConnectionsMenu({
             >
               <Mail className="w-4 h-4" />
             </div>
-            <span>Invitations</span>
+            <span>My Invitations</span>
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -116,7 +116,7 @@ export default function ManageConnectionsMenu({
           </div>
         </button>
 
-        {/* Item 3: Requests */}
+        {/* Item 3: My Requests */}
         <button
           type="button"
           onClick={() => onSelectSection('requests')}
@@ -136,7 +136,7 @@ export default function ManageConnectionsMenu({
             >
               <Send className="w-4 h-4" />
             </div>
-            <span>Requests</span>
+            <span>My Requests</span>
           </div>
 
           <div className="flex items-center gap-1.5">

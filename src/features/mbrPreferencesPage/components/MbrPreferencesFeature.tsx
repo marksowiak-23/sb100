@@ -4,86 +4,20 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  ArrowLeft, 
-  Sparkles, 
-  Check, 
-  Save, 
-  X, 
-  Loader2, 
-  AlertCircle, 
-  CheckCircle2, 
-  Feather, 
-  Sliders, 
-  Moon, 
-  Sun, 
-  Laptop, 
-  Compass,
-  Trees,
-  Flame,
-  Crown,
-  Cpu,
-  Leaf,
-  Minus,
-  Bell, 
-  FileText 
-} from 'lucide-react';
+import { Loader2, Save } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import BrandHeaderPanel from '@/src/components/brandHeaderPanel';
-
-interface MbrPreferencesFeatureProps {
-  isSandbox: boolean;
-  onClickBack: () => void;
-  onDirtyChange?: (dirty: boolean) => void;
-}
-
-interface WriterPersona {
-  chWriterId: string;
-  chWriterName: string;
-  chWriterDesc: string;
-  chWriterPrompt: string;
-  chWriterActInd: boolean;
-}
-
-const FALLBACK_PERSONAS: WriterPersona[] = [
-  {
-    chWriterId: 'w1',
-    chWriterName: 'Everyday Eddie',
-    chWriterDesc: 'Common & Informal',
-    chWriterPrompt: 'Use the “Everyday Eddie” writing mode. Write in a casual, conversational style with simple language and a friendly tone. Avoid jargon. Keep explanations easy, relatable, and down to earth, like a helpful friend talking over coffee.',
-    chWriterActInd: true
-  },
-  {
-    chWriterId: 'w2',
-    chWriterName: 'Clarity Consultant',
-    chWriterDesc: 'Professional',
-    chWriterPrompt: 'Use a “Clarity Consultant” writing mode. Write in a professional, structured, and polished style. Maintain a confident, neutral tone. Prioritize clarity, accuracy, and efficiency. Avoid slang and emotional language. Format content cleanly with logical transitions.',
-    chWriterActInd: true
-  },
-  {
-    chWriterId: 'w3',
-    chWriterName: 'Casual Chuckles',
-    chWriterDesc: 'Common + Humor',
-    chWriterPrompt: 'Use a “Casual Chuckles” writing mode. Write in a conversational style with light humor, friendly sarcasm, and playful metaphors. Keep the message clear but add personality. Make the reader smile without distracting from the main point.',
-    chWriterActInd: true
-  },
-  {
-    chWriterId: 'w4',
-    chWriterName: 'The Polished Guide',
-    chWriterDesc: 'Professional + Warm',
-    chWriterPrompt: 'Use a “Polished Guide” writing mode. Write in a professional yet approachable style. Maintain a warm, encouraging tone. Blend clarity with empathy. Offer guidance that feels supportive, respectful, and easy to follow.',
-    chWriterActInd: true
-  },
-  {
-    chWriterId: 'w5',
-    chWriterName: 'The Story Crafter',
-    chWriterDesc: 'Creative & Expressive',
-    chWriterPrompt: 'Use a “Story Crafter” writing mode. Write in a narrative, descriptive, and imaginative style. Use sensory detail, metaphor, and emotional depth. Make the content feel alive, atmospheric, and engaging.',
-    chWriterActInd: true
-  }
-];
+import { 
+  MbrPreferencesFeatureProps, 
+  PreferencesSubTab, 
+  WriterPersona, 
+  FALLBACK_PERSONAS 
+} from '../types';
+import PreferencesHeader from './PreferencesHeader';
+import PreferencesNavigationMenu from './PreferencesNavigationMenu';
+import StoryMatePersonaPanel from './StoryMatePersonaPanel';
+import WorkspacePreferencesPanel from './WorkspacePreferencesPanel';
 
 export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyChange }: MbrPreferencesFeatureProps) {
   const [loading, setLoading] = useState(true);
@@ -92,7 +26,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   const [success, setSuccess] = useState<string | null>(null);
 
   // Active sub-tab state: 'story-mate' or 'workspace'
-  const [activeSubTab, setActiveSubTab] = useState<'story-mate' | 'workspace'>('story-mate');
+  const [activeSubTab, setActiveSubTab] = useState<PreferencesSubTab>('story-mate');
 
   const [mbrId, setMbrId] = useState<string>('9edb4311-a4bc-428a-8317-833f0f08fea1');
   const [mbrPrefId, setMbrPrefId] = useState<string | null>(null);
@@ -276,7 +210,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         onDirtyChange(false);
       }
       
-      // Auto close and return to previous page without prompt
+      // Auto close and return to previous page
       setTimeout(() => {
         onClickBack();
       }, 100);
@@ -289,7 +223,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     }
   };
 
-  // --- CANCEL ACTION ---
+  // --- CANCEL / RESET ACTION ---
   const handleCancel = () => {
     setSelectedWriterId(initialPrefs.selectedWriterId);
     setSelectedTheme(initialPrefs.selectedTheme);
@@ -305,11 +239,12 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 pb-12 relative">
+    <div className="w-full max-w-7xl mx-auto px-4 py-8 relative animate-fade-in">
+      <AdminComponentTag name="MbrPreferencesFeature.tsx" />
       
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           <span className="text-xs font-serif font-medium">Loading preferences...</span>
         </div>
       ) : (
@@ -319,343 +254,64 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             {/* LEFT COLUMN: BRAND HEADER & NAVIGATION MENU */}
-            <aside className="lg:col-span-4 space-y-6">
+            <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
               <BrandHeaderPanel />
-
-              <div className="bg-white border border-[#EFECE7] rounded-3xl p-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-1.5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono px-3 pt-2 pb-1 block">
-                  Preferences Navigation
-                </span>
-
-                {/* Menu Item 1: My Story Mate */}
-                <button
-                  type="button"
-                  onClick={() => setActiveSubTab('story-mate')}
-                  className={`w-full flex items-start gap-3.5 p-3 rounded-2xl text-left transition-all cursor-pointer ${
-                    activeSubTab === 'story-mate'
-                      ? 'bg-blue-50/90 border border-blue-200/80 shadow-xs'
-                      : 'hover:bg-slate-50 border border-transparent text-slate-650 hover:text-slate-900'
-                  }`}
-                >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                    activeSubTab === 'story-mate' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    <Feather className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className={`text-xs font-bold font-serif ${
-                        activeSubTab === 'story-mate' ? 'text-blue-950 font-black' : 'text-slate-750'
-                      }`}>
-                        My Story Mate
-                      </span>
-                      {isStoryMateDirty && (
-                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes in Story Mate" />
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-450 font-serif truncate mt-0.5">
-                      Story Craft Assistant Persona
-                    </p>
-                  </div>
-                </button>
-
-                {/* Menu Item 2: My Workspace */}
-                <button
-                  type="button"
-                  onClick={() => setActiveSubTab('workspace')}
-                  className={`w-full flex items-start gap-3.5 p-3 rounded-2xl text-left transition-all cursor-pointer ${
-                    activeSubTab === 'workspace'
-                      ? 'bg-blue-50/90 border border-blue-200/80 shadow-xs'
-                      : 'hover:bg-slate-50 border border-transparent text-slate-650 hover:text-slate-900'
-                  }`}
-                >
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                    activeSubTab === 'workspace' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    <Sliders className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className={`text-xs font-bold font-serif ${
-                        activeSubTab === 'workspace' ? 'text-blue-950 font-black' : 'text-slate-750'
-                      }`}>
-                        My Workspace
-                      </span>
-                      {isWorkspaceDirty && (
-                        <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes in workspace" />
-                      )}
-                    </div>
-                    <p className="text-[11px] text-slate-450 font-serif truncate mt-0.5">
-                      Workspace & UI Preferences
-                    </p>
-                  </div>
-                </button>
-              </div>
-
-              {/* Quick Guidance / Context Card */}
-              <div className="bg-slate-50/80 border border-[#EFECE7] rounded-3xl p-4.5 space-y-2.5 shadow-xs">
-                <div className="flex items-center gap-2 text-slate-800">
-                  <Sparkles className="w-4 h-4 text-blue-600" />
-                  <h4 className="text-xs font-bold font-serif">Preferences Guidance</h4>
-                </div>
-                <p className="text-[11px] text-slate-500 font-serif leading-relaxed">
-                  Use <strong>My Story Mate</strong> to choose the AI voice and style that best represents your storytelling tone.
-                </p>
-                <p className="text-[11px] text-slate-500 font-serif leading-relaxed">
-                  Use <strong>My Workspace</strong> to configure your visual theme, notifications, and auto-save options.
-                </p>
-              </div>
+              <PreferencesNavigationMenu
+                activeSubTab={activeSubTab}
+                onSelectTab={setActiveSubTab}
+                isStoryMateDirty={isStoryMateDirty}
+                isWorkspaceDirty={isWorkspaceDirty}
+              />
             </aside>
 
             {/* RIGHT COLUMN: MAIN CONTENT AREA & HEADER */}
-            <main className="lg:col-span-8 min-w-0 space-y-6">
+            <main className="lg:col-span-8 xl:col-span-9 min-w-0">
 
               {/* Top Header Navigation */}
-              <div className="flex items-center justify-between pb-4 border-b border-[#EFECE7]">
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={onClickBack}
-                    className="p-2.5 bg-white border border-[#EFECE7] text-slate-600 hover:text-slate-900 rounded-2xl hover:bg-slate-50 transition-all cursor-pointer shadow-xs"
-                    title="Back"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </button>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h1 className="font-serif text-2xl font-bold text-slate-800">
-                        {activeSubTab === 'story-mate' ? 'My Story Mate' : 'My Workspace'}
-                      </h1>
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full">
-                        {isSandbox ? 'Sandbox Mode' : 'sbDB100 Live'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-500 font-serif leading-relaxed mt-0.5">
-                      {activeSubTab === 'story-mate'
-                        ? 'Customize your preferred story craft writing assistant persona and narrative co-authoring style.'
-                        : 'Manage application display theme, notifications, and workspace UI behaviors.'}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <PreferencesHeader
+                activeSubTab={activeSubTab}
+                isDirty={isDirty}
+                saving={saving}
+                error={error}
+                success={success}
+                onClickBack={onClickBack}
+                onReset={handleCancel}
+                onDismissError={() => setError(null)}
+                onDismissSuccess={() => setSuccess(null)}
+              />
 
-              {/* Notifications Banner */}
-              <AnimatePresence mode="wait">
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="p-4 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl text-xs font-serif leading-relaxed flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                      <span>{error}</span>
-                    </div>
-                    <button onClick={() => setError(null)} className="text-rose-500 hover:text-rose-700">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                )}
-
-                {success && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-2xl text-xs font-serif leading-relaxed flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>{success}</span>
-                    </div>
-                    <button onClick={() => setSuccess(null)} className="text-emerald-600 hover:text-emerald-800">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* --- PANEL 1: WRITER PERSONA PREFERENCE --- */}
+              {/* Sub-Panel 1: Story Craft Assistant Persona */}
               {activeSubTab === 'story-mate' && (
-                <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)]">
-                  
-                  <div className="flex items-center justify-between pb-3 border-b border-[#EFECE7]">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2.5 bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl">
-                        <Feather className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h3 className="font-serif text-sm font-bold text-slate-800">Story Craft Assistant Persona</h3>
-                        <p className="text-[11px] text-slate-450 font-serif leading-snug">
-                          Select your preferred writing persona to guide AI co-authoring tone, vocabulary, and narrative style.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Persona Cards Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {personas.map((persona) => {
-                      const isSelected = selectedWriterId === persona.chWriterId;
-                      return (
-                        <div
-                          key={persona.chWriterId}
-                          onClick={() => setSelectedWriterId(persona.chWriterId)}
-                          className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col justify-between gap-3 relative ${
-                            isSelected
-                              ? 'bg-white border-blue-500 ring-2 ring-blue-500/20 shadow-sm'
-                              : 'bg-white border-[#EFECE7] hover:border-slate-300 hover:shadow-xs'
-                          }`}
-                        >
-                          {/* Header line: Name + Desc Badge */}
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <h4 className="font-serif text-sm font-bold text-slate-800">{persona.chWriterName}</h4>
-                              <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200/60 rounded-full">
-                                {persona.chWriterDesc}
-                              </span>
-                            </div>
-
-                            {/* Selection Check Circle */}
-                            <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors shrink-0 ${
-                              isSelected ? 'bg-blue-600 text-white' : 'border border-slate-300 bg-slate-50'
-                            }`}>
-                              {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
-                            </div>
-                          </div>
-
-                          {/* Prompt Instruction Excerpt */}
-                          <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                            <p className="text-[11px] font-serif text-slate-600 leading-relaxed italic">
-                              "{persona.chWriterPrompt}"
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                <StoryMatePersonaPanel
+                  personas={personas}
+                  selectedWriterId={selectedWriterId}
+                  onSelectWriterId={setSelectedWriterId}
+                />
               )}
 
-              {/* --- PANEL 2: GENERAL APPLICATION PREFERENCES --- */}
+              {/* Sub-Panel 2: Workspace & UI Preferences */}
               {activeSubTab === 'workspace' && (
-                <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)]">
-                  
-                  <div className="flex items-center gap-2.5 pb-3 border-b border-[#EFECE7]">
-                    <div className="p-2.5 bg-amber-50 border border-amber-100 text-amber-700 rounded-2xl">
-                      <Sliders className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="font-serif text-sm font-bold text-slate-800">Workspace & UI Preferences</h3>
-                      <p className="text-[11px] text-slate-450 font-serif leading-snug">
-                        Manage application display theme, notifications, and editor auto-save behaviors.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
-                    {/* Theme Preference Selector */}
-                    <div className="space-y-2.5 md:col-span-2">
-                      <label className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest block">
-                        Application Color Theme
-                      </label>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                        {[
-                          { id: 'Default', label: 'Default (Warm)', desc: 'Warm cream & slate', icon: Sun, badge: 'bg-amber-50 text-amber-700 border-amber-200' },
-                          { id: 'Dark', label: 'Dark Midnight', desc: 'Charcoal & silver', icon: Moon, badge: 'bg-slate-900 text-slate-100 border-slate-700' },
-                          { id: 'Rustic', label: 'Rustic Bar', desc: 'Burnt copper espresso', icon: Flame, badge: 'bg-[#2E2016] text-[#D97724] border-[#4A3222]' },
-                          { id: 'Luxury', label: 'Luxury Gold', desc: 'Obsidian & champagne', icon: Crown, badge: 'bg-[#241F10] text-[#D4AF37] border-[#42391D]' },
-                          { id: 'Tech', label: 'Modern Tech', desc: 'Cyber cyan & violet', icon: Cpu, badge: 'bg-[#0E1B2E] text-[#00F2FE] border-[#163356]' },
-                          { id: 'Earthy', label: 'Earthy Craft', desc: 'Warm sand & terracotta', icon: Leaf, badge: 'bg-[#EBE5DA] text-[#C84218] border-[#D9D1C3]' },
-                          { id: 'Minimalist', label: 'Minimalist', desc: 'Stark monochrome', icon: Minus, badge: 'bg-stone-100 text-stone-900 border-stone-300' },
-                          { id: 'Ocean', label: 'Ocean Indigo', desc: 'Deep indigo & navy', icon: Compass, badge: 'bg-indigo-50 text-indigo-700 border-indigo-200' }
-                        ].map((t) => {
-                          const Icon = t.icon;
-                          const isThemeSelected = (selectedTheme === t.id) || (selectedTheme === 'System' && t.id === 'Default') || (selectedTheme === 'Light' && t.id === 'Default');
-                          return (
-                            <button
-                              key={t.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedTheme(t.id);
-                                document.documentElement.setAttribute('data-theme', t.id);
-                                sessionStorage.setItem('mbrPrefTheme', t.id);
-                                sessionStorage.setItem('theme', t.id);
-                                window.dispatchEvent(new Event('theme-changed'));
-                              }}
-                              className={`flex flex-col items-start gap-2.5 p-3 rounded-2xl border text-left transition-all cursor-pointer ${
-                                isThemeSelected
-                                  ? 'bg-white border-blue-600 ring-2 ring-blue-500/20 shadow-sm'
-                                  : 'bg-white border-[#EFECE7] hover:border-slate-300 hover:bg-slate-50/50'
-                              }`}
-                            >
-                              <div className="flex items-center justify-between w-full">
-                                <div className={`p-2 rounded-xl border ${t.badge}`}>
-                                  <Icon className="w-4 h-4" />
-                                </div>
-                                {isThemeSelected && (
-                                  <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                                )}
-                              </div>
-                              <div>
-                                <span className="font-serif font-bold text-xs text-slate-800 block leading-snug">{t.label}</span>
-                                <span className="text-[10px] text-slate-400 font-serif block mt-0.5">{t.desc}</span>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Toggles Column */}
-                    <div className="space-y-4 pt-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      
-                      {/* Notifications Toggle */}
-                      <div className="flex items-center justify-between p-3.5 bg-white border border-[#EFECE7] rounded-2xl">
-                        <div className="flex items-center gap-2.5">
-                          <Bell className="w-4 h-4 text-slate-500" />
-                          <div>
-                            <h5 className="text-xs font-serif font-bold text-slate-700">App Notifications</h5>
-                            <p className="text-[10px] text-slate-400 font-serif">Receive activity & story edit updates</p>
-                          </div>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={notificationsInd}
-                          onChange={(e) => setNotificationsInd(e.target.checked)}
-                          className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
-                        />
-                      </div>
-
-                      {/* Auto-Save Toggle */}
-                      <div className="flex items-center justify-between p-3.5 bg-white border border-[#EFECE7] rounded-2xl">
-                        <div className="flex items-center gap-2.5">
-                          <FileText className="w-4 h-4 text-slate-500" />
-                          <div>
-                            <h5 className="text-xs font-serif font-bold text-slate-700">Story Auto-Save</h5>
-                            <p className="text-[10px] text-slate-400 font-serif">Automatically save drafts while typing</p>
-                          </div>
-                        </div>
-                        <input
-                          type="checkbox"
-                          checked={autoSaveInd}
-                          onChange={(e) => setAutoSaveInd(e.target.checked)}
-                          className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
-                        />
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
+                <WorkspacePreferencesPanel
+                  selectedTheme={selectedTheme}
+                  onSelectTheme={(theme) => {
+                    setSelectedTheme(theme);
+                    document.documentElement.setAttribute('data-theme', theme);
+                    sessionStorage.setItem('mbrPrefTheme', theme);
+                    sessionStorage.setItem('theme', theme);
+                    window.dispatchEvent(new Event('theme-changed'));
+                  }}
+                  notificationsInd={notificationsInd}
+                  onToggleNotifications={setNotificationsInd}
+                  autoSaveInd={autoSaveInd}
+                  onToggleAutoSave={setAutoSaveInd}
+                />
               )}
 
-              {/* --- BOTTOM ACTIONS BAR --- */}
-              <div className="flex items-center justify-between pt-4 border-t border-[#EFECE7]">
+              {/* Bottom Action Footer */}
+              <div className="flex items-center justify-between pt-4 mt-6 border-t border-slate-200 dark:border-slate-800">
                 <div className="text-xs text-slate-400 font-serif">
                   {isDirty ? (
-                    <span className="text-amber-600 font-medium">● Unsaved preference changes</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-medium">● Unsaved preference changes</span>
                   ) : (
                     <span>All preferences saved</span>
                   )}
@@ -666,15 +322,15 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
                     type="button"
                     onClick={handleCancel}
                     disabled={saving}
-                    className="px-5 py-2.5 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold font-serif transition-all cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
 
                   <button
                     type="submit"
-                    disabled={saving}
-                    className="flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold font-serif shadow-md shadow-blue-500/10 transition-all cursor-pointer disabled:opacity-50"
+                    disabled={saving || !isDirty}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold font-sans shadow-md shadow-blue-600/20 transition-all cursor-pointer disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed disabled:shadow-none"
                   >
                     {saving ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />

@@ -359,35 +359,24 @@ export default function MbrProfileDisplaySettingsPanel({
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Header Info */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#EFECE7]">
+      {/* Global Quick Action Toggles */}
+      <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-xs">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-xl font-serif font-bold text-slate-800">Profile Display Settings</h2>
-              <p className="text-xs text-slate-500 font-serif mt-0.5">
-                Control which attributes and sections of your member profile are visible to visitors and community members.
-              </p>
-            </div>
-          </div>
+          <h2 className="text-lg font-serif font-bold text-slate-900 dark:text-white">Profile Display Preferences</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Configure item visibility for public view and member searches.</p>
         </div>
-
-        {/* Global Quick Action Toggles */}
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => handleSetAll(true)}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-[#EFECE7] rounded-xl hover:bg-slate-50 transition-all cursor-pointer shadow-xs"
+            className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer shadow-xs"
           >
             Show All
           </button>
           <button
             type="button"
             onClick={() => handleSetAll(false)}
-            className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white border border-[#EFECE7] rounded-xl hover:bg-slate-50 transition-all cursor-pointer shadow-xs"
+            className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer shadow-xs"
           >
             Hide All
           </button>
@@ -399,9 +388,9 @@ export default function MbrProfileDisplaySettingsPanel({
         <motion.div 
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-2xl text-xs font-serif leading-relaxed"
+          className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-2xl text-xs font-serif leading-relaxed"
         >
-          <AlertCircle className="w-4 h-4 shrink-0" />
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
           <span>{error}</span>
         </motion.div>
       )}
@@ -410,9 +399,9 @@ export default function MbrProfileDisplaySettingsPanel({
         <motion.div 
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl text-xs font-serif leading-relaxed"
+          className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs font-serif leading-relaxed"
         >
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
           <span>{success}</span>
         </motion.div>
       )}
@@ -424,10 +413,12 @@ export default function MbrProfileDisplaySettingsPanel({
           const CatIcon = cat.icon;
 
           return (
-            <div key={cat.id} className="bg-white border border-[#EFECE7] rounded-3xl p-6 md:p-7 shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-4">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-[#F5F3EF]">
-                <CatIcon className="w-4 h-4 text-blue-600" />
-                <h3 className="font-serif text-sm font-bold text-slate-800 tracking-tight">{cat.label}</h3>
+            <div key={cat.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-4">
+              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                  <CatIcon className="w-4 h-4" />
+                </div>
+                <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white tracking-tight">{cat.label}</h3>
               </div>
 
               <div className="grid grid-cols-1 gap-3.5 pt-1">
@@ -441,33 +432,33 @@ export default function MbrProfileDisplaySettingsPanel({
                       onClick={() => handleToggle(item.key)}
                       className={`group flex items-start justify-between gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${
                         isChecked
-                          ? 'bg-slate-50/60 border-blue-200/80 hover:border-blue-300 hover:bg-blue-50/20'
-                          : 'bg-white border-[#EFECE7] hover:border-slate-300 hover:bg-slate-50/40 opacity-80'
+                          ? 'bg-blue-50/40 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700'
+                          : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 opacity-85'
                       }`}
                     >
                       <div className="flex items-start gap-3.5">
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                          isChecked ? 'bg-blue-100/70 text-blue-700' : 'bg-slate-100 text-slate-400'
+                          isChecked ? 'bg-blue-100/70 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
                         }`}>
                           <ItemIcon className="w-4 h-4" />
                         </div>
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-serif text-sm font-bold text-slate-800">{item.title}</span>
+                            <span className="font-serif text-sm font-bold text-slate-900 dark:text-white">{item.title}</span>
                             {item.recommended && (
-                              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 bg-amber-50 text-amber-700 border border-amber-200/60 rounded-md">
+                              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800 rounded-md">
                                 Recommended
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 font-serif leading-relaxed">{item.description}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-serif leading-relaxed">{item.description}</p>
                         </div>
                       </div>
 
                       {/* Custom Toggle Switch */}
                       <div className="shrink-0 pt-1">
                         <div className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out ${
-                          isChecked ? 'bg-blue-600' : 'bg-slate-300'
+                          isChecked ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
                         }`}>
                           <motion.div 
                             layout
@@ -487,7 +478,7 @@ export default function MbrProfileDisplaySettingsPanel({
         })}
 
         {/* Action Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-[#EFECE7]">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
           <button
             type="button"
             onClick={() => {
@@ -496,9 +487,9 @@ export default function MbrProfileDisplaySettingsPanel({
               }
             }}
             disabled={!isDirty || saving}
-            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-semibold font-sans transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
               isDirty && !saving
-                ? 'bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-xs'
+                ? 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs'
                 : 'opacity-40 pointer-events-none text-slate-400 border border-transparent'
             }`}
           >
@@ -509,10 +500,10 @@ export default function MbrProfileDisplaySettingsPanel({
           <button
             type="submit"
             disabled={!isDirty || saving}
-            className={`inline-flex items-center justify-center gap-2 px-7 py-3 rounded-2xl text-xs font-bold font-sans transition-all duration-200 cursor-pointer shadow-md ${
+            className={`inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold font-sans transition-all duration-200 cursor-pointer shadow-md ${
               isDirty && !saving
-                ? 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-[1.02] active:scale-[0.98] shadow-blue-500/20'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 active:scale-98'
+                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
             }`}
           >
             {saving ? (

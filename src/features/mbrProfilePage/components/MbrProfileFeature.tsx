@@ -9,7 +9,7 @@ import {
   Camera, User, Calendar, Save, ArrowLeft, Loader2, 
   CheckCircle2, AlertCircle, Image as ImageIcon, Sparkles, Upload,
   AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Mail, Plus, Trash2, Check,
-  Sliders, ShieldCheck, Eye
+  Sliders, ShieldCheck, Eye, RotateCcw
 } from 'lucide-react';
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -632,7 +632,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   }
 
   return (
-    <div className="w-full max-w-5xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 md:p-9 shadow-[0_12px_40px_rgba(0,0,0,0.02)] animate-fade-in relative">
+    <div className="w-full max-w-7xl mx-auto px-4 py-8 relative animate-fade-in">
+      <AdminComponentTag name="MbrProfileFeature.tsx" />
       
       {/* --- UNSAVED CHANGES CONFIRMATION MODAL --- */}
       <AnimatePresence>
@@ -642,25 +643,25 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white border border-[#EFECE7] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6"
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6"
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 shadow-xs">
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowDiscardModal(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-50 transition-colors"
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
               <div className="space-y-2">
-                <h3 className="font-serif font-bold text-lg text-slate-800">Unsaved Changes</h3>
-                <p className="text-xs text-slate-500 font-serif leading-relaxed">
-                  You have modified fields on your member profile settings. If you leave or cancel now, your unsaved changes will be lost.
+                <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white">Unsaved Changes</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-serif leading-relaxed">
+                  You have modified fields on your member profile settings. If you leave or discard now, your unsaved changes will be lost.
                 </p>
               </div>
 
@@ -668,7 +669,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                 <button
                   type="button"
                   onClick={() => setShowDiscardModal(false)}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer"
                 >
                   Keep Editing
                 </button>
@@ -689,162 +690,220 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* LEFT COLUMN: BRAND HEADER & NAVIGATION MENU */}
-        <aside className="lg:col-span-4 space-y-6">
+        <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
           <BrandHeaderPanel />
 
-          <div className="bg-white border border-[#EFECE7] rounded-3xl p-3.5 shadow-[0_4px_20px_rgba(0,0,0,0.02)] space-y-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono px-3 pt-2 pb-1 block">
-              Profile Navigation
-            </span>
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+            {/* Menu Header */}
+            <div className="pb-4 mb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <h2 className="text-sm font-bold font-serif text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <span>Profile Navigation</span>
+              </h2>
+            </div>
 
-            {/* Menu Item 1: My Profile (Default) */}
-            <button
-              type="button"
-              onClick={() => setActiveSubTab('profile')}
-              className={`w-full flex items-start gap-3.5 p-3 rounded-2xl text-left transition-all cursor-pointer ${
-                activeSubTab === 'profile'
-                  ? 'bg-blue-50/90 border border-blue-200/80 shadow-xs'
-                  : 'hover:bg-slate-50 border border-transparent text-slate-650 hover:text-slate-900'
-              }`}
-            >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                activeSubTab === 'profile' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
-              }`}>
-                <User className="w-4 h-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <span className={`text-xs font-bold font-serif ${
-                    activeSubTab === 'profile' ? 'text-blue-950 font-black' : 'text-slate-750'
-                  }`}>
-                    My Profile
-                  </span>
-                  {isProfileDirty && (
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes in profile" />
-                  )}
+            {/* Navigation Items List */}
+            <nav className="space-y-1.5" aria-label="Profile Navigation">
+              {/* Menu Item 1: My Profile (Default) */}
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('profile')}
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-serif font-bold transition-all cursor-pointer text-left ${
+                  activeSubTab === 'profile'
+                    ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                      activeSubTab === 'profile'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold font-serif text-slate-900 dark:text-white">My Profile</div>
+                    <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400 font-sans">Demographics & Biography</div>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-450 font-serif truncate mt-0.5">
-                  Demographics & Biography
-                </p>
-              </div>
-            </button>
+                {isProfileDirty && (
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes in profile" />
+                )}
+              </button>
 
-            {/* Menu Item 2: Profile Display Settings */}
-            <button
-              type="button"
-              onClick={() => setActiveSubTab('display-settings')}
-              className={`w-full flex items-start gap-3.5 p-3 rounded-2xl text-left transition-all cursor-pointer ${
-                activeSubTab === 'display-settings'
-                  ? 'bg-blue-50/90 border border-blue-200/80 shadow-xs'
-                  : 'hover:bg-slate-50 border border-transparent text-slate-650 hover:text-slate-900'
-              }`}
-            >
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                activeSubTab === 'display-settings' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-500'
-              }`}>
-                <Sliders className="w-4 h-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-1">
-                  <span className={`text-xs font-bold font-serif ${
-                    activeSubTab === 'display-settings' ? 'text-blue-950 font-black' : 'text-slate-750'
-                  }`}>
-                    Profile Display Settings
-                  </span>
-                  {isSettingsDirty && (
-                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes in display settings" />
-                  )}
+              {/* Menu Item 2: My Profile Display Settings */}
+              <button
+                type="button"
+                onClick={() => setActiveSubTab('display-settings')}
+                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-serif font-bold transition-all cursor-pointer text-left ${
+                  activeSubTab === 'display-settings'
+                    ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                      activeSubTab === 'display-settings'
+                        ? 'bg-blue-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    <Sliders className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold font-serif text-slate-900 dark:text-white">My Profile Display Settings</div>
+                    <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400 font-sans">Public & Section Visibility</div>
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-450 font-serif truncate mt-0.5">
-                  Public & Section Visibility
-                </p>
-              </div>
-            </button>
+                {isSettingsDirty && (
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes in display settings" />
+                )}
+              </button>
+            </nav>
           </div>
 
           {/* Quick Context / Privacy Info Card */}
-          <div className="bg-slate-50/80 border border-[#EFECE7] rounded-3xl p-4.5 space-y-2.5 shadow-xs">
-            <div className="flex items-center gap-2 text-slate-800">
-              <ShieldCheck className="w-4 h-4 text-blue-600" />
+          <div className="bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5 shadow-xs">
+            <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+              <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <h4 className="text-xs font-bold font-serif">Display & Privacy Guidance</h4>
             </div>
-            <p className="text-[11px] text-slate-500 font-serif leading-relaxed">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif leading-relaxed">
               Use <strong>My Profile</strong> to maintain your life details, locations, education, and photo gallery.
             </p>
-            <p className="text-[11px] text-slate-500 font-serif leading-relaxed">
-              Use <strong>Profile Display Settings</strong> to toggle whether individual attributes are displayed on public and shared member views.
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif leading-relaxed">
+              Use <strong>My Profile Display Settings</strong> to toggle whether individual attributes are displayed on public and shared member views.
             </p>
           </div>
         </aside>
 
         {/* RIGHT COLUMN: MAIN CONTENT AREA & HEADER */}
-        <main className="lg:col-span-8 min-w-0 space-y-6">
+        <main className="lg:col-span-8 xl:col-span-9 min-w-0">
           
-          {/* Header Section */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#EFECE7]">
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={handleAttemptBack}
-                className="p-2 bg-slate-50 hover:bg-slate-100 border border-[#EFECE7] text-slate-600 rounded-xl transition-all cursor-pointer shadow-xs"
-                title="Go Back"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
+          {/* Header Section matching ConnectionHeader */}
+          <div className="relative mb-8 pb-6 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-2xl font-serif font-black text-slate-800 tracking-tight">
-                    {activeSubTab === 'profile' ? 'My Profile' : 'Profile Display Settings'}
-                  </h2>
+                <button
+                  type="button"
+                  onClick={handleAttemptBack}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 mb-3 transition-colors cursor-pointer group"
+                >
+                  <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+                  <span>Back</span>
+                </button>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white">
+                    {activeSubTab === 'profile' ? <User className="w-5 h-5" /> : <Sliders className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <h1 className="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">
+                      {activeSubTab === 'profile' ? 'My Profile' : 'My Profile Display Settings'}
+                    </h1>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {activeSubTab === 'profile' 
+                        ? 'Your story starts here with knowing your basic demographics and personal introduction.'
+                        : 'Control which attributes and sections of your member profile are visible to visitors and community members.'}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-450 font-serif mt-0.5">
-                  {activeSubTab === 'profile' 
-                    ? 'Your story starts here with knowing your basic demographics and personal introduction.'
-                    : 'Control which attributes and sections of your member profile are visible to visitors and community members.'}
-                </p>
               </div>
+
+              {/* Global Top Action Buttons (Profile Tab) */}
+              {activeSubTab === 'profile' && (
+                <div className="flex items-center gap-3">
+                  {isProfileDirty && (
+                    <button
+                      type="button"
+                      onClick={handleExplicitCancel}
+                      disabled={saving}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Discard Changes</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleSubmit(e as any)}
+                    disabled={!isProfileDirty || saving}
+                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold font-sans shadow-md transition-all cursor-pointer ${
+                      isProfileDirty && !saving
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 active:scale-98'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
+                    }`}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Saving Profile...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>Save Profile</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
+
+            {/* Notifications / Feedback Alerts */}
+            <AnimatePresence>
+              {success && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 flex items-center gap-3 shadow-xs"
+                >
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span className="text-sm font-medium">{success}</span>
+                </motion.div>
+              )}
+
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="mt-6 p-4 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 flex items-center gap-3 shadow-xs"
+                >
+                  <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+                  <span className="text-sm font-medium">{error}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           
           {/* TAB 1: MY PROFILE FORM */}
           {activeSubTab === 'profile' && (
             <div>
-              {/* --- FEEDBACK ALERTS --- */}
-              {error && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }} 
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-3 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-2xl mb-6 text-xs font-serif leading-relaxed"
-                >
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </motion.div>
-              )}
-
-              {success && (
-                <motion.div 
-                  initial={{ opacity: 0, y: -10 }} 
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl mb-6 text-xs font-serif leading-relaxed"
-                >
-                  <CheckCircle2 className="w-4 h-4 shrink-0" />
-                  <span>{success}</span>
-                </motion.div>
-              )}
-
               {/* --- PROFILE FORM --- */}
               <form onSubmit={handleSubmit} className="space-y-8">
                 
-                {/* PROFILE PICTURE COLUMN */}
-                <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
-                  <div className="flex items-center gap-2">
-                    <Camera className="w-4 h-4 text-slate-650" />
-                    <h3 className="font-serif text-sm font-bold text-slate-800">Profile Picture</h3>
+                {/* PROFILE PICTURE PANEL */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
+                  <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                      <Camera className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white">Profile Picture & Gallery</h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif">Manage your avatar and member photo portfolio.</p>
+                    </div>
                   </div>
 
                   <div className="flex flex-col md:flex-row items-center gap-8">
                     {/* Avatar Preview & Upload Button */}
                     <div className="flex flex-col items-center gap-3 shrink-0">
-                      <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-100 flex items-center justify-center relative">
+                      <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative">
                         {previewImage ? (
                           <img 
                             src={previewImage} 
@@ -852,7 +911,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                             className="w-full h-full object-cover" 
                           />
                         ) : (
-                          <User className="w-12 h-12 text-slate-300" />
+                          <User className="w-12 h-12 text-slate-400 dark:text-slate-500" />
                         )}
 
                         {uploadingImage && (
@@ -865,7 +924,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                       
                       <label 
                         htmlFor="avatar-upload" 
-                        className={`inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm transition-all duration-150 ${
+                        className={`inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-sm transition-all duration-150 ${
                           uploadingImage ? 'opacity-50 pointer-events-none' : 'hover:scale-[1.02] active:scale-[0.98]'
                         }`}
                       >
@@ -883,12 +942,12 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                       />
                     </div>
 
-                    {/* Member Photo Gallery Section in Vertical Scroll Window */}
+                    {/* Member Photo Gallery Section */}
                     <div className="flex-grow space-y-2.5 w-full">
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Member Photo Gallery</span>
-                          <p className="text-[11px] text-slate-450 font-serif leading-relaxed">Add photos that will be displayed as part of your Member Profile to Friends, Family, and Others based upon your security preferences.</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif leading-relaxed">Add photos that will be displayed as part of your Member Profile.</p>
                         </div>
 
                         {/* Add Photo Button with (count/20) indicator */}
@@ -896,10 +955,10 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                           htmlFor="gallery-photo-upload" 
                           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
                             galleryItems.length >= 20 
-                              ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
+                              ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 cursor-not-allowed'
                               : uploadingGalleryPhoto 
-                                ? 'bg-blue-50 text-blue-700 border border-blue-200/80 opacity-50 pointer-events-none' 
-                                : 'bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+                                ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 opacity-50 pointer-events-none' 
+                                : 'bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
                           }`}
                           title={galleryItems.length >= 20 ? 'Maximum 20 photos reached' : 'Add Photo to Gallery'}
                         >
@@ -926,7 +985,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                       </div>
 
                       {/* Vertical Scrollable Container for Gallery Thumbnails */}
-                      <div className="max-h-[195px] overflow-y-auto pr-2 space-y-2 border border-[#EFECE7] rounded-2xl p-3 bg-white/70 shadow-inner min-h-[120px]">
+                      <div className="max-h-[195px] overflow-y-auto pr-2 space-y-2 border border-slate-200 dark:border-slate-800 rounded-2xl p-3 bg-slate-50/50 dark:bg-slate-800/40 shadow-inner min-h-[120px]">
                         {loadingGallery ? (
                           <div className="flex items-center justify-center h-24 text-slate-400 gap-2 text-xs font-serif">
                             <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
@@ -935,7 +994,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                         ) : galleryItems.length === 0 ? (
                           <div className="flex flex-col items-center justify-center py-6 text-center text-slate-400 gap-1.5">
                             <ImageIcon className="w-8 h-8 opacity-40 text-slate-400" />
-                            <p className="text-xs font-serif text-slate-500">No profile gallery photos saved yet.</p>
+                            <p className="text-xs font-serif text-slate-500 dark:text-slate-400">No profile gallery photos saved yet.</p>
                             <p className="text-[10px] text-slate-400 font-sans">Click "Add Photo" above to upload photos to your gallery.</p>
                           </div>
                         ) : (
@@ -947,7 +1006,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                               return (
                                 <div 
                                   key={item.mbrMediaId}
-                                  className="group relative aspect-square rounded-2xl overflow-hidden border p-1 bg-white transition-all border-[#EFECE7] hover:border-slate-400 shadow-xs"
+                                  className="group relative aspect-square rounded-2xl overflow-hidden border p-1 bg-white dark:bg-slate-800 transition-all border-slate-200 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 shadow-xs"
                                   title={item.mbrMediaOriginalFilename || 'Member Gallery Photo'}
                                 >
                                   <img 
@@ -981,256 +1040,263 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                 </div>
 
                 {/* DEMOGRAPHIC NAMES SECTION */}
-                <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-slate-650" />
-                    <h3 className="font-serif text-sm font-bold text-slate-800">Demographics</h3>
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
+                  <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white">Demographics</h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif">Basic identification, birth date, and relationship info.</p>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">First Name *</label>
                       <input 
                         type="text" 
                         value={formData.mbrFirstName}
                         onChange={(e) => setFormData((prev) => ({ ...prev, mbrFirstName: e.target.value }))}
-                        className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
                         required
                       />
                     </div>
             
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Middle Name</label>
-              <input 
-                type="text" 
-                value={formData.mbrMiddleName}
-                onChange={(e) => setFormData((prev) => ({ ...prev, mbrMiddleName: e.target.value }))}
-                className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
-              />
-            </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Middle Name</label>
+                      <input 
+                        type="text" 
+                        value={formData.mbrMiddleName}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrMiddleName: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
+                      />
+                    </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Last Name *</label>
-              <input 
-                type="text" 
-                value={formData.mbrLastName}
-                onChange={(e) => setFormData((prev) => ({ ...prev, mbrLastName: e.target.value }))}
-                className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
-                required
-              />
-            </div>
-          </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Last Name *</label>
+                      <input 
+                        type="text" 
+                        value={formData.mbrLastName}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrLastName: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
+                        required
+                      />
+                    </div>
+                  </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Birth Date</label>
-              <div className="relative">
-                <input 
-                  type="date" 
-                  value={formData.mbrBirthDate}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrBirthDate: e.target.value }))}
-                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
-                />
-              </div>
-            </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Birth Date</label>
+                      <input 
+                        type="date" 
+                        value={formData.mbrBirthDate}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrBirthDate: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
+                      />
+                    </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Gender Classification</label>
-              <select 
-                value={formData.mbrGenderCd}
-                onChange={(e) => setFormData((prev) => ({ ...prev, mbrGenderCd: e.target.value }))}
-                className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3 py-2.5 text-slate-700 transition-colors"
-              >
-                <option value="">-- Choose Gender --</option>
-                <option value="Female">Female</option>
-                <option value="Male">Male</option>
-                <option value="Non-Binary">Non-Binary</option>
-                <option value="Rather not say">Rather not say</option>
-              </select>
-            </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Gender Classification</label>
+                      <select 
+                        value={formData.mbrGenderCd}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrGenderCd: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3 py-2.5 text-slate-800 dark:text-slate-100 transition-all"
+                      >
+                        <option value="">-- Choose Gender --</option>
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                        <option value="Non-Binary">Non-Binary</option>
+                        <option value="Rather not say">Rather not say</option>
+                      </select>
+                    </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Relationship Status</label>
-              <select 
-                value={formData.mbrRelationshipStatusCd}
-                onChange={(e) => setFormData((prev) => ({ ...prev, mbrRelationshipStatusCd: e.target.value }))}
-                className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3 py-2.5 text-slate-700 transition-colors"
-              >
-                <option value="">-- Choose Relationship Status --</option>
-                <option value="Single">Single</option>
-                <option value="In a relationship">In a relationship</option>
-                <option value="Engaged">Engaged</option>
-                <option value="Married">Married</option>
-                <option value="Separated">Separated</option>
-                <option value="Divorced">Divorced</option>
-                <option value="Widowed">Widowed</option>
-                <option value="Rather not say">Rather not say</option>
-              </select>
-            </div>
-          </div>
-        </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Relationship Status</label>
+                      <select 
+                        value={formData.mbrRelationshipStatusCd}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrRelationshipStatusCd: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3 py-2.5 text-slate-800 dark:text-slate-100 transition-all"
+                      >
+                        <option value="">-- Choose Relationship Status --</option>
+                        <option value="Single">Single</option>
+                        <option value="In a relationship">In a relationship</option>
+                        <option value="Engaged">Engaged</option>
+                        <option value="Married">Married</option>
+                        <option value="Separated">Separated</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                        <option value="Rather not say">Rather not say</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
 
-        {/* PERSONAL BACKGROUND & PLACES */}
-        <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4 text-slate-650" />
-            <h3 className="font-serif text-sm font-bold text-slate-800">Background & Places</h3>
-          </div>
+                {/* PERSONAL BACKGROUND & PLACES */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
+                  <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white">Background & Places</h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif">Locations, work history, school, and contact details.</p>
+                    </div>
+                  </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Lives In (City, State)</label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="e.g. Coos Bay, Oregon"
-                  value={formData.mbrLivesCityState}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrLivesCityState: e.target.value }))}
-                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
-                />
-              </div>
-            </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Lives In (City, State)</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Coos Bay, Oregon"
+                        value={formData.mbrLivesCityState}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrLivesCityState: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
+                      />
+                    </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">From / Hometown (City, State)</label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="e.g. Seattle, Washington"
-                  value={formData.mbrFromCityState}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrFromCityState: e.target.value }))}
-                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
-                />
-              </div>
-            </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">From / Hometown (City, State)</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Seattle, Washington"
+                        value={formData.mbrFromCityState}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrFromCityState: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
+                      />
+                    </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Works At (Company / Organization)</label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="e.g. Coos Bay Library"
-                  value={formData.mbrWorkAt}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrWorkAt: e.target.value }))}
-                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
-                />
-              </div>
-            </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Works At (Company / Organization)</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. Coos Bay Library"
+                        value={formData.mbrWorkAt}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrWorkAt: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
+                      />
+                    </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Studied At (School / University)</label>
-              <div className="relative">
-                <input 
-                  type="text" 
-                  placeholder="e.g. University of Washington"
-                  value={formData.mbrStudiedAt}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrStudiedAt: e.target.value }))}
-                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
-                />
-              </div>
-            </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Studied At (School / University)</label>
+                      <input 
+                        type="text" 
+                        placeholder="e.g. University of Washington"
+                        value={formData.mbrStudiedAt}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrStudiedAt: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
+                      />
+                    </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Email Address</label>
-              <div className="relative">
-                <input 
-                  type="email" 
-                  placeholder="e.g. eleanor.hartwell@example.com"
-                  value={formData.mbrEmailAddress}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, mbrEmailAddress: e.target.value }))}
-                  className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-700 transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Email Address</label>
+                      <input 
+                        type="email" 
+                        placeholder="e.g. eleanor.hartwell@example.com"
+                        value={formData.mbrEmailAddress}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrEmailAddress: e.target.value }))}
+                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
 
-        {/* LONG FORM BIOGRAPHY / CONTEXT */}
-        <div className="bg-slate-50/50 p-6 border border-[#EFECE7] rounded-3xl space-y-6">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-slate-650" />
-              <h3 className="font-serif text-sm font-bold text-slate-800">Introduction</h3>
-            </div>
+                {/* LONG FORM BIOGRAPHY / CONTEXT */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
+                  <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white">Introduction</h3>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif">Personal narrative and biography excerpt.</p>
+                      </div>
+                    </div>
 
-            <button
-              type="button"
-              onClick={() => setShowStoryMate((prev) => !prev)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-800 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
-              title="StoryMate AI Assistant for Profile Introduction"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>StoryMate AI</span>
-            </button>
-          </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowStoryMate((prev) => !prev)}
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 border border-amber-200/80 dark:border-amber-800 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                      title="StoryMate AI Assistant for Profile Introduction"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      <span>StoryMate AI</span>
+                    </button>
+                  </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Introduction / Biography / Co-authored Story Context</label>
-            <textarea 
-              rows={6}
-              placeholder="Tell your life story, co-authored chronicles or write an introductory excerpt..."
-              value={formData.mbrIntroduction}
-              onChange={(e) => setFormData((prev) => ({ ...prev, mbrIntroduction: e.target.value }))}
-              className="w-full text-xs font-serif bg-white border border-[#EFECE7] focus:border-slate-400 focus:outline-none rounded-2xl px-3.5 py-3 text-slate-700 transition-colors resize-y leading-relaxed"
-            />
-            <p className="text-[10px] text-slate-400 font-serif mt-1">This text appears as the primary long-form introduction for your profile portfolio.</p>
-          </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Introduction / Biography / Co-authored Story Context</label>
+                    <textarea 
+                      rows={6}
+                      placeholder="Tell your life story, co-authored chronicles or write an introductory excerpt..."
+                      value={formData.mbrIntroduction}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, mbrIntroduction: e.target.value }))}
+                      className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-2xl px-3.5 py-3 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all resize-y leading-relaxed"
+                    />
+                    <p className="text-[10px] text-slate-400 font-serif mt-1">This text appears as the primary long-form introduction for your profile portfolio.</p>
+                  </div>
 
-          {showStoryMate && (
-            <div className="pt-2">
-              <StoryMatePanel
-                memberName={formData.mbrFirstName || 'Member'}
-                componentName="SbMbrProfile"
-                storyTitle="Member Profile Introduction"
-                storyContent={formData.mbrIntroduction}
-                onClose={() => setShowStoryMate(false)}
-              />
+                  {showStoryMate && (
+                    <div className="pt-2">
+                      <StoryMatePanel
+                        memberName={formData.mbrFirstName || 'Member'}
+                        componentName="SbMbrProfile"
+                        storyTitle="Member Profile Introduction"
+                        storyContent={formData.mbrIntroduction}
+                        onClose={() => setShowStoryMate(false)}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* --- BOTTOM ACTION BUTTONS --- */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={handleExplicitCancel}
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  
+                  <button
+                    type="submit"
+                    disabled={saving || !isProfileDirty}
+                    className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold font-sans shadow-md transition-all cursor-pointer ${
+                      isProfileDirty && !saving
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 active:scale-98'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
+                    }`}
+                    title={!isProfileDirty ? "Make an edit to enable saving" : "Save changes to your member profile"}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Saving Changes...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>Save Profile</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+              </form>
             </div>
           )}
-        </div>
 
-        {/* --- BUTTONS --- */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#EFECE7]">
-          <button
-            type="button"
-            onClick={handleExplicitCancel}
-            className="px-6 py-2.5 bg-transparent hover:bg-slate-50 text-slate-650 hover:text-slate-800 border border-transparent hover:border-[#EFECE7] rounded-xl text-xs font-bold font-sans transition-all cursor-pointer"
-          >
-            Cancel
-          </button>
-          
-          <button
-            type="submit"
-            disabled={saving || !isProfileDirty}
-            className="px-8 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold font-sans transition-all cursor-pointer flex items-center gap-2 shadow-sm disabled:bg-slate-200 disabled:text-slate-400 disabled:border disabled:border-slate-300/60 disabled:cursor-not-allowed disabled:shadow-none"
-            title={!isProfileDirty ? "Make an edit to enable saving" : "Save changes to your member profile"}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Saving Changes...</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                <span>Save Profile</span>
-              </>
-            )}
-          </button>
-        </div>
-
-      </form>
-    </div>
-  )}
-
-  {/* TAB 2: PROFILE DISPLAY SETTINGS */}
-  {activeSubTab === 'display-settings' && (
-    <MbrProfileDisplaySettingsPanel
-      isSandbox={isSandbox}
-      mbrId={mbrId}
-      onDirtyChange={setIsSettingsDirty}
-    />
-  )}
+          {/* TAB 2: PROFILE DISPLAY SETTINGS */}
+          {activeSubTab === 'display-settings' && (
+            <MbrProfileDisplaySettingsPanel
+              isSandbox={isSandbox}
+              mbrId={mbrId}
+              onDirtyChange={setIsSettingsDirty}
+            />
+          )}
         </main>
       </div>
 
