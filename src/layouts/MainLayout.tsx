@@ -17,6 +17,7 @@ type TabType =
   | 'adminConnectionsPage'
   | 'admin-connections'
   | 'settings'
+  | 'adminUserAdminPage'
   | 'adminAccountsPage'
   | 'admin-accounts'
   | 'account-settings'
@@ -635,16 +636,16 @@ export default function MainLayout({
                         <div className="pl-3 border-l border-slate-700/60 ml-4 my-1 space-y-0.5">
                           <div
                             onClick={() => {
-                              setActiveTab('adminAccountsPage');
+                              setActiveTab('adminUserAdminPage');
                               setDropdownOpen(false);
                             }}
                             className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
-                              activeTab === 'adminAccountsPage' || activeTab === 'admin-accounts' || activeTab === 'account-settings'
+                              activeTab === 'adminUserAdminPage' || activeTab === 'adminAccountsPage' || activeTab === 'admin-accounts' || activeTab === 'account-settings'
                                 ? 'bg-white/10 text-white font-bold'
                                 : 'text-slate-300 hover:bg-white/5 hover:text-white'
                             }`}
                           >
-                            Account Settings
+                            User Administration
                           </div>
                           <div
                             onClick={() => {

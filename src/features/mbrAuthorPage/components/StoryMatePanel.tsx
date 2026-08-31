@@ -6,7 +6,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, X, FileText, CheckCircle2 } from 'lucide-react';
 import { chatApi, adminDbApi, taskApi } from '@/src/services/api';
-import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { AdminComponentTag, useShowComponentName } from '@/src/components/AdminComponentTag';
 
 interface Message {
   sender: 'cassie' | 'user';
@@ -92,6 +92,7 @@ export default function StoryMatePanel({
   chIntentId,
   onClose
 }: StoryMatePanelProps) {
+  const showComponentName = useShowComponentName();
   const [chatInput, setChatInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [transferredIndex, setTransferredIndex] = useState<number | null>(null);
@@ -160,6 +161,9 @@ export default function StoryMatePanel({
 
   // Intent, Instruction, Prompt, and Writer Persona state
   const [intentRecord, setIntentRecord] = useState<any>(null);
+  const [intentName, setIntentName] = useState<string>('');
+  const [instructionName, setInstructionName] = useState<string>('');
+  const [promptName, setPromptName] = useState<string>('');
   const [instructionText, setInstructionText] = useState<string>('');
   const [promptText, setPromptText] = useState<string>('');
   const [writerPersona, setWriterPersona] = useState<any>(null);
@@ -179,6 +183,9 @@ export default function StoryMatePanel({
       let resolvedIntent: any = null;
       let resolvedInst = '';
       let resolvedPrompt = '';
+      let resolvedIntentName = '';
+      let resolvedInstName = '';
+      let resolvedPromptName = '';
       let activeWriter: any = null;
 
       try {
@@ -202,6 +209,10 @@ export default function StoryMatePanel({
         console.warn("Could not query /chIntents, using fallback:", e);
       }
 
+      if (resolvedIntent) {
+        resolvedIntentName = resolvedIntent.chIntentName || '';
+      }
+
       // Fallback intent lookup if backend not present
       if (!resolvedIntent) {
         const fallback = FALLBACK_INTENT_MAP[componentName] || FALLBACK_INTENT_MAP.sbMbrStryFamly;
@@ -213,6 +224,7 @@ export default function StoryMatePanel({
         };
         resolvedInst = fallback.inst;
         resolvedPrompt = fallback.prompt;
+        resolvedIntentName = fallback.intentName;
       }
 
       // 2. Fetch Hierarchical Instructions using chInstId
@@ -221,9 +233,14 @@ export default function StoryMatePanel({
           const concatData = await adminDbApi.getRecord('/chInsts', `${resolvedIntent.chInstId}/concatenated`);
           if (concatData && concatData.concatenatedInstruction) {
             resolvedInst = concatData.concatenatedInstruction;
-          } else {
-            const rawInst = await adminDbApi.getRecord('/chInsts', resolvedIntent.chInstId);
-            if (rawInst) resolvedInst = rawInst.chInstContent || rawInst.chInstDesc || '';
+          }
+          if (concatData && concatData.chInstName) {
+            resolvedInstName = concatData.chInstName;
+          }
+          const rawInst = await adminDbApi.getRecord('/chInsts', resolvedIntent.chInstId);
+          if (rawInst) {
+            if (!resolvedInst) resolvedInst = rawInst.chInstContent || rawInst.chInstDesc || '';
+            if (!resolvedInstName) resolvedInstName = rawInst.chInstName || '';
           }
         } catch (e) {
           console.warn("Could not load concatenated instruction:", e);
@@ -238,6 +255,7 @@ export default function StoryMatePanel({
             const match = prompts.find((p: any) => p.chIntentId === resolvedIntent.chIntentId);
             if (match) {
               resolvedPrompt = match.chPromptContent || match.chPromptName || '';
+              resolvedPromptName = match.chPromptName || '';
             }
           }
         } catch (e) {
@@ -245,6 +263,9 @@ export default function StoryMatePanel({
         }
       }
 
+      if (!resolvedIntentName) resolvedIntentName = resolvedIntent?.chIntentName || componentName;
+      if (!resolvedInstName) resolvedInstName = `${resolvedIntentName} Instructions`;
+      if (!resolvedPromptName) resolvedPromptName = `${resolvedIntentName} Prompt`;
       if (!resolvedInst) resolvedInst = (FALLBACK_INTENT_MAP[componentName] || FALLBACK_INTENT_MAP.sbMbrStryFamly).inst;
       if (!resolvedPrompt) resolvedPrompt = (FALLBACK_INTENT_MAP[componentName] || FALLBACK_INTENT_MAP.sbMbrStryFamly).prompt;
 
@@ -306,6 +327,9 @@ export default function StoryMatePanel({
 
       if (isMounted) {
         setIntentRecord(resolvedIntent);
+        setIntentName(resolvedIntentName);
+        setInstructionName(resolvedInstName);
+        setPromptName(resolvedPromptName);
         setInstructionText(resolvedInst);
         setPromptText(resolvedPrompt);
         setWriterPersona(activeWriter);
@@ -530,6 +554,31 @@ export default function StoryMatePanel({
           <Send className="w-3.5 h-3.5" />
         </button>
       </form>
+
+      {/* Admin Metadata when SHOW_COMPONENT_NAME is TRUE */}
+      {showComponentName && (
+        <div className="pt-2 border-t border-[#EFECE7] flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] font-mono text-slate-500 pr-28 select-none">
+          <div className="flex items-center gap-1">
+            <span className="font-bold text-slate-400 uppercase text-[9px]">Intent:</span>
+            <span className="text-slate-700 font-medium bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60" title={intentName || intentRecord?.chIntentName}>
+              {intentName || intentRecord?.chIntentName || 'N/A'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-bold text-slate-400 uppercase text-[9px]">Prompt:</span>
+            <span className="text-slate-700 font-medium bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60" title={promptName}>
+              {promptName || 'N/A'}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-bold text-slate-400 uppercase text-[9px]">Instruction:</span>
+            <span className="text-slate-700 font-medium bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60" title={instructionName}>
+              {instructionName || 'N/A'}
+            </span>
+          </div>
+        </div>
+      )}
+
       <AdminComponentTag name="StoryMatePanel" />
     </div>
   );

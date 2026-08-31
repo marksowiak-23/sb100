@@ -30,15 +30,7 @@ Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | ForEach-Objec
 }
 
 function Start-DetachedProcess($filePath, $argumentList, $workDir) {
-    $cmdLine = "`"$filePath`" $argumentList"
-    try {
-        [void](Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{
-            CommandLine = $cmdLine
-            CurrentDirectory = $workDir
-        })
-    } catch {
-        Start-Process -FilePath $filePath -ArgumentList $argumentList -WorkingDirectory $workDir -WindowStyle Hidden
-    }
+    Start-Process -FilePath $filePath -ArgumentList $argumentList -WorkingDirectory $workDir -WindowStyle Hidden
 }
 
 $services = @(

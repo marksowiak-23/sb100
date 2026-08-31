@@ -20,7 +20,7 @@ import { taskApi } from '@/src/services/api';
 // Import our layouts and feature components.
 import MainLayout from '@/src/layouts/MainLayout';
 import { ConnectionSettings, AdminConnectionsPage } from '@/src/features/adminConnectionsPage';
-import { AccountLookup, AdminAccountsPage } from '@/src/features/adminAccountsPage';
+import { AccountLookup, AdminAccountsPage, AdminUserAdminPage } from '@/src/features/adminUserAdminPage';
 import { PublicPageFeature, SbPublicPageFeature } from '@/src/features/publicPage';
 import { MbrHomePageFeature, SbMbrHomePageFeature } from '@/src/features/mbrHomePage';
 import { MbrStoryPageFeature, SbMbrStoryPageFeature } from '@/src/features/mbrStoryPage';
@@ -42,6 +42,7 @@ type TabType =
   | 'adminConnectionsPage'
   | 'admin-connections'
   | 'settings'
+  | 'adminUserAdminPage'
   | 'adminAccountsPage'
   | 'admin-accounts'
   | 'account-settings'
@@ -295,17 +296,17 @@ export default function App() {
           </motion.div>
         )}
 
-        {/* If the active tab is 'adminAccountsPage', 'admin-accounts' or legacy 'account-settings', render the user database search UI */}
-        {(activeTab === 'adminAccountsPage' || activeTab === 'admin-accounts' || activeTab === 'account-settings') && (
+        {/* If the active tab is 'adminUserAdminPage', 'adminAccountsPage', 'admin-accounts' or legacy 'account-settings', render the user database search UI */}
+        {(activeTab === 'adminUserAdminPage' || activeTab === 'adminAccountsPage' || activeTab === 'admin-accounts' || activeTab === 'account-settings') && (
           <motion.div
-            key="adminAccountsPage-view"
+            key="adminUserAdminPage-view"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
             className="w-full flex justify-center"
           >
-            <AccountLookup isSandbox={isSandbox} />
+            <AccountLookup isSandbox={isSandbox} setActiveTab={setActiveTab} />
           </motion.div>
         )}
 

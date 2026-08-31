@@ -14,6 +14,8 @@ import UserCard from './UserCard';
 
 interface AccountLookupProps {
   isSandbox: boolean; // Tells us whether we query mock offline data or a live backend DB.
+  setActiveTab?: (tab: any) => void;
+  onSwitchUser?: (user: ApiUser) => void;
 }
 
 /**
@@ -21,7 +23,7 @@ interface AccountLookupProps {
  * Coordinates searching and showing lists of user accounts.
  * Manages complex async lifecycle operations (loading spinners, error banners, mock vs live API endpoints).
  */
-export default function AccountLookup({ isSandbox }: AccountLookupProps) {
+export default function AccountLookup({ isSandbox, setActiveTab, onSwitchUser }: AccountLookupProps) {
   // --- STATE FOR USER SELECTION AND LOGIC ---
   // Tracks user input in search field.
   const [searchEmail, setSearchEmail] = useState('');
@@ -232,7 +234,14 @@ export default function AccountLookup({ isSandbox }: AccountLookupProps) {
             {/* The 'key' attribute is required by React when rendering lists. */}
             {/* It helps React identify exactly which items have changed, been added, or been removed. */}
             {searchUsersResults.map((user) => (
-              <UserCard key={user.user_id} user={user} />
+              <UserCard
+                key={user.user_id}
+                user={user}
+                isSandbox={isSandbox}
+                isCurrent={currentUser?.user_id === user.user_id}
+                setActiveTab={setActiveTab}
+                onSwitchUser={onSwitchUser}
+              />
             ))}
           </div>
         )}
