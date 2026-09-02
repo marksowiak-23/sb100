@@ -76,12 +76,13 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   useEffect(() => {
     const handleUpdateContent = (e: any) => {
       const detail = e.detail || {};
-      if (detail.text) {
+      const incoming = detail.content || detail.text;
+      if (incoming) {
         setFormData((prev) => ({
           ...prev,
-          mbrIntroduction: prev.mbrIntroduction 
-            ? `${prev.mbrIntroduction}\n\n${detail.text}`
-            : detail.text
+          mbrIntroduction: detail.mode === 'append' && prev.mbrIntroduction 
+            ? `${prev.mbrIntroduction}\n\n${incoming}`.trim()
+            : incoming
         }));
       }
     };
@@ -255,8 +256,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   };
 
   // --- FORM SUBMISSION ---
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSaving(true);
     setError(null);
     setSuccess(null);
@@ -885,8 +886,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
           {/* TAB 1: MY PROFILE FORM */}
           {activeSubTab === 'profile' && (
             <div>
-              {/* --- PROFILE FORM --- */}
-              <form onSubmit={handleSubmit} className="space-y-8">
+              {/* --- PROFILE FORM CONTAINER --- */}
+              <div className="space-y-8">
                 
                 {/* PROFILE PICTURE PANEL */}
                 <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
@@ -1211,7 +1212,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                       </div>
                       <div>
                         <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white">Introduction</h3>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif">Personal narrative and biography excerpt.</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif">This Personal Introduction will be made visible to others per your Privacy settings. Provide a brief introduction about yourself.</p>
                       </div>
                     </div>
 
@@ -1230,12 +1231,11 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Introduction / Biography / Co-authored Story Context</label>
                     <textarea 
                       rows={6}
-                      placeholder="Tell your life story, co-authored chronicles or write an introductory excerpt..."
+                      placeholder="Write a brief paragraph that introduces yourself to others. Use your StoryMate to help or author it yourself."
                       value={formData.mbrIntroduction}
                       onChange={(e) => setFormData((prev) => ({ ...prev, mbrIntroduction: e.target.value }))}
                       className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-2xl px-3.5 py-3 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all resize-y leading-relaxed"
                     />
-                    <p className="text-[10px] text-slate-400 font-serif mt-1">This text appears as the primary long-form introduction for your profile portfolio.</p>
                   </div>
 
                   {showStoryMate && (
@@ -1262,7 +1262,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                   </button>
                   
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={handleSubmit}
                     disabled={saving || !isProfileDirty}
                     className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold font-sans shadow-md transition-all cursor-pointer ${
                       isProfileDirty && !saving
@@ -1285,7 +1286,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                   </button>
                 </div>
 
-              </form>
+              </div>
             </div>
           )}
 

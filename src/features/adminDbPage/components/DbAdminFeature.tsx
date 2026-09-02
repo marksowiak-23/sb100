@@ -98,6 +98,7 @@ const TABLES: TableDefinition[] = [
       { name: 'chWriterName', label: 'Persona Name', type: 'string', required: true, placeholder: 'e.g. Everyday Eddie' },
       { name: 'chWriterDesc', label: 'Description', type: 'string', required: false, placeholder: 'e.g. Common & Informal' },
       { name: 'chWriterPrompt', label: 'System Prompt', type: 'textarea', required: true, placeholder: 'Writing mode instructions...' },
+      { name: 'chWriterProfilePic', label: 'Profile Picture URL', type: 'string', required: false, placeholder: '/avatars/... or https://...' },
       { name: 'chWriterActInd', label: 'Active Indicator', type: 'boolean', required: true }
     ]
   },
@@ -503,6 +504,59 @@ const getInitialMockData = (tableId: string): any[] => {
     case 'chPrompt':
       return [
         { chPromptId: 'd7cf92f1-f8a1-43ee-b4c8-b2a123f9ab7c', chPromptName: 'Elaborate Sensory Prompt', chPromptContent: 'Prompt focusing on sights, smells, and sounds.', chPromptActInd: true, chPromptVersion: 1, chIntentId: '98fac10e-a61f-49ff-88ec-a6cbef6542a1', chPromptCreatedAt: now, chPromptUpdatedAt: now }
+      ];
+    case 'chWriter':
+      return [
+        {
+          chWriterId: 'w1',
+          chWriterName: 'Everyday Eddie',
+          chWriterDesc: 'Common & Informal',
+          chWriterPrompt: 'Use the “Everyday Eddie” writing mode. Write in a casual, conversational style with simple language and a friendly tone. Avoid jargon. Keep explanations easy, relatable, and down to earth, like a helpful friend talking over coffee.',
+          chWriterProfilePic: '/avatars/persona_everyday_eddie.jpg',
+          chWriterActInd: true,
+          chWriterCreatedAt: now,
+          chWriterUpdatedAt: now
+        },
+        {
+          chWriterId: 'w2',
+          chWriterName: 'Clarity Consultant',
+          chWriterDesc: 'Professional',
+          chWriterPrompt: 'Use a “Clarity Consultant” writing mode. Write in a professional, structured, and polished style. Maintain a confident, neutral tone. Prioritize clarity, accuracy, and efficiency. Avoid slang and emotional language. Format content cleanly with logical transitions.',
+          chWriterProfilePic: '/avatars/persona_clarity_consultant.jpg',
+          chWriterActInd: true,
+          chWriterCreatedAt: now,
+          chWriterUpdatedAt: now
+        },
+        {
+          chWriterId: 'w3',
+          chWriterName: 'Casual Chuckles',
+          chWriterDesc: 'Common + Humor',
+          chWriterPrompt: 'Use a “Casual Chuckles” writing mode. Write in a conversational style with light humor, friendly sarcasm, and playful metaphors. Keep the message clear but add personality. Make the reader smile without distracting from the main point.',
+          chWriterProfilePic: '/avatars/persona_casual_chuckles.jpg',
+          chWriterActInd: true,
+          chWriterCreatedAt: now,
+          chWriterUpdatedAt: now
+        },
+        {
+          chWriterId: 'w4',
+          chWriterName: 'The Polished Guide',
+          chWriterDesc: 'Professional + Warm',
+          chWriterPrompt: 'Use a “Polished Guide” writing mode. Write in a professional yet approachable style. Maintain a warm, encouraging tone. Blend clarity with empathy. Offer guidance that feels supportive, respectful, and easy to follow.',
+          chWriterProfilePic: '/avatars/persona_the_polished_guide.jpg',
+          chWriterActInd: true,
+          chWriterCreatedAt: now,
+          chWriterUpdatedAt: now
+        },
+        {
+          chWriterId: 'w5',
+          chWriterName: 'The Story Crafter',
+          chWriterDesc: 'Creative & Expressive',
+          chWriterPrompt: 'Use a “Story Crafter” writing mode. Write in a narrative, descriptive, and imaginative style. Use sensory detail, metaphor, and emotional depth. Make the content feel alive, atmospheric, and engaging.',
+          chWriterProfilePic: '/avatars/persona_the_story_crafter.jpg',
+          chWriterActInd: true,
+          chWriterCreatedAt: now,
+          chWriterUpdatedAt: now
+        }
       ];
     case 'mbrStory':
       return [

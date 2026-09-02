@@ -1674,6 +1674,7 @@ export const adminDbApi = {
 export interface ChatResponse {
   response: string;
   thread_id: string;
+  tokens_used?: number;
 }
 
 const AI_API_BASE_URL = import.meta.env.VITE_API_URL_AI || 'http://localhost:8002';

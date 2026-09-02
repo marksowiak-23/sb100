@@ -106,9 +106,15 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
       setPersonas(writerList);
 
       // 2. Fetch logged-in user profile ID
-      let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
+      let currentMbrId = '299da1e4-a233-4333-ab7c-b9ca64b6b7d4'; // Mark Sowiak default
+      const storedMbr = sessionStorage.getItem('mbr');
       const userStr = sessionStorage.getItem('user');
-      if (userStr && !isSandbox) {
+      if (storedMbr) {
+        try {
+          const parsed = JSON.parse(storedMbr);
+          if (parsed.mbrId) currentMbrId = parsed.mbrId;
+        } catch {}
+      } else if (userStr && !isSandbox) {
         try {
           const u = JSON.parse(userStr);
           const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
@@ -172,8 +178,9 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     setSuccess(null);
 
     try {
+      const targetMbrId = mbrId || '299da1e4-a233-4333-ab7c-b9ca64b6b7d4';
       const payload = {
-        mbrId: mbrId,
+        mbrId: targetMbrId,
         chWriterId: selectedWriterId || null,
         mbrPrefTheme: selectedTheme,
         mbrPrefNotificationsInd: notificationsInd,
@@ -192,8 +199,9 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         setMbrPrefId(updatedPref.mbrPrefId);
       } else {
         const res = await taskApi.saveMemberPreferences(mbrPrefId, payload);
-        if (res.mbrPrefId) {
+        if (res && res.mbrPrefId) {
           setMbrPrefId(res.mbrPrefId);
+          sessionStorage.setItem('mbrPreferences', JSON.stringify(res));
         }
       }
 

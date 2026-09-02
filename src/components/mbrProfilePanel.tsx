@@ -42,6 +42,7 @@ export default function MbrProfilePanel({
     if (propProfile?.mbrSettings) return propProfile.mbrSettings;
     return null;
   });
+  const [settingsLoaded, setSettingsLoaded] = useState<boolean>(Boolean(propProfile?.mbrSettings));
   const [galleryItems, setGalleryItems] = useState<MbrMedia[]>([]);
   const [mbrStat, setMbrStat] = useState<MbrStat | null>(null);
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
@@ -97,6 +98,8 @@ export default function MbrProfilePanel({
         fetchGallery(propProfile.mbrId);
         fetchStats(propProfile.mbrId);
         fetchSettings(propProfile.mbrId);
+      } else {
+        setSettingsLoaded(true);
       }
       setLoading(false);
     } else if (memberId) {
@@ -107,25 +110,35 @@ export default function MbrProfilePanel({
   }, [isSandbox, propProfile, memberId]);
 
   const fetchSettings = async (targetMbrId: string) => {
-    if (!targetMbrId) return;
+    if (!targetMbrId) {
+      setSettingsLoaded(true);
+      return;
+    }
     const realMbrId = targetMbrId === 'm1' ? 'e20986fa-0fb9-4081-ae5d-35bc8f504df0' : targetMbrId;
     if (isSandbox || targetMbrId.startsWith('sandbox-')) {
       const saved = sessionStorage.getItem(`sandbox_settings_${realMbrId}`);
       if (saved) {
         try {
           setSettings(JSON.parse(saved));
+          setSettingsLoaded(true);
           return;
         } catch {}
       }
+      setSettings(null);
+      setSettingsLoaded(true);
       return;
     }
     try {
       const s = await mbrSettingsApi.getMemberSettings(realMbrId);
       if (s) {
         setSettings(s);
+      } else {
+        setSettings(null);
       }
     } catch {
-      // If no settings found, defaults to show all
+      setSettings(null);
+    } finally {
+      setSettingsLoaded(true);
     }
   };
 
@@ -472,6 +485,17 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
   const isConnected = propIsConnected ?? profile?.isConnected ?? false;
   const connectionGrpName = propConnectionGrpName ?? profile?.connectionGrpName ?? profile?.grpName ?? '';
   const isSelf = Boolean(resolvedViewerId && profile?.mbrId && resolvedViewerId === profile.mbrId);
+
+  // If viewing someone else's profile (not self) and mbrSettingsAllowPublicFlag is false or settings record does not exist
+  if (!isSelf && propProfile?.mbrSettingsAllowPublicFlag === false) {
+    return null;
+  }
+  if (!isSelf && propProfile?.mbrSettings && propProfile.mbrSettings.mbrSettingsAllowPublicFlag === false) {
+    return null;
+  }
+  if (!isSelf && settingsLoaded && (!settings || settings.mbrSettingsAllowPublicFlag === false)) {
+    return null;
+  }
 
   // Settings visibility flags (if setting is FALSE, do not display label & value)
   const showBirthYr = settings ? settings.mbrSettingsShowBirthYr !== false : true;

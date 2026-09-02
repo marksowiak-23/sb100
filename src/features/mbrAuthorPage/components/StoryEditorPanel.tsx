@@ -421,7 +421,7 @@ export default function StoryEditorPanel({
           setSuccessMsg('Published draft changes to original story, and removed draft copy!');
         } else {
           const savedResult = await taskApi.updateStory(originalId, updatedOriginalStory);
-          if (activeStoryId && !activeStoryId.startsWith('temp_')) {
+          if (activeStoryId && activeStoryId !== originalId && !activeStoryId.startsWith('temp_')) {
             try {
               await taskApi.deleteStory(activeStoryId);
             } catch (delErr) {
@@ -607,7 +607,7 @@ export default function StoryEditorPanel({
           setSuccessMsg('Published draft changes to original story, and removed draft copy!');
         } else {
           const savedResult = await taskApi.updateStory(originalId, updatedOriginalStory);
-          if (activeStoryId && !activeStoryId.startsWith('temp_')) {
+          if (activeStoryId && activeStoryId !== originalId && !activeStoryId.startsWith('temp_')) {
             try {
               await taskApi.deleteStory(activeStoryId);
             } catch (delErr) {

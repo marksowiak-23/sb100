@@ -31,7 +31,12 @@ export default function SbMemberSearchResults({
   userLocation,
   searchQuery
 }: SbMemberSearchResultsProps) {
-  const uniqueMembers = Array.from(new Map(members.map(m => [m.mbrId || m.id, m])).values());
+  const uniqueMembers = Array.from(new Map(members.map(m => [m.mbrId || m.id, m])).values())
+    .filter(m => {
+      if (m.mbrSettings) return m.mbrSettings.mbrSettingsAllowPublicFlag === true;
+      if (m.mbrSettingsAllowPublicFlag !== undefined) return m.mbrSettingsAllowPublicFlag === true;
+      return true;
+    });
 
   return (
     <div className="space-y-5 relative">

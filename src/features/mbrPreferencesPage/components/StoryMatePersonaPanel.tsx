@@ -50,17 +50,30 @@ export default function StoryMatePersonaPanel({
                   : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-xs'
               }`}
             >
-              {/* Header line: Name + Desc Badge */}
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h4 className="font-serif text-sm font-bold text-slate-900 dark:text-white">{persona.chWriterName}</h4>
-                  <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 rounded-full">
-                    {persona.chWriterDesc}
-                  </span>
+              {/* Header line: Avatar + Name + Desc Badge */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {persona.chWriterProfilePic ? (
+                    <img
+                      src={persona.chWriterProfilePic}
+                      alt={persona.chWriterName}
+                      className="w-12 h-12 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-xs"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-serif font-bold text-sm shrink-0 border border-slate-200 dark:border-slate-700">
+                      {persona.chWriterName.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-serif text-sm font-bold text-slate-900 dark:text-white">{persona.chWriterName}</h4>
+                    <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 rounded-full">
+                      {persona.chWriterDesc}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Selection Check Circle */}
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors shrink-0 ${
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-colors shrink-0 mt-1 ${
                   isSelected ? 'bg-blue-600 text-white' : 'border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800'
                 }`}>
                   {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
