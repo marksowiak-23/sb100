@@ -30,7 +30,16 @@ Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | ForEach-Objec
 }
 
 function Start-DetachedProcess($filePath, $argumentList, $workDir) {
-    Start-Process -FilePath $filePath -ArgumentList $argumentList -WorkingDirectory $workDir -WindowStyle Hidden
+    $fullCmd = "`"$filePath`" $argumentList"
+    try {
+        $wmi = [wmiclass]"Win32_Process"
+        $result = $wmi.Create($fullCmd, $workDir, $null)
+        if ($result.ReturnValue -eq 0) {
+            return $result.ProcessId
+        }
+    } catch {}
+    $p = Start-Process -FilePath $filePath -ArgumentList $argumentList -WorkingDirectory $workDir -WindowStyle Hidden -PassThru
+    return $p.Id
 }
 
 $services = @(
@@ -73,7 +82,7 @@ $idx = 1
 foreach ($svc in $services) {
     if (-not $activePorts.ContainsKey($svc.Port)) {
         Write-Host "[$idx/4] Starting $($svc.Name) (Port $($svc.Port))..." -ForegroundColor Yellow
-        Start-DetachedProcess $svc.Exec $svc.Args $svc.Dir
+        $null = Start-DetachedProcess $svc.Exec $svc.Args $svc.Dir
     } else {
         Write-Host "[$idx/4] $($svc.Name) already running on port $($svc.Port)." -ForegroundColor Green
     }

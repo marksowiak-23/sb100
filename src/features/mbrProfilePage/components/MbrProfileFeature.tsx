@@ -16,7 +16,8 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryMatePanel from '@/src/features/mbrAuthorPage/components/StoryMatePanel';
 import ImageCropModal from './ImageCropModal';
 import MbrProfileDisplaySettingsPanel from './MbrProfileDisplaySettingsPanel';
-import BrandHeaderPanel from '@/src/components/brandHeaderPanel';
+import ProfilePageHeaderPanel from './ProfilePageHeaderPanel';
+
 
 interface MbrProfileFeatureProps {
   isSandbox: boolean;
@@ -692,9 +693,10 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         
         {/* LEFT COLUMN: BRAND HEADER & NAVIGATION MENU */}
         <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
-          <BrandHeaderPanel />
+          <ProfilePageHeaderPanel />
 
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+
             {/* Menu Header */}
             <div className="pb-4 mb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <h2 className="text-sm font-bold font-serif text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">

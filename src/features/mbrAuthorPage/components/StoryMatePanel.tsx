@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, X, HelpCircle, Check, Users } from 'lucide-react';
-import { chatApi, adminDbApi, taskApi, resolveMediaUrl } from '@/src/services/api';
+import { chatApi, adminDbApi, taskApi, resolveMediaUrl, mbrAiUsageLogApi } from '@/src/services/api';
 import { AdminComponentTag, useShowComponentName } from '@/src/components/AdminComponentTag';
+
 
 interface Message {
   sender: 'cassie' | 'user';
@@ -109,6 +110,60 @@ export default function StoryMatePanel({
   const [totalTokensUsed, setTotalTokensUsed] = useState<number>(0);
   const [isWritingStory, setIsWritingStory] = useState<boolean>(false);
   const [appliedSuccess, setAppliedSuccess] = useState<boolean>(false);
+  const [resolvedMbrId, setResolvedMbrId] = useState<string>('e20986fa-0fb9-4081-ae5d-35bc8f504df0');
+  const [resolvedUserId, setResolvedUserId] = useState<string | null>(null);
+
+  // Initialize and get logged-in session ID
+  const getSessionId = () => {
+    let sid = sessionStorage.getItem('sb_session_id');
+    if (!sid) {
+      sid = 'sess_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
+      sessionStorage.setItem('sb_session_id', sid);
+    }
+    return sid;
+  };
+
+  // Helper to record live AI telemetry to mbrAiUsageLog
+  const recordAiTelemetry = async (
+    promptChars: number,
+    outputChars: number,
+    tokensUsed: number,
+    latencyMs: number,
+    isSuccess: boolean,
+    statusCode = 200,
+    errorMessage: string | null = null
+  ) => {
+    try {
+      const estPromptTokens = Math.max(1, Math.ceil(promptChars / 4));
+      const estCompletionTokens = Math.max(1, Math.ceil(outputChars / 4));
+      const totalTokens = tokensUsed || (estPromptTokens + estCompletionTokens);
+      // Pricing estimate for Gemini 2.5 Flash ($0.075/1M input, $0.30/1M output)
+      const estCost = (estPromptTokens * 0.000000075) + (estCompletionTokens * 0.00000030);
+
+      const sid = getSessionId();
+      await mbrAiUsageLogApi.recordUsage({
+        mbrId: resolvedMbrId,
+        userId: resolvedUserId,
+        sessionId: sid,
+        promptTokens: estPromptTokens,
+        completionTokens: estCompletionTokens,
+        totalTokens,
+        estimatedCostUsd: Number(estCost.toFixed(6)),
+        latencyMs,
+        modelName: 'gemini-2.5-flash',
+        statusCode,
+        isSuccess,
+        errorMessage,
+        metadataJson: {
+          componentName,
+          personaName: writerPersona?.chWriterName || 'StoryMate',
+          intentName: intentName || intentRecord?.chIntentName
+        }
+      });
+    } catch (err) {
+      console.warn("Could not record AI usage telemetry:", err);
+    }
+  };
 
   // Resolve logged in member profile first name and profile pic
   useEffect(() => {
@@ -121,12 +176,14 @@ export default function StoryMatePanel({
             const mbr = JSON.parse(storedMbr);
             if (mbr.mbrFirstName && isMounted) setDisplayFirstName(mbr.mbrFirstName);
             if (mbr.mbrProfilePic && isMounted) setMemberProfilePic(resolveMediaUrl(mbr.mbrProfilePic));
+            if (mbr.mbrId && isMounted) setResolvedMbrId(mbr.mbrId);
           } catch {}
         }
 
         const userStr = sessionStorage.getItem('user');
         if (userStr) {
           const u = JSON.parse(userStr);
+          if (u.user_id && isMounted) setResolvedUserId(u.user_id);
           // 1. Check sandbox_mbr in sessionStorage
           const savedMbr = sessionStorage.getItem('sandbox_mbr');
           if (savedMbr) {
@@ -136,6 +193,9 @@ export default function StoryMatePanel({
             }
             if (mbr.mbrProfilePic && isMounted) {
               setMemberProfilePic(resolveMediaUrl(mbr.mbrProfilePic));
+            }
+            if (mbr.mbrId && isMounted) {
+              setResolvedMbrId(mbr.mbrId);
             }
             if (mbr.mbrFirstName) return;
           }
@@ -151,6 +211,7 @@ export default function StoryMatePanel({
               if (mbr && isMounted) {
                 if (mbr.mbrFirstName) setDisplayFirstName(mbr.mbrFirstName);
                 if (mbr.mbrProfilePic) setMemberProfilePic(resolveMediaUrl(mbr.mbrProfilePic));
+                if (mbr.mbrId) setResolvedMbrId(mbr.mbrId);
                 return;
               }
             } catch (e) {
@@ -178,6 +239,7 @@ export default function StoryMatePanel({
     resolveLoggedInMemberFirstName();
     return () => { isMounted = false; };
   }, [memberName]);
+
 
   // Thread ID state (preserves saved thread ID for repeat visits)
   const [threadId] = useState<string>(() => {
@@ -467,6 +529,7 @@ export default function StoryMatePanel({
     if (!hasEnoughContent || isWritingStory || loading) return;
     setIsWritingStory(true);
     setAppliedSuccess(false);
+    const startTime = performance.now();
 
     // Compile conversation notes for AI synthesis
     const conversationSummary = messages
@@ -503,6 +566,17 @@ ${conversationSummary}`;
       const addedTokens = result.tokens_used || Math.ceil((writePrompt.length + generatedStory.length) / 4);
       setTotalTokensUsed((prev) => prev + addedTokens);
 
+      // Record AI telemetry in background
+      recordAiTelemetry(
+        writePrompt.length,
+        generatedStory.length,
+        addedTokens,
+        Math.round(performance.now() - startTime),
+        true,
+        200,
+        null
+      );
+
       // 1. Dispatch standard application event for story fields (StoryEditorPanel, MbrProfileFeature, etc.)
       window.dispatchEvent(new CustomEvent('update-story-editor-content', {
         detail: {
@@ -532,6 +606,17 @@ ${conversationSummary}`;
       setTimeout(() => setAppliedSuccess(false), 4000);
     } catch (err) {
       console.warn("AI API offline, using intelligent story synthesis:", err);
+
+      // Record AI telemetry with error
+      recordAiTelemetry(
+        writePrompt.length,
+        150,
+        Math.ceil((writePrompt.length + 150) / 4),
+        Math.round(performance.now() - startTime),
+        false,
+        500,
+        String(err)
+      );
 
       // Simulation fallback
       setTimeout(() => {
@@ -590,14 +675,16 @@ ${conversationSummary}`;
     setMessages((prev) => [...prev, { sender: 'user', text: userText }]);
     setChatInput('');
     setLoading(true);
+    const startTime = performance.now();
 
     const isWriteRequest = userText.toLowerCase().includes('write') || userText.toLowerCase().includes('draft') || userText.toLowerCase().includes('generate story') || userText.toLowerCase().includes('revise');
     const personaInstruction = writerPersona?.chWriterPrompt ? ` [Writing Persona Style: ${writerPersona.chWriterPrompt}]` : '';
     const currentContentInstruction = storyContent?.trim() ? ` [Current Content: "${storyContent.trim()}"]` : '';
+    const fullPrompt = `[Instruction: ${instructionText}] [Prompt: ${promptText}]${personaInstruction}${currentContentInstruction} ${userText}`;
 
     try {
       const result = await chatApi.sendMessage(
-        `[Instruction: ${instructionText}] [Prompt: ${promptText}]${personaInstruction}${currentContentInstruction} ${userText}`,
+        fullPrompt,
         threadId,
         displayFirstName
       );
@@ -605,6 +692,17 @@ ${conversationSummary}`;
       const aiReply = result.response;
       const addedTokens = result.tokens_used || Math.ceil(((instructionText?.length || 0) + (promptText?.length || 0) + userText.length + aiReply.length) / 4);
       setTotalTokensUsed((prev) => prev + addedTokens);
+
+      // Record AI telemetry in background
+      recordAiTelemetry(
+        fullPrompt.length,
+        aiReply.length,
+        addedTokens,
+        Math.round(performance.now() - startTime),
+        true,
+        200,
+        null
+      );
 
       setMessages((prev) => [
         ...prev,
@@ -616,6 +714,17 @@ ${conversationSummary}`;
       ]);
     } catch (error) {
       console.warn("AI API offline, using intelligent simulation:", error);
+
+      // Record AI telemetry with error
+      recordAiTelemetry(
+        fullPrompt.length,
+        120,
+        Math.ceil((fullPrompt.length + 120) / 4),
+        Math.round(performance.now() - startTime),
+        false,
+        500,
+        String(error)
+      );
 
       setTimeout(() => {
         let aiReply = '';
@@ -653,6 +762,7 @@ ${conversationSummary}`;
     }
     setLoading(false);
   };
+
 
   return (
     <div id="story-mate-panel" className="bg-[#FAF9F6] dark:bg-slate-900 border border-[#E5E7EB] dark:border-slate-800 rounded-3xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.02)] flex flex-col gap-3.5 relative overflow-hidden">

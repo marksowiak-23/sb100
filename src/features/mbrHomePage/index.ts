@@ -5,3 +5,5 @@
 
 export { default as MbrHomePageFeature } from './components/SbMbrHomePageFeature';
 export { default as SbMbrHomePageFeature } from './components/SbMbrHomePageFeature';
+export { default as HomePageHeaderPanel } from './components/HomePageHeaderPanel';
+

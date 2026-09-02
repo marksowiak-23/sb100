@@ -5,4 +5,6 @@
 
 export { default as MbrPreferencesFeature } from './components/MbrPreferencesFeature';
 export { default as MbrPreferencesPageFeature } from './components/MbrPreferencesFeature';
+export { default as PreferencesPageHeaderPanel } from './components/PreferencesPageHeaderPanel';
 export * from './types';
+

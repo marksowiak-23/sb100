@@ -210,7 +210,33 @@ export interface MbrStoryStat {
   mbrStoryStatUpdatedAt?: string;
 }
 
+export interface MbrAiUsageLog {
+  mbrAiUsageLogId: string;
+  mbrId: string;
+  userId?: string | null;
+  sessionId: string;
+  sessionDate: string;
+  requestCount: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  estimatedCostUsd: number;
+  totalLatencyMs: number;
+  successCount: number;
+  errorCount: number;
+  lastLatencyMs?: number | null;
+  lastModelName?: string | null;
+  lastStatusCode?: number | null;
+  lastErrorMessage?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  metadataJson?: any;
+  createdAt: string;
+  lastUsedAt: string;
+}
+
 export interface MbrSettings {
+
   mbrSettingsId: string;
   mbrId: string;
   mbrSettingsAllowPublicFlag: boolean;
@@ -2062,6 +2088,74 @@ export const mbrSettingsApi = {
     return handleResponse<{ message: string }>(response);
   }
 };
+
+export const mbrAiUsageLogApi = {
+  /**
+   * Record AI usage and atomically increment running totals for a session.
+   */
+  async recordUsage(payload: {
+    mbrId: string;
+    userId?: string | null;
+    sessionId: string;
+    sessionDate?: string;
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+    estimatedCostUsd: number;
+    latencyMs: number;
+    modelName?: string;
+    statusCode?: number;
+    isSuccess?: boolean;
+    errorMessage?: string | null;
+    ipAddress?: string | null;
+    userAgent?: string | null;
+    metadataJson?: any;
+  }): Promise<MbrAiUsageLog> {
+    const response = await fetch(`${API_BASE_URL}/mbrAiUsageLogs/record-usage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<MbrAiUsageLog>(response);
+  },
+
+  /**
+   * Fetch list of AI usage logs.
+   */
+  async getUsageLogs(params?: { mbrId?: string; userId?: string; sessionId?: string; skip?: number; limit?: number }): Promise<MbrAiUsageLog[]> {
+    const query = new URLSearchParams();
+    if (params?.mbrId) query.set('mbrId', params.mbrId);
+    if (params?.userId) query.set('userId', params.userId);
+    if (params?.sessionId) query.set('sessionId', params.sessionId);
+    if (params?.skip !== undefined) query.set('skip', params.skip.toString());
+    if (params?.limit !== undefined) query.set('limit', params.limit.toString());
+    
+    const response = await fetch(`${API_BASE_URL}/mbrAiUsageLogs?${query.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrAiUsageLog[]>(response);
+  },
+
+  /**
+   * Fetch single AI usage log by session ID.
+   */
+  async getUsageLogBySession(sessionId: string): Promise<MbrAiUsageLog> {
+    const response = await fetch(`${API_BASE_URL}/mbrAiUsageLogs/session/${encodeURIComponent(sessionId)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrAiUsageLog>(response);
+  }
+};
+
 
 
 

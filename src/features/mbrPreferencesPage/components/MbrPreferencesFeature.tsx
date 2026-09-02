@@ -7,7 +7,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import BrandHeaderPanel from '@/src/components/brandHeaderPanel';
+import PreferencesPageHeaderPanel from './PreferencesPageHeaderPanel';
+
 import { 
   MbrPreferencesFeatureProps, 
   PreferencesSubTab, 
@@ -263,8 +264,9 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
             
             {/* LEFT COLUMN: BRAND HEADER & NAVIGATION MENU */}
             <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
-              <BrandHeaderPanel />
+              <PreferencesPageHeaderPanel />
               <PreferencesNavigationMenu
+
                 activeSubTab={activeSubTab}
                 onSelectTab={setActiveSubTab}
                 isStoryMateDirty={isStoryMateDirty}

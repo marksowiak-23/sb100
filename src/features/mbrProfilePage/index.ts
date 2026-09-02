@@ -5,3 +5,5 @@
 
 export { default as MbrProfileFeature } from './components/MbrProfileFeature';
 export { default as MbrProfilePageFeature } from './components/MbrProfileFeature';
+export { default as ProfilePageHeaderPanel } from './components/ProfilePageHeaderPanel';
+

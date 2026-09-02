@@ -5,3 +5,5 @@
 
 export { default as MbrAuthorPageFeature } from './components/SbMbrAuthorPageFeature';
 export { default as SbMbrAuthorPageFeature } from './components/SbMbrAuthorPageFeature';
+export { default as AuthorPageHeaderPanel } from './components/AuthorPageHeaderPanel';
+

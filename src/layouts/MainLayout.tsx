@@ -43,8 +43,11 @@ type TabType =
   | 'sbMbrRegister'
   | 'adminDbPage'
   | 'admin-db'
+  | 'adminUserAIUsagePage'
+  | 'admin-user-ai-usage'
   | 'adminCachePage'
   | 'adminCacheManagement'
+
   | 'adminMediaPage'
   | 'adminMedia'
   | 'adminProperties'
@@ -649,6 +652,19 @@ export default function MainLayout({
                           </div>
                           <div
                             onClick={() => {
+                              setActiveTab('adminUserAIUsagePage');
+                              setDropdownOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                              activeTab === 'adminUserAIUsagePage' || activeTab === 'admin-user-ai-usage'
+                                ? 'bg-white/10 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            User AI Usage
+                          </div>
+                          <div
+                            onClick={() => {
                               setActiveTab('adminConnectionsPage');
                               setDropdownOpen(false);
                             }}
@@ -660,6 +676,7 @@ export default function MainLayout({
                           >
                             Connection Settings
                           </div>
+
                           <div
                             onClick={() => {
                               setActiveTab('adminDbPage');

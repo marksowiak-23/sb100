@@ -418,6 +418,33 @@ const TABLES: TableDefinition[] = [
 
 
   {
+    id: 'mbrAiUsageLog',
+    name: 'mbrAiUsageLog',
+    endpoint: '/mbrAiUsageLogs',
+    primaryKey: 'mbrAiUsageLogId',
+    searchField: 'sessionId',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'userId', label: 'User ID (UUID)', type: 'uuid', required: false },
+      { name: 'sessionId', label: 'Session ID', type: 'string', required: true, placeholder: 'e.g. sess_abc123' },
+      { name: 'sessionDate', label: 'Session Date', type: 'date', required: true },
+      { name: 'requestCount', label: 'Request Count', type: 'number', required: true, placeholder: '1' },
+      { name: 'promptTokens', label: 'Prompt Tokens', type: 'number', required: true, placeholder: '0' },
+      { name: 'completionTokens', label: 'Completion Tokens', type: 'number', required: true, placeholder: '0' },
+      { name: 'totalTokens', label: 'Total Tokens', type: 'number', required: true, placeholder: '0' },
+      { name: 'estimatedCostUsd', label: 'Estimated Cost ($)', type: 'number', required: true, placeholder: '0.000000' },
+      { name: 'totalLatencyMs', label: 'Total Latency (ms)', type: 'number', required: true, placeholder: '0' },
+      { name: 'successCount', label: 'Success Count', type: 'number', required: true, placeholder: '1' },
+      { name: 'errorCount', label: 'Error Count', type: 'number', required: true, placeholder: '0' },
+      { name: 'lastLatencyMs', label: 'Last Latency (ms)', type: 'number', required: false },
+      { name: 'lastModelName', label: 'Last Model Name', type: 'string', required: false, placeholder: 'e.g. gemini-2.5-flash' },
+      { name: 'lastStatusCode', label: 'Last Status Code', type: 'number', required: false, placeholder: '200' },
+      { name: 'lastErrorMessage', label: 'Last Error Message', type: 'textarea', required: false },
+      { name: 'ipAddress', label: 'IP Address', type: 'string', required: false },
+      { name: 'userAgent', label: 'User Agent', type: 'string', required: false }
+    ]
+  },
+  {
     id: 'mbrTopicGroupPrivs',
     name: 'mbrTopicGroupPrivs',
     endpoint: '/mbr-topic-group-privs',
@@ -430,6 +457,7 @@ const TABLES: TableDefinition[] = [
       { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
     ]
   },
+
   {
     id: 'sysConfig',
     name: 'sysConfig',

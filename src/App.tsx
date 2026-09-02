@@ -35,6 +35,8 @@ import { DbAdminFeature, AdminDbPageFeature } from '@/src/features/adminDbPage';
 import { AdminCacheManagement, AdminCachePage } from '@/src/features/adminCachePage';
 import { AdminMediaManagement, AdminMediaPage } from '@/src/features/adminMediaPage';
 import { AdminPropertiesFeature, SystemPropertiesFeature } from '@/src/features/adminProperties';
+import { AdminUserAIUsageFeature } from '@/src/features/adminUserAIUsagePage';
+
 
 // Define a TypeScript type to restrict activeTab to only these string values.
 type TabType =
@@ -68,12 +70,15 @@ type TabType =
   | 'mbrConnections'
   | 'adminDbPage'
   | 'admin-db'
+  | 'adminUserAIUsagePage'
+  | 'admin-user-ai-usage'
   | 'adminCachePage'
   | 'adminCacheManagement'
   | 'adminMediaPage'
   | 'adminMedia'
   | 'adminProperties'
   | 'adminSystemProperties';
+
 
 
 
@@ -502,7 +507,21 @@ export default function App() {
             <DbAdminFeature isSandbox={isSandbox} />
           </motion.div>
         )}
+        {/* If the active tab is 'adminUserAIUsagePage' or 'admin-user-ai-usage', render the AI Token & Compute Analytics Feature */}
+        {(activeTab === 'adminUserAIUsagePage' || activeTab === 'admin-user-ai-usage') && (
+          <motion.div
+            key="adminUserAIUsagePage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <AdminUserAIUsageFeature isSandbox={isSandbox} />
+          </motion.div>
+        )}
         {/* If the active tab is 'adminCachePage' or legacy 'adminCacheManagement', render the Admin Cache Management Page */}
+
         {(activeTab === 'adminCachePage' || activeTab === 'adminCacheManagement') && (
           <motion.div
             key="adminCachePage-view"

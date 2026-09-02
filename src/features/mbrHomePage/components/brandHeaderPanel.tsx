@@ -4,20 +4,10 @@
  */
 
 import React from 'react';
-import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import HomePageHeaderPanel, { HomePageHeaderPanelProps } from './HomePageHeaderPanel';
 
-export default function BrandHeaderPanel() {
-  return (
-    <div className="space-y-1 relative">
-      <h1 className="font-serif text-3xl font-black text-slate-800 tracking-tight leading-none">
-        Storybook
-      </h1>
-      <p className="font-serif text-xs italic text-slate-500">
-        Where every life becomes literature
-      </p>
-      <AdminComponentTag name="brandHeaderPanel" />
-    </div>
-  );
+export default function BrandHeaderPanel(props: HomePageHeaderPanelProps) {
+  return <HomePageHeaderPanel {...props} />;
 }
 
-export { BrandHeaderPanel as brandHeaderPanel, BrandHeaderPanel as SbBrandHeaderCard };
+export { BrandHeaderPanel, BrandHeaderPanel as brandHeaderPanel, BrandHeaderPanel as SbBrandHeaderCard };
