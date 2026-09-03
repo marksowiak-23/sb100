@@ -8,6 +8,9 @@ import { UserLocation } from '@/src/utils/userLocation';
 interface CenterColumnProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  connectionsOnly?: boolean;
+  setConnectionsOnly?: (val: boolean) => void;
+  connectedCount?: number;
   members: any[];
   loading?: boolean;
   loadingMore?: boolean;
@@ -23,6 +26,9 @@ interface CenterColumnProps {
 export default function CenterColumn({
   searchQuery,
   setSearchQuery,
+  connectionsOnly = false,
+  setConnectionsOnly,
+  connectedCount,
   members,
   loading = false,
   loadingMore = false,
@@ -40,11 +46,15 @@ export default function CenterColumn({
       <SbMbrSearchCard
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        connectionsOnly={connectionsOnly}
+        setConnectionsOnly={setConnectionsOnly}
+        connectedCount={connectedCount}
         userLocation={userLocation}
         onRefreshLocation={onRefreshLocation}
       />
       <SbMbrSearchResults
         searchQuery={searchQuery}
+        connectionsOnly={connectionsOnly}
         members={members}
         loading={loading}
         loadingMore={loadingMore}
@@ -59,3 +69,4 @@ export default function CenterColumn({
     </div>
   );
 }
+

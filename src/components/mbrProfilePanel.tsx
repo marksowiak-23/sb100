@@ -17,8 +17,10 @@ export interface MbrProfilePanelProps {
   connectionGrpName?: string;
   viewerMbrId?: string | null;
   showConnectButton?: boolean;
+  showReadStoryButton?: boolean;
   onConnectSuccess?: () => void;
   onClickReadStory?: (memberId: string) => void;
+  defaultCollapseIntro?: boolean;
 }
 
 export type SbMbrProfilePanelProps = MbrProfilePanelProps;
@@ -33,9 +35,12 @@ export default function MbrProfilePanel({
   connectionGrpName: propConnectionGrpName,
   viewerMbrId: propViewerMbrId,
   showConnectButton = true,
+  showReadStoryButton = true,
   onConnectSuccess,
-  onClickReadStory
+  onClickReadStory,
+  defaultCollapseIntro = false
 }: MbrProfilePanelProps) {
+
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(propProfile || null);
   const [settings, setSettings] = useState<MbrSettings | null>(() => {
@@ -67,6 +72,70 @@ export default function MbrProfilePanel({
     }
   }, [propViewerMbrId]);
 
+  const [resolvedConnectionGrpName, setResolvedConnectionGrpName] = useState<string>(propConnectionGrpName || '');
+  const [resolvedIsConnected, setResolvedIsConnected] = useState<boolean>(propIsConnected ?? false);
+
+  useEffect(() => {
+    if (propConnectionGrpName !== undefined) {
+      setResolvedConnectionGrpName(propConnectionGrpName);
+    }
+  }, [propConnectionGrpName]);
+
+  useEffect(() => {
+    if (propIsConnected !== undefined) {
+      setResolvedIsConnected(propIsConnected);
+    }
+  }, [propIsConnected]);
+
+  // Direct connection lookup fallback between viewer and profile member
+  useEffect(() => {
+    const fetchDirectConnection = async () => {
+      const targetMbrId = profile?.mbrId || memberId;
+      if (!targetMbrId || !resolvedViewerId || targetMbrId === resolvedViewerId) return;
+      if (propConnectionGrpName !== undefined && propIsConnected !== undefined) return;
+
+      try {
+        // Look up viewer's connection to target member (viewer is owner)
+        let conns = await taskApi.getMemberConnections({
+          mbrId: resolvedViewerId,
+          connectedMbrId: targetMbrId
+        }).catch(() => []);
+
+        // Fallback: Check target's connection to viewer
+        if (!conns || conns.length === 0) {
+          conns = await taskApi.getMemberConnections({
+            mbrId: targetMbrId,
+            connectedMbrId: resolvedViewerId
+          }).catch(() => []);
+        }
+
+        if (conns && conns.length > 0) {
+          setResolvedIsConnected(true);
+          const conn = conns[0];
+          const connGrps = await taskApi.getMemberConnectionGrps({
+            connectionId: conn.mbrConnectionId
+          }).catch(() => []);
+
+          if (connGrps && connGrps.length > 0 && connGrps[0].grpId) {
+            const grpId = connGrps[0].grpId;
+            const [globals, customs] = await Promise.all([
+              taskApi.getGroupsGlobal().catch(() => []),
+              taskApi.getGroupsCustom(conn.mbrId).catch(() => [])
+            ]);
+            const matched = [...globals, ...customs].find(g => g.grpId === grpId);
+            if (matched?.grpName) {
+              setResolvedConnectionGrpName(matched.grpName);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch direct connection in MbrProfilePanel:", err);
+      }
+    };
+
+    fetchDirectConnection();
+  }, [profile?.mbrId, memberId, resolvedViewerId, propConnectionGrpName, propIsConnected]);
+
   // --- PHOTO DESCRIPTION EDIT STATE ---
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editDescriptionInput, setEditDescriptionInput] = useState('');
@@ -74,9 +143,14 @@ export default function MbrProfilePanel({
 
   // Session storage state for introduction accordion panel collapse persistence
   const [isIntroCollapsed, setIsIntroCollapsed] = useState<boolean>(() => {
-    const key = propProfile?.mbrId ? `author_intro_collapsed_${propProfile.mbrId}` : 'author_intro_collapsed';
-    return sessionStorage.getItem(key) === 'true';
+    const key = (propProfile?.mbrId || memberId) ? `author_intro_collapsed_${propProfile?.mbrId || memberId}` : 'author_intro_collapsed';
+    const saved = sessionStorage.getItem(key);
+    if (saved !== null) {
+      return saved === 'true';
+    }
+    return defaultCollapseIntro;
   });
+
 
   const toggleIntroAccordion = () => {
     setIsIntroCollapsed((prev) => {
@@ -482,9 +556,10 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
   const rawLastPublishedDt = mbrStat?.statLastPublishedDt ?? profile?.statLastPublishedDt ?? profile?.statStoriesPublishedDt ?? (isSandbox ? '2026-08-15T14:30:00Z' : null);
   const lastPublishedFormatted = formatPublishedDate(rawLastPublishedDt);
 
-  const isConnected = propIsConnected ?? profile?.isConnected ?? false;
-  const connectionGrpName = propConnectionGrpName ?? profile?.connectionGrpName ?? profile?.grpName ?? '';
+  const isConnected = resolvedIsConnected;
+  const connectionGrpName = resolvedConnectionGrpName;
   const isSelf = Boolean(resolvedViewerId && profile?.mbrId && resolvedViewerId === profile.mbrId);
+
 
   // If viewing someone else's profile (not self) and mbrSettingsAllowPublicFlag is false or settings record does not exist
   if (!isSelf && propProfile?.mbrSettingsAllowPublicFlag === false) {
@@ -711,29 +786,26 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
         />
       )}
 
-      {/* --- LOWER ACTION BAR (Connection Status/Action on Left, Read Story on Right) --- */}
+      {/* --- LOWER ACTION BAR (Connection Status/Actions) --- */}
       <div className="pt-3 border-t border-[#EFECE7] flex items-center justify-between gap-3">
-        {/* LOWER LEFT: Connection Icon & Group Name OR Connect Button */}
+        {/* LOWER LEFT: Connection Badge (or Connect Button / Inquiry Sent / Author Profile) */}
         <div className="flex items-center min-h-[32px]">
-          {isSelf ? null : isConnected ? (
+          {isSelf ? (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 rounded-xl text-xs font-serif font-medium">
+              <User className="w-3.5 h-3.5 text-slate-400" />
+              <span>Author Profile</span>
+            </div>
+          ) : isConnected ? (
             <div
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50/95 text-emerald-800 border border-emerald-200/90 rounded-xl text-xs font-serif shadow-2xs transition-all hover:bg-emerald-100/90"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200/90 rounded-xl text-xs font-serif shadow-2xs transition-all hover:bg-emerald-100/90 shrink-0"
               title={connectionGrpName ? `Connection Group: ${connectionGrpName}` : 'Connected Member'}
             >
               <Users className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-              <span className="font-semibold text-xs tracking-tight">
+              <span className="font-bold text-xs tracking-tight">
                 {connectionGrpName ? connectionGrpName : 'Connected'}
               </span>
             </div>
-          ) : requestSent ? (
-            <div
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 rounded-xl text-xs font-serif shadow-2xs"
-              title="Connection request sent"
-            >
-              <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span className="font-semibold text-xs tracking-tight">Inquiry Sent</span>
-            </div>
-          ) : showConnectButton ? (
+          ) : showConnectButton && !requestSent ? (
             <button
               type="button"
               onClick={(e) => {
@@ -747,35 +819,48 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
               <UserPlus className="w-3.5 h-3.5 text-blue-600 shrink-0" />
               <span>Connect</span>
             </button>
+          ) : requestSent ? (
+            <div
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 rounded-xl text-xs font-serif shadow-2xs"
+              title="Connection request sent"
+            >
+              <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="font-semibold text-xs tracking-tight">Inquiry Sent</span>
+            </div>
           ) : null}
         </div>
 
-        {/* LOWER RIGHT: Read Story Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const targetMbrId = profile?.mbrId || profile?.id || memberId || '';
-            if (onClickReadStory && targetMbrId) {
-              onClickReadStory(targetMbrId);
-            } else if (targetMbrId) {
-              window.dispatchEvent(new CustomEvent('open-member-story', { detail: { memberId: targetMbrId } }));
-            }
-          }}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-serif font-bold rounded-xl shadow-xs hover:shadow transition-all duration-150 cursor-pointer active:scale-95 group shrink-0"
-          title="Read member's public story"
-        >
-          <BookOpen className="w-3.5 h-3.5 text-blue-200 group-hover:text-white transition-colors" />
-          <span>Read Story</span>
-          <ChevronRight className="w-3 h-3 text-blue-200 group-hover:translate-x-0.5 transition-transform" />
-        </button>
+        {/* LOWER RIGHT: Read Story button */}
+        <div className="flex items-center gap-2">
+          {showReadStoryButton && !readOnly && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const targetMbrId = profile?.mbrId || profile?.id || memberId || '';
+                if (onClickReadStory && targetMbrId) {
+                  onClickReadStory(targetMbrId);
+                } else if (targetMbrId) {
+                  window.dispatchEvent(new CustomEvent('open-member-story', { detail: { memberId: targetMbrId } }));
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-serif font-bold rounded-xl shadow-xs hover:shadow transition-all duration-150 cursor-pointer active:scale-95 group shrink-0"
+              title="Read member's public story"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-blue-200 group-hover:text-white transition-colors" />
+              <span>Read Story</span>
+              <ChevronRight className="w-3 h-3 text-blue-200 group-hover:translate-x-0.5 transition-transform" />
+            </button>
+          )}
+        </div>
       </div>
 
       <AdminComponentTag name="mbrProfilePanel" />
     </div>
   );
 }
+
 
 export { MbrProfilePanel, MbrProfilePanel as mbrProfilePanel, MbrProfilePanel as SbMbrProfilePanel };
 

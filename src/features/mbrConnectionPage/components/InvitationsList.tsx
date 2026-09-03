@@ -13,15 +13,18 @@ interface InvitationsListProps {
   loading: boolean;
   invitationList: MemberInvitationItem[];
   groups: UnifiedGroupOption[];
-  onSelectDecision: (contactId: string, decision: InvitationDecision) => void;
+  onSelectDecision: (contactId: string, decision: InvitationDecision, selectedGrpId?: string) => void;
+  onOpenAcceptModal?: (item: MemberInvitationItem) => void;
 }
 
 export default function InvitationsList({
   loading,
   invitationList,
   groups,
-  onSelectDecision
+  onSelectDecision,
+  onOpenAcceptModal
 }: InvitationsListProps) {
+
   if (loading) {
     return (
       <div className="relative py-16 flex flex-col items-center justify-center gap-3 text-slate-400">
@@ -58,8 +61,10 @@ export default function InvitationsList({
           item={item}
           groups={groups}
           onSelectDecision={onSelectDecision}
+          onOpenAcceptModal={onOpenAcceptModal}
         />
       ))}
+
     </div>
   );
 }

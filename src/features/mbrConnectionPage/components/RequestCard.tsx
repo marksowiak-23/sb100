@@ -20,10 +20,12 @@ import { MemberRequestItem, RequestDecision, UnifiedGroupOption } from '../types
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface RequestCardProps {
+  key?: React.Key;
   item: MemberRequestItem;
   groups: UnifiedGroupOption[];
   onToggleWithdrawal: (contactId: string) => void;
 }
+
 
 export default function RequestCard({
   item,
@@ -50,7 +52,8 @@ export default function RequestCard({
 
   const reasonLabel = contact.mbrContactReasonCd
     ? contact.mbrContactReasonCd.charAt(0) + contact.mbrContactReasonCd.slice(1).toLowerCase()
-    : 'General Inquiry';
+    : '';
+  const showReasonBadge = Boolean(reasonLabel && reasonLabel.toLowerCase() !== 'other');
 
   const assignedGroup = contact.grpId
     ? groups.find(g => g.grpId === contact.grpId)
@@ -106,10 +109,12 @@ export default function RequestCard({
 
         {/* Reason, Date & Status Badges */}
         <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-1.5 shrink-0">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 shadow-2xs">
-            <Tag className="w-3 h-3 text-amber-500" />
-            <span>{reasonLabel}</span>
-          </span>
+          {showReasonBadge && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 shadow-2xs">
+              <Tag className="w-3 h-3 text-amber-500" />
+              <span>{reasonLabel}</span>
+            </span>
+          )}
 
           <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 font-sans">
             <Clock className="w-3 h-3" />
@@ -117,6 +122,7 @@ export default function RequestCard({
           </span>
         </div>
       </div>
+
 
       {/* Your Message Sent */}
       {contact.mbrContactMsg && (

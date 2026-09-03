@@ -136,13 +136,13 @@ export default function SbMyConnectionsCard({ onClickMember }: SbMyConnectionsCa
         let memberProfile = memberMap.get(targetMbrId);
         if (!memberProfile) {
           try {
-            memberProfile = await taskApi.getMember(targetMbrId);
+            memberProfile = await taskApi.getMemberById(targetMbrId);
           } catch {}
         }
 
         if (memberProfile) {
           const fullName = `${memberProfile.mbrFirstName || ''} ${memberProfile.mbrLastName || ''}`.trim() || 'StoryBook Member';
-          const loc = memberProfile.mbrLivesCityState || memberProfile.mbrBornCityState || '';
+          const loc = memberProfile.mbrLivesCityState || memberProfile.mbrFromCityState || '';
           const grpName = grpNameByConnId.get(conn.mbrConnectionId) || 'Connected';
           const avatar = memberProfile.mbrProfilePic ? resolveMediaUrl(memberProfile.mbrProfilePic) : undefined;
 

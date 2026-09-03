@@ -40,7 +40,6 @@ export default function SbMbrStoryPageFeature({
 }: SbMbrStoryPageFeatureProps) {
   const [activeSection, setActiveSection] = useState('Family');
   const [liveMember, setLiveMember] = useState<MemberStory | null>(null);
-  const [lockedTopicIds, setLockedTopicIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!memberId) return;
@@ -52,7 +51,9 @@ export default function SbMbrStoryPageFeature({
     taskApi.getMemberById(memberId).then((mbr) => {
       if (mbr) {
         setLiveMember({
+          ...mbr,
           id: mbr.mbrId,
+          mbrId: mbr.mbrId,
           name: `${mbr.mbrFirstName || ''} ${mbr.mbrLastName || ''}`.trim() || 'Member',
           location: mbr.mbrLivesCityState || mbr.mbrFromCityState || 'Storybook Member',
           tags: ['Memoirs', 'Family', 'Heritage'],
@@ -64,6 +65,7 @@ export default function SbMbrStoryPageFeature({
         });
       }
     }).catch((err) => {
+
       console.warn("Failed to load member for story page:", err);
     });
   }, [memberId]);
@@ -71,36 +73,44 @@ export default function SbMbrStoryPageFeature({
   // Look up current member
   const member = liveMember || MEMBER_STORIES.find((m) => m.id === memberId) || MEMBER_STORIES[0];
 
-  // Resolve permissions based on viewer's group assignment from story author
+  const [lockedTopicIds, setLockedTopicIds] = useState<string[]>([]);
+  const [connectionGrpName, setConnectionGrpName] = useState<string>('');
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [viewerMbrId, setViewerMbrId] = useState<string | null>(null);
+
+  // Fetch live member profile from database & evaluate topic permissions
   useEffect(() => {
-    const resolvePermissions = async () => {
+    const resolveMemberAndPrivileges = async () => {
       try {
         // 1. Determine logged-in member ID
-        let viewerMbrId: string | null = null;
+        let resolvedViewerId: string | null = null;
         const storedMbr = sessionStorage.getItem('sb_current_mbr');
         if (storedMbr) {
           try {
             const parsed = JSON.parse(storedMbr);
-            if (parsed.mbrId) viewerMbrId = parsed.mbrId;
+            if (parsed.mbrId) resolvedViewerId = parsed.mbrId;
           } catch {}
         }
-        if (!viewerMbrId) {
+        if (!resolvedViewerId) {
           const userStr = sessionStorage.getItem('user');
           if (userStr) {
             try {
               const u = JSON.parse(userStr);
               const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-              if (mbrProfile && mbrProfile.mbrId) viewerMbrId = mbrProfile.mbrId;
+              if (mbrProfile && mbrProfile.mbrId) resolvedViewerId = mbrProfile.mbrId;
             } catch {}
           }
         }
+        setViewerMbrId(resolvedViewerId);
 
         // Author member ID (the member whose story is being viewed)
         const storyAuthorMbrId = member.id === 'm1' ? 'e20986fa-0fb9-4081-ae5d-35bc8f504df0' : (member.id || memberId);
 
         // If viewer is the author themselves, all topics are unlocked
-        if (viewerMbrId && storyAuthorMbrId && viewerMbrId === storyAuthorMbrId) {
+        if (resolvedViewerId && storyAuthorMbrId && resolvedViewerId === storyAuthorMbrId) {
           setLockedTopicIds([]);
+          setIsConnected(false);
+          setConnectionGrpName('');
           return;
         }
 
@@ -126,28 +136,81 @@ export default function SbMbrStoryPageFeature({
           ];
         }
 
-        // 3. Find viewer's assigned group by looking up member connection:
-        // mbrId = storyAuthorMbrId, mbrConnectionMbrId = viewerMbrId
+        // 3. Find viewer's connection to story author:
+        let isUserConnected = false;
+        let userConnectionGrpName = '';
         let assignedGrpId: string | null = null;
-        if (viewerMbrId && storyAuthorMbrId) {
+
+        if (resolvedViewerId && storyAuthorMbrId) {
           try {
-            const connections = await taskApi.getMemberConnections({
+            // Check logged-in member's connection to story author (viewer is owner)
+            let viewerConns = await taskApi.getMemberConnections({
+              mbrId: resolvedViewerId,
+              connectedMbrId: storyAuthorMbrId
+            }).catch(() => []);
+
+            // Check story author's connection to viewer (author is owner, defines author's group for viewer for privacy checks)
+            let authorConns = await taskApi.getMemberConnections({
               mbrId: storyAuthorMbrId,
-              connectedMbrId: viewerMbrId
-            });
-            if (connections && connections.length > 0) {
-              const conn = connections[0];
-              const connGrps = await taskApi.getMemberConnectionGrps({
-                connectionId: conn.mbrConnectionId
-              });
-              if (connGrps && connGrps.length > 0) {
-                assignedGrpId = connGrps[0].grpId;
+              connectedMbrId: resolvedViewerId
+            }).catch(() => []);
+
+            if (viewerConns.length > 0 || authorConns.length > 0) {
+              isUserConnected = true;
+            }
+
+            // Group assigned by author for viewer (used for topic permission checks)
+            if (authorConns.length > 0) {
+              const authorConnGrps = await taskApi.getMemberConnectionGrps({
+                connectionId: authorConns[0].mbrConnectionId
+              }).catch(() => []);
+              if (authorConnGrps && authorConnGrps.length > 0) {
+                assignedGrpId = authorConnGrps[0].grpId;
+              }
+            } else if (viewerConns.length > 0) {
+              const viewerConnGrps = await taskApi.getMemberConnectionGrps({
+                connectionId: viewerConns[0].mbrConnectionId
+              }).catch(() => []);
+              if (viewerConnGrps && viewerConnGrps.length > 0) {
+                assignedGrpId = viewerConnGrps[0].grpId;
+              }
+            }
+
+            // Group assigned by logged-in viewer for this member (to display on the badge)
+            let badgeGrpId = '';
+            if (viewerConns.length > 0) {
+              const viewerConnGrps = await taskApi.getMemberConnectionGrps({
+                connectionId: viewerConns[0].mbrConnectionId
+              }).catch(() => []);
+              if (viewerConnGrps && viewerConnGrps.length > 0) {
+                badgeGrpId = viewerConnGrps[0].grpId;
+              }
+            } else if (authorConns.length > 0) {
+              const authorConnGrps = await taskApi.getMemberConnectionGrps({
+                connectionId: authorConns[0].mbrConnectionId
+              }).catch(() => []);
+              if (authorConnGrps && authorConnGrps.length > 0) {
+                badgeGrpId = authorConnGrps[0].grpId;
+              }
+            }
+
+            if (badgeGrpId) {
+              const [globals, customs] = await Promise.all([
+                taskApi.getGroupsGlobal().catch(() => []),
+                taskApi.getGroupsCustom(resolvedViewerId).catch(() => [])
+              ]);
+              const matched = [...globals, ...customs].find(g => g.grpId === badgeGrpId);
+              if (matched?.grpName) {
+                userConnectionGrpName = matched.grpName;
               }
             }
           } catch (e) {
             console.warn("Could not fetch member connection for permissions:", e);
           }
         }
+
+        setIsConnected(isUserConnected);
+        setConnectionGrpName(userConnectionGrpName);
 
         // Find 'Public' group ID
         let publicGrpId: string | null = null;
@@ -167,49 +230,73 @@ export default function SbMbrStoryPageFeature({
         }
 
         // 5. Evaluate privilege per topic:
-        // All members are implied to be in the Public group.
-        // Therefore, any topic with the public priv set to READ or WRITE should not be locked.
-        // In addition, if the viewer is assigned to a specific group, and that group has READ or WRITE priv, it should not be locked.
+        // - Viewer has access if their assigned group has 'READ' or 'WRITE' privilege.
+        // - Or if the Public group has 'READ' or 'WRITE' privilege (and assigned group does not explicitly deny with NONE/HIDE).
+        // - If neither grants access, the topic is locked (access restricted).
         const locked: string[] = [];
         for (const topic of topicsList) {
-          // Check Public group privilege
-          const publicPriv = authorPrivs.find(
-            p => (p.topicId === topic.topicId || p.topicId === topic.topicName) && p.grpId === publicGrpId
+          const topicPrivs = (authorPrivs || []).filter(
+            p => p.topicId === topic.topicId || p.topicId?.toLowerCase() === topic.topicName.toLowerCase()
           );
-          const publicPrivVal = publicPriv?.privValueCd?.toUpperCase();
-          const hasPublicAccess = publicPrivVal === 'READ' || publicPrivVal === 'WRITE';
 
-          // Check viewer's assigned group privilege (if assigned to a specific connection group)
-          let hasAssignedAccess = false;
-          if (assignedGrpId) {
-            const assignedPriv = authorPrivs.find(
-              p => (p.topicId === topic.topicId || p.topicId === topic.topicName) && p.grpId === assignedGrpId
-            );
-            const assignedPrivVal = assignedPriv?.privValueCd?.toUpperCase();
-            hasAssignedAccess = assignedPrivVal === 'READ' || assignedPrivVal === 'WRITE';
+          // If author has no custom privacy rules configured at all for this topic, lock or check
+          if (topicPrivs.length === 0) {
+            continue;
           }
 
-          // If neither Public nor Assigned group grants READ/WRITE access, topic is locked
-          if (!hasPublicAccess && !hasAssignedAccess) {
+          // Check viewer's assigned connection group privilege
+          let hasAssignedAccess = false;
+          let hasAssignedDenial = false;
+          if (assignedGrpId) {
+            const assignedPriv = topicPrivs.find(p => p.grpId === assignedGrpId);
+            if (assignedPriv) {
+              const assignedVal = assignedPriv.privValueCd?.toUpperCase();
+              if (assignedVal === 'READ' || assignedVal === 'WRITE') {
+                hasAssignedAccess = true;
+              } else if (assignedVal === 'NONE' || assignedVal === 'HIDE') {
+                hasAssignedDenial = true;
+              }
+            }
+          }
+
+          // Check Public group privilege
+          const publicPriv = topicPrivs.find(p => p.grpId === publicGrpId);
+          let hasPublicAccess = false;
+          if (publicPriv) {
+            const publicVal = publicPriv.privValueCd?.toUpperCase();
+            hasPublicAccess = publicVal === 'READ' || publicVal === 'WRITE';
+          }
+
+          // Evaluate access:
+          // 1. If assigned group explicitly grants access ('READ'/'WRITE') -> UNLOCKED
+          // 2. If public group grants access ('READ'/'WRITE') and assigned group doesn't deny -> UNLOCKED
+          // 3. Otherwise -> LOCKED
+          if (hasAssignedAccess) {
+            // Access granted via connection group
+          } else if (hasPublicAccess && !hasAssignedDenial) {
+            // Access granted via public permissions
+          } else {
             locked.push(topic.topicName);
           }
         }
 
         setLockedTopicIds(locked);
 
-        // If currently active section is locked, switch to first unlocked section
+        // If currently active section is locked, switch to first unlocked section if available
         if (locked.some(id => id.toLowerCase() === activeSection.toLowerCase())) {
           const firstUnlocked = topicsList.find(t => !locked.some(lid => lid.toLowerCase() === t.topicName.toLowerCase()));
           if (firstUnlocked) {
             setActiveSection(firstUnlocked.topicName);
           }
         }
+
       } catch (err) {
         console.warn("Error resolving topic permissions:", err);
       }
+
     };
 
-    resolvePermissions();
+    resolveMemberAndPrivileges();
   }, [member.id, memberId]);
 
   // Retrieve active section contents
@@ -286,8 +373,12 @@ export default function SbMbrStoryPageFeature({
             activeContent={getActiveContent()}
             lockedTopicIds={lockedTopicIds}
             onClickBack={onClickBack}
+            connectionGrpName={connectionGrpName}
+            isConnected={isConnected}
+            viewerMbrId={viewerMbrId}
           />
         </div>
+
 
         {/* Right Column Sidebar */}
         <div className="lg:col-span-3">

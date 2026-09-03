@@ -9,10 +9,12 @@ import { UnifiedGroupOption, MemberConnectionItem } from '../types';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface MemberConnectionCardProps {
+  key?: React.Key;
   item: MemberConnectionItem;
   groups: UnifiedGroupOption[];
   onGroupSelect: (targetMbrId: string, grpId: string) => void;
 }
+
 
 export default function MemberConnectionCard({
   item,

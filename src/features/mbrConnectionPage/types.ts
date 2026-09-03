@@ -34,7 +34,9 @@ export interface MemberInvitationItem {
   senderMember?: Mbr;
   selectedDecision: InvitationDecision;
   originalDecision: InvitationDecision;
+  selectedGrpId?: string;
 }
+
 
 export type RequestDecision = 'WITHDRAW' | null;
 

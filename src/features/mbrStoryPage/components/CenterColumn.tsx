@@ -18,6 +18,9 @@ interface CenterColumnProps {
   activeContent: string[];
   lockedTopicIds?: string[];
   onClickBack: () => void;
+  connectionGrpName?: string;
+  isConnected?: boolean;
+  viewerMbrId?: string | null;
 }
 
 export default function CenterColumn({
@@ -25,7 +28,10 @@ export default function CenterColumn({
   activeSection,
   activeContent,
   lockedTopicIds = [],
-  onClickBack
+  onClickBack,
+  connectionGrpName,
+  isConnected,
+  viewerMbrId
 }: CenterColumnProps) {
   const [storyEditorConfig, setStoryEditorConfig] = useState<{
     topicId: string;
@@ -74,7 +80,19 @@ export default function CenterColumn({
       </div>
 
       {/* --- PROFILE SUMMARY CARD --- */}
-      <MbrProfilePanel memberId={member.id} profile={member} isSandbox={false} readOnly={true} />
+      <MbrProfilePanel
+        memberId={(member as any).mbrId || member.id}
+        profile={member}
+        isSandbox={false}
+        readOnly={true}
+        defaultCollapseIntro={true}
+        connectionGrpName={connectionGrpName}
+        isConnected={isConnected}
+        viewerMbrId={viewerMbrId}
+        showReadStoryButton={false}
+      />
+
+
 
       {/* --- LOCKED SECTION RESTRICTION NOTICE --- */}
       {isSectionLocked ? (

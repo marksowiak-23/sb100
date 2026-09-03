@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, X } from 'lucide-react';
 
 // Import our custom API helper client.
-import { taskApi } from '@/src/services/api';
+import { taskApi, HealthCheckResponse } from '@/src/services/api';
 
 // Import our layouts and feature components.
 import MainLayout from '@/src/layouts/MainLayout';

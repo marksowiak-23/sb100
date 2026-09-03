@@ -16,7 +16,25 @@ const AUTO_SCROLL_LIMIT = 20;
 
 export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPage }: SbMbrHomePageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [connectionsOnly, setConnectionsOnly] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('sb_search_connections_only') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  // Persist connectionsOnly filter in sessionStorage across the user session
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('sb_search_connections_only', String(connectionsOnly));
+    } catch (e) {
+      console.warn("Failed to persist connectionsOnly to sessionStorage:", e);
+    }
+  }, [connectionsOnly]);
+
   const [userLocation, setUserLocation] = useState<UserLocation | null>(getCachedUserLocation());
+
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
@@ -151,7 +169,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
     };
   }, []);
 
-  // Fetch initial 5 members on load or when searchQuery / userLocation changes
+  // Fetch initial members on load or when searchQuery / userLocation / connectionsOnly / connectionsMap changes
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
@@ -160,20 +178,32 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
     const timer = setTimeout(async () => {
       try {
         const queryTrimmed = searchQuery.trim();
+        const fetchLimit = connectionsOnly ? 200 : PAGE_SIZE;
+
         const result = await taskApi.getMembers({
           query: queryTrimmed || undefined,
           proximity: userLocation?.label || undefined,
           proximity_lat: userLocation?.latitude,
           proximity_lng: userLocation?.longitude,
           public_only: true,
-          limit: PAGE_SIZE,
+          limit: fetchLimit,
           skip: 0
         });
 
         if (!isCancelled) {
-          const uniqueList = Array.from(new Map((result || []).map((m: any) => [m.mbrId || m.id, m])).values());
-          setMembers(uniqueList);
-          setHasMore((result || []).length === PAGE_SIZE);
+          let uniqueList = Array.from(new Map((result || []).map((m: any) => [m.mbrId || m.id, m])).values());
+          
+          if (connectionsOnly) {
+            uniqueList = uniqueList.filter((m: any) => {
+              const targetId = m.mbrId || m.id;
+              return connectionsMap.has(targetId) && connectionsMap.get(targetId)?.isConnected === true;
+            });
+            setMembers(uniqueList);
+            setHasMore(false); // All filtered connections returned in one query
+          } else {
+            setMembers(uniqueList);
+            setHasMore((result || []).length === PAGE_SIZE);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch members for member home page search:", err);
@@ -192,11 +222,11 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [searchQuery, userLocation]);
+  }, [searchQuery, userLocation, connectionsOnly, connectionsMap]);
 
-  // Handler to fetch another 5 members
+  // Handler to fetch another 5 members (only when not in connectionsOnly mode)
   const handleLoadMore = useCallback(async () => {
-    if (loading || loadingMore || !hasMore) return;
+    if (loading || loadingMore || !hasMore || connectionsOnly) return;
 
     setLoadingMore(true);
     try {
@@ -226,12 +256,12 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
     } finally {
       setLoadingMore(false);
     }
-  }, [loading, loadingMore, hasMore, searchQuery, userLocation, members.length]);
+  }, [loading, loadingMore, hasMore, connectionsOnly, searchQuery, userLocation, members.length]);
 
   // Infinite scroll listener: auto-fetch another 5 members when scrolling to the bottom until 20 are loaded
   useEffect(() => {
     const handleScroll = () => {
-      if (loading || loadingMore || !hasMore) return;
+      if (loading || loadingMore || !hasMore || connectionsOnly) return;
       if (members.length >= AUTO_SCROLL_LIMIT) return; // Stop auto-scrolling once 20 members are loaded
 
       const scrollPosition = window.innerHeight + window.scrollY;
@@ -244,24 +274,26 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleLoadMore, loading, loadingMore, hasMore, members.length]);
+  }, [handleLoadMore, loading, loadingMore, hasMore, connectionsOnly, members.length]);
 
   return (
     <div className="w-full relative">
       {/* 3-Column Responsive Grid Structure */}
-      {/* lg:grid-cols-12 distributes proportions as 3/12 (Left), 6/12 (Center), and 3/12 (Right). */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
         
-        {/* Left Column Section: Brand name, scrollable new connections, biography checklist status, and existing connections */}
+        {/* Left Column Section */}
         <div className="lg:col-span-3">
           <LeftColumn onClickAuthorPage={onClickAuthorPage} onClickReadStory={onClickReadStory} />
         </div>
 
-        {/* Center Column Section: Main welcome hero, Search Bar box, and Dynamic Members feed */}
+        {/* Center Column Section */}
         <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
           <CenterColumn
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
+            connectionsOnly={connectionsOnly}
+            setConnectionsOnly={setConnectionsOnly}
+            connectedCount={connectionsMap.size}
             members={members}
             loading={loading}
             loadingMore={loadingMore}
@@ -274,6 +306,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
             onRefreshLocation={handleRefreshLocation}
           />
         </div>
+
 
         {/* Right Column Section: Recommended publishing sponsors and legal footer links */}
         <div className="lg:col-span-3">

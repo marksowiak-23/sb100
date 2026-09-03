@@ -23,6 +23,7 @@ import InvitationsList from './InvitationsList';
 import RequestsHeader from './RequestsHeader';
 import RequestsList from './RequestsList';
 import ConnectionPageHeaderPanel from './ConnectionPageHeaderPanel';
+import AcceptInvitationModal from './AcceptInvitationModal';
 import { generateConnectionPdf } from '../utils/generateConnectionPdf';
 
 
@@ -51,17 +52,21 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   const [pendingNavigationTarget, setPendingNavigationTarget] = useState<string | null>(null);
   const [pendingSectionTarget, setPendingSectionTarget] = useState<ConnectionSection | null>(null);
 
+  // Accept Connection Group Selection Modal State
+  const [acceptModalInvitation, setAcceptModalInvitation] = useState<MemberInvitationItem | null>(null);
+
+
   // Determine dirty state across Connections, Invitations, and Requests
   const isConnectionsDirty = useMemo(() => {
-    return Object.values(items).some(item => item.selectedGrpId !== item.originalGrpId);
+    return (Object.values(items) as MemberConnectionItem[]).some(item => item.selectedGrpId !== item.originalGrpId);
   }, [items]);
 
   const isInvitationsDirty = useMemo(() => {
-    return Object.values(invitations).some(inv => inv.selectedDecision !== null);
+    return (Object.values(invitations) as MemberInvitationItem[]).some(inv => inv.selectedDecision !== null);
   }, [invitations]);
 
   const isRequestsDirty = useMemo(() => {
-    return Object.values(requests).some(req => req.selectedDecision !== null);
+    return (Object.values(requests) as MemberRequestItem[]).some(req => req.selectedDecision !== null);
   }, [requests]);
 
   const isDirty = useMemo(() => {
@@ -219,12 +224,15 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
               };
               connectedMembers.push({
                 mbrId: id,
+                mbrFirstName: mock.mbrFirstName || 'Connected',
+                mbrLastName: mock.mbrLastName || 'Member',
                 ...mock
-              });
+              } as Mbr);
             }
           }
         }
       }
+
 
       // 4. Fetch groups (Global & Custom)
       let fetchedGlobals: GroupGlobal[] = [];
@@ -499,7 +507,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   };
 
   // Handle Accept / Ignore decision toggle for an invitation
-  const handleSelectInvitationDecision = (contactId: string, decision: InvitationDecision) => {
+  const handleSelectInvitationDecision = (contactId: string, decision: InvitationDecision, selectedGrpId?: string) => {
     setInvitations(prev => {
       const existing = prev[contactId];
       if (!existing) return prev;
@@ -507,7 +515,8 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         ...prev,
         [contactId]: {
           ...existing,
-          selectedDecision: decision
+          selectedDecision: decision,
+          ...(selectedGrpId !== undefined ? { selectedGrpId } : {})
         }
       };
     });
@@ -532,7 +541,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   const handleResetConnections = () => {
     setItems(prev => {
       const resetMap: Record<string, MemberConnectionItem> = {};
-      for (const [key, item] of Object.entries(prev)) {
+      for (const [key, item] of Object.entries(prev) as [string, MemberConnectionItem][]) {
         resetMap[key] = {
           ...item,
           selectedGrpId: item.originalGrpId
@@ -546,7 +555,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   const handleResetInvitations = () => {
     setInvitations(prev => {
       const resetMap: Record<string, MemberInvitationItem> = {};
-      for (const [key, item] of Object.entries(prev)) {
+      for (const [key, item] of Object.entries(prev) as [string, MemberInvitationItem][]) {
         resetMap[key] = {
           ...item,
           selectedDecision: null
@@ -560,7 +569,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   const handleResetRequests = () => {
     setRequests(prev => {
       const resetMap: Record<string, MemberRequestItem> = {};
-      for (const [key, item] of Object.entries(prev)) {
+      for (const [key, item] of Object.entries(prev) as [string, MemberRequestItem][]) {
         resetMap[key] = {
           ...item,
           selectedDecision: null
@@ -570,13 +579,14 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
     });
   };
 
+
   // Save Connections group changes
   const handleSaveConnections = async () => {
     setSaving(true);
     setError(null);
     setSuccess(null);
     try {
-      const changedItems = Object.values(items).filter(
+      const changedItems = (Object.values(items) as MemberConnectionItem[]).filter(
         item => item.selectedGrpId !== item.originalGrpId
       );
 
@@ -634,7 +644,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
       }
 
       if (isSandbox) {
-        const allConns = Object.values(items)
+        const allConns = (Object.values(items) as MemberConnectionItem[])
           .filter(it => it.mbrConnectionId)
           .map(it => ({
             mbrConnectionId: it.mbrConnectionId!,
@@ -643,7 +653,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           }));
         sessionStorage.setItem(`sandbox_mbr_connections_${currentMbrId}`, JSON.stringify(allConns));
 
-        const allConnGrps = Object.values(items)
+        const allConnGrps = (Object.values(items) as MemberConnectionItem[])
           .filter(it => it.mbrConnectionGrpId && it.selectedGrpId)
           .map(it => ({
             mbrConnectionGrpId: it.mbrConnectionGrpId!,
@@ -670,7 +680,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
     setError(null);
     setSuccess(null);
     try {
-      const decidedItems = Object.values(invitations).filter(inv => inv.selectedDecision !== null);
+      const decidedItems = (Object.values(invitations) as MemberInvitationItem[]).filter(inv => inv.selectedDecision !== null);
 
       if (decidedItems.length === 0) {
         setSaving(false);
@@ -694,19 +704,35 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         if (decision === 'ACCEPT') {
           if (!isSandbox) {
             try {
-              const createdConn = await taskApi.createMemberConnection({
+              // 1. Create Recipient's Connection record (Recipient -> Sender)
+              const recipientConn = await taskApi.createMemberConnection({
                 mbrId: currentMbrId,
                 mbrConnectionMbrId: senderMbrId
               });
 
-              if (item.contact.grpId && createdConn?.mbrConnectionId) {
+              const recipientChosenGrpId = item.selectedGrpId;
+              if (recipientChosenGrpId && recipientConn?.mbrConnectionId) {
                 await taskApi.createMemberConnectionGrp({
-                  mbrConnectionId: createdConn.mbrConnectionId,
-                  grpId: item.contact.grpId
+                  mbrConnectionId: recipientConn.mbrConnectionId,
+                  grpId: recipientChosenGrpId
+                }).catch(() => null);
+              }
+
+              // 2. Create Sender's Connection record (Sender -> Recipient)
+              const senderConn = await taskApi.createMemberConnection({
+                mbrId: senderMbrId,
+                mbrConnectionMbrId: currentMbrId
+              });
+
+              const senderOriginalGrpId = item.contact.grpId;
+              if (senderOriginalGrpId && senderConn?.mbrConnectionId) {
+                await taskApi.createMemberConnectionGrp({
+                  mbrConnectionId: senderConn.mbrConnectionId,
+                  grpId: senderOriginalGrpId
                 }).catch(() => null);
               }
             } catch (e) {
-              console.warn("Could not create connection for accepted invitation:", e);
+              console.warn("Could not create bidirectional connections for accepted invitation:", e);
             }
           }
         }
@@ -736,23 +762,48 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             try { connsList = JSON.parse(rawConnsStr); } catch {}
           }
           for (const it of acceptedSenders) {
-            const newConnId = `conn-${Date.now()}-${it.contact.mbrId.slice(0, 4)}`;
+            // 1. Recipient -> Sender Connection & Group
+            const newConnId1 = `conn-${Date.now()}-${it.contact.mbrId.slice(0, 4)}-recip`;
             connsList.push({
-              mbrConnectionId: newConnId,
+              mbrConnectionId: newConnId1,
               mbrId: currentMbrId,
               mbrConnectionMbrId: it.contact.mbrId
             });
 
-            if (it.contact.grpId) {
+            const recipientChosenGrpId = it.selectedGrpId;
+            if (recipientChosenGrpId) {
               const rawConnGrpsStr = sessionStorage.getItem(`sandbox_mbr_connection_grps_${currentMbrId}`);
               let connGrpsList: any[] = [];
               if (rawConnGrpsStr) {
                 try { connGrpsList = JSON.parse(rawConnGrpsStr); } catch {}
               }
               connGrpsList.push({
-                mbrConnectionGrpId: `cg-${Date.now()}`,
-                mbrConnectionId: newConnId,
-                grpId: it.contact.grpId
+                mbrConnectionGrpId: `cg-${Date.now()}-1`,
+                mbrConnectionId: newConnId1,
+                grpId: recipientChosenGrpId
+              });
+              sessionStorage.setItem(`sandbox_mbr_connection_grps_${currentMbrId}`, JSON.stringify(connGrpsList));
+            }
+
+            // 2. Sender -> Recipient Connection & Group
+            const newConnId2 = `conn-${Date.now()}-${it.contact.mbrId.slice(0, 4)}-sender`;
+            connsList.push({
+              mbrConnectionId: newConnId2,
+              mbrId: it.contact.mbrId,
+              mbrConnectionMbrId: currentMbrId
+            });
+
+            const senderOriginalGrpId = it.contact.grpId;
+            if (senderOriginalGrpId) {
+              const rawConnGrpsStr = sessionStorage.getItem(`sandbox_mbr_connection_grps_${currentMbrId}`);
+              let connGrpsList: any[] = [];
+              if (rawConnGrpsStr) {
+                try { connGrpsList = JSON.parse(rawConnGrpsStr); } catch {}
+              }
+              connGrpsList.push({
+                mbrConnectionGrpId: `cg-${Date.now()}-2`,
+                mbrConnectionId: newConnId2,
+                grpId: senderOriginalGrpId
               });
               sessionStorage.setItem(`sandbox_mbr_connection_grps_${currentMbrId}`, JSON.stringify(connGrpsList));
             }
@@ -760,6 +811,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           sessionStorage.setItem(`sandbox_mbr_connections_${currentMbrId}`, JSON.stringify(connsList));
         }
       }
+
 
       setSuccess(`Successfully updated ${decidedItems.length} connection invitation response${decidedItems.length > 1 ? 's' : ''}.`);
       setTimeout(() => setSuccess(null), 4000);
@@ -781,7 +833,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
     setError(null);
     setSuccess(null);
     try {
-      const withdrawnItems = Object.values(requests).filter(req => req.selectedDecision === 'WITHDRAW');
+      const withdrawnItems = (Object.values(requests) as MemberRequestItem[]).filter(req => req.selectedDecision === 'WITHDRAW');
 
       if (withdrawnItems.length === 0) {
         setSaving(false);
@@ -826,7 +878,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
 
   // Filtered member list for Connections view
   const filteredMemberList = useMemo(() => {
-    const list = Object.values(items);
+    const list = Object.values(items) as MemberConnectionItem[];
     return list.filter(item => {
       const name = `${item.member.mbrFirstName || ''} ${item.member.mbrLastName || ''}`.toLowerCase();
       const location = `${item.member.mbrLivesCityState || ''} ${item.member.mbrFromCityState || ''}`.toLowerCase();
@@ -847,13 +899,13 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
 
   // Statistics counters
   const totalConnectionsCount = Object.keys(items).length;
-  const assignedCount = Object.values(items).filter(it => it.selectedGrpId !== '').length;
+  const assignedCount = (Object.values(items) as MemberConnectionItem[]).filter(it => it.selectedGrpId !== '').length;
   
-  const pendingInvitationsList = useMemo(() => Object.values(invitations), [invitations]);
+  const pendingInvitationsList = useMemo(() => Object.values(invitations) as MemberInvitationItem[], [invitations]);
   const pendingInvitationsCount = pendingInvitationsList.length;
   const pendingDecisionsCount = pendingInvitationsList.filter(inv => inv.selectedDecision !== null).length;
 
-  const pendingRequestsList = useMemo(() => Object.values(requests), [requests]);
+  const pendingRequestsList = useMemo(() => Object.values(requests) as MemberRequestItem[], [requests]);
   const pendingRequestsCount = pendingRequestsList.length;
   const pendingWithdrawalsCount = pendingRequestsList.filter(req => req.selectedDecision === 'WITHDRAW').length;
 
@@ -1067,6 +1119,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
                 invitationList={pendingInvitationsList}
                 groups={groups}
                 onSelectDecision={handleSelectInvitationDecision}
+                onOpenAcceptModal={(item) => setAcceptModalInvitation(item)}
               />
             </div>
           )}
@@ -1097,6 +1150,18 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         </main>
 
       </div>
+
+      {/* Accept Connection Group Selection Modal Dialog */}
+      <AcceptInvitationModal
+        isOpen={acceptModalInvitation !== null}
+        onClose={() => setAcceptModalInvitation(null)}
+        invitation={acceptModalInvitation}
+        groups={groups}
+        onConfirmAccept={(contactId, selectedGrpId) => {
+          handleSelectInvitationDecision(contactId, 'ACCEPT', selectedGrpId);
+        }}
+      />
     </div>
   );
 }
+

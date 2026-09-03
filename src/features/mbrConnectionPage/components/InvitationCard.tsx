@@ -20,17 +20,21 @@ import { MemberInvitationItem, InvitationDecision, UnifiedGroupOption } from '..
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface InvitationCardProps {
+  key?: React.Key;
   item: MemberInvitationItem;
   groups: UnifiedGroupOption[];
-  onSelectDecision: (contactId: string, decision: InvitationDecision) => void;
+  onSelectDecision: (contactId: string, decision: InvitationDecision, selectedGrpId?: string) => void;
+  onOpenAcceptModal?: (item: MemberInvitationItem) => void;
 }
+
 
 export default function InvitationCard({
   item,
   groups,
-  onSelectDecision
+  onSelectDecision,
+  onOpenAcceptModal
 }: InvitationCardProps) {
-  const { contact, senderMember, selectedDecision } = item;
+  const { contact, senderMember, selectedDecision, selectedGrpId } = item;
   
   const senderName = senderMember
     ? `${senderMember.mbrFirstName || ''} ${senderMember.mbrLastName || ''}`.trim() || 'StoryBook Member'
@@ -52,9 +56,14 @@ export default function InvitationCard({
   // Find reason label or fallback
   const reasonLabel = contact.mbrContactReasonCd
     ? contact.mbrContactReasonCd.charAt(0) + contact.mbrContactReasonCd.slice(1).toLowerCase()
-    : 'General Inquiry';
+    : '';
+  const showReasonBadge = Boolean(reasonLabel && reasonLabel.toLowerCase() !== 'other');
 
-  // Find suggested group name if any
+  // Resolved group name (either from user selection or contact's suggested group)
+  const activeGroupId = selectedGrpId ?? contact.grpId;
+  const assignedGroup = activeGroupId
+    ? groups.find((g) => g.grpId === activeGroupId)
+    : null;
   const suggestedGroup = contact.grpId
     ? groups.find(g => g.grpId === contact.grpId)
     : null;
@@ -109,10 +118,12 @@ export default function InvitationCard({
 
         {/* Reason and Timestamp Badges */}
         <div className="flex flex-wrap sm:flex-col items-start sm:items-end gap-1.5 shrink-0">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-2xs">
-            <Tag className="w-3 h-3 text-blue-500" />
-            <span>{reasonLabel}</span>
-          </span>
+          {showReasonBadge && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-2xs">
+              <Tag className="w-3 h-3 text-blue-500" />
+              <span>{reasonLabel}</span>
+            </span>
+          )}
 
           <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 font-sans">
             <Clock className="w-3 h-3" />
@@ -120,6 +131,7 @@ export default function InvitationCard({
           </span>
         </div>
       </div>
+
 
       {/* Sender's Personal Message (if present) */}
       {contact.mbrContactMsg && (
@@ -133,7 +145,7 @@ export default function InvitationCard({
       )}
 
       {/* Suggested Group badge (if available) */}
-      {suggestedGroup && (
+      {suggestedGroup && selectedDecision !== 'ACCEPT' && (
         <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-serif">
           <Users className="w-3.5 h-3.5 text-emerald-500" />
           <span>Requested Group: <strong className="text-slate-700 dark:text-slate-200">{suggestedGroup.grpName}</strong></span>
@@ -145,10 +157,23 @@ export default function InvitationCard({
         {/* Status Indicator */}
         <div className="text-xs font-serif">
           {selectedDecision === 'ACCEPT' ? (
-            <span className="inline-flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Marked to Accept (Click Save to confirm)</span>
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>
+                  Accept into <strong>"{assignedGroup?.grpName || 'None'}"</strong>
+                </span>
+              </span>
+              {onOpenAcceptModal && (
+                <button
+                  type="button"
+                  onClick={() => onOpenAcceptModal(item)}
+                  className="text-[11px] font-sans font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline cursor-pointer"
+                >
+                  Change Group
+                </button>
+              )}
+            </div>
           ) : selectedDecision === 'IGNORE' ? (
             <span className="inline-flex items-center gap-1.5 font-bold text-rose-700 dark:text-rose-400">
               <XCircle className="w-4 h-4" />
@@ -180,7 +205,15 @@ export default function InvitationCard({
           {/* Accept Button */}
           <button
             type="button"
-            onClick={() => onSelectDecision(contact.mbrContactId, selectedDecision === 'ACCEPT' ? null : 'ACCEPT')}
+            onClick={() => {
+              if (selectedDecision === 'ACCEPT') {
+                onSelectDecision(contact.mbrContactId, null);
+              } else if (onOpenAcceptModal) {
+                onOpenAcceptModal(item);
+              } else {
+                onSelectDecision(contact.mbrContactId, 'ACCEPT');
+              }
+            }}
             className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer ${
               selectedDecision === 'ACCEPT'
                 ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
@@ -188,7 +221,7 @@ export default function InvitationCard({
             }`}
           >
             <Check className="w-3.5 h-3.5" />
-            <span>Accept Connection</span>
+            <span>{selectedDecision === 'ACCEPT' ? 'Accepted' : 'Accept Connection'}</span>
           </button>
         </div>
       </div>
