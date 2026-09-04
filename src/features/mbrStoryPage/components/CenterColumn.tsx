@@ -23,6 +23,15 @@ interface CenterColumnProps {
   viewerMbrId?: string | null;
 }
 
+const componentNameMap: Record<string, string> = {
+  family: 'sbMbrStryFamly',
+  residencies: 'sbMbrStryResidence',
+  hobbies: 'sbMbrStryActivity',
+  achievements: 'sbMbrStryAchievement',
+  education: 'sbMbrStryEducation',
+  employment: 'sbMbrStryEmployment',
+};
+
 export default function CenterColumn({
   member,
   activeSection,
@@ -33,38 +42,48 @@ export default function CenterColumn({
   isConnected,
   viewerMbrId
 }: CenterColumnProps) {
-  const [storyEditorConfig, setStoryEditorConfig] = useState<{
-    topicId: string;
-    topicTitle: string;
-    componentName?: string;
-    subordinateId?: string | null;
-    subordinateName?: string;
-  } | null>(null);
+  const [subordinateId, setSubordinateId] = useState<string | null>(null);
+  const [subordinateName, setSubordinateName] = useState<string | undefined>(undefined);
+
+  const effectiveMemberId = (member as any).mbrId || member.id;
 
   // Check if active topic/section is locked for current user
   const isSectionLocked = lockedTopicIds.some(
     (id) => id.toLowerCase() === activeSection.toLowerCase()
   );
 
-  // Listen for open-topic-stories custom events emitted by story panels
+  // Reset subordinate filter when active section changes
+  useEffect(() => {
+    setSubordinateId(null);
+    setSubordinateName(undefined);
+  }, [activeSection]);
+
+  // Listen for open-story-editor and open-topic-stories custom events emitted by story panels
   useEffect(() => {
     const handleOpenStories = (event: any) => {
       if (event.detail) {
-        setStoryEditorConfig({
-          topicId: event.detail.topicId || activeSection,
-          topicTitle: event.detail.topicTitle || activeSection,
-          componentName: event.detail.componentName,
-          subordinateId: event.detail.subordinateId || null,
-          subordinateName: event.detail.subordinateName
-        });
+        const detail = event.detail;
+        setSubordinateId(detail.subordinateId || detail.mbrStorySubordinateId || null);
+        setSubordinateName(detail.subordinateName || undefined);
+
+        setTimeout(() => {
+          const el = document.getElementById('story-editor-panel');
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
       }
     };
 
+    window.addEventListener('open-story-editor', handleOpenStories);
     window.addEventListener('open-topic-stories', handleOpenStories);
     return () => {
+      window.removeEventListener('open-story-editor', handleOpenStories);
       window.removeEventListener('open-topic-stories', handleOpenStories);
     };
   }, [activeSection]);
+
+  const isStandardTopic = ['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(activeSection.toLowerCase());
 
   return (
     <div className="flex-1 min-w-0 flex flex-col gap-6 relative">
@@ -81,7 +100,7 @@ export default function CenterColumn({
 
       {/* --- PROFILE SUMMARY CARD --- */}
       <MbrProfilePanel
-        memberId={(member as any).mbrId || member.id}
+        memberId={effectiveMemberId}
         profile={member}
         isSandbox={false}
         readOnly={true}
@@ -91,8 +110,6 @@ export default function CenterColumn({
         viewerMbrId={viewerMbrId}
         showReadStoryButton={false}
       />
-
-
 
       {/* --- LOCKED SECTION RESTRICTION NOTICE --- */}
       {isSectionLocked ? (
@@ -111,52 +128,57 @@ export default function CenterColumn({
         <>
           {/* --- FAMILY DIRECTORY PANEL --- */}
           {(activeSection.toLowerCase() === 'family') && (
-            <MbrStoryFamilyPanel memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryFamilyPanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- RESIDENCES PANEL --- */}
           {(activeSection.toLowerCase() === 'residencies') && (
-            <MbrStoryResidencePanel memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryResidencePanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- ACTIVITIES & HOBBIES PANEL --- */}
           {(activeSection.toLowerCase() === 'hobbies') && (
-            <MbrStoryActivityPanel memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryActivityPanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
           {(activeSection.toLowerCase() === 'achievements') && (
-            <MbrStoryAchievementPanel memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryAchievementPanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
           {(activeSection.toLowerCase() === 'education') && (
-            <MbrStoryEducationPanel memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryEducationPanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
           )}
 
           {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
           {(activeSection.toLowerCase() === 'employment') && (
-            <MbrStoryEmploymentPanel memberId={member.id} isSandbox={false} readOnly={true} />
+            <MbrStoryEmploymentPanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
           )}
 
-          {/* --- ACTIVE SECTION CONTENT AREA (for other custom text sections) --- */}
-          {!['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(activeSection.toLowerCase()) && (
+          {/* --- ACTIVE SECTION CONTENT AREA (for custom text sections) --- */}
+          {!isStandardTopic && (
             <MbrBookEditorPanel sectionTitle={activeSection} content={activeContent} readOnly={true} />
           )}
 
-          {/* --- MEMBER STORIES VIEW PANEL --- */}
-          {storyEditorConfig && (
-            <StoryEditorPanel
-              topicId={storyEditorConfig.topicId}
-              topicTitle={storyEditorConfig.topicTitle}
-              componentName={storyEditorConfig.componentName}
-              subordinateId={storyEditorConfig.subordinateId}
-              subordinateName={storyEditorConfig.subordinateName}
-              memberId={member.id}
-              readOnly={true}
-              isSandbox={false}
-              onClose={() => setStoryEditorConfig(null)}
-            />
+          {/* --- MEMBER STORIES VIEW PANEL (Displayed for standard topics) --- */}
+          {isStandardTopic && (
+            <div id="story-editor-panel">
+              <StoryEditorPanel
+                topicId={activeSection.toLowerCase()}
+                topicTitle={activeSection}
+                componentName={componentNameMap[activeSection.toLowerCase()] || `sbMbrStry${activeSection}`}
+                subordinateId={subordinateId || undefined}
+                subordinateName={subordinateName}
+                memberId={effectiveMemberId}
+                readOnly={true}
+                isSandbox={false}
+                onClose={() => {
+                  setSubordinateId(null);
+                  setSubordinateName(undefined);
+                }}
+              />
+            </div>
           )}
         </>
       )}

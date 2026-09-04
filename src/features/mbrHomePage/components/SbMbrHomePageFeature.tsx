@@ -40,7 +40,16 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [connectionsMap, setConnectionsMap] = useState<Map<string, { isConnected: boolean; grpName?: string }>>(new Map());
-  const [viewerMbrId, setViewerMbrId] = useState<string | null>(null);
+  const [viewerMbrId, setViewerMbrId] = useState<string | null>(() => {
+    try {
+      const storedMbr = sessionStorage.getItem('sb_current_mbr');
+      if (storedMbr) {
+        const parsed = JSON.parse(storedMbr);
+        if (parsed.mbrId) return parsed.mbrId;
+      }
+    } catch {}
+    return null;
+  });
 
   // Detect user location on initial mount and listen for updates
   useEffect(() => {
@@ -169,7 +178,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
     };
   }, []);
 
-  // Fetch initial members on load or when searchQuery / userLocation / connectionsOnly / connectionsMap changes
+  // Fetch initial members on load or when searchQuery / userLocation / connectionsOnly / connectionsMap / viewerMbrId changes
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
@@ -193,6 +202,11 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
         if (!isCancelled) {
           let uniqueList = Array.from(new Map((result || []).map((m: any) => [m.mbrId || m.id, m])).values());
           
+          // Exclude logged in member profile
+          if (viewerMbrId) {
+            uniqueList = uniqueList.filter((m: any) => (m.mbrId || m.id) !== viewerMbrId);
+          }
+
           if (connectionsOnly) {
             uniqueList = uniqueList.filter((m: any) => {
               const targetId = m.mbrId || m.id;
@@ -222,7 +236,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [searchQuery, userLocation, connectionsOnly, connectionsMap]);
+  }, [searchQuery, userLocation, connectionsOnly, connectionsMap, viewerMbrId]);
 
   // Handler to fetch another 5 members (only when not in connectionsOnly mode)
   const handleLoadMore = useCallback(async () => {
@@ -244,7 +258,10 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
 
       if (nextBatch && nextBatch.length > 0) {
         setMembers((prev) => {
-          const combined = [...prev, ...nextBatch];
+          let combined = [...prev, ...nextBatch];
+          if (viewerMbrId) {
+            combined = combined.filter((m: any) => (m.mbrId || m.id) !== viewerMbrId);
+          }
           return Array.from(new Map(combined.map((m: any) => [m.mbrId || m.id, m])).values());
         });
         setHasMore(nextBatch.length === PAGE_SIZE);
@@ -256,7 +273,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
     } finally {
       setLoadingMore(false);
     }
-  }, [loading, loadingMore, hasMore, connectionsOnly, searchQuery, userLocation, members.length]);
+  }, [loading, loadingMore, hasMore, connectionsOnly, searchQuery, userLocation, members.length, viewerMbrId]);
 
   // Infinite scroll listener: auto-fetch another 5 members when scrolling to the bottom until 20 are loaded
   useEffect(() => {

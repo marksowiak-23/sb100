@@ -12,6 +12,7 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 interface SbMbrAuthorPageFeatureProps {
   isSandbox: boolean;
   onClickBack: () => void;
+  onClickAuthorProfile?: () => void;
 }
 
 const STORY_CONTENTS: Record<string, string[]> = {
@@ -29,7 +30,7 @@ const STORY_CONTENTS: Record<string, string[]> = {
   ]
 };
 
-export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack }: SbMbrAuthorPageFeatureProps) {
+export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack, onClickAuthorProfile }: SbMbrAuthorPageFeatureProps) {
   const [activeSection, setActiveSection] = useState('family');
   const [storyContents, setStoryContents] = useState<Record<string, string[]>>(STORY_CONTENTS);
 
@@ -64,6 +65,7 @@ export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack }: SbMbr
             activeContent={getActiveContent()}
             onClickBack={onClickBack}
             onSaveActiveContent={handleSaveActiveContent}
+            onClickAuthorProfile={onClickAuthorProfile}
           />
         </div>
 

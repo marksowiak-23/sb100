@@ -148,7 +148,7 @@ export default function StoryEditorPanel({
 
   useEffect(() => {
     loadStories();
-  }, [topicId, isSandbox, componentName, subordinateId]);
+  }, [topicId, isSandbox, componentName, subordinateId, memberId]);
 
   const loadStories = async () => {
     setLoading(true);

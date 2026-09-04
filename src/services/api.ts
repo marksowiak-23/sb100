@@ -1033,7 +1033,7 @@ export const taskApi = {
    * Fetch all topics.
    */
   async getTopics(query?: string, limit: number = 100, skip: number = 0): Promise<Topic[]> {
-    let url = `${API_BASE_URL}/topics?skip=${skip}&limit=${limit}`;
+    let url = `${API_BASE_URL}/topics?skip=${skip}&limit=${limit}&t=${Date.now()}`;
     if (query && query.trim() !== '') {
       url += `&query=${encodeURIComponent(query.trim())}`;
     }
@@ -1041,7 +1041,10 @@ export const taskApi = {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-cache'
     });
     return handleResponse<Topic[]>(response);
   },
@@ -1050,7 +1053,7 @@ export const taskApi = {
    * Fetch all global groups.
    */
   async getGroupsGlobal(query?: string, limit: number = 100, skip: number = 0): Promise<GroupGlobal[]> {
-    let url = `${API_BASE_URL}/groupGlobals?skip=${skip}&limit=${limit}`;
+    let url = `${API_BASE_URL}/groupGlobals?skip=${skip}&limit=${limit}&t=${Date.now()}`;
     if (query && query.trim() !== '') {
       url += `&query=${encodeURIComponent(query.trim())}`;
     }
@@ -1058,7 +1061,10 @@ export const taskApi = {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-cache'
     });
     return handleResponse<GroupGlobal[]>(response);
   },
@@ -1067,7 +1073,7 @@ export const taskApi = {
    * Fetch custom groups for a specific member.
    */
   async getGroupsCustom(mbrId: string, query?: string, limit: number = 100, skip: number = 0): Promise<GroupCustom[]> {
-    let url = `${API_BASE_URL}/groupCustoms?mbr_id=${encodeURIComponent(mbrId)}&skip=${skip}&limit=${limit}`;
+    let url = `${API_BASE_URL}/groupCustoms?mbr_id=${encodeURIComponent(mbrId)}&skip=${skip}&limit=${limit}&t=${Date.now()}`;
     if (query && query.trim() !== '') {
       url += `&query=${encodeURIComponent(query.trim())}`;
     }
@@ -1075,7 +1081,10 @@ export const taskApi = {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-cache'
     });
     return handleResponse<GroupCustom[]>(response);
   },
@@ -1158,13 +1167,17 @@ export const taskApi = {
     if (params?.connectedMbrId) query.append('connected_mbr_id', params.connectedMbrId);
     if (params?.skip !== undefined) query.append('skip', params.skip.toString());
     if (params?.limit !== undefined) query.append('limit', params.limit.toString());
+    query.append('t', Date.now().toString());
 
     const url = `${API_BASE_URL}/mbr-connections${query.toString() ? `?${query.toString()}` : ''}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-cache'
     });
     return handleResponse<MbrConnection[]>(response);
   },
@@ -1221,13 +1234,17 @@ export const taskApi = {
     if (params?.grpId) query.append('grp_id', params.grpId);
     if (params?.skip !== undefined) query.append('skip', params.skip.toString());
     if (params?.limit !== undefined) query.append('limit', params.limit.toString());
+    query.append('t', Date.now().toString());
 
     const url = `${API_BASE_URL}/mbr-connection-grps${query.toString() ? `?${query.toString()}` : ''}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
+      cache: 'no-cache'
     });
     return handleResponse<MbrConnectionGrp[]>(response);
   },

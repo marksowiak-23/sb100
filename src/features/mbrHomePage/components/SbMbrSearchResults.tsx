@@ -33,6 +33,11 @@ export default function SbMbrSearchResults({
 }: SbMbrSearchResultsProps) {
   const uniqueMembers = Array.from(new Map(members.map(m => [m.mbrId || m.id, m])).values())
     .filter(m => {
+      const targetId = m.mbrId || m.id;
+      // Do not show the logged-in member's profile
+      if (viewerMbrId && targetId === viewerMbrId) {
+        return false;
+      }
       if (m.mbrSettings) return m.mbrSettings.mbrSettingsAllowPublicFlag === true;
       if (m.mbrSettingsAllowPublicFlag !== undefined) return m.mbrSettingsAllowPublicFlag === true;
       return true;

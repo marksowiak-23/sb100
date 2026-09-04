@@ -20,6 +20,7 @@ export interface MbrProfilePanelProps {
   showReadStoryButton?: boolean;
   onConnectSuccess?: () => void;
   onClickReadStory?: (memberId: string) => void;
+  onClickAuthorProfile?: () => void;
   defaultCollapseIntro?: boolean;
 }
 
@@ -38,6 +39,7 @@ export default function MbrProfilePanel({
   showReadStoryButton = true,
   onConnectSuccess,
   onClickReadStory,
+  onClickAuthorProfile,
   defaultCollapseIntro = false
 }: MbrProfilePanelProps) {
 
@@ -67,7 +69,23 @@ export default function MbrProfilePanel({
     if (storedMbr) {
       try {
         const parsed = JSON.parse(storedMbr);
-        if (parsed.mbrId) setResolvedViewerId(parsed.mbrId);
+        if (parsed.mbrId) {
+          setResolvedViewerId(parsed.mbrId);
+          return;
+        }
+      } catch {}
+    }
+    const userStr = sessionStorage.getItem('user');
+    if (userStr) {
+      try {
+        const u = JSON.parse(userStr);
+        if (u.user_id) {
+          taskApi.getMemberByUserId(u.user_id).then((mbrProfile) => {
+            if (mbrProfile && mbrProfile.mbrId) {
+              setResolvedViewerId(mbrProfile.mbrId);
+            }
+          }).catch(() => {});
+        }
       } catch {}
     }
   }, [propViewerMbrId]);
@@ -485,6 +503,25 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isGalleryModalOpen, activeGalleryItems.length]);
 
+  const loggedInUserId = useMemo(() => {
+    try {
+      const userStr = sessionStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        return u.user_id || null;
+      }
+    } catch {}
+    return null;
+  }, []);
+
+  const isSelf = useMemo(() => {
+    // If no memberId or propProfile was provided, this panel loaded the author's own profile
+    if (!memberId && !propProfile) return true;
+    if (resolvedViewerId && profile?.mbrId && resolvedViewerId === profile.mbrId) return true;
+    if (loggedInUserId && profile?.userId && loggedInUserId === profile.userId) return true;
+    return false;
+  }, [memberId, propProfile, resolvedViewerId, profile?.mbrId, profile?.userId, loggedInUserId]);
+
   if (loading) {
     return (
       <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex items-center justify-center min-h-[120px]">
@@ -558,7 +595,6 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
 
   const isConnected = resolvedIsConnected;
   const connectionGrpName = resolvedConnectionGrpName;
-  const isSelf = Boolean(resolvedViewerId && profile?.mbrId && resolvedViewerId === profile.mbrId);
 
 
   // If viewing someone else's profile (not self) and mbrSettingsAllowPublicFlag is false or settings record does not exist
@@ -791,10 +827,23 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
         {/* LOWER LEFT: Connection Badge (or Connect Button / Inquiry Sent / Author Profile) */}
         <div className="flex items-center min-h-[32px]">
           {isSelf ? (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-600 rounded-xl text-xs font-serif font-medium">
-              <User className="w-3.5 h-3.5 text-slate-400" />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (onClickAuthorProfile) {
+                  onClickAuthorProfile();
+                } else {
+                  window.dispatchEvent(new CustomEvent('open-member-profile'));
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80 rounded-xl text-xs font-serif font-medium shadow-2xs hover:shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer group shrink-0"
+              title="View and edit your profile settings"
+            >
+              <User className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-800 transition-colors" />
               <span>Author Profile</span>
-            </div>
+            </button>
           ) : isConnected ? (
             <div
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 text-emerald-800 border border-emerald-200/90 rounded-xl text-xs font-serif shadow-2xs transition-all hover:bg-emerald-100/90 shrink-0"

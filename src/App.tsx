@@ -213,8 +213,15 @@ export default function App() {
         handleReadStory(customEvent.detail.memberId);
       }
     };
+    const handleProfileEvent = () => {
+      handleTabChange('mbrProfilePage');
+    };
     window.addEventListener('open-member-story', handleStoryEvent);
-    return () => window.removeEventListener('open-member-story', handleStoryEvent);
+    window.addEventListener('open-member-profile', handleProfileEvent);
+    return () => {
+      window.removeEventListener('open-member-story', handleStoryEvent);
+      window.removeEventListener('open-member-profile', handleProfileEvent);
+    };
   }, [activeTab]);
 
   // --- RENDERING (JSX) ---
@@ -390,6 +397,7 @@ export default function App() {
             <MbrAuthorPageFeature
               isSandbox={isSandbox}
               onClickBack={() => setActiveTab('mbrHomePage')}
+              onClickAuthorProfile={() => handleTabChange('mbrProfilePage')}
             />
           </motion.div>
         )}

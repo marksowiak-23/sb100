@@ -40,49 +40,23 @@ export default function SbMbrStoryPageFeature({
 }: SbMbrStoryPageFeatureProps) {
   const [activeSection, setActiveSection] = useState('Family');
   const [liveMember, setLiveMember] = useState<MemberStory | null>(null);
-
-  useEffect(() => {
-    if (!memberId) return;
-    const staticM = MEMBER_STORIES.find((m) => m.id === memberId);
-    if (staticM) {
-      setLiveMember(staticM);
-      return;
-    }
-    taskApi.getMemberById(memberId).then((mbr) => {
-      if (mbr) {
-        setLiveMember({
-          ...mbr,
-          id: mbr.mbrId,
-          mbrId: mbr.mbrId,
-          name: `${mbr.mbrFirstName || ''} ${mbr.mbrLastName || ''}`.trim() || 'Member',
-          location: mbr.mbrLivesCityState || mbr.mbrFromCityState || 'Storybook Member',
-          tags: ['Memoirs', 'Family', 'Heritage'],
-          joinedDate: mbr.mbrCreatedAt ? new Date(mbr.mbrCreatedAt).getFullYear().toString() : '2025',
-          avatarUrl: resolveMediaUrl(mbr.mbrProfilePic),
-          avatarInitials: `${mbr.mbrFirstName?.[0] || ''}${mbr.mbrLastName?.[0] || ''}`.toUpperCase() || 'SB',
-          chaptersCount: 1,
-          excerpt: mbr.mbrIntroduction || 'Preserving a lifetime of heritage, stories, and connections.'
-        });
-      }
-    }).catch((err) => {
-
-      console.warn("Failed to load member for story page:", err);
-    });
-  }, [memberId]);
-
-  // Look up current member
-  const member = liveMember || MEMBER_STORIES.find((m) => m.id === memberId) || MEMBER_STORIES[0];
-
   const [lockedTopicIds, setLockedTopicIds] = useState<string[]>([]);
   const [connectionGrpName, setConnectionGrpName] = useState<string>('');
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [viewerMbrId, setViewerMbrId] = useState<string | null>(null);
 
-  // Fetch live member profile from database & evaluate topic permissions
+  // Deterministic story author member ID
+  const storyAuthorMbrId = (!memberId || memberId === 'm1' || memberId === 'sandbox-id-eleanor')
+    ? 'e20986fa-0fb9-4081-ae5d-35bc8f504df0'
+    : memberId;
+
+  // Single unified effect for fetching author profile and evaluating topic privileges
   useEffect(() => {
+    let isCancelled = false;
+
     const resolveMemberAndPrivileges = async () => {
       try {
-        // 1. Determine logged-in member ID
+        // 1. Resolve logged-in viewer member ID
         let resolvedViewerId: string | null = null;
         const storedMbr = sessionStorage.getItem('sb_current_mbr');
         if (storedMbr) {
@@ -101,20 +75,48 @@ export default function SbMbrStoryPageFeature({
             } catch {}
           }
         }
+
+        if (isCancelled) return;
         setViewerMbrId(resolvedViewerId);
 
-        // Author member ID (the member whose story is being viewed)
-        const storyAuthorMbrId = member.id === 'm1' ? 'e20986fa-0fb9-4081-ae5d-35bc8f504df0' : (member.id || memberId);
+        // 2. Fetch live author member profile
+        const staticM = MEMBER_STORIES.find((m) => m.id === memberId || m.id === storyAuthorMbrId);
+        if (staticM) {
+          if (!isCancelled) setLiveMember(staticM);
+        } else {
+          try {
+            const mbr = await taskApi.getMemberById(storyAuthorMbrId);
+            if (mbr && !isCancelled) {
+              setLiveMember({
+                ...mbr,
+                id: mbr.mbrId,
+                mbrId: mbr.mbrId,
+                name: `${mbr.mbrFirstName || ''} ${mbr.mbrLastName || ''}`.trim() || 'Member',
+                location: mbr.mbrLivesCityState || mbr.mbrFromCityState || 'Storybook Member',
+                tags: ['Memoirs', 'Family', 'Heritage'],
+                joinedDate: mbr.mbrCreatedAt ? new Date(mbr.mbrCreatedAt).getFullYear().toString() : '2025',
+                avatarUrl: resolveMediaUrl(mbr.mbrProfilePic),
+                avatarInitials: `${mbr.mbrFirstName?.[0] || ''}${mbr.mbrLastName?.[0] || ''}`.toUpperCase() || 'SB',
+                chaptersCount: 1,
+                excerpt: mbr.mbrIntroduction || 'Preserving a lifetime of heritage, stories, and connections.'
+              });
+            }
+          } catch (err) {
+            console.warn("Failed to load live member profile:", err);
+          }
+        }
 
-        // If viewer is the author themselves, all topics are unlocked
+        // 3. If viewer is the author themselves, all topics are unlocked
         if (resolvedViewerId && storyAuthorMbrId && resolvedViewerId === storyAuthorMbrId) {
-          setLockedTopicIds([]);
-          setIsConnected(false);
-          setConnectionGrpName('');
+          if (!isCancelled) {
+            setLockedTopicIds([]);
+            setIsConnected(false);
+            setConnectionGrpName('');
+          }
           return;
         }
 
-        // 2. Fetch topics
+        // 4. Fetch topics list
         let topicsList: { topicId: string; topicName: string }[] = [];
         try {
           const fetchedTopics = await taskApi.getTopics();
@@ -136,30 +138,30 @@ export default function SbMbrStoryPageFeature({
           ];
         }
 
-        // 3. Find viewer's connection to story author:
+        // 5. Find viewer's connection to story author:
         let isUserConnected = false;
         let userConnectionGrpName = '';
         let assignedGrpId: string | null = null;
 
         if (resolvedViewerId && storyAuthorMbrId) {
           try {
-            // Check logged-in member's connection to story author (viewer is owner)
-            let viewerConns = await taskApi.getMemberConnections({
-              mbrId: resolvedViewerId,
-              connectedMbrId: storyAuthorMbrId
-            }).catch(() => []);
-
             // Check story author's connection to viewer (author is owner, defines author's group for viewer for privacy checks)
-            let authorConns = await taskApi.getMemberConnections({
+            const authorConns = await taskApi.getMemberConnections({
               mbrId: storyAuthorMbrId,
               connectedMbrId: resolvedViewerId
             }).catch(() => []);
 
-            if (viewerConns.length > 0 || authorConns.length > 0) {
+            // Check viewer's connection to story author (viewer is owner, defines badge label)
+            const viewerConns = await taskApi.getMemberConnections({
+              mbrId: resolvedViewerId,
+              connectedMbrId: storyAuthorMbrId
+            }).catch(() => []);
+
+            if (authorConns.length > 0 || viewerConns.length > 0) {
               isUserConnected = true;
             }
 
-            // Group assigned by author for viewer (used for topic permission checks)
+            // Group assigned by author for viewer (governs topic permission checks)
             if (authorConns.length > 0) {
               const authorConnGrps = await taskApi.getMemberConnectionGrps({
                 connectionId: authorConns[0].mbrConnectionId
@@ -176,7 +178,7 @@ export default function SbMbrStoryPageFeature({
               }
             }
 
-            // Group assigned by logged-in viewer for this member (to display on the badge)
+            // Group assigned by logged-in viewer for this member (displayed on the profile badge)
             let badgeGrpId = '';
             if (viewerConns.length > 0) {
               const viewerConnGrps = await taskApi.getMemberConnectionGrps({
@@ -209,10 +211,11 @@ export default function SbMbrStoryPageFeature({
           }
         }
 
+        if (isCancelled) return;
         setIsConnected(isUserConnected);
         setConnectionGrpName(userConnectionGrpName);
 
-        // Find 'Public' group ID
+        // 6. Find 'Public' group ID
         let publicGrpId: string | null = null;
         try {
           const globals = await taskApi.getGroupsGlobal();
@@ -221,7 +224,7 @@ export default function SbMbrStoryPageFeature({
         } catch {}
         if (!publicGrpId) publicGrpId = '13efcbad-d840-44ad-9b50-d6d2218e5cac';
 
-        // 4. Fetch author's member topic group privileges
+        // 7. Fetch author's member topic group privileges
         let authorPrivs: any[] = [];
         try {
           authorPrivs = await taskApi.getMemberTopicGroupPrivs({ mbrId: storyAuthorMbrId });
@@ -229,7 +232,9 @@ export default function SbMbrStoryPageFeature({
           console.warn("Could not fetch member topic group privileges:", e);
         }
 
-        // 5. Evaluate privilege per topic:
+        if (isCancelled) return;
+
+        // 8. Evaluate privilege per topic (Default-Deny Model):
         // - Viewer has access if their assigned group has 'READ' or 'WRITE' privilege.
         // - Or if the Public group has 'READ' or 'WRITE' privilege (and assigned group does not explicitly deny with NONE/HIDE).
         // - If neither grants access, the topic is locked (access restricted).
@@ -238,11 +243,6 @@ export default function SbMbrStoryPageFeature({
           const topicPrivs = (authorPrivs || []).filter(
             p => p.topicId === topic.topicId || p.topicId?.toLowerCase() === topic.topicName.toLowerCase()
           );
-
-          // If author has no custom privacy rules configured at all for this topic, lock or check
-          if (topicPrivs.length === 0) {
-            continue;
-          }
 
           // Check viewer's assigned connection group privilege
           let hasAssignedAccess = false;
@@ -270,16 +270,21 @@ export default function SbMbrStoryPageFeature({
           // Evaluate access:
           // 1. If assigned group explicitly grants access ('READ'/'WRITE') -> UNLOCKED
           // 2. If public group grants access ('READ'/'WRITE') and assigned group doesn't deny -> UNLOCKED
-          // 3. Otherwise -> LOCKED
+          // 3. Otherwise (no privileges configured, NONE, or not granted) -> LOCKED
           if (hasAssignedAccess) {
-            // Access granted via connection group
+            // Access granted via assigned connection group
           } else if (hasPublicAccess && !hasAssignedDenial) {
             // Access granted via public permissions
           } else {
+            // Locked by default
             locked.push(topic.topicName);
+            locked.push(topic.topicId);
+            locked.push(topic.topicName.toLowerCase());
+            locked.push(topic.topicId.toLowerCase());
           }
         }
 
+        if (isCancelled) return;
         setLockedTopicIds(locked);
 
         // If currently active section is locked, switch to first unlocked section if available
@@ -293,11 +298,17 @@ export default function SbMbrStoryPageFeature({
       } catch (err) {
         console.warn("Error resolving topic permissions:", err);
       }
-
     };
 
     resolveMemberAndPrivileges();
-  }, [member.id, memberId]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [memberId, storyAuthorMbrId]);
+
+  // Look up current member
+  const member = liveMember || MEMBER_STORIES.find((m) => m.id === memberId) || MEMBER_STORIES[0];
 
   // Retrieve active section contents
   const getActiveContent = (): string[] => {

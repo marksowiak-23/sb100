@@ -23,6 +23,7 @@ interface CenterColumnProps {
   activeContent: string[];
   onClickBack: () => void;
   onSaveActiveContent: (newContent: string[]) => void;
+  onClickAuthorProfile?: () => void;
 }
 
 export default function CenterColumn({
@@ -30,7 +31,8 @@ export default function CenterColumn({
   activeSection,
   activeContent,
   onClickBack,
-  onSaveActiveContent
+  onSaveActiveContent,
+  onClickAuthorProfile
 }: CenterColumnProps) {
   const [showStoryMate, setShowStoryMate] = useState(false);
   const [storyEditorConfig, setStoryEditorConfig] = useState<{
@@ -120,7 +122,12 @@ export default function CenterColumn({
       </div>
 
       {/* --- PROFILE SUMMARY CARD --- */}
-      <MbrProfilePanel isSandbox={isSandbox} />
+      <MbrProfilePanel
+        isSandbox={isSandbox}
+        showConnectButton={false}
+        showReadStoryButton={false}
+        onClickAuthorProfile={onClickAuthorProfile}
+      />
 
       {/* --- FAMILY DIRECTORY PANEL --- */}
       {(activeSection.toLowerCase() === 'family') && (
