@@ -23,7 +23,7 @@ export default function LeftColumn({ setActiveTab, onSelectLogonType }: LeftColu
           Storybook
         </h1>
         <p className="font-serif text-sm italic text-slate-500 tracking-wide">
-          Where every life becomes literature
+          Live it. Write it. Share it.
         </p>
       </div>
 

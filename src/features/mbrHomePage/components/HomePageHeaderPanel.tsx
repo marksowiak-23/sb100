@@ -15,7 +15,7 @@ export interface HomePageHeaderPanelProps {
 
 export default function HomePageHeaderPanel({
   title = 'Storybook',
-  tagline = 'Where every life becomes literature',
+  tagline = 'Live it. Write it. Share it.',
   className = ''
 }: HomePageHeaderPanelProps) {
   return (

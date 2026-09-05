@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, BookOpen, Images, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
+import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, BookOpen, Images, ChevronLeft, ChevronRight, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
@@ -436,6 +436,63 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
     return codeObj ? codeObj.cdDesc : cdVal;
   };
 
+  const calculateAge = (birthDateStr?: string): number | null => {
+    if (!birthDateStr) return null;
+    try {
+      const birthDate = new Date(birthDateStr);
+      if (isNaN(birthDate.getTime())) return null;
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age >= 0 ? age : null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // --- SORTING STATE ---
+  type SortColumn = 'name' | 'age' | 'relationship';
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (column: SortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedFamilyList = useMemo(() => {
+    if (!sortColumn) {
+      return sortFamilyList(familyList);
+    }
+    return [...familyList].sort((a, b) => {
+      let comparison = 0;
+      if (sortColumn === 'name') {
+        const nameA = `${a.mbrFamilyFirstNm} ${a.mbrFamilyLastNm}`.toLowerCase();
+        const nameB = `${b.mbrFamilyFirstNm} ${b.mbrFamilyLastNm}`.toLowerCase();
+        comparison = nameA.localeCompare(nameB);
+      } else if (sortColumn === 'age') {
+        const ageA = calculateAge(a.mbrFamilyBirthDt);
+        const ageB = calculateAge(b.mbrFamilyBirthDt);
+        if (ageA === null && ageB === null) comparison = 0;
+        else if (ageA === null) comparison = 1;
+        else if (ageB === null) comparison = -1;
+        else comparison = ageA - ageB;
+      } else if (sortColumn === 'relationship') {
+        const relA = getRelationLabel(a.mbrFamilyRelationshipCd).toLowerCase();
+        const relB = getRelationLabel(b.mbrFamilyRelationshipCd).toLowerCase();
+        comparison = relA.localeCompare(relB);
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [familyList, sortColumn, sortDirection, relationshipCodes]);
+
   // --- FAMILY PHOTO GALLERY HANDLERS ---
   const loadFamilyGallery = async (targetMbrId: string) => {
     if (!targetMbrId) return;
@@ -735,85 +792,156 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
           )}
         </div>
       ) : (
-        /* FAMILY CARD GRID (Max 2 cards per row, 3 rows visible before scrolling) */
-        <div className="max-h-[172px] overflow-y-auto pr-1">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-            {sortFamilyList(familyList).map((member) => (
-              <div
-                key={member.mbrFamilyId}
-                className="bg-white border border-[#EFECE7] rounded-xl py-2 px-2.5 flex items-center justify-between gap-2 hover:border-slate-300 hover:shadow-xs transition-all duration-200 group"
-              >
-                <div className="flex items-center gap-2.5 min-w-0 flex-grow">
-                  {/* Initials Avatar */}
-                  <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 font-serif font-bold text-xs shrink-0">
-                    {getInitials(member.mbrFamilyFirstNm, member.mbrFamilyLastNm)}
-                  </div>
+        /* FAMILY TABLE VIEW */
+        <div className="border border-[#EFECE7] rounded-2xl overflow-hidden bg-white shadow-xs">
+          <div className="max-h-[220px] overflow-y-auto overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#FAF8F5] border-b border-[#EFECE7] text-[11px] font-serif font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
+                  <th className="py-2.5 px-3.5 align-bottom">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('name')}
+                      className="group/btn inline-flex items-center gap-1.5 cursor-pointer select-none text-left font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider"
+                    >
+                      <span>Member</span>
+                      {sortColumn === 'name' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-2.5 px-3 align-bottom">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('age')}
+                      className="group/btn inline-flex items-center gap-1.5 cursor-pointer select-none text-left font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider"
+                    >
+                      <span>Age</span>
+                      {sortColumn === 'age' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-2.5 px-3 align-bottom">
+                    <button
+                      type="button"
+                      onClick={() => handleSort('relationship')}
+                      className="group/btn inline-flex items-center gap-1.5 cursor-pointer select-none text-left font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider"
+                    >
+                      <span>Relationship</span>
+                      {sortColumn === 'relationship' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        ) : (
+                          <ArrowDown className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-2.5 px-3.5 text-right align-bottom">
+                    <span className="inline-block uppercase tracking-wider">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#EFECE7]/70 text-xs">
+                {sortedFamilyList.map((member) => (
+                  <tr
+                    key={member.mbrFamilyId}
+                    className="hover:bg-slate-50/80 transition-colors group"
+                  >
+                    {/* Member Name + Avatar (without middle name) */}
+                    <td className="py-2.5 px-3.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-700 font-serif font-bold text-xs shrink-0">
+                          {getInitials(member.mbrFamilyFirstNm, member.mbrFamilyLastNm)}
+                        </div>
+                        <span className="font-serif font-bold text-slate-800 truncate">
+                          {member.mbrFamilyFirstNm} {member.mbrFamilyLastNm}
+                        </span>
+                      </div>
+                    </td>
 
-                  <div className="min-w-0 flex-grow">
-                    <h3 className="font-serif text-xs font-bold text-slate-800 truncate leading-snug">
-                      {member.mbrFamilyFirstNm} {member.mbrFamilyLastNm}
-                    </h3>
-                    
-                    {/* Badged relationship category & Birth date */}
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="inline-flex items-center px-1.5 py-0.2 text-[8px] font-bold bg-blue-50 text-blue-700 border border-blue-100/50 rounded-full uppercase tracking-wider">
+                    {/* Age */}
+                    <td className="py-2.5 px-3">
+                      {calculateAge(member.mbrFamilyBirthDt) !== null ? (
+                        <span className="font-mono text-slate-700 font-semibold text-xs">
+                          {calculateAge(member.mbrFamilyBirthDt)}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300 font-mono text-xs">—</span>
+                      )}
+                    </td>
+
+                    {/* Relationship Badge */}
+                    <td className="py-2.5 px-3">
+                      <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-100/70 rounded-full uppercase tracking-wider">
                         {getRelationLabel(member.mbrFamilyRelationshipCd)}
                       </span>
-                      {member.mbrFamilyBirthDt && (
-                        <span className="text-[9px] font-mono text-slate-400 font-medium">
-                          {member.mbrFamilyBirthDt}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                    </td>
 
-                {/* Card Action Buttons (Photo Gallery, Story Editor, Edit & Delete) */}
-                <div className="flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => handleOpenFamilyMemberGalleryModal(member)}
-                    title={`Photo Gallery for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
-                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Images className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                      detail: {
-                        topicId: 'family',
-                        topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
-                        componentName: 'sbMbrStryFamilyMember',
-                        subordinateId: member.mbrFamilyId,
-                        subordinateName: `${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`
-                      }
-                    }))}
-                    title={readOnly ? `View Stories for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}` : `Story Editor for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
-                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                  </button>
-                  {!readOnly && (
-                    <>
-                      <button
-                        onClick={() => handleOpenEditModal(member)}
-                        title="Edit Family Member"
-                        className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => promptDeleteMember(member)}
-                        title="Delete Family Member"
-                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </>
-                  )}
-                </div>
-
-              </div>
-            ))}
+                    {/* Actions */}
+                    <td className="py-2.5 px-3.5 text-right">
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          onClick={() => handleOpenFamilyMemberGalleryModal(member)}
+                          title={`Photo Gallery for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <Images className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
+                            detail: {
+                              topicId: 'family',
+                              topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
+                              componentName: 'sbMbrStryFamilyMember',
+                              subordinateId: member.mbrFamilyId,
+                              subordinateName: `${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`
+                            }
+                          }))}
+                          title={readOnly ? `View Stories for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}` : `Story Editor for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+                        </button>
+                        {!readOnly && (
+                          <>
+                            <button
+                              onClick={() => handleOpenEditModal(member)}
+                              title="Edit Family Member"
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Edit3 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => promptDeleteMember(member)}
+                              title="Delete Family Member"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

@@ -13,7 +13,7 @@ export default function SbHeroWelcomeCard() {
         Welcome to your Storybook
       </h2>
       <p className="text-slate-500 text-xs md:text-sm leading-relaxed max-w-xl font-serif">
-        Manage your connections, update your biography status checklist, or search for other members and read their public life chapters.
+        Discover the stories of friends and family while sharing the moments that shaped your own -- Live it. Write it. Share it.
       </p>
       <AdminComponentTag name="SbHeroWelcomeCard" />
     </div>
