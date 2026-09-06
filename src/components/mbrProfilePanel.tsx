@@ -619,7 +619,10 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
   const showPhotoGallery = settings ? settings.mbrSettingsShowPhotoGallery !== false : true;
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative overflow-hidden group">
+      {/* Top Accent Line */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+
       {/* Top Header & Metadata Block */}
       <div className="flex items-start gap-4">
         {/* Avatar image */}

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { User, ChevronDown, ChevronUp, BookOpen, Shield, Home, Users, MessageSquare, Bell, CheckCircle2, MessageCircle } from 'lucide-react';
+import { User, ChevronDown, ChevronUp, BookOpen, BookMarked, Shield, Home, Users, MessageSquare, Bell, CheckCircle2, MessageCircle } from 'lucide-react';
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -25,6 +25,8 @@ type TabType =
   | 'sbPublicPage'
   | 'mbrHomePage'
   | 'sbMbrHomePage'
+  | 'mbrStoryFeedPage'
+  | 'sbMbrStoryFeedPage'
   | 'mbrStoryPage'
   | 'sbMbrStoryPage'
   | 'mbrAuthorPage'
@@ -285,7 +287,27 @@ export default function MainLayout({
               <span className="text-[11px] font-sans tracking-tight leading-none">Home</span>
             </button>
 
-            {/* 2. Author */}
+            {/* 2. Stories */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('mbrStoryFeedPage');
+                setDropdownOpen(false);
+                setIsMessagingOpen(false);
+                setIsNotificationsOpen(false);
+              }}
+              className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
+                activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage'
+                  ? 'text-white border-b-2 border-white font-bold'
+                  : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
+              }`}
+              title="Stories Feed"
+            >
+              <BookMarked className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
+              <span className="text-[11px] font-sans tracking-tight leading-none">Stories</span>
+            </button>
+
+            {/* 3. Author */}
             <button
               type="button"
               onClick={() => {
@@ -769,24 +791,6 @@ export default function MainLayout({
             </button>
           </div>
         )}
-
-          <div className="text-right">
-            <div className="text-[10px] font-bold text-slate-300 uppercase tracking-widest font-mono">
-              Backend Status
-            </div>
-            <div
-              className={`text-xs font-semibold flex items-center gap-1.5 justify-end ${
-                isSandbox ? 'text-amber-400' : 'text-emerald-400'
-              }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isSandbox ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500 animate-ping'
-                }`}
-              ></span>
-              {isSandbox ? 'Sandbox Mode' : 'API Connected'}
-            </div>
-          </div>
         </div>
       </header>
 

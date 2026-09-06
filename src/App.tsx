@@ -23,6 +23,7 @@ import { ConnectionSettings, AdminConnectionsPage } from '@/src/features/adminCo
 import { AccountLookup, AdminAccountsPage, AdminUserAdminPage } from '@/src/features/adminUserAdminPage';
 import { PublicPageFeature, SbPublicPageFeature } from '@/src/features/publicPage';
 import { MbrHomePageFeature, SbMbrHomePageFeature } from '@/src/features/mbrHomePage';
+import { MbrStoryFeedPageFeature, SbMbrStoryFeedPageFeature } from '@/src/features/mbrStoryFeedPage';
 import { MbrStoryPageFeature, SbMbrStoryPageFeature } from '@/src/features/mbrStoryPage';
 import { MbrAuthorPageFeature, SbMbrAuthorPageFeature } from '@/src/features/mbrAuthorPage';
 import { MbrLogonPageFeature, SbMbrLogonFeature } from '@/src/features/mbrLogonPage';
@@ -52,6 +53,8 @@ type TabType =
   | 'sbPublicPage'
   | 'mbrHomePage'
   | 'sbMbrHomePage'
+  | 'mbrStoryFeedPage'
+  | 'sbMbrStoryFeedPage'
   | 'mbrStoryPage'
   | 'sbMbrStoryPage'
   | 'mbrAuthorPage'
@@ -358,6 +361,27 @@ export default function App() {
             className="w-full"
           >
             <MbrHomePageFeature
+              onClickReadStory={handleReadStory}
+              onClickAuthorPage={() => {
+                setPreviousTab(activeTab);
+                setActiveTab('mbrAuthorPage');
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* If the active tab is 'mbrStoryFeedPage' or legacy 'sbMbrStoryFeedPage', render the member story feed */}
+        {(activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage') && (
+          <motion.div
+            key="mbrStoryFeedPage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <MbrStoryFeedPageFeature
+              isSandbox={isSandbox}
               onClickReadStory={handleReadStory}
               onClickAuthorPage={() => {
                 setPreviousTab(activeTab);
