@@ -1,6 +1,4 @@
-import { User } from './api';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { User, API_BASE_URL } from './api';
 
 export interface LogonResult {
   success: boolean;
@@ -237,19 +235,11 @@ export const userManager = {
   },
 
   /**
-   * Logs out the current user by clearing out user session data and JWT tokens.
+   * Logs out the current user by clearing out all user session data, cached state, and JWT tokens.
    */
   userLogout(): void {
     try {
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('sb_token');
-      sessionStorage.removeItem('sb_current_mbr');
-      sessionStorage.removeItem('sandbox_mbr');
-      Object.keys(sessionStorage).forEach((key) => {
-        if (key.startsWith('session_pic_')) {
-          sessionStorage.removeItem(key);
-        }
-      });
+      sessionStorage.clear();
     } catch (e) {
       console.warn('Error clearing session data on logout:', e);
     }

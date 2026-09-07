@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, Calendar, MapPin, Sparkles, ChevronRight, User, Users, Bookmark } from 'lucide-react';
+import { BookOpen, Calendar, MapPin, Sparkles, ChevronRight, User, Users, Bookmark, CheckCircle2 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { resolveMediaUrl } from '@/src/services/api';
 
@@ -24,10 +24,12 @@ export interface FeedStoryItem {
   authorAvatarUrl?: string;
   authorInitials?: string;
   connectionGrpName?: string;
+  isConnection?: boolean;
 }
 
 interface MbrStoryFeedStoryPanelProps {
   story: FeedStoryItem;
+  isRead?: boolean;
   onClickReadStory?: (storyId: string, memberId: string) => void;
   onClickViewAuthor?: (memberId: string) => void;
 }
@@ -77,7 +79,9 @@ const formatDate = (dateStr?: string | null): string => {
 
 export default function MbrStoryFeedStoryPanel({
   story,
-  onClickReadStory
+  isRead = false,
+  onClickReadStory,
+  onClickViewAuthor
 }: MbrStoryFeedStoryPanelProps) {
   const topicKey = (story.mbrStoryTypeCd || '').toLowerCase();
   const badgeStyle = topicBadgeColors[topicKey] || {
@@ -94,10 +98,20 @@ export default function MbrStoryFeedStoryPanel({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group"
+      className={`bg-white dark:bg-slate-900 border rounded-2xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group ${
+        isRead
+          ? 'border-emerald-200/80 dark:border-emerald-800/50 bg-emerald-50/20 dark:bg-emerald-950/10'
+          : 'border-slate-200/80 dark:border-slate-800'
+      }`}
     >
       {/* Top Accent Line */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+      <div
+        className={`absolute top-0 left-0 right-0 h-1 transition-opacity ${
+          isRead
+            ? 'bg-emerald-500 opacity-90'
+            : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover:opacity-100'
+        }`}
+      />
 
       {/* Header: Author Info & Connection Metadata */}
       <div className="flex items-start justify-between gap-4 mb-5">
@@ -160,13 +174,25 @@ export default function MbrStoryFeedStoryPanel({
           </div>
         </div>
 
-        {/* Topic Badge */}
-        <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border} shrink-0`}
-        >
-          <Bookmark className="w-3 h-3" />
-          {displayTopic}
-        </span>
+        {/* Badges: Topic and Read Indicator */}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {isRead && (
+            <span
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs"
+              title="You have read this story in this session"
+            >
+              <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              <span>Read</span>
+            </span>
+          )}
+
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border} shrink-0`}
+          >
+            <Bookmark className="w-3 h-3" />
+            {displayTopic}
+          </span>
+        </div>
       </div>
 
       {/* Story Title */}
@@ -186,16 +212,29 @@ export default function MbrStoryFeedStoryPanel({
 
       {/* Card Action Footer */}
       <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-        <span className="text-xs text-slate-400 dark:text-slate-500 italic">
-          Published chapter in {displayTopic}
-        </span>
+        <div className="flex items-center gap-2">
+          {isRead ? (
+            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+              <span>Completed Reading</span>
+            </span>
+          ) : (
+            <span className="text-xs text-slate-400 dark:text-slate-500 italic">
+              Published story in {displayTopic}
+            </span>
+          )}
+        </div>
 
         <button
           type="button"
           onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-300 transition-colors focus:outline-none cursor-pointer"
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors focus:outline-none cursor-pointer ${
+            isRead
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40'
+              : 'bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-300'
+          }`}
         >
-          <span>Read Full Story</span>
+          <span>{isRead ? 'Read Again' : 'Read Full Story'}</span>
           <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
         </button>
       </div>

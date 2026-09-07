@@ -760,6 +760,7 @@ export default function MainLayout({
                       onClick={() => {
                         userManager.userLogout();
                         setProfilePic(null);
+                        setUserName('StoryBook Member');
                         setActiveTab('publicPage');
                         setDropdownOpen(false);
                       }}

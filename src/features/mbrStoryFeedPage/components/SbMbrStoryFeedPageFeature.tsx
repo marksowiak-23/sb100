@@ -36,7 +36,8 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorLocation: 'New Orleans, LA',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&auto=format',
     authorInitials: 'MD',
-    connectionGrpName: 'Friends'
+    connectionGrpName: 'Friends',
+    isConnection: true
   },
   {
     mbrStoryId: 'feed_st_2',
@@ -50,7 +51,8 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorLocation: 'Chicago, IL',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=120&h=120&fit=crop&auto=format',
     authorInitials: 'PC',
-    connectionGrpName: 'Colleagues'
+    connectionGrpName: 'Colleagues',
+    isConnection: true
   },
   {
     mbrStoryId: 'feed_st_3',
@@ -64,7 +66,23 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorLocation: 'Portland, OR',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&auto=format',
     authorInitials: 'EH',
-    connectionGrpName: 'Family'
+    connectionGrpName: 'Family',
+    isConnection: true
+  },
+  {
+    mbrStoryId: 'feed_st_pub_1',
+    mbrStoryTitle: 'Voices from the Columbia River Basin',
+    mbrStoryContent: 'The river has a rhythm that dictates everything in the Pacific Northwest basin. From the spring salmon runs to the late summer fires across the timber ridges, our lives were indelibly tied to the water currents and valley winds.',
+    mbrStoryPublishStatusCd: 'Published',
+    mbrStoryPublishedDate: '2026-09-01T15:10:00Z',
+    mbrStoryTypeCd: 'sbMbrStryResidence',
+    authorMbrId: 'm5',
+    authorName: 'David Miller',
+    authorLocation: 'Vancouver, WA',
+    authorAvatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&auto=format',
+    authorInitials: 'DM',
+    connectionGrpName: 'Public',
+    isConnection: false
   },
   {
     mbrStoryId: 'feed_st_4',
@@ -78,7 +96,8 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorLocation: 'Boston, MA',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&auto=format',
     authorInitials: 'TW',
-    connectionGrpName: 'Family'
+    connectionGrpName: 'Family',
+    isConnection: true
   },
   {
     mbrStoryId: 'feed_st_5',
@@ -92,7 +111,8 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorLocation: 'Portland, OR',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&auto=format',
     authorInitials: 'EH',
-    connectionGrpName: 'Family'
+    connectionGrpName: 'Family',
+    isConnection: true
   },
   {
     mbrStoryId: 'feed_st_6',
@@ -106,7 +126,23 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorLocation: 'New Orleans, LA',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&auto=format',
     authorInitials: 'MD',
-    connectionGrpName: 'Friends'
+    connectionGrpName: 'Friends',
+    isConnection: true
+  },
+  {
+    mbrStoryId: 'feed_st_pub_2',
+    mbrStoryTitle: 'Stargazing at Joshua Tree National Park',
+    mbrStoryContent: 'Under the inky desert canopy where the Milky Way stretches unbroken from horizon to horizon, time feels both ancient and immediate. Camping beneath the silhouettes of the Joshua trees offered a silence I had not experienced in decades.',
+    mbrStoryPublishStatusCd: 'Published',
+    mbrStoryPublishedDate: '2026-08-26T21:00:00Z',
+    mbrStoryTypeCd: 'sbMbrStryActivity',
+    authorMbrId: 'm6',
+    authorName: 'Clara Vance',
+    authorLocation: 'Palm Springs, CA',
+    authorAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&auto=format',
+    authorInitials: 'CV',
+    connectionGrpName: 'Public',
+    isConnection: false
   },
   {
     mbrStoryId: 'feed_st_7',
@@ -120,7 +156,8 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorLocation: 'Portland, OR',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&auto=format',
     authorInitials: 'EH',
-    connectionGrpName: 'Family'
+    connectionGrpName: 'Family',
+    isConnection: true
   },
   {
     mbrStoryId: 'feed_st_8',
@@ -134,7 +171,8 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorLocation: 'Chicago, IL',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=120&h=120&fit=crop&auto=format',
     authorInitials: 'PC',
-    connectionGrpName: 'Colleagues'
+    connectionGrpName: 'Colleagues',
+    isConnection: true
   },
   {
     mbrStoryId: 'feed_st_9',
@@ -148,7 +186,8 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorLocation: 'Portland, OR',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&auto=format',
     authorInitials: 'EH',
-    connectionGrpName: 'Family'
+    connectionGrpName: 'Family',
+    isConnection: true
   },
   {
     mbrStoryId: 'feed_st_10',
@@ -162,7 +201,8 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorLocation: 'Boston, MA',
     authorAvatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&auto=format',
     authorInitials: 'TW',
-    connectionGrpName: 'Family'
+    connectionGrpName: 'Family',
+    isConnection: true
   }
 ];
 
@@ -173,7 +213,26 @@ export default function SbMbrStoryFeedPageFeature({
   onClickAuthorPage
 }: SbMbrStoryFeedPageFeatureProps) {
   const [allStories, setAllStories] = useState<FeedStoryItem[]>([]);
-  const [visibleCount, setVisibleCount] = useState<number>(PAGE_SIZE);
+  const [visibleCount, setVisibleCount] = useState<number>(() => {
+    try {
+      const savedCount = sessionStorage.getItem('sb_feed_visible_count');
+      if (savedCount) {
+        const parsed = parseInt(savedCount, 10);
+        if (!isNaN(parsed) && parsed >= PAGE_SIZE) return parsed;
+      }
+    } catch {}
+    return PAGE_SIZE;
+  });
+  const [readStoryIds, setReadStoryIds] = useState<Set<string>>(() => {
+    try {
+      const raw = sessionStorage.getItem('sb_read_stories');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return new Set(parsed);
+      }
+    } catch {}
+    return new Set();
+  });
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [connectedCirclesCount, setConnectedCirclesCount] = useState<number>(0);
@@ -321,6 +380,7 @@ export default function SbMbrStoryFeedPageFeature({
             // Find viewer's connection to author (governs the circle badge shown in UI)
             const viewerToAuthorConn = (viewerConns || []).find(c => c.mbrId === resolvedViewerId && c.mbrConnectionMbrId === authorId);
 
+            const isConnection = Boolean(authorToViewerConn || viewerToAuthorConn);
             const authorAssignedGrpInfo = authorToViewerConn ? grpByConnId.get(authorToViewerConn.mbrConnectionId) : undefined;
             const viewerAssignedGrpInfo = viewerToAuthorConn ? grpByConnId.get(viewerToAuthorConn.mbrConnectionId) : undefined;
 
@@ -400,7 +460,8 @@ export default function SbMbrStoryFeedPageFeature({
                   authorLocation,
                   authorAvatarUrl,
                   authorInitials,
-                  connectionGrpName
+                  connectionGrpName,
+                  isConnection
                 });
               }
             }
@@ -445,22 +506,82 @@ export default function SbMbrStoryFeedPageFeature({
     };
   }, [isSandbox]);
 
+  // Refresh read stories from session storage on mount / return
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('sb_read_stories');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setReadStoryIds(new Set(parsed));
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Restore scroll position when returning to feed
+  useEffect(() => {
+    if (!loading && allStories.length > 0) {
+      const savedScroll = sessionStorage.getItem('sb_feed_scroll_pos');
+      if (savedScroll !== null) {
+        const top = parseInt(savedScroll, 10);
+        if (!isNaN(top) && top > 0) {
+          requestAnimationFrame(() => {
+            window.scrollTo({ top, left: 0, behavior: 'instant' });
+          });
+        }
+      }
+    }
+  }, [loading, allStories.length]);
+
+  const [connectionsOnly, setConnectionsOnly] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('sb_feed_connections_only') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleConnectionsOnly = useCallback((val: boolean) => {
+    setConnectionsOnly(val);
+    try {
+      sessionStorage.setItem('sb_feed_connections_only', val ? 'true' : 'false');
+    } catch {}
+  }, []);
+
+  // Filtered stories based on connectionsOnly toggle
+  const filteredStories = useMemo(() => {
+    if (!connectionsOnly) return allStories;
+    return allStories.filter(story => {
+      if (typeof story.isConnection === 'boolean') {
+        return story.isConnection;
+      }
+      return story.connectionGrpName && story.connectionGrpName.toLowerCase() !== 'public';
+    });
+  }, [allStories, connectionsOnly]);
+
   // Sliced top stories based on visibleCount
   const visibleStories = useMemo(() => {
-    return allStories.slice(0, visibleCount);
-  }, [allStories, visibleCount]);
+    return filteredStories.slice(0, visibleCount);
+  }, [filteredStories, visibleCount]);
 
-  const hasMore = visibleCount < allStories.length;
+  const hasMore = visibleCount < filteredStories.length;
 
   // Handle loading next 5 stories
   const handleLoadMore = useCallback(() => {
     if (loading || loadingMore || !hasMore) return;
     setLoadingMore(true);
     setTimeout(() => {
-      setVisibleCount(prev => Math.min(prev + PAGE_SIZE, allStories.length));
+      setVisibleCount(prev => {
+        const next = Math.min(prev + PAGE_SIZE, filteredStories.length);
+        try {
+          sessionStorage.setItem('sb_feed_visible_count', next.toString());
+        } catch {}
+        return next;
+      });
       setLoadingMore(false);
     }, 300);
-  }, [loading, loadingMore, hasMore, allStories.length]);
+  }, [loading, loadingMore, hasMore, filteredStories.length]);
 
   // Infinite scroll listener: triggers when scrolling near the bottom of the page
   useEffect(() => {
@@ -479,6 +600,22 @@ export default function SbMbrStoryFeedPageFeature({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleLoadMore, loading, loadingMore, hasMore]);
 
+  // Handle clicking to read story with scroll position saving and session read marking
+  const handleReadStory = useCallback((storyId: string, memberId: string) => {
+    try {
+      sessionStorage.setItem('sb_feed_scroll_pos', window.scrollY.toString());
+      sessionStorage.setItem('sb_feed_visible_count', visibleCount.toString());
+      const raw = sessionStorage.getItem('sb_read_stories');
+      const list: string[] = raw ? JSON.parse(raw) : [];
+      if (!list.includes(storyId)) {
+        list.push(storyId);
+        sessionStorage.setItem('sb_read_stories', JSON.stringify(list));
+      }
+      setReadStoryIds(new Set(list));
+    } catch {}
+    onClickReadStory?.(storyId, memberId);
+  }, [visibleCount, onClickReadStory]);
+
   return (
     <div className="w-full relative">
       <PageSeo
@@ -492,7 +629,7 @@ export default function SbMbrStoryFeedPageFeature({
         {/* Left Column Section: Header & Feed Info */}
         <div className="lg:col-span-3">
           <LeftColumn
-            totalStoriesCount={allStories.length}
+            totalStoriesCount={filteredStories.length}
             connectionsCount={connectedCirclesCount}
             onClickAuthorPage={onClickAuthorPage}
           />
@@ -505,8 +642,11 @@ export default function SbMbrStoryFeedPageFeature({
             loading={loading}
             loadingMore={loadingMore}
             hasMore={hasMore}
+            readStoryIds={readStoryIds}
+            connectionsOnly={connectionsOnly}
+            setConnectionsOnly={handleToggleConnectionsOnly}
             onLoadMore={handleLoadMore}
-            onClickReadStory={onClickReadStory}
+            onClickReadStory={handleReadStory}
             onClickViewAuthor={onClickViewAuthor}
           />
         </div>

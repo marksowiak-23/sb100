@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, BookOpen, Images, ChevronLeft, ChevronRight, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { taskApi, mediaApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
+import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 
@@ -562,7 +562,7 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
       const destinationPath = `member/${mbrId}/family/${cleanFileName}`;
 
       const uploadRes = await mediaApi.uploadMedia(file, destinationPath);
-      const mediaBase = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
+      const mediaBase = MEDIA_API_BASE_URL;
       const rawUrl = uploadRes.data?.name ? `${mediaBase}/media/read/${uploadRes.data.name}` : `${mediaBase}/media/read/${destinationPath}`;
       const storageUrl = resolveMediaUrl(rawUrl);
 

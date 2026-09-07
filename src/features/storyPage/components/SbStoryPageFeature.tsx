@@ -79,6 +79,20 @@ export default function SbStoryPageFeature({
   const [isRestricted, setIsRestricted] = useState<boolean>(false);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    if (storyId) {
+      try {
+        const raw = sessionStorage.getItem('sb_read_stories');
+        const list: string[] = raw ? JSON.parse(raw) : [];
+        if (!list.includes(storyId)) {
+          list.push(storyId);
+          sessionStorage.setItem('sb_read_stories', JSON.stringify(list));
+        }
+      } catch {}
+    }
+  }, [storyId]);
+
+  useEffect(() => {
     let isCancelled = false;
 
     const loadStoryDetails = async () => {
@@ -137,6 +151,17 @@ export default function SbStoryPageFeature({
           } catch (e) {
             console.warn(`Could not load story by ID ${storyId}:`, e);
           }
+        }
+
+        if (loadedStory?.mbrStoryId) {
+          try {
+            const raw = sessionStorage.getItem('sb_read_stories');
+            const list: string[] = raw ? JSON.parse(raw) : [];
+            if (!list.includes(loadedStory.mbrStoryId)) {
+              list.push(loadedStory.mbrStoryId);
+              sessionStorage.setItem('sb_read_stories', JSON.stringify(list));
+            }
+          } catch {}
         }
 
         // If storyId wasn't direct, try fetching member's published stories
@@ -308,34 +333,25 @@ export default function SbStoryPageFeature({
   const authorInitials = `${authorProfile?.mbrFirstName?.[0] || ''}${authorProfile?.mbrLastName?.[0] || ''}`.toUpperCase() || story?.authorInitials || 'SB';
 
   return (
-    <div className="min-h-screen pb-16">
+    <div className="w-full relative">
       <PageSeo
         title={`${story?.mbrStoryTitle || 'Story'} | StoryBook`}
         description={story?.mbrStoryContent?.slice(0, 150) || "Read personal memoir chapters on StoryBook."}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
-          {/* Left Column */}
+      {/* 3-Column Responsive Grid Structure */}
+      {/* lg:grid-cols-12 distributes proportions as 3/12 (Left), 6/12 (Center), and 3/12 (Right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
+        {/* Left Column */}
+        <div className="lg:col-span-3">
           <LeftColumn
-            authorName={authorName}
-            authorLocation={authorLocation}
-            authorAvatarUrl={authorAvatarUrl}
-            authorInitials={authorInitials}
-            authorWorksAt={authorProfile?.mbrWorkAt}
-            authorStudiedAt={authorProfile?.mbrStudiedAt}
-            authorIntroduction={authorProfile?.mbrIntroduction}
-            connectionGrpName={connectionGrpName}
             topicName={story?.mbrStoryTypeCd}
             onClickBack={onClickBack}
-            onClickViewAuthorStorybook={
-              onClickViewAuthorStorybook && (story?.mbrMbrId || story?.authorMbrId)
-                ? () => onClickViewAuthorStorybook(story?.mbrMbrId || story?.authorMbrId)
-                : undefined
-            }
           />
+        </div>
 
-          {/* Center Column */}
+        {/* Center Column */}
+        <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
           <CenterColumn
             storyTitle={story?.mbrStoryTitle}
             storyContent={story?.mbrStoryContent}
@@ -355,8 +371,10 @@ export default function SbStoryPageFeature({
                 : undefined
             }
           />
+        </div>
 
-          {/* Right Column */}
+        {/* Right Column */}
+        <div className="lg:col-span-3">
           <RightColumn />
         </div>
       </div>

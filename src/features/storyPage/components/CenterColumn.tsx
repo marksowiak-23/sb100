@@ -104,7 +104,7 @@ export default function CenterColumn({
 
   if (isLoading) {
     return (
-      <main className="flex-1 min-w-0 space-y-6">
+      <div className="space-y-6 relative">
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-8 shadow-sm animate-pulse space-y-6">
           <div className="h-6 w-32 bg-slate-200 dark:bg-slate-800 rounded-full" />
           <div className="h-10 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-xl" />
@@ -115,13 +115,13 @@ export default function CenterColumn({
             <div className="h-4 w-5/6 bg-slate-200 dark:bg-slate-800 rounded-md" />
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   if (isRestricted) {
     return (
-      <main className="flex-1 min-w-0 space-y-6">
+      <div className="space-y-6 relative">
         <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-8 sm:p-12 shadow-sm text-center relative overflow-hidden">
           <div className="w-16 h-16 mx-auto rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/40 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-5">
             <ShieldAlert className="w-8 h-8" />
@@ -143,12 +143,12 @@ export default function CenterColumn({
             </button>
           )}
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="flex-1 min-w-0 space-y-6">
+    <div className="space-y-6 relative">
       <motion.article
         initial={{ opacity: 0, y: 15 }}
         animate={{ opacity: 1, y: 0 }}
@@ -274,23 +274,12 @@ export default function CenterColumn({
                 <span>Back to Stories</span>
               </button>
             )}
-
-            {onClickViewAuthorStorybook && (
-              <button
-                type="button"
-                onClick={onClickViewAuthorStorybook}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors focus:outline-none cursor-pointer"
-              >
-                <BookOpen className="w-3.5 h-3.5" />
-                <span>Explore Author's Storybook</span>
-              </button>
-            )}
           </div>
         </div>
 
         <AdminComponentTag name="storyPageCenterColumn" />
       </motion.article>
-    </main>
+    </div>
   );
 }
 

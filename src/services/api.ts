@@ -137,6 +137,27 @@ export interface Cd {
   cdUpdatedAt?: string;
 }
 
+export interface EventRecord {
+  eventId: string;
+  eventSiteCd: string;
+  eventActorId?: string;
+  eventActorTypeCd?: string;
+  eventCd: string;
+  eventDetail?: string;
+  eventTagValue?: Record<string, any>;
+  eventCreatedAt?: string;
+  eventUpdatedAt?: string;
+}
+
+export interface EventCreate {
+  eventSiteCd?: string;
+  eventActorId?: string;
+  eventActorTypeCd?: string;
+  eventCd: string;
+  eventDetail?: string;
+  eventTagValue?: Record<string, any>;
+}
+
 export type LookupCode = Cd | {
   cdId?: string;
   cdTag: string;
@@ -265,7 +286,30 @@ export interface SignedUrlResponse {
 
 
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+/**
+ * Resolves the service base URL. If running in a browser accessed via a LAN IP or hostname
+ * (e.g. from a mobile phone or another device on the network), and the configured URL targets
+ * localhost or 127.0.0.1, this automatically swaps 'localhost' for the current window.location.hostname
+ * so all devices on the local network can access backend services seamlessly.
+ */
+export function getServiceBaseUrl(port: number, envUrl?: string): string {
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    const isLocalAccess = hostname === 'localhost' || hostname === '127.0.0.1';
+
+    if (!isLocalAccess && hostname) {
+      // If envUrl is explicitly provided and points to a remote domain (not localhost/127.0.0.1), respect it
+      if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+        return envUrl;
+      }
+      const protocol = window.location.protocol || 'http:';
+      return `${protocol}//${hostname}:${port}`;
+    }
+  }
+  return envUrl || `http://localhost:${port}`;
+}
+
+export const API_BASE_URL = getServiceBaseUrl(8000, import.meta.env.VITE_API_URL);
 
 export function getAuthHeaders(existingHeaders: Record<string, string> = {}): Record<string, string> {
   const headers: Record<string, string> = { ...existingHeaders };
@@ -1753,7 +1797,7 @@ export interface ChatResponse {
   tokens_used?: number;
 }
 
-const AI_API_BASE_URL = import.meta.env.VITE_API_URL_AI || 'http://localhost:8002';
+export const AI_API_BASE_URL = getServiceBaseUrl(8002, import.meta.env.VITE_API_URL_AI);
 
 export const chatApi = {
   /**
@@ -1817,7 +1861,7 @@ export interface SignedUrlResponse {
   expiration_minutes: number;
 }
 
-const MEDIA_API_BASE_URL = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
+export const MEDIA_API_BASE_URL = getServiceBaseUrl(8003, import.meta.env.VITE_API_URL_MEDIA);
 
 export const mediaApi = {
   /**
@@ -1834,30 +1878,14 @@ export const mediaApi = {
   },
 
   /**
-   * Upload an image/media file to Cloud Storage via sb-api-media.
+   * List all objects in the GCS media bucket with optional prefix filtering.
    */
-  async uploadMedia(file: File, destinationPath?: string): Promise<MediaUploadResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (destinationPath && destinationPath.trim() !== '') {
-      formData.append('destination_path', destinationPath.trim());
+  async listMedia(prefix?: string): Promise<MediaListResponse> {
+    const url = new URL(`${MEDIA_API_BASE_URL}/media/list`);
+    if (prefix) {
+      url.searchParams.append('prefix', prefix);
     }
-    const response = await fetch(`${MEDIA_API_BASE_URL}/media/upload`, {
-      method: 'POST',
-      body: formData,
-    });
-    return handleResponse<MediaUploadResponse>(response);
-  },
-
-  /**
-   * List media objects in GCS bucket with optional prefix and max results limit.
-   */
-  async listMedia(prefix?: string, maxResults: number = 100): Promise<MediaListResponse> {
-    let url = `${MEDIA_API_BASE_URL}/media/list?max_results=${maxResults}`;
-    if (prefix && prefix.trim() !== '') {
-      url += `&prefix=${encodeURIComponent(prefix.trim())}`;
-    }
-    const response = await fetch(url, {
+    const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -1867,35 +1895,29 @@ export const mediaApi = {
   },
 
   /**
-   * Fetch object metadata.
+   * Uploads a raw binary file to GCS with optional custom object name.
    */
-  async getMetadata(objectName: string): Promise<MediaObject> {
-    const response = await fetch(`${MEDIA_API_BASE_URL}/media/metadata/${encodeURIComponent(objectName)}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
+  async uploadMedia(file: File | Blob, destinationName?: string, contentType?: string): Promise<MediaUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (destinationName) {
+      formData.append('destination_name', destinationName);
+    }
+    if (contentType) {
+      formData.append('content_type', contentType);
+    }
+
+    const response = await fetch(`${MEDIA_API_BASE_URL}/media/upload`, {
+      method: 'POST',
+      body: formData,
     });
-    return handleResponse<MediaObject>(response);
+    return handleResponse<MediaUploadResponse>(response);
   },
 
   /**
-   * Delete a media object from GCS bucket.
+   * Generates a pre-signed PUT or GET URL for direct, secure uploads/downloads.
    */
-  async deleteMedia(objectName: string): Promise<{ message: string; bucket: string }> {
-    const response = await fetch(`${MEDIA_API_BASE_URL}/media/${encodeURIComponent(objectName)}`, {
-      method: 'DELETE',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    return handleResponse<{ message: string; bucket: string }>(response);
-  },
-
-  /**
-   * Generate a GCS Signed URL for direct access/download.
-   */
-  async createSignedUrl(objectName: string, method: string = 'GET', expirationMinutes: number = 15): Promise<SignedUrlResponse> {
+  async getSignedUrl(objectName: string, method: 'GET' | 'PUT' = 'GET', expirationMinutes: number = 15): Promise<SignedUrlResponse> {
     const response = await fetch(`${MEDIA_API_BASE_URL}/media/signed-url`, {
       method: 'POST',
       headers: {
@@ -1912,7 +1934,7 @@ export const mediaApi = {
   },
 
   /**
-   * Get direct streaming read URL for media content display.
+   * Convenience reader method: constructs the direct streaming media proxy URL.
    */
   getReadUrl(objectName: string): string {
     return `${MEDIA_API_BASE_URL}/media/read/${objectName}`;
@@ -1921,11 +1943,11 @@ export const mediaApi = {
 
 /**
  * Resolves direct private GCS object URLs (https://storage.googleapis.com/sb-media-01/... or gs://sb-media-01/...)
- * to authenticated media streaming proxy URLs (http://localhost:8003/media/read/...) for browser rendering.
+ * to authenticated media streaming proxy URLs (http://<host>:8003/media/read/...) for browser rendering.
  */
 export function resolveMediaUrl(url: string | null | undefined): string {
   if (!url) return '';
-  const mediaBase = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
+  const mediaBase = MEDIA_API_BASE_URL;
   const gcsPrefix = 'https://storage.googleapis.com/sb-media-01/';
   const gsPrefix = 'gs://sb-media-01/';
 
@@ -1937,6 +1959,17 @@ export function resolveMediaUrl(url: string | null | undefined): string {
     const objectPath = url.substring(gsPrefix.length);
     return `${mediaBase}/media/read/${objectPath}`;
   }
+
+  // Rewrite hardcoded localhost/127.0.0.1 media URLs if accessed over LAN IP
+  if (typeof window !== 'undefined' && window.location && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    if (url.includes('localhost:8003') || url.includes('127.0.0.1:8003')) {
+      return url.replace(/https?:\/\/(localhost|127\.0\.0\.1):8003/, mediaBase);
+    }
+    if (url.includes('localhost:8000') || url.includes('127.0.0.1:8000')) {
+      return url.replace(/https?:\/\/(localhost|127\.0\.0\.1):8000/, API_BASE_URL);
+    }
+  }
+
   return url;
 }
 
@@ -2203,6 +2236,65 @@ export const mbrAiUsageLogApi = {
       },
     });
     return handleResponse<MbrAiUsageLog>(response);
+  }
+};
+
+export const eventApi = {
+  /**
+   * Log an event explicitly from the frontend client.
+   */
+  async logEvent(event: EventCreate): Promise<EventRecord> {
+    const response = await fetch(`${API_BASE_URL}/events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        eventSiteCd: event.eventSiteCd || 'SB',
+        ...event,
+      }),
+    });
+    return handleResponse<EventRecord>(response);
+  },
+
+  /**
+   * Fetch logged events with optional filters.
+   */
+  async getEvents(params?: {
+    skip?: number;
+    limit?: number;
+    eventCd?: string;
+    eventActorId?: string;
+    eventSiteCd?: string;
+  }): Promise<EventRecord[]> {
+    const query = new URLSearchParams();
+    if (params?.skip !== undefined) query.set('skip', params.skip.toString());
+    if (params?.limit !== undefined) query.set('limit', params.limit.toString());
+    if (params?.eventCd) query.set('eventCd', params.eventCd);
+    if (params?.eventActorId) query.set('eventActorId', params.eventActorId);
+    if (params?.eventSiteCd) query.set('eventSiteCd', params.eventSiteCd);
+
+    const response = await fetch(`${API_BASE_URL}/events?${query.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<EventRecord[]>(response);
+  },
+
+  /**
+   * Fetch a single event by ID.
+   */
+  async getEvent(eventId: string): Promise<EventRecord> {
+    const response = await fetch(`${API_BASE_URL}/events/${encodeURIComponent(eventId)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<EventRecord>(response);
   }
 };
 

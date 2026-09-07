@@ -9,7 +9,7 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 export default function RightColumn() {
   return (
-    <aside className="w-full lg:w-80 shrink-0 space-y-6">
+    <aside className="w-full space-y-6">
       <SponsorsPanel />
       <AdminComponentTag name="storyPageRightColumn" />
     </aside>

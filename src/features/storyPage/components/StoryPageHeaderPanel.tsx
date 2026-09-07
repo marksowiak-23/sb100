@@ -42,7 +42,7 @@ export default function StoryPageHeaderPanel({
               Story Reading Room
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-sans">
-              {topicName ? `Reading chapter in ${topicName}` : 'Personal journeys, milestones, and life chapters'}
+              Personal journeys, milestones, and life chapters
             </p>
           </div>
         </div>

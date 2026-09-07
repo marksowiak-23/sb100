@@ -207,6 +207,7 @@ export default function App() {
       setSelectedStoryId(storyIdOrMemberId);
       setSelectedMemberId(authorMemberId);
       setActiveTab('storyPage');
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       return;
     }
     setSelectedMemberId(storyIdOrMemberId);

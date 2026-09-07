@@ -5,14 +5,18 @@
 
 import React from 'react';
 import MbrStoryFeedStoryPanel, { FeedStoryItem } from './MbrStoryFeedStoryPanel';
+import StoryFeedSubHeaderPanel from './StoryFeedSubHeaderPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import { BookOpen, Sparkles, Loader2, Search, CheckCircle2, UserCheck, ArrowDown } from 'lucide-react';
+import { BookOpen, Loader2, CheckCircle2, ArrowDown } from 'lucide-react';
 
 interface CenterColumnProps {
   stories: FeedStoryItem[];
   loading: boolean;
   loadingMore: boolean;
   hasMore: boolean;
+  readStoryIds?: Set<string>;
+  connectionsOnly?: boolean;
+  setConnectionsOnly?: (val: boolean) => void;
   onLoadMore?: () => void;
   onClickReadStory?: (storyId: string, memberId: string) => void;
   onClickViewAuthor?: (memberId: string) => void;
@@ -23,6 +27,9 @@ export default function CenterColumn({
   loading,
   loadingMore,
   hasMore,
+  readStoryIds,
+  connectionsOnly = false,
+  setConnectionsOnly,
   onLoadMore,
   onClickReadStory,
   onClickViewAuthor
@@ -30,22 +37,11 @@ export default function CenterColumn({
   return (
     <div className="space-y-6 relative">
       {/* Feed Sub-Header */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm flex items-center justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Latest Stories from Your Circle</span>
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Ordered chronologically by most recently published chapter
-          </p>
-        </div>
-
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-200/60 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-medium">
-          <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-          <span>{stories.length} Loaded</span>
-        </div>
-      </div>
+      <StoryFeedSubHeaderPanel
+        storiesCount={stories.length}
+        connectionsOnly={connectionsOnly}
+        setConnectionsOnly={setConnectionsOnly}
+      />
 
       {/* Loading Skeleton */}
       {loading && (
@@ -81,10 +77,12 @@ export default function CenterColumn({
           </div>
           <div className="max-w-md mx-auto space-y-2">
             <h3 className="font-serif text-xl font-bold text-slate-900 dark:text-white">
-              No Published Stories Yet
+              {connectionsOnly ? 'No Connected Stories Found' : 'No Published Stories Yet'}
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              When members in your connections publish new chapters and grant viewing privileges for your circle, their stories will appear here.
+              {connectionsOnly
+                ? 'No published stories found from members in your connections. Uncheck "My Connections Only" to explore all available stories.'
+                : 'When members in your connections publish new chapters and grant viewing privileges for your circle, their stories will appear here.'}
             </p>
           </div>
         </div>
@@ -97,6 +95,7 @@ export default function CenterColumn({
             <MbrStoryFeedStoryPanel
               key={story.mbrStoryId}
               story={story}
+              isRead={readStoryIds ? readStoryIds.has(story.mbrStoryId) : false}
               onClickReadStory={onClickReadStory}
               onClickViewAuthor={onClickViewAuthor}
             />

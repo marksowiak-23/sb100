@@ -11,7 +11,7 @@ import {
   AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Mail, Plus, Trash2, Check,
   Sliders, ShieldCheck, Eye, RotateCcw
 } from 'lucide-react';
-import { taskApi, mediaApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
+import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, API_BASE_URL, MEDIA_API_BASE_URL } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryMatePanel from '@/src/features/mbrAuthorPage/components/StoryMatePanel';
 import ImageCropModal from './ImageCropModal';
@@ -323,7 +323,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         } else {
           // CREATE
           // We call taskApi to create member record using FastAPI POST /mbrs
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/mbrs`, {
+          const response = await fetch(`${API_BASE_URL}/mbrs`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -421,7 +421,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
       // Perform upload to Google Cloud Storage via sb-api-media
       const uploadRes = await mediaApi.uploadMedia(croppedFile, destinationPath);
 
-      const mediaBase = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
+      const mediaBase = MEDIA_API_BASE_URL;
       const rawUrl = uploadRes.data?.name ? `${mediaBase}/media/read/${uploadRes.data.name}` : `${mediaBase}/media/read/${destinationPath}`;
       const storageUrl = resolveMediaUrl(rawUrl);
 
@@ -520,7 +520,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
 
       // Upload file to Google Cloud Storage
       const uploadRes = await mediaApi.uploadMedia(file, destinationPath);
-      const mediaBase = import.meta.env.VITE_API_URL_MEDIA || 'http://localhost:8003';
+      const mediaBase = MEDIA_API_BASE_URL;
       const rawUrl = uploadRes.data?.name ? `${mediaBase}/media/read/${uploadRes.data.name}` : `${mediaBase}/media/read/${destinationPath}`;
       const storageUrl = resolveMediaUrl(rawUrl);
 
