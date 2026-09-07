@@ -25,6 +25,7 @@ import { PublicPageFeature, SbPublicPageFeature } from '@/src/features/publicPag
 import { MbrHomePageFeature, SbMbrHomePageFeature } from '@/src/features/mbrHomePage';
 import { MbrStoryFeedPageFeature, SbMbrStoryFeedPageFeature } from '@/src/features/mbrStoryFeedPage';
 import { MbrStoryPageFeature, SbMbrStoryPageFeature } from '@/src/features/mbrStoryPage';
+import { StoryPageFeature, SbStoryPageFeature } from '@/src/features/storyPage';
 import { MbrAuthorPageFeature, SbMbrAuthorPageFeature } from '@/src/features/mbrAuthorPage';
 import { MbrLogonPageFeature, SbMbrLogonFeature } from '@/src/features/mbrLogonPage';
 import { MbrRegistrationPageFeature, SbMbrRegisterFeature } from '@/src/features/mbrRegistrationPage';
@@ -55,6 +56,8 @@ type TabType =
   | 'sbMbrHomePage'
   | 'mbrStoryFeedPage'
   | 'sbMbrStoryFeedPage'
+  | 'storyPage'
+  | 'sbStoryPage'
   | 'mbrStoryPage'
   | 'sbMbrStoryPage'
   | 'mbrAuthorPage'
@@ -94,6 +97,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('publicPage');
   const [previousTab, setPreviousTab] = useState<TabType>('publicPage');
   const [selectedMemberId, setSelectedMemberId] = useState<string>('m1');
+  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
   const [targetStoryMemberId, setTargetStoryMemberId] = useState<string | null>(null);
   const [logonType, setLogonType] = useState<'Google' | 'Apple'>('Google');
   
@@ -197,11 +201,18 @@ export default function App() {
     }
   };
 
-  const handleReadStory = (memberId: string) => {
+  const handleReadStory = (storyIdOrMemberId: string, authorMemberId?: string) => {
     setPreviousTab(activeTab);
-    setSelectedMemberId(memberId);
+    if (authorMemberId) {
+      setSelectedStoryId(storyIdOrMemberId);
+      setSelectedMemberId(authorMemberId);
+      setActiveTab('storyPage');
+      return;
+    }
+    setSelectedMemberId(storyIdOrMemberId);
+    setSelectedStoryId(null);
     if (activeTab === 'publicPage' || activeTab === 'sbPublicPage') {
-      setTargetStoryMemberId(memberId);
+      setTargetStoryMemberId(storyIdOrMemberId);
       setActiveTab('mbrRegistrationPage');
     } else {
       setTargetStoryMemberId(null);
@@ -382,10 +393,50 @@ export default function App() {
           >
             <MbrStoryFeedPageFeature
               isSandbox={isSandbox}
-              onClickReadStory={handleReadStory}
+              onClickReadStory={(storyId, authorMbrId) => {
+                setPreviousTab('mbrStoryFeedPage');
+                setSelectedStoryId(storyId);
+                setSelectedMemberId(authorMbrId);
+                setActiveTab('storyPage');
+              }}
+              onClickViewAuthor={(authorMbrId) => {
+                setPreviousTab('mbrStoryFeedPage');
+                setSelectedMemberId(authorMbrId);
+                setActiveTab('mbrStoryPage');
+              }}
               onClickAuthorPage={() => {
                 setPreviousTab(activeTab);
                 setActiveTab('mbrAuthorPage');
+              }}
+            />
+          </motion.div>
+        )}
+
+        {/* If the active tab is 'storyPage' or legacy 'sbStoryPage', render the single story reader page */}
+        {(activeTab === 'storyPage' || activeTab === 'sbStoryPage') && (
+          <motion.div
+            key="storyPage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <StoryPageFeature
+              storyId={selectedStoryId}
+              memberId={selectedMemberId}
+              isSandbox={isSandbox}
+              onClickBack={() => {
+                if (previousTab && previousTab !== 'storyPage') {
+                  setActiveTab(previousTab);
+                } else {
+                  setActiveTab('mbrStoryFeedPage');
+                }
+              }}
+              onClickViewAuthorStorybook={(authorId) => {
+                setSelectedMemberId(authorId);
+                setPreviousTab('storyPage');
+                setActiveTab('mbrStoryPage');
               }}
             />
           </motion.div>
@@ -403,7 +454,13 @@ export default function App() {
           >
             <MbrStoryPageFeature
               memberId={selectedMemberId}
-              onClickBack={() => setActiveTab('mbrHomePage')}
+              onClickBack={() => {
+                if (previousTab && previousTab !== 'mbrStoryPage') {
+                  setActiveTab(previousTab);
+                } else {
+                  setActiveTab('mbrHomePage');
+                }
+              }}
             />
           </motion.div>
         )}

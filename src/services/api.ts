@@ -267,6 +267,17 @@ export interface SignedUrlResponse {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+export function getAuthHeaders(existingHeaders: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { ...existingHeaders };
+  try {
+    const token = sessionStorage.getItem('sb_token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+  } catch {}
+  return headers;
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`;
@@ -829,10 +840,13 @@ export const taskApi = {
   },
 
   /**
-   * Fetch all stories for a given member.
+   * Fetch all stories, optionally filtered by a specific member ID.
    */
-  async getStories(mbrId: string): Promise<MbrStory[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-stories/member/${mbrId}?t=${Date.now()}`, {
+  async getStories(mbrId?: string, limit: number = 200, skip: number = 0): Promise<MbrStory[]> {
+    const url = mbrId
+      ? `${API_BASE_URL}/mbr-stories/member/${mbrId}?t=${Date.now()}`
+      : `${API_BASE_URL}/mbr-stories?skip=${skip}&limit=${limit}&t=${Date.now()}`;
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -842,6 +856,25 @@ export const taskApi = {
       cache: 'no-cache'
     });
     return handleResponse<MbrStory[]>(response);
+  },
+
+  /**
+   * Fetch a single story by ID, with optional viewer tracking.
+   */
+  async getStoryById(mbrStoryId: string, viewerMbrId?: string): Promise<MbrStory> {
+    const url = viewerMbrId
+      ? `${API_BASE_URL}/mbr-stories/${mbrStoryId}?viewer_mbr_id=${encodeURIComponent(viewerMbrId)}&t=${Date.now()}`
+      : `${API_BASE_URL}/mbr-stories/${mbrStoryId}?t=${Date.now()}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStory>(response);
   },
 
   /**

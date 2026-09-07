@@ -28,7 +28,8 @@ export interface FeedStoryItem {
 
 interface MbrStoryFeedStoryPanelProps {
   story: FeedStoryItem;
-  onClickReadStory?: (memberId: string) => void;
+  onClickReadStory?: (storyId: string, memberId: string) => void;
+  onClickViewAuthor?: (memberId: string) => void;
 }
 
 const topicBadgeColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -104,8 +105,8 @@ export default function MbrStoryFeedStoryPanel({
           {/* Author Avatar */}
           <button
             type="button"
-            onClick={() => onClickReadStory?.(story.authorMbrId)}
-            className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 hover:ring-2 hover:ring-blue-500/50 transition-all focus:outline-none"
+            onClick={() => (onClickViewAuthor ? onClickViewAuthor(story.authorMbrId) : onClickReadStory?.(story.mbrStoryId, story.authorMbrId))}
+            className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 hover:ring-2 hover:ring-blue-500/50 transition-all focus:outline-none cursor-pointer"
             title={`View ${story.authorName}'s storybook`}
           >
             {story.authorAvatarUrl ? (
@@ -129,8 +130,8 @@ export default function MbrStoryFeedStoryPanel({
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="button"
-                onClick={() => onClickReadStory?.(story.authorMbrId)}
-                className="font-serif text-base font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 text-left transition-colors focus:outline-none"
+                onClick={() => (onClickViewAuthor ? onClickViewAuthor(story.authorMbrId) : onClickReadStory?.(story.mbrStoryId, story.authorMbrId))}
+                className="font-serif text-base font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 text-left transition-colors focus:outline-none cursor-pointer"
               >
                 {story.authorName}
               </button>
@@ -169,7 +170,10 @@ export default function MbrStoryFeedStoryPanel({
       </div>
 
       {/* Story Title */}
-      <h2 className="font-serif text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-snug mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+      <h2 
+        onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+        className="font-serif text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-snug mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors cursor-pointer"
+      >
         {story.mbrStoryTitle}
       </h2>
 
@@ -188,8 +192,8 @@ export default function MbrStoryFeedStoryPanel({
 
         <button
           type="button"
-          onClick={() => onClickReadStory?.(story.authorMbrId)}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-300 transition-colors focus:outline-none"
+          onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-300 transition-colors focus:outline-none cursor-pointer"
         >
           <span>Read Full Story</span>
           <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />

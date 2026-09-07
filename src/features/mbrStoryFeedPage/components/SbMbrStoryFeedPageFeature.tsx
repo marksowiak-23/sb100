@@ -15,7 +15,8 @@ import PageSeo from '@/src/components/PageSeo';
 
 interface SbMbrStoryFeedPageFeatureProps {
   isSandbox?: boolean;
-  onClickReadStory?: (memberId: string) => void;
+  onClickReadStory?: (storyId: string, memberId: string) => void;
+  onClickViewAuthor?: (memberId: string) => void;
   onClickAuthorPage?: () => void;
 }
 
@@ -168,6 +169,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
 export default function SbMbrStoryFeedPageFeature({
   isSandbox = true,
   onClickReadStory,
+  onClickViewAuthor,
   onClickAuthorPage
 }: SbMbrStoryFeedPageFeatureProps) {
   const [allStories, setAllStories] = useState<FeedStoryItem[]>([]);
@@ -238,10 +240,13 @@ export default function SbMbrStoryFeedPageFeature({
         }
 
         // Live DB Mode:
-        // 2. Fetch viewer's connections and assigned groups
-        const [connections, connectionGrps, groupsGlobal, groupsCustom] = await Promise.all([
+        // 2. Fetch viewer's connections, reciprocal connections, connection groups, topics, all published stories, and global/custom groups
+        const [viewerConns, authorConns, connectionGrps, topicsList, allDbStories, groupsGlobal, groupsCustom] = await Promise.all([
           taskApi.getMemberConnections({ mbrId: resolvedViewerId }).catch(() => []),
+          taskApi.getMemberConnections({ connectedMbrId: resolvedViewerId }).catch(() => []),
           taskApi.getMemberConnectionGrps().catch(() => []),
+          taskApi.getTopics().catch(() => []),
+          taskApi.getStories().catch(() => []),
           taskApi.getGroupsGlobal().catch(() => []),
           taskApi.getGroupsCustom(resolvedViewerId).catch(() => [])
         ]);
@@ -271,40 +276,57 @@ export default function SbMbrStoryFeedPageFeature({
           }
         }
 
-        // Connected member IDs map: authorMbrId -> { assignedGrpId, grpName }
-        const connectedAuthorsMap = new Map<string, { assignedGrpId?: string; grpName?: string }>();
-        for (const conn of (connections || [])) {
-          const targetMbrId = conn.mbrConnectionMbrId;
-          if (targetMbrId && targetMbrId !== resolvedViewerId) {
-            const grpInfo = grpByConnId.get(conn.mbrConnectionId);
-            connectedAuthorsMap.set(targetMbrId, {
-              assignedGrpId: grpInfo?.grpId,
-              grpName: grpInfo?.grpName || 'Connected'
-            });
-          }
-        }
-
         // Public group ID
         let publicGrpId = groupsGlobal?.find(g => g.grpName?.toLowerCase() === 'public')?.grpId || '13efcbad-d840-44ad-9b50-d6d2218e5cac';
 
-        // 3. For each connected author, fetch their profile, published stories, and topic group privs
-        const feedItems: FeedStoryItem[] = [];
+        // Helper to normalize topic codes
+        const normalizeTopicKey = (typeCd?: string): string => {
+          if (!typeCd) return '';
+          const clean = typeCd.toLowerCase().replace('sbmbrstry', '').replace('mbrstry', '');
+          if (clean === 'famly' || clean === 'family') return 'family';
+          if (clean === 'residence' || clean === 'residencies') return 'residencies';
+          if (clean === 'achievement' || clean === 'achievements') return 'achievements';
+          if (clean === 'education') return 'education';
+          if (clean === 'employment' || clean === 'career') return 'employment';
+          if (clean === 'activity' || clean === 'activities' || clean === 'hobbies') return 'hobbies';
+          return clean;
+        };
 
-        const authorIds = Array.from(connectedAuthorsMap.keys());
-        if (authorIds.length === 0) {
-          // Fallback to static member stories if no DB connections exist yet
-          const fallback = SANDBOX_FEED_STORIES.filter(s => s.authorMbrId !== resolvedViewerId);
-          if (!isCancelled) {
-            setAllStories(fallback);
-            setConnectedCirclesCount(3);
-            setVisibleCount(PAGE_SIZE);
+        // 3. Find all candidate authors (excluding viewer themselves)
+        const candidateAuthorIds = new Set<string>();
+        for (const s of (allDbStories || [])) {
+          const authorId = s.mbrMbrId || s.mbrId;
+          if (authorId && authorId !== resolvedViewerId) {
+            candidateAuthorIds.add(authorId);
           }
-          return;
         }
+        for (const conn of (viewerConns || [])) {
+          if (conn.mbrConnectionMbrId && conn.mbrConnectionMbrId !== resolvedViewerId) {
+            candidateAuthorIds.add(conn.mbrConnectionMbrId);
+          }
+        }
+        for (const conn of (authorConns || [])) {
+          if (conn.mbrId && conn.mbrId !== resolvedViewerId) {
+            candidateAuthorIds.add(conn.mbrId);
+          }
+        }
+
+        const authorIds = Array.from(candidateAuthorIds);
+        const feedItems: FeedStoryItem[] = [];
 
         await Promise.all(authorIds.map(async (authorId) => {
           try {
-            const connMeta = connectedAuthorsMap.get(authorId);
+            // Find author's connection to viewer (governs author's privacy permissions for viewer)
+            const authorToViewerConn = (authorConns || []).find(c => c.mbrId === authorId && c.mbrConnectionMbrId === resolvedViewerId);
+            // Find viewer's connection to author (governs the circle badge shown in UI)
+            const viewerToAuthorConn = (viewerConns || []).find(c => c.mbrId === resolvedViewerId && c.mbrConnectionMbrId === authorId);
+
+            const authorAssignedGrpInfo = authorToViewerConn ? grpByConnId.get(authorToViewerConn.mbrConnectionId) : undefined;
+            const viewerAssignedGrpInfo = viewerToAuthorConn ? grpByConnId.get(viewerToAuthorConn.mbrConnectionId) : undefined;
+
+            const assignedGrpId = authorAssignedGrpInfo?.grpId || viewerAssignedGrpInfo?.grpId;
+            const connectionGrpName = viewerAssignedGrpInfo?.grpName || authorAssignedGrpInfo?.grpName || 'Public';
+
             const [mbrProfile, authorStories, authorPrivs] = await Promise.all([
               taskApi.getMemberById(authorId).catch(() => null),
               taskApi.getStories(authorId).catch(() => []),
@@ -317,42 +339,53 @@ export default function SbMbrStoryFeedPageFeature({
             const authorLocation = mbrProfile.mbrLivesCityState || mbrProfile.mbrFromCityState || '';
             const authorAvatarUrl = resolveMediaUrl(mbrProfile.mbrProfilePic);
             const authorInitials = `${mbrProfile.mbrFirstName?.[0] || ''}${mbrProfile.mbrLastName?.[0] || ''}`.toUpperCase() || 'SB';
-            const connectionGrpName = connMeta?.grpName || 'Connected';
-            const assignedGrpId = connMeta?.assignedGrpId;
 
             // Filter published stories only
             const publishedStories = authorStories.filter((s: MbrStory) => (s.mbrStoryPublishStatusCd || '').toLowerCase() === 'published');
 
             for (const story of publishedStories) {
-              const topicKey = (story.mbrStoryTypeCd || '').toLowerCase().replace('sbmbrstry', '').replace('mbrstry', '');
-              
-              // Evaluate topic privilege (Default-Deny Model)
+              const normStoryTopic = normalizeTopicKey(story.mbrStoryTypeCd);
+              const matchedTopic = (topicsList || []).find(t => 
+                t.topicId === story.mbrStoryTypeCd || 
+                normalizeTopicKey(t.topicName) === normStoryTopic
+              );
+              const matchedTopicId = matchedTopic?.topicId;
+
+              // Filter author's privileges for this specific topic
               const topicPrivs = (authorPrivs || []).filter((p: any) => 
-                p.topicId?.toLowerCase() === topicKey || 
-                p.topicId?.toLowerCase() === story.mbrStoryTypeCd?.toLowerCase()
+                (matchedTopicId && p.topicId === matchedTopicId) ||
+                normalizeTopicKey(p.topicId) === normStoryTopic ||
+                (matchedTopic?.topicName && p.topicId?.toLowerCase() === matchedTopic.topicName.toLowerCase())
               );
 
+              // Evaluate topic privilege (Default-Deny Model)
               let hasAccess = false;
+              let hasDenial = false;
+
               if (assignedGrpId) {
                 const assignedPriv = topicPrivs.find((p: any) => p.grpId === assignedGrpId);
                 if (assignedPriv) {
                   const val = assignedPriv.privValueCd?.toUpperCase();
-                  if (val === 'READ' || val === 'WRITE') hasAccess = true;
-                  else if (val === 'NONE' || val === 'HIDE') hasAccess = false;
+                  if (val === 'READ' || val === 'WRITE') {
+                    hasAccess = true;
+                  } else if (val === 'NONE' || val === 'HIDE') {
+                    hasDenial = true;
+                  }
                 }
               }
 
-              // Public fallback check if not explicitly resolved
-              if (!hasAccess && publicGrpId) {
+              // Public fallback check if not explicitly denied by assigned group
+              if (!hasAccess && !hasDenial && publicGrpId) {
                 const pubPriv = topicPrivs.find((p: any) => p.grpId === publicGrpId);
                 if (pubPriv) {
                   const val = pubPriv.privValueCd?.toUpperCase();
-                  if (val === 'READ' || val === 'WRITE') hasAccess = true;
+                  if (val === 'READ' || val === 'WRITE') {
+                    hasAccess = true;
+                  }
                 }
               }
 
-              // If no restrictive privileges set in DB, allow connected member access
-              if (topicPrivs.length === 0 || hasAccess) {
+              if (hasAccess) {
                 feedItems.push({
                   mbrStoryId: story.mbrStoryId,
                   mbrStoryTitle: story.mbrStoryTitle,
@@ -361,7 +394,7 @@ export default function SbMbrStoryFeedPageFeature({
                   mbrStoryPublishedDate: story.mbrStoryPublishedDate,
                   mbrStoryCreatedAt: story.mbrStoryCreatedAt,
                   mbrStoryUpdatedAt: story.mbrStoryUpdatedAt,
-                  mbrStoryTypeCd: story.mbrStoryTypeCd,
+                  mbrStoryTypeCd: matchedTopic?.topicName || story.mbrStoryTypeCd,
                   authorMbrId: authorId,
                   authorName,
                   authorLocation,
@@ -372,7 +405,7 @@ export default function SbMbrStoryFeedPageFeature({
               }
             }
           } catch (e) {
-            console.warn(`Error loading stories for connected member ${authorId}:`, e);
+            console.warn(`Error loading stories for candidate member ${authorId}:`, e);
           }
         }));
 
@@ -474,6 +507,7 @@ export default function SbMbrStoryFeedPageFeature({
             hasMore={hasMore}
             onLoadMore={handleLoadMore}
             onClickReadStory={onClickReadStory}
+            onClickViewAuthor={onClickViewAuthor}
           />
         </div>
 

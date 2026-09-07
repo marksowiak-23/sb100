@@ -14,7 +14,8 @@ interface CenterColumnProps {
   loadingMore: boolean;
   hasMore: boolean;
   onLoadMore?: () => void;
-  onClickReadStory?: (memberId: string) => void;
+  onClickReadStory?: (storyId: string, memberId: string) => void;
+  onClickViewAuthor?: (memberId: string) => void;
 }
 
 export default function CenterColumn({
@@ -23,7 +24,8 @@ export default function CenterColumn({
   loadingMore,
   hasMore,
   onLoadMore,
-  onClickReadStory
+  onClickReadStory,
+  onClickViewAuthor
 }: CenterColumnProps) {
   return (
     <div className="space-y-6 relative">
@@ -96,6 +98,7 @@ export default function CenterColumn({
               key={story.mbrStoryId}
               story={story}
               onClickReadStory={onClickReadStory}
+              onClickViewAuthor={onClickViewAuthor}
             />
           ))}
         </div>
