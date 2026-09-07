@@ -24,10 +24,25 @@ const AUTO_SCROLL_LIMIT = 20;
 export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, onSelectLogonType }: SbPublicPageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<UserLocation | null>(getCachedUserLocation());
+  const [proximityEnabled, setProximityEnabled] = useState<boolean>(() => {
+    try {
+      const saved = sessionStorage.getItem('sb_public_proximity_enabled');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
+
+  const handleToggleProximity = useCallback((val: boolean) => {
+    setProximityEnabled(val);
+    try {
+      sessionStorage.setItem('sb_public_proximity_enabled', val ? 'true' : 'false');
+    } catch {}
+  }, []);
 
   // Detect user location on initial mount
   useEffect(() => {
@@ -56,10 +71,11 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     const loc = await detectUserLocation(true);
     if (loc) {
       setUserLocation(loc);
+      setProximityEnabled(true);
     }
   }, []);
 
-  // Fetch initial 5 members on load or when searchQuery / userLocation changes
+  // Fetch initial 5 members on load or when searchQuery / userLocation / proximityEnabled changes
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
@@ -68,11 +84,12 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     const timer = setTimeout(async () => {
       try {
         const queryTrimmed = searchQuery.trim();
+        const useProximity = proximityEnabled && userLocation;
         const result = await taskApi.getMembers({
           query: queryTrimmed || undefined,
-          proximity: userLocation?.label || undefined,
-          proximity_lat: userLocation?.latitude,
-          proximity_lng: userLocation?.longitude,
+          proximity: useProximity ? userLocation?.label : undefined,
+          proximity_lat: useProximity ? userLocation?.latitude : undefined,
+          proximity_lng: useProximity ? userLocation?.longitude : undefined,
           public_only: true,
           limit: PAGE_SIZE,
           skip: 0
@@ -100,7 +117,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [searchQuery, userLocation]);
+  }, [searchQuery, userLocation, proximityEnabled]);
 
   // Handler to fetch another 5 members
   const handleLoadMore = useCallback(async () => {
@@ -109,11 +126,12 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     try {
       const queryTrimmed = searchQuery.trim();
       const currentSkip = members.length;
+      const useProximity = proximityEnabled && userLocation;
       const nextBatch = await taskApi.getMembers({
         query: queryTrimmed || undefined,
-        proximity: userLocation?.label || undefined,
-        proximity_lat: userLocation?.latitude,
-        proximity_lng: userLocation?.longitude,
+        proximity: useProximity ? userLocation?.label : undefined,
+        proximity_lat: useProximity ? userLocation?.latitude : undefined,
+        proximity_lng: useProximity ? userLocation?.longitude : undefined,
         public_only: true,
         limit: PAGE_SIZE,
         skip: currentSkip
@@ -133,7 +151,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     } finally {
       setLoadingMore(false);
     }
-  }, [loading, loadingMore, hasMore, searchQuery, userLocation, members.length]);
+  }, [loading, loadingMore, hasMore, searchQuery, userLocation, proximityEnabled, members.length]);
 
   // Infinite scroll listener: auto-fetch another 5 members when scrolling to the bottom until 20 are loaded
   useEffect(() => {
@@ -197,6 +215,8 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
             onLoadMore={handleLoadMore}
             onClickReadStory={onClickReadStory}
             userLocation={userLocation}
+            proximityEnabled={proximityEnabled}
+            setProximityEnabled={handleToggleProximity}
             onRefreshLocation={handleRefreshLocation}
           />
         </div>

@@ -22,6 +22,7 @@ export interface MbrProfilePanelProps {
   onClickReadStory?: (memberId: string) => void;
   onClickAuthorProfile?: () => void;
   defaultCollapseIntro?: boolean;
+  defaultCollapseDetails?: boolean;
 }
 
 export type SbMbrProfilePanelProps = MbrProfilePanelProps;
@@ -40,7 +41,8 @@ export default function MbrProfilePanel({
   onConnectSuccess,
   onClickReadStory,
   onClickAuthorProfile,
-  defaultCollapseIntro = false
+  defaultCollapseIntro = false,
+  defaultCollapseDetails = true
 }: MbrProfilePanelProps) {
 
   const [loading, setLoading] = useState(true);
@@ -169,11 +171,29 @@ export default function MbrProfilePanel({
     return defaultCollapseIntro;
   });
 
-
   const toggleIntroAccordion = () => {
     setIsIntroCollapsed((prev) => {
       const nextState = !prev;
       const key = profile?.mbrId ? `author_intro_collapsed_${profile.mbrId}` : 'author_intro_collapsed';
+      sessionStorage.setItem(key, String(nextState));
+      return nextState;
+    });
+  };
+
+  // Session storage state for profile details accordion panel collapse persistence
+  const [isDetailsCollapsed, setIsDetailsCollapsed] = useState<boolean>(() => {
+    const key = (propProfile?.mbrId || memberId) ? `author_details_collapsed_${propProfile?.mbrId || memberId}` : 'author_details_collapsed';
+    const saved = sessionStorage.getItem(key);
+    if (saved !== null) {
+      return saved === 'true';
+    }
+    return defaultCollapseDetails;
+  });
+
+  const toggleDetailsAccordion = () => {
+    setIsDetailsCollapsed((prev) => {
+      const nextState = !prev;
+      const key = profile?.mbrId ? `author_details_collapsed_${profile.mbrId}` : 'author_details_collapsed';
       sessionStorage.setItem(key, String(nextState));
       return nextState;
     });
@@ -666,76 +686,26 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
 
           {/* Metadata Rows */}
           <div className="space-y-1.5 text-xs">
-            {/* Lives In & From */}
-            {showTown && (livesIn || fromLocation) && (
-              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-slate-700">
-                {livesIn && (
-                  <div className="flex items-center gap-1.5">
-                    <Home className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">LIVES IN:</span>
-                    <span className="font-semibold text-slate-800">{livesIn}</span>
-                  </div>
-                )}
-                {livesIn && fromLocation && (
-                  <span className="text-slate-300 font-bold select-none">•</span>
-                )}
-                {fromLocation && (
-                  <div className="flex items-center gap-1.5">
-                    <Compass className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">FROM:</span>
-                    <span className="font-semibold text-slate-800">{fromLocation}</span>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Works At */}
-            {showWorksAt && worksAt && (
+            {/* Lives In */}
+            {showTown && livesIn && (
               <div className="flex items-center gap-1.5 text-slate-700">
-                <Briefcase className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">WORKS AT:</span>
-                <span className="font-semibold text-slate-800">{worksAt}</span>
+                <Home className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">LIVES IN:</span>
+                <span className="font-semibold text-slate-800">{livesIn}</span>
               </div>
             )}
 
-            {/* Studied At */}
-            {showStudiedAt && studiedAt && (
+            {/* From (Moved down to a separate line) */}
+            {showTown && fromLocation && (
               <div className="flex items-center gap-1.5 text-slate-700">
-                <GraduationCap className="w-3.5 h-3.5 text-purple-500 shrink-0" />
-                <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">STUDIED AT:</span>
-                <span className="font-semibold text-slate-800">{studiedAt}</span>
-              </div>
-            )}
-
-            {/* Relationship Status, Gender & Age */}
-            {((showRelationship && relationshipStatus) || (showGender && profile.mbrGenderCd) || (showBirthYr && age !== null)) && (
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-700">
-                {showRelationship && relationshipStatus && (
-                  <div className="flex items-center gap-1.5">
-                    <Heart className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">RELATIONSHIP STATUS:</span>
-                    <span className="font-semibold text-slate-800">{relationshipStatus}</span>
-                  </div>
-                )}
-                {showGender && profile.mbrGenderCd && (
-                  <div className="flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-violet-500 shrink-0" />
-                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">GENDER:</span>
-                    <span className="font-semibold text-slate-800">{profile.mbrGenderCd}</span>
-                  </div>
-                )}
-                {showBirthYr && age !== null && (
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">AGE:</span>
-                    <span className="font-semibold text-slate-800">{age}</span>
-                  </div>
-                )}
+                <Compass className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">FROM:</span>
+                <span className="font-semibold text-slate-800">{fromLocation}</span>
               </div>
             )}
 
             {/* Story Publication Stats */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-700">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-slate-700 pt-0.5">
               <div className="flex items-center gap-1.5">
                 <BookOpen className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
                 <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">STORIES PUBLISHED:</span>
@@ -750,6 +720,89 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
           </div>
         </div>
       </div>
+
+      {/* Divider and Collapsible Accordion Profile Details Section */}
+      {((showWorksAt && worksAt) || (showStudiedAt && studiedAt) || (showRelationship && relationshipStatus) || (showGender && profile.mbrGenderCd) || (showBirthYr && age !== null)) && (
+        <div className="pt-3 border-t border-[#EFECE7]">
+          {/* Accordion Header Button */}
+          <button
+            type="button"
+            onClick={toggleDetailsAccordion}
+            className="w-full flex items-center justify-between py-1 text-left cursor-pointer group"
+          >
+            <div className="flex items-center gap-1.5 text-xs font-serif font-bold text-slate-700 group-hover:text-slate-900 transition-colors">
+              <User className="w-3.5 h-3.5 text-blue-500" />
+              <span>Profile Details</span>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] font-mono text-slate-400">
+              <span>{isDetailsCollapsed ? 'Expand' : 'Collapse'}</span>
+              {isDetailsCollapsed ? (
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform" />
+              ) : (
+                <ChevronUp className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-transform" />
+              )}
+            </div>
+          </button>
+
+          {/* Accordion Body with Smooth Animation */}
+          <AnimatePresence initial={false}>
+            {!isDetailsCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
+                className="overflow-hidden pt-2 space-y-2 text-xs"
+              >
+                {/* Works At */}
+                {showWorksAt && worksAt && (
+                  <div className="flex items-center gap-1.5 text-slate-700">
+                    <Briefcase className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">WORKS AT:</span>
+                    <span className="font-semibold text-slate-800">{worksAt}</span>
+                  </div>
+                )}
+
+                {/* Studied At */}
+                {showStudiedAt && studiedAt && (
+                  <div className="flex items-center gap-1.5 text-slate-700">
+                    <GraduationCap className="w-3.5 h-3.5 text-purple-500 shrink-0" />
+                    <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">STUDIED AT:</span>
+                    <span className="font-semibold text-slate-800">{studiedAt}</span>
+                  </div>
+                )}
+
+                {/* Relationship Status, Gender & Age */}
+                {((showRelationship && relationshipStatus) || (showGender && profile.mbrGenderCd) || (showBirthYr && age !== null)) && (
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-slate-700">
+                    {showRelationship && relationshipStatus && (
+                      <div className="flex items-center gap-1.5">
+                        <Heart className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">RELATIONSHIP STATUS:</span>
+                        <span className="font-semibold text-slate-800">{relationshipStatus}</span>
+                      </div>
+                    )}
+                    {showGender && profile.mbrGenderCd && (
+                      <div className="flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                        <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">GENDER:</span>
+                        <span className="font-semibold text-slate-800">{profile.mbrGenderCd}</span>
+                      </div>
+                    )}
+                    {showBirthYr && age !== null && (
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">AGE:</span>
+                        <span className="font-semibold text-slate-800">{age}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Divider and Collapsible Accordion Introduction Section */}
       {showIntroduction && introductionText && (

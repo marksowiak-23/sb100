@@ -21,6 +21,8 @@ interface CenterColumnProps {
   onLoadMore?: () => void;
   onClickReadStory?: (memberId: string) => void;
   userLocation?: UserLocation | null;
+  proximityEnabled?: boolean;
+  setProximityEnabled?: (val: boolean) => void;
   onRefreshLocation?: () => void;
 }
 
@@ -34,6 +36,8 @@ export default function CenterColumn({
   onLoadMore,
   onClickReadStory,
   userLocation,
+  proximityEnabled = true,
+  setProximityEnabled,
   onRefreshLocation
 }: CenterColumnProps) {
   return (
@@ -46,6 +50,8 @@ export default function CenterColumn({
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         userLocation={userLocation}
+        proximityEnabled={proximityEnabled}
+        setProximityEnabled={setProximityEnabled}
         onRefreshLocation={onRefreshLocation}
       />
 

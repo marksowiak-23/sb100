@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { User, ChevronDown, ChevronUp, BookOpen, BookMarked, Shield, Home, Users, MessageSquare, Bell, CheckCircle2, MessageCircle } from 'lucide-react';
+import { User, ChevronDown, ChevronUp, BookOpen, BookMarked, Shield, Home, Users, MessageSquare, Bell, CheckCircle2, MessageCircle, Menu, X, LogOut } from 'lucide-react';
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -83,9 +83,26 @@ export default function MainLayout({
   const [isMessagingOpen, setIsMessagingOpen] = React.useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const [isAdminMenuOpen, setIsAdminMenuOpen] = React.useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isMobileAdminOpen, setIsMobileAdminOpen] = React.useState(false);
+  const [isMobileNotificationsOpen, setIsMobileNotificationsOpen] = React.useState(false);
+  const [isMobileMessagingOpen, setIsMobileMessagingOpen] = React.useState(false);
   const [profilePic, setProfilePic] = React.useState<string | null>(null);
   const [userName, setUserName] = React.useState<string>('StoryBook Member');
   const [invitationCount, setInvitationCount] = React.useState<number>(0);
+
+  // Automatically close mobile menu if window is resized to desktop size
+  React.useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsMobileMenuOpen(false);
+        setIsMobileNotificationsOpen(false);
+        setIsMobileMessagingOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const isPublicView =
     activeTab === 'publicPage' ||
@@ -107,6 +124,7 @@ export default function MainLayout({
     setUserName('StoryBook Member');
     setActiveTab('publicPage');
     setDropdownOpen(false);
+    setIsMobileMenuOpen(false);
   }, [setActiveTab]);
 
   const {
@@ -227,6 +245,7 @@ export default function MainLayout({
   }, [loadInvitationCount]);
 
   const handleLogoClick = () => {
+    setIsMobileMenuOpen(false);
     const userStr = sessionStorage.getItem('user');
     if (userStr) {
       setActiveTab('mbrHomePage');
@@ -264,9 +283,11 @@ export default function MainLayout({
 
         {/* --- HEADER CONTROLS --- */}
         <div className="flex items-center gap-3 sm:gap-6 h-full">
-          {/* --- LOGGED-IN HEADER NAVIGATION (Home, My Network, Messaging, Notifications, Me) --- */}
+          {/* --- LOGGED-IN HEADER NAVIGATION (Home, My Network, Stories, Messaging, Notifications, Me) --- */}
           {isMemberLoggedIn ? (
-            <nav className="flex items-center h-full gap-0.5 sm:gap-2 md:gap-4">
+            <>
+              {/* Desktop Navigation (>= lg screens: 1024px+) */}
+              <nav className="hidden lg:flex items-center h-full gap-0.5 sm:gap-2 md:gap-4">
             {/* 1. Home */}
             <button
               type="button"
@@ -773,6 +794,35 @@ export default function MainLayout({
               )}
             </div>
           </nav>
+
+          {/* Mobile Hamburger Toggle Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileMenuOpen(!isMobileMenuOpen);
+              setDropdownOpen(false);
+              setIsMessagingOpen(false);
+              setIsNotificationsOpen(false);
+            }}
+            className="flex lg:hidden items-center justify-center w-10 h-10 rounded-xl text-slate-200 hover:text-white hover:bg-white/10 active:bg-white/15 transition-all cursor-pointer focus:outline-none relative"
+            aria-label="Toggle navigation menu"
+            title="Menu"
+          >
+            {isMobileMenuOpen ? (
+              <X className="w-6 h-6 text-white" />
+            ) : (
+              <Menu className="w-6 h-6 text-slate-200" />
+            )}
+            {invitationCount > 0 && !isMobileMenuOpen && (
+              <span
+                className="absolute top-1 right-1 min-w-[15px] h-[15px] px-1 bg-rose-600 text-white font-mono text-[9px] font-bold rounded-full flex items-center justify-center ring-2 ring-[#0F1B35]"
+                title={`${invitationCount} pending invitations`}
+              >
+                {invitationCount > 9 ? '9+' : invitationCount}
+              </span>
+            )}
+          </button>
+        </>
         ) : (
           /* Public Header Navigation */
           <div className="flex items-center gap-3">
@@ -794,6 +844,423 @@ export default function MainLayout({
         )}
         </div>
       </header>
+
+      {/* --- MOBILE DROPDOWN HAMBURGER MENU --- */}
+      {isMemberLoggedIn && isMobileMenuOpen && (
+        <>
+          {/* Backdrop Overlay */}
+          <div
+            className="fixed inset-0 top-16 bg-black/60 backdrop-blur-xs z-40 lg:hidden"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+
+          {/* Dropdown Menu Container */}
+          <div className="fixed top-16 left-0 right-0 max-h-[calc(100vh-4rem)] overflow-y-auto bg-[#0F1B35] border-b border-slate-800 shadow-2xl z-50 p-4 lg:hidden flex flex-col gap-3">
+            {/* User Profile Banner Card */}
+            <div
+              onClick={() => {
+                setActiveTab('mbrProfilePage');
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-colors cursor-pointer"
+            >
+              <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-blue-400/40 bg-slate-900 shrink-0 flex items-center justify-center">
+                {profilePic ? (
+                  <img src={profilePic} alt="User" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-5 h-5 text-slate-400" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-bold text-white truncate font-serif">{userName}</h4>
+                  <span className="text-[9px] uppercase font-mono tracking-wider font-semibold text-blue-400 bg-blue-500/15 px-2 py-0.5 rounded-full border border-blue-500/20">Member</span>
+                </div>
+                <p className="text-[11px] text-blue-300">View & Edit Profile →</p>
+              </div>
+            </div>
+
+            {/* Quick Actions (Messaging & Notifications) */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Mobile Messaging Action */}
+              <button
+                type="button"
+                onClick={() => setIsMobileMessagingOpen(!isMobileMessagingOpen)}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
+                  isMobileMessagingOpen
+                    ? 'bg-blue-600/30 border-blue-500/50 text-white'
+                    : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-blue-400" />
+                  <span>Messages</span>
+                </div>
+                <span className="w-2 h-2 bg-blue-500 rounded-full" />
+              </button>
+
+              {/* Mobile Notifications Action */}
+              <button
+                type="button"
+                onClick={() => setIsMobileNotificationsOpen(!isMobileNotificationsOpen)}
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
+                  isMobileNotificationsOpen
+                    ? 'bg-rose-600/30 border-rose-500/50 text-white'
+                    : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-rose-400" />
+                  <span>Alerts</span>
+                </div>
+                <span className="px-1.5 py-0.2 text-[9.5px] font-mono font-bold bg-rose-600 text-white rounded-full">
+                  3
+                </span>
+              </button>
+            </div>
+
+            {/* Expanded Mobile Messaging Drawer Panel */}
+            {isMobileMessagingOpen && (
+              <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-xs font-bold text-white font-serif">Recent Conversations</span>
+                  </div>
+                  <span className="text-[10px] text-blue-400 font-medium">New Chat</span>
+                </div>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  <div
+                    onClick={() => {
+                      setActiveTab('mbrHomePage');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer flex items-center gap-2"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-blue-600/30 text-blue-300 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      EV
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-white truncate">Eleanor Vance</span>
+                        <span className="text-[9px] text-slate-400 font-mono">2h ago</span>
+                      </div>
+                      <p className="text-[10px] text-slate-300 truncate">Loved your latest story chapter!</p>
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => {
+                      setActiveTab('mbrHomePage');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="p-2 rounded-lg hover:bg-white/5 cursor-pointer flex items-center gap-2"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-emerald-600/30 text-emerald-300 flex items-center justify-center text-[10px] font-bold shrink-0">
+                      JS
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-white truncate">James Sterling</span>
+                        <span className="text-[9px] text-slate-400 font-mono">1d ago</span>
+                      </div>
+                      <p className="text-[10px] text-slate-300 truncate">Added photos from our trip.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Expanded Mobile Notifications Drawer Panel */}
+            {isMobileNotificationsOpen && (
+              <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Bell className="w-3.5 h-3.5 text-rose-400" />
+                    <span className="text-xs font-bold text-white font-serif">Notifications (3)</span>
+                  </div>
+                </div>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto text-xs">
+                  <div className="p-2 rounded-lg bg-white/5 flex items-start gap-2">
+                    <Users className="w-3.5 h-3.5 text-blue-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] text-slate-200"><strong className="text-white">Eleanor Vance</strong> accepted your connection request.</p>
+                      <span className="text-[9px] text-slate-400 font-mono">15m ago</span>
+                    </div>
+                  </div>
+                  <div className="p-2 rounded-lg bg-white/5 flex items-start gap-2">
+                    <BookOpen className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] text-slate-200"><strong className="text-white">James Sterling</strong> published a new story chapter.</p>
+                      <span className="text-[9px] text-slate-400 font-mono">2h ago</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Primary Navigation Section */}
+            <div className="space-y-1">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-2 py-1 font-semibold">Navigation</div>
+
+              {/* Home */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('mbrHomePage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+                  activeTab === 'mbrHomePage' || activeTab === 'sbMbrHomePage'
+                    ? 'bg-blue-600/30 text-white font-bold border border-blue-500/40 shadow-xs'
+                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Home className="w-5 h-5 text-blue-400 shrink-0" />
+                  <span>Home</span>
+                </div>
+              </button>
+
+              {/* Stories */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('mbrStoryFeedPage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+                  activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage'
+                    ? 'bg-blue-600/30 text-white font-bold border border-blue-500/40 shadow-xs'
+                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <BookMarked className="w-5 h-5 text-indigo-400 shrink-0" />
+                  <span>Stories Feed</span>
+                </div>
+              </button>
+
+              {/* Author */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('mbrAuthorPage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+                  activeTab === 'mbrAuthorPage' || activeTab === 'sbMbrAuthorPage'
+                    ? 'bg-blue-600/30 text-white font-bold border border-blue-500/40 shadow-xs'
+                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <BookOpen className="w-5 h-5 text-amber-400 shrink-0" />
+                  <span>Author Page</span>
+                </div>
+              </button>
+
+              {/* Connections */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('mbrConnections');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+                  activeTab === 'mbrConnections' || activeTab === 'mbrConnectionPage'
+                    ? 'bg-blue-600/30 text-white font-bold border border-blue-500/40 shadow-xs'
+                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5 text-emerald-400 shrink-0" />
+                  <span>Connections & Groups</span>
+                </div>
+                {invitationCount > 0 && (
+                  <span className="px-2 py-0.5 text-xs font-mono font-bold bg-rose-600 text-white rounded-full">
+                    {invitationCount} pending
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Account Settings Section */}
+            <div className="space-y-1 pt-2 border-t border-slate-800">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-2 py-1 font-semibold">Account Settings</div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('mbrPreferencesPage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                  activeTab === 'mbrPreferencesPage' || activeTab === 'mbrPreferences'
+                    ? 'bg-white/10 text-white font-bold'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                My Preferences
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('mbrPrivacySettingsPage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                  activeTab === 'mbrPrivacySettingsPage' || activeTab === 'mbrPrivacy'
+                    ? 'bg-white/10 text-white font-bold'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                My Privacy
+              </button>
+            </div>
+
+            {/* Administrator Tools (Collapsible) */}
+            <div className="space-y-1 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setIsMobileAdminOpen(!isMobileAdminOpen)}
+                className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-white cursor-pointer rounded-xl hover:bg-white/5 transition-colors"
+              >
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-blue-400" />
+                  <span>Administrator Tools</span>
+                </div>
+                {isMobileAdminOpen ? (
+                  <ChevronUp className="w-4 h-4 text-slate-400" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                )}
+              </button>
+
+              {isMobileAdminOpen && (
+                <div className="pl-4 border-l border-slate-700/60 ml-3 space-y-0.5 py-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('adminUserAdminPage');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                      activeTab === 'adminUserAdminPage' || activeTab === 'adminAccountsPage' || activeTab === 'admin-accounts' || activeTab === 'account-settings'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    User Administration
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('adminUserAIUsagePage');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                      activeTab === 'adminUserAIUsagePage' || activeTab === 'admin-user-ai-usage'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    User AI Usage
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('adminConnectionsPage');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                      activeTab === 'adminConnectionsPage' || activeTab === 'admin-connections' || activeTab === 'settings'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    Connection Settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('adminDbPage');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                      activeTab === 'adminDbPage' || activeTab === 'admin-db'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    Database Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('adminCachePage');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                      activeTab === 'adminCachePage' || activeTab === 'adminCacheManagement'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    Cache Management
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('adminMediaPage');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                      activeTab === 'adminMediaPage' || activeTab === 'adminMedia'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    Media Storage Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('adminProperties');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                      activeTab === 'adminProperties' || activeTab === 'adminSystemProperties'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    System Properties
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Logout Option */}
+            <div className="pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  userManager.userLogout();
+                  setProfilePic(null);
+                  setUserName('StoryBook Member');
+                  setActiveTab('publicPage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 hover:text-rose-300 font-semibold text-xs border border-rose-500/20 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* --- MAIN PORTVIEW (Content Injection Area) --- */}
       {/* We render {children} here. React inserts whatever children elements were nested within the layout container. */}
