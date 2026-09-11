@@ -248,7 +248,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-8 relative animate-fade-in">
+    <div className="w-full max-w-7xl mx-auto px-1 sm:px-4 pt-1 sm:pt-6 md:pt-8 pb-8 relative animate-fade-in">
       <AdminComponentTag name="MbrPreferencesFeature.tsx" />
       
       {loading ? (

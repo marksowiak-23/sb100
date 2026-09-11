@@ -56,6 +56,7 @@ export interface MbrStory {
   mbrStoryThreadID?: string;
   mbrStorySubordinateId?: string;
   mbrMbrId: string;
+  mbrId?: string;
   chIntentId?: string;
   mbrStoryOriginalId?: string;
 }
@@ -139,12 +140,12 @@ export interface Cd {
 
 export interface EventRecord {
   eventId: string;
-  eventSiteCd: string;
+  eventSiteCd?: string;
   eventActorId?: string;
   eventActorTypeCd?: string;
-  eventCd: string;
+  eventCd?: string;
   eventDetail?: string;
-  eventTagValue?: Record<string, any>;
+  eventTagValue?: Record<string, any> | any;
   eventCreatedAt?: string;
   eventUpdatedAt?: string;
 }
@@ -153,7 +154,7 @@ export interface EventCreate {
   eventSiteCd?: string;
   eventActorId?: string;
   eventActorTypeCd?: string;
-  eventCd: string;
+  eventCd?: string;
   eventDetail?: string;
   eventTagValue?: Record<string, any>;
 }
@@ -166,18 +167,6 @@ export type LookupCode = Cd | {
   cdDescription?: string | null;
   [key: string]: any;
 };
-
-export interface EventRecord {
-  eventId: string;
-  eventSiteCd?: string;
-  eventActorId?: string;
-  eventActorTypeCd?: string;
-  eventCd?: string;
-  eventDetail?: string;
-  eventTagValue?: any;
-  eventCreatedAt?: string;
-  eventUpdatedAt?: string;
-}
 
 export interface MbrContact {
   mbrContactId: string;
@@ -1147,6 +1136,13 @@ export const taskApi = {
   },
 
   /**
+   * Alias for getGroupsGlobal.
+   */
+  async getGlobalGroups(query?: string, limit: number = 100, skip: number = 0): Promise<GroupGlobal[]> {
+    return this.getGroupsGlobal(query, limit, skip);
+  },
+
+  /**
    * Fetch custom groups for a specific member.
    */
   async getGroupsCustom(mbrId: string, query?: string, limit: number = 100, skip: number = 0): Promise<GroupCustom[]> {
@@ -1164,6 +1160,13 @@ export const taskApi = {
       cache: 'no-cache'
     });
     return handleResponse<GroupCustom[]>(response);
+  },
+
+  /**
+   * Alias for getGroupsCustom.
+   */
+  async getMemberCustomGroups(mbrId: string, query?: string, limit: number = 100, skip: number = 0): Promise<GroupCustom[]> {
+    return this.getGroupsCustom(mbrId, query, limit, skip);
   },
 
   /**
@@ -1880,10 +1883,13 @@ export const mediaApi = {
   /**
    * List all objects in the GCS media bucket with optional prefix filtering.
    */
-  async listMedia(prefix?: string): Promise<MediaListResponse> {
+  async listMedia(prefix?: string, maxResults?: number): Promise<MediaListResponse> {
     const url = new URL(`${MEDIA_API_BASE_URL}/media/list`);
     if (prefix) {
       url.searchParams.append('prefix', prefix);
+    }
+    if (maxResults) {
+      url.searchParams.append('max_results', maxResults.toString());
     }
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -1892,6 +1898,19 @@ export const mediaApi = {
       },
     });
     return handleResponse<MediaListResponse>(response);
+  },
+
+  /**
+   * Deletes an object from Google Cloud Storage.
+   */
+  async deleteMedia(objectName: string): Promise<{ message: string; bucket: string }> {
+    const response = await fetch(`${MEDIA_API_BASE_URL}/media/${encodeURIComponent(objectName)}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<{ message: string; bucket: string }>(response);
   },
 
   /**
@@ -1931,6 +1950,13 @@ export const mediaApi = {
       }),
     });
     return handleResponse<SignedUrlResponse>(response);
+  },
+
+  /**
+   * Alias for getSignedUrl.
+   */
+  async createSignedUrl(objectName: string, method: 'GET' | 'PUT' = 'GET', expirationMinutes: number = 15): Promise<SignedUrlResponse> {
+    return this.getSignedUrl(objectName, method, expirationMinutes);
   },
 
   /**

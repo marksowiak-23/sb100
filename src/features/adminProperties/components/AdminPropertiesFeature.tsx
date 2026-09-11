@@ -27,7 +27,7 @@ import { sysConfigApi, SysConfig } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import PageSeo from '@/src/components/PageSeo';
 
-export default function SystemPropertiesFeature() {
+export default function AdminPropertiesFeature() {
   const [configs, setConfigs] = useState<SysConfig[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeGroup, setActiveGroup] = useState<string>('ALL');
@@ -510,7 +510,9 @@ export default function SystemPropertiesFeature() {
         </div>
       )}
 
-      <AdminComponentTag name="SystemPropertiesFeature" />
+      <AdminComponentTag name="AdminPropertiesFeature" />
     </div>
   );
 }
+
+export { AdminPropertiesFeature as SystemPropertiesFeature, AdminPropertiesFeature as AdminPropertiesFeatuere };

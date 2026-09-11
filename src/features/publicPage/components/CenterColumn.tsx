@@ -5,6 +5,7 @@
 
 import React from 'react';
 import HeroCarousel from './HeroCarousel';
+import SbExplainerCard from './SbExplainerCard';
 import SbPublicSearchCard from './SbPublicSearchCard';
 import SbMemberSearchResults from './SbMemberSearchResults';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -44,6 +45,11 @@ export default function CenterColumn({
     <div className="space-y-8 flex flex-col relative">
       {/* --- HERO CAROUSEL --- */}
       <HeroCarousel />
+
+      {/* --- EXPLAINER CARD (Mobile View: displayed above search card) --- */}
+      <div className="block lg:hidden">
+        <SbExplainerCard />
+      </div>
 
       {/* --- SEARCH BAR CARD --- */}
       <SbPublicSearchCard

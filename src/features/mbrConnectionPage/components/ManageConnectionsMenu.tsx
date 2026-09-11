@@ -28,7 +28,10 @@ export default function ManageConnectionsMenu({
   hasUnsavedRequests = false
 }: ManageConnectionsMenuProps) {
   return (
-    <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
+    <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs overflow-hidden group">
+      {/* Top Accent Line */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+
       <AdminComponentTag name="ManageConnectionsMenu.tsx" />
 
       {/* Menu Header */}

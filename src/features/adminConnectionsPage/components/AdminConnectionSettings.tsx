@@ -7,17 +7,17 @@ import React from 'react';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-interface ConnectionSettingsProps {
+interface AdminConnectionSettingsProps {
   isSandbox: boolean; // Indicates if the application is offline and using sandbox mocked data.
 }
 
 /**
- * ConnectionSettings Component
+ * AdminConnectionSettings Component
  * Displays system environment variables and the live vs sandboxed server modes.
  * This is a "Stateless / Presentational Component" because it takes data entirely as props
  * and outputs UI elements without managing its own internal states.
  */
-export default function ConnectionSettings({ isSandbox }: ConnectionSettingsProps) {
+export default function AdminConnectionSettings({ isSandbox }: AdminConnectionSettingsProps) {
   return (
     <div className="w-full max-w-2xl bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-8 md:p-12 shadow-[0_12px_40px_rgba(0,0,0,0.02)] relative">
       
@@ -81,7 +81,9 @@ export default function ConnectionSettings({ isSandbox }: ConnectionSettingsProp
           </div>
         </div>
       </div>
-      <AdminComponentTag name="ConnectionSettings" />
+      <AdminComponentTag name="AdminConnectionSettings" />
     </div>
   );
 }
+
+export { AdminConnectionSettings as ConnectionSettings };

@@ -44,7 +44,7 @@ export type SbStoryIndexPanelProps = MbrStoryIndexPanelProps;
 export type mbrStoryIndexPanelProps = MbrStoryIndexPanelProps;
 
 const DEFAULT_TOPICS: StoryTopic[] = [
-
+  { id: 'Profile', label: 'Profile' },
   { id: 'Family', label: 'Family' },
   { id: 'Residencies', label: 'Residencies' },
   { id: 'Achievements', label: 'Achievements' },
@@ -55,6 +55,9 @@ const DEFAULT_TOPICS: StoryTopic[] = [
 
 function getTopicIcon(id: string, label: string = '') {
   const normalized = (id + ' ' + label).toLowerCase();
+  if (normalized.includes('biograph') || normalized.includes('bio') || normalized.includes('profile')) {
+    return User;
+  }
   if (normalized.includes('family') || normalized.includes('famly')) {
     return Users;
   }
@@ -72,9 +75,6 @@ function getTopicIcon(id: string, label: string = '') {
   }
   if (normalized.includes('activ') || normalized.includes('hobbi') || normalized.includes('hobby') || normalized.includes('interest')) {
     return Palette;
-  }
-  if (normalized.includes('biograph') || normalized.includes('bio') || normalized.includes('profile')) {
-    return User;
   }
   if (normalized.includes('stori') || normalized.includes('story')) {
     return FileText;
@@ -94,7 +94,7 @@ export default function MbrStoryIndexPanel({
   onEditBiography,
   showEditControls = true
 }: MbrStoryIndexPanelProps) {
-  const currentActive = activeTopic || activeSection || 'Family';
+  const currentActive = activeTopic || activeSection || 'Profile';
   const handleSelect = (topicId: string) => {
     if (setActiveTopic) setActiveTopic(topicId);
     if (setActiveSection) setActiveSection(topicId);
@@ -151,31 +151,6 @@ export default function MbrStoryIndexPanel({
           );
         })}
       </nav>
-
-      {/* Edit Controls */}
-      {showEditControls && (
-        <div className="flex flex-col gap-1.5 pt-3 border-t border-[#EFECE7]">
-          <div className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest pb-1">
-            Edit Controls
-          </div>
-          <button
-            type="button"
-            onClick={onEditStories || (() => alert('Editing Stories checklists...'))}
-            className="w-full flex items-center gap-2 text-left px-3 py-1.5 rounded-lg text-xs font-serif text-slate-650 hover:text-slate-850 hover:bg-slate-50/80 transition-colors cursor-pointer"
-          >
-            <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>Stories</span>
-          </button>
-          <button
-            type="button"
-            onClick={onEditBiography || (() => alert('Editing Biography metadata details...'))}
-            className="w-full flex items-center gap-2 text-left px-3 py-1.5 rounded-lg text-xs font-serif text-slate-650 hover:text-slate-850 hover:bg-slate-50/80 transition-colors cursor-pointer"
-          >
-            <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span>Biography</span>
-          </button>
-        </div>
-      )}
 
       <AdminComponentTag name="mbrStoryIndexPanel" />
     </div>

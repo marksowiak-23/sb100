@@ -134,7 +134,7 @@ export default function SbMyStorybookStatusCard({ onClickAuthorPage }: SbMyStory
         </div>
         <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-[#EFECE7]">
           <div
-            className="h-full bg-gradient-to-r from-slate-700 to-slate-850 transition-all duration-500"
+            className="h-full bg-gradient-to-r from-slate-700 to-slate-855 transition-all duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -160,15 +160,19 @@ export default function SbMyStorybookStatusCard({ onClickAuthorPage }: SbMyStory
         })}
       </div>
 
-      {/* Link button to sbMbrAuthorPage */}
-      <button
-        onClick={onClickAuthorPage}
-        className="w-full mt-1.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold font-serif transition-colors cursor-pointer text-center shadow-sm"
-      >
-        Go to Author Workspace
-      </button>
+      {/* Link button to sbMbrAuthorPage if provided */}
+      {onClickAuthorPage && (
+        <button
+          onClick={onClickAuthorPage}
+          className="w-full mt-1.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-[11px] font-bold font-serif transition-colors cursor-pointer text-center shadow-sm"
+        >
+          Go to Author Workspace
+        </button>
+      )}
 
       <AdminComponentTag name="SbMyStorybookStatusCard" />
     </div>
   );
 }
+
+export { SbMyStorybookStatusCard as mbrstorybookstatuscard, SbMyStorybookStatusCard as MbrStoryBookStatusCard };

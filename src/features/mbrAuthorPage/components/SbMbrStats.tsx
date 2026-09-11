@@ -123,7 +123,6 @@ export default function SbMbrStats() {
         </h3>
       </div>
 
-
       {loading ? (
         <div className="flex flex-col items-center justify-center py-6 text-slate-400 gap-2">
           <Loader2 className="w-5 h-5 animate-spin text-slate-500" />
@@ -189,7 +188,9 @@ export default function SbMbrStats() {
         </div>
       )}
 
-      <AdminComponentTag name="sbMbrStats" />
+      <AdminComponentTag name="SbMbrStats" />
     </div>
   );
 }
+
+export { SbMbrStats as mbrstats, SbMbrStats as MbrStatsCard };

@@ -30,11 +30,7 @@ export default function MemberConnectionCard({
 
   return (
     <div
-      className={`relative p-4 rounded-2xl border bg-white dark:bg-slate-900 transition-all flex flex-col justify-between gap-4 shadow-xs hover:shadow-md ${
-        isModified
-          ? 'border-blue-400 dark:border-blue-500 ring-1 ring-blue-400/30'
-          : 'border-slate-200 dark:border-slate-800'
-      }`}
+      className="relative p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all flex flex-col justify-between gap-4 shadow-xs hover:shadow-md"
     >
       <AdminComponentTag name="MemberConnectionCard.tsx" />
 

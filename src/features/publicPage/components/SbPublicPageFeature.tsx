@@ -196,10 +196,10 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
       />
       {/* 3-Column Responsive Grid Structure */}
       {/* lg:grid-cols-12 distributes proportions as 3/12 (Left), 6/12 (Center), and 3/12 (Right). */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 max-w-7xl w-full mx-auto items-start">
         
         {/* Left Column Section: Brand branding, authentication, explainer facts, stats */}
-        <div className="lg:col-span-3">
+        <div className="hidden lg:block lg:col-span-3">
           <LeftColumn setActiveTab={setActiveTab} onSelectLogonType={onSelectLogonType} />
         </div>
 

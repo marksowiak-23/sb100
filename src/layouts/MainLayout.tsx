@@ -87,6 +87,7 @@ export default function MainLayout({
   const [isMobileAdminOpen, setIsMobileAdminOpen] = React.useState(false);
   const [isMobileNotificationsOpen, setIsMobileNotificationsOpen] = React.useState(false);
   const [isMobileMessagingOpen, setIsMobileMessagingOpen] = React.useState(false);
+  const [isMobileAccountOpen, setIsMobileAccountOpen] = React.useState(false);
   const [profilePic, setProfilePic] = React.useState<string | null>(null);
   const [userName, setUserName] = React.useState<string>('StoryBook Member');
   const [invitationCount, setInvitationCount] = React.useState<number>(0);
@@ -98,6 +99,7 @@ export default function MainLayout({
         setIsMobileMenuOpen(false);
         setIsMobileNotificationsOpen(false);
         setIsMobileMessagingOpen(false);
+        setIsMobileAccountOpen(false);
       }
     };
     window.addEventListener('resize', handleResize);
@@ -125,6 +127,7 @@ export default function MainLayout({
     setActiveTab('publicPage');
     setDropdownOpen(false);
     setIsMobileMenuOpen(false);
+    setIsMobileAccountOpen(false);
   }, [setActiveTab]);
 
   const {
@@ -254,6 +257,50 @@ export default function MainLayout({
     }
   };
 
+  // Determine current page mobile header icon and title for main menu pages (Home, Stories, Author, Connections)
+  const getMobileHeaderBranding = () => {
+    switch (activeTab) {
+      case 'mbrHomePage':
+      case 'sbMbrHomePage':
+        return {
+          icon: <Home className="w-4 h-4 text-white" />,
+          title: 'Home',
+          gradient: 'from-blue-600 to-indigo-500'
+        };
+      case 'mbrStoryFeedPage':
+      case 'sbMbrStoryFeedPage':
+      case 'mbrStoryPage':
+      case 'sbMbrStoryPage':
+        return {
+          icon: <BookMarked className="w-4 h-4 text-white" />,
+          title: 'Stories',
+          gradient: 'from-indigo-600 to-blue-500'
+        };
+      case 'mbrAuthorPage':
+      case 'sbMbrAuthorPage':
+        return {
+          icon: <BookOpen className="w-4 h-4 text-white" />,
+          title: 'Author',
+          gradient: 'from-amber-600 to-orange-500'
+        };
+      case 'mbrConnections':
+      case 'mbrConnectionPage':
+        return {
+          icon: <Users className="w-4 h-4 text-white" />,
+          title: 'Connections',
+          gradient: 'from-emerald-600 to-teal-500'
+        };
+      default:
+        return {
+          icon: <BookOpen className="w-4 h-4 text-white" />,
+          title: null,
+          gradient: 'from-blue-600 to-indigo-500'
+        };
+    }
+  };
+
+  const mobileBranding = getMobileHeaderBranding();
+
   return (
     <div
       id="app-container"
@@ -262,27 +309,44 @@ export default function MainLayout({
       {/* --- HEADER SECTION --- */}
       <header
         id="app-header"
-        className="sticky top-0 h-16 px-4 sm:px-6 md:px-8 flex items-center justify-between bg-[#0F1B35] border-b border-slate-900 shadow-md z-50"
+        className="sticky top-0 h-16 px-3 sm:px-6 md:px-8 flex items-center justify-between bg-[#0F1B35] border-b border-slate-900 shadow-md z-50"
       >
         {/* Logo and branding */}
         <button
           type="button"
           onClick={handleLogoClick}
-          className="flex items-center gap-3 text-left bg-transparent border-0 p-0 cursor-pointer group focus:outline-none shrink-0 mr-4"
+          className="flex items-center gap-2 sm:gap-3 text-left bg-transparent border-0 p-0 cursor-pointer group focus:outline-none shrink-0 mr-2 sm:mr-4"
           title={isMemberLoggedIn ? "Go to Member Home" : "Go to Home"}
         >
-          <div className="w-8 h-8 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center border border-blue-400/20 shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform">
-            <BookOpen className="w-4 h-4 text-white" />
+          <div className={`w-8 h-8 bg-gradient-to-tr ${mobileBranding.gradient} rounded-xl flex items-center justify-center border border-blue-400/20 shadow-md shadow-blue-500/10 group-hover:scale-105 transition-transform shrink-0`}>
+            {/* Desktop icon */}
+            <span className="hidden lg:flex items-center justify-center">
+              <BookOpen className="w-4 h-4 text-white" />
+            </span>
+            {/* Mobile dynamic page menu icon */}
+            <span className="flex lg:hidden items-center justify-center">
+              {mobileBranding.icon}
+            </span>
           </div>
-          <span className="font-serif font-black text-xl tracking-tight text-white flex items-center gap-0.5 group-hover:opacity-95 transition-opacity">
-            story<span className="text-blue-400 font-sans font-light">book</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-2"></span>
-          </span>
+          <div className="flex flex-col">
+            <span className="font-serif font-black text-lg sm:text-xl tracking-tight text-white flex items-center gap-0.5 group-hover:opacity-95 transition-opacity whitespace-nowrap leading-none">
+              story<span className="text-blue-400 font-sans font-light">book</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1"></span>
+            </span>
+            {/* Desktop Tagline */}
+            <span className="hidden lg:block text-[10px] font-sans font-semibold text-amber-400 tracking-wide mt-0.5 whitespace-nowrap leading-tight">
+              Live it. Write it. Share it.
+            </span>
+            {/* Mobile Tagline / Current Page Name */}
+            <span className="block lg:hidden text-xs sm:text-sm font-bold text-amber-400 tracking-wide mt-0.5 whitespace-nowrap leading-tight">
+              {mobileBranding.title || 'Live it. Write it. Share it.'}
+            </span>
+          </div>
         </button>
 
 
         {/* --- HEADER CONTROLS --- */}
-        <div className="flex items-center gap-3 sm:gap-6 h-full">
+        <div className="flex items-center gap-2 sm:gap-6 h-full shrink-0">
           {/* --- LOGGED-IN HEADER NAVIGATION (Home, My Network, Stories, Messaging, Notifications, Me) --- */}
           {isMemberLoggedIn ? (
             <>
@@ -825,18 +889,18 @@ export default function MainLayout({
         </>
         ) : (
           /* Public Header Navigation */
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 whitespace-nowrap">
             <button
               type="button"
               onClick={() => setActiveTab('mbrLogonPage')}
-              className="px-4 py-2 rounded-xl text-xs font-serif font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+              className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-serif font-bold text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
               Log In
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('mbrRegistrationPage')}
-              className="px-4 py-2 rounded-xl text-xs font-serif font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs hover:shadow transition-all cursor-pointer"
+              className="px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-serif font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xs hover:shadow transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
               Sign Up
             </button>
@@ -1264,26 +1328,17 @@ export default function MainLayout({
 
       {/* --- MAIN PORTVIEW (Content Injection Area) --- */}
       {/* We render {children} here. React inserts whatever children elements were nested within the layout container. */}
-      <main className="flex-grow flex flex-col items-center justify-start pt-8 pb-16 px-6 md:px-12 max-w-7xl w-full mx-auto">
+      <main className={`flex-grow flex flex-col items-center justify-start pt-2.5 sm:pt-6 md:pt-8 ${isMemberLoggedIn ? 'pb-24 lg:pb-16' : 'pb-16'} px-1.5 sm:px-4 md:px-12 max-w-7xl w-full mx-auto`}>
         {children}
       </main>
 
       {/* --- FOOTER STATUS BAR --- */}
       <footer
         id="app-footer"
-        className="h-12 bg-[#2E2C2A] text-slate-350 px-6 md:px-8 flex items-center justify-between text-xs font-medium border-t border-[#3E3C3A]"
+        className={`h-12 bg-[#2E2C2A] text-slate-400 px-6 md:px-8 flex items-center justify-between text-xs font-medium border-t border-[#3E3C3A] ${isMemberLoggedIn ? 'mb-16 lg:mb-0' : ''}`}
       >
-        <div className="flex items-center gap-6">
-          <span className="text-slate-400">Node Environment OK</span>
-          <div className="flex gap-4">
-            <span className="text-emerald-400 font-semibold">● 0 Warnings</span>
-            <span
-              onClick={() => setActiveTab('admin-accounts')}
-              className="text-slate-300 hover:text-white underline cursor-pointer font-serif"
-            >
-              Inspect Database User Accounts
-            </span>
-          </div>
+        <div className="flex items-center gap-2">
+          <span>&copy; {new Date().getFullYear()} StoryBook</span>
         </div>
         <div className="flex items-center gap-2">
           <span>localhost:3000</span>
@@ -1292,6 +1347,393 @@ export default function MainLayout({
           </div>
         </div>
       </footer>
+
+      {/* --- LOCKED MOBILE BOTTOM FOOTER (POST-LOGIN) --- */}
+      {isMemberLoggedIn && (
+        <nav
+          id="locked-mobile-footer"
+          className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-[#0F1B35]/95 backdrop-blur-md border-t border-slate-800 shadow-[0_-4px_20px_rgba(0,0,0,0.35)] px-2 py-1 pb-[max(env(safe-area-inset-bottom),0.35rem)]"
+          aria-label="Mobile Bottom Navigation"
+        >
+          <div className="flex items-center justify-around max-w-lg mx-auto">
+            {/* 1. Home */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('mbrHomePage');
+                setIsMobileAccountOpen(false);
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'mbrHomePage' || activeTab === 'sbMbrHomePage'
+                  ? 'text-white font-bold'
+                  : 'text-slate-400 hover:text-slate-200 font-medium'
+              }`}
+              title="Home"
+            >
+              <div className={`p-1 rounded-lg transition-transform ${activeTab === 'mbrHomePage' || activeTab === 'sbMbrHomePage' ? 'bg-blue-600/30 text-blue-400 scale-105' : ''}`}>
+                <Home className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] tracking-tight mt-0.5 leading-none">Home</span>
+            </button>
+
+            {/* 2. Stories */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('mbrStoryFeedPage');
+                setIsMobileAccountOpen(false);
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage' || activeTab === 'mbrStoryPage' || activeTab === 'sbMbrStoryPage'
+                  ? 'text-white font-bold'
+                  : 'text-slate-400 hover:text-slate-200 font-medium'
+              }`}
+              title="Stories Feed"
+            >
+              <div className={`p-1 rounded-lg transition-transform ${activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage' || activeTab === 'mbrStoryPage' || activeTab === 'sbMbrStoryPage' ? 'bg-indigo-600/30 text-indigo-400 scale-105' : ''}`}>
+                <BookMarked className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] tracking-tight mt-0.5 leading-none">Stories</span>
+            </button>
+
+            {/* 3. Author */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('mbrAuthorPage');
+                setIsMobileAccountOpen(false);
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'mbrAuthorPage' || activeTab === 'sbMbrAuthorPage'
+                  ? 'text-white font-bold'
+                  : 'text-slate-400 hover:text-slate-200 font-medium'
+              }`}
+              title="Author Page"
+            >
+              <div className={`p-1 rounded-lg transition-transform ${activeTab === 'mbrAuthorPage' || activeTab === 'sbMbrAuthorPage' ? 'bg-amber-600/30 text-amber-400 scale-105' : ''}`}>
+                <BookOpen className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] tracking-tight mt-0.5 leading-none">Author</span>
+            </button>
+
+            {/* 4. Connections */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('mbrConnections');
+                setIsMobileAccountOpen(false);
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all cursor-pointer relative ${
+                activeTab === 'mbrConnections' || activeTab === 'mbrConnectionPage'
+                  ? 'text-white font-bold'
+                  : 'text-slate-400 hover:text-slate-200 font-medium'
+              }`}
+              title={invitationCount > 0 ? `Connections (${invitationCount} pending)` : "Connections"}
+            >
+              <div className={`p-1 rounded-lg transition-transform relative ${activeTab === 'mbrConnections' || activeTab === 'mbrConnectionPage' ? 'bg-emerald-600/30 text-emerald-400 scale-105' : ''}`}>
+                <Users className="w-5 h-5" />
+                {invitationCount > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 bg-rose-600 text-white font-mono text-[8.5px] font-bold rounded-full flex items-center justify-center ring-1 ring-[#0F1B35]"
+                  >
+                    {invitationCount > 99 ? '99+' : invitationCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] tracking-tight mt-0.5 leading-none">Connections</span>
+            </button>
+
+            {/* 5. Account */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileAccountOpen(!isMobileAccountOpen);
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all cursor-pointer relative ${
+                isMobileAccountOpen || ['mbrProfilePage', 'mbrProfile', 'mbrPreferencesPage', 'mbrPreferences', 'mbrPrivacySettingsPage', 'mbrPrivacy'].includes(activeTab)
+                  ? 'text-white font-bold'
+                  : 'text-slate-400 hover:text-slate-200 font-medium'
+              }`}
+              title="Account"
+            >
+              <div className={`p-1 rounded-lg transition-transform relative ${
+                isMobileAccountOpen || ['mbrProfilePage', 'mbrProfile', 'mbrPreferencesPage', 'mbrPreferences', 'mbrPrivacySettingsPage', 'mbrPrivacy'].includes(activeTab)
+                  ? 'bg-blue-600/30 text-blue-400 scale-105'
+                  : ''
+              }`}>
+                {profilePic ? (
+                  <div className="w-5 h-5 rounded-full overflow-hidden border border-slate-400 flex items-center justify-center bg-slate-800">
+                    <img src={profilePic} alt="Account" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <User className="w-5 h-5" />
+                )}
+              </div>
+              <span className="text-[10px] tracking-tight mt-0.5 leading-none">Account</span>
+            </button>
+          </div>
+        </nav>
+      )}
+
+      {/* Mobile Account Bottom Sheet Modal */}
+      {isMemberLoggedIn && isMobileAccountOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsMobileAccountOpen(false)}
+          />
+          {/* Sheet Content */}
+          <div className="relative z-10 bg-[#0F1B35] border-t border-slate-800 rounded-t-3xl shadow-2xl p-4 max-h-[80vh] flex flex-col mb-16 animate-in slide-in-from-bottom duration-200">
+            <div className="w-10 h-1 bg-slate-700 rounded-full mx-auto mb-3" />
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-blue-400" />
+                <h3 className="font-serif font-bold text-sm text-white">Account</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileAccountOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 py-3 overflow-y-auto">
+              {/* User Profile Banner Card */}
+              <div
+                onClick={() => {
+                  setActiveTab('mbrProfilePage');
+                  setIsMobileAccountOpen(false);
+                }}
+                className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-colors cursor-pointer"
+              >
+                <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-blue-400/40 bg-slate-900 shrink-0 flex items-center justify-center">
+                  {profilePic ? (
+                    <img src={profilePic} alt="User" className="w-full h-full object-cover" />
+                  ) : (
+                    <User className="w-5 h-5 text-slate-400" />
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-white truncate font-serif">{userName}</h4>
+                    <span className="text-[9px] uppercase font-mono tracking-wider font-semibold text-blue-400 bg-blue-500/15 px-2 py-0.5 rounded-full border border-blue-500/20">Member</span>
+                  </div>
+                  <p className="text-[11px] text-blue-300">View & Edit Profile →</p>
+                </div>
+              </div>
+
+              {/* Account Navigation Options */}
+              <div className="space-y-1">
+                <div
+                  onClick={() => {
+                    setActiveTab('mbrProfilePage');
+                    setIsMobileAccountOpen(false);
+                  }}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-colors ${
+                    activeTab === 'mbrProfilePage' || activeTab === 'mbrProfile'
+                      ? 'bg-white/10 text-white font-bold'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  My Profile
+                </div>
+                <div
+                  onClick={() => {
+                    setActiveTab('mbrPreferencesPage');
+                    setIsMobileAccountOpen(false);
+                  }}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-colors ${
+                    activeTab === 'mbrPreferencesPage' || activeTab === 'mbrPreferences'
+                      ? 'bg-white/10 text-white font-bold'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  My Preferences
+                </div>
+                <div
+                  onClick={() => {
+                    setActiveTab('mbrPrivacySettingsPage');
+                    setIsMobileAccountOpen(false);
+                  }}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-colors ${
+                    activeTab === 'mbrPrivacySettingsPage' || activeTab === 'mbrPrivacy'
+                      ? 'bg-white/10 text-white font-bold'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  My Privacy
+                </div>
+                <div
+                  onClick={() => {
+                    setActiveTab('mbrConnectionPage');
+                    setIsMobileAccountOpen(false);
+                  }}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-colors flex items-center justify-between ${
+                    activeTab === 'mbrConnectionPage' || activeTab === 'mbrConnections'
+                      ? 'bg-white/10 text-white font-bold'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <span>My Connections</span>
+                  {invitationCount > 0 && (
+                    <span className="px-1.5 py-0.5 text-[9.5px] font-mono font-bold bg-rose-600 text-white rounded-full leading-none">
+                      {invitationCount}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Administrator Collapsible Section */}
+              <div className="border-t border-slate-800 pt-2 space-y-1">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileAdminOpen(!isMobileAdminOpen)}
+                  className="w-full px-3.5 py-2 text-xs font-bold text-slate-300 hover:text-white flex items-center justify-between cursor-pointer rounded-xl hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-blue-400" />
+                    <span>Administrator Tools</span>
+                  </div>
+                  {isMobileAdminOpen ? (
+                    <ChevronUp className="w-4 h-4 text-slate-400" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  )}
+                </button>
+
+                {isMobileAdminOpen && (
+                  <div className="pl-4 border-l border-slate-700/60 ml-3 space-y-0.5 py-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('adminUserAdminPage');
+                        setIsMobileAccountOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                        activeTab === 'adminUserAdminPage' || activeTab === 'adminAccountsPage' || activeTab === 'admin-accounts' || activeTab === 'account-settings'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      User Administration
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('adminUserAIUsagePage');
+                        setIsMobileAccountOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                        activeTab === 'adminUserAIUsagePage' || activeTab === 'admin-user-ai-usage'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      User AI Usage
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('adminConnectionsPage');
+                        setIsMobileAccountOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                        activeTab === 'adminConnectionsPage' || activeTab === 'admin-connections' || activeTab === 'settings'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Connection Settings
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('adminDbPage');
+                        setIsMobileAccountOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                        activeTab === 'adminDbPage' || activeTab === 'admin-db'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Database Admin
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('adminCachePage');
+                        setIsMobileAccountOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                        activeTab === 'adminCachePage' || activeTab === 'adminCacheManagement'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Cache Management
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('adminMediaPage');
+                        setIsMobileAccountOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                        activeTab === 'adminMediaPage' || activeTab === 'adminMedia'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Media Storage Admin
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('adminProperties');
+                        setIsMobileAccountOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                        activeTab === 'adminProperties' || activeTab === 'adminSystemProperties'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      System Properties
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Logout Option */}
+              <div className="pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => {
+                    userManager.userLogout();
+                    setProfilePic(null);
+                    setUserName('StoryBook Member');
+                    setActiveTab('publicPage');
+                    setIsMobileAccountOpen(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 hover:text-rose-300 font-semibold text-xs border border-rose-500/20 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Session Inactivity Timeout Warning Modal */}
       <SessionTimeoutPanel

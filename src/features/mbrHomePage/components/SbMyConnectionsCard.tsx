@@ -20,6 +20,7 @@ interface ConnectedMemberItem {
 
 interface SbMyConnectionsCardProps {
   onClickMember?: (memberId: string) => void;
+  className?: string;
 }
 
 const formatPublishedDate = (dateStr?: string | null) => {
@@ -41,7 +42,7 @@ const formatPublishedDate = (dateStr?: string | null) => {
   return dateStr;
 };
 
-export default function SbMyConnectionsCard({ onClickMember }: SbMyConnectionsCardProps) {
+export default function SbMyConnectionsCard({ onClickMember, className = '' }: SbMyConnectionsCardProps) {
   const [connections, setConnections] = useState<ConnectedMemberItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -201,7 +202,7 @@ export default function SbMyConnectionsCard({ onClickMember }: SbMyConnectionsCa
   }, [loadConnections]);
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
+    <div className={`hidden lg:flex bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex-col gap-4 relative ${className}`}>
       <div className="flex items-center justify-between pb-1 border-b border-[#EFECE7]">
         <div className="flex items-center gap-2">
           <Users className="w-4 h-4 text-slate-650 shrink-0" />

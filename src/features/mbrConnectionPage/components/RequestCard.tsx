@@ -23,16 +23,16 @@ interface RequestCardProps {
   key?: React.Key;
   item: MemberRequestItem;
   groups: UnifiedGroupOption[];
-  onToggleWithdrawal: (contactId: string) => void;
+  onWithdraw: (contactId: string) => void;
 }
 
 
 export default function RequestCard({
   item,
   groups,
-  onToggleWithdrawal
+  onWithdraw
 }: RequestCardProps) {
-  const { contact, targetMember, selectedDecision } = item;
+  const { contact, targetMember } = item;
   
   const recipientName = targetMember
     ? `${targetMember.mbrFirstName || ''} ${targetMember.mbrLastName || ''}`.trim() || 'StoryBook Member'
@@ -59,16 +59,8 @@ export default function RequestCard({
     ? groups.find(g => g.grpId === contact.grpId)
     : null;
 
-  const isWithdrawn = selectedDecision === 'WITHDRAW';
-
   return (
-    <div
-      className={`relative p-5 rounded-3xl border bg-white dark:bg-slate-900 transition-all flex flex-col justify-between gap-5 shadow-xs hover:shadow-md ${
-        isWithdrawn
-          ? 'border-rose-300 dark:border-rose-700 bg-rose-50/20 dark:bg-rose-950/20 ring-2 ring-rose-300/20'
-          : 'border-slate-200 dark:border-slate-800'
-      }`}
-    >
+    <div className="relative p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all flex flex-col justify-between gap-5 shadow-xs hover:shadow-md">
       <AdminComponentTag name="RequestCard.tsx" />
 
       {/* Top Header: Recipient Member Profile & Tags */}
@@ -146,39 +138,21 @@ export default function RequestCard({
       {/* Actions & Status Bar */}
       <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div className="text-xs font-serif">
-          {isWithdrawn ? (
-            <span className="inline-flex items-center gap-1.5 font-bold text-rose-600 dark:text-rose-400">
-              <AlertCircle className="w-4 h-4" />
-              <span>Marked to Withdraw (Click Save to delete request)</span>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-medium">
-              <Hourglass className="w-3.5 h-3.5 text-amber-500 animate-spin" style={{ animationDuration: '4s' }} />
-              <span>Awaiting response from member</span>
-            </span>
-          )}
+          <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-medium">
+            <Hourglass className="w-3.5 h-3.5 text-amber-500 animate-spin" style={{ animationDuration: '4s' }} />
+            <span>Awaiting response from member</span>
+          </span>
         </div>
 
         <div>
-          {isWithdrawn ? (
-            <button
-              type="button"
-              onClick={() => onToggleWithdrawal(contact.mbrContactId)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Undo Withdrawal</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onToggleWithdrawal(contact.mbrContactId)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer shadow-2xs hover:shadow-xs"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-              <span>Withdraw Request</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => onWithdraw(contact.mbrContactId)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+            <span>Withdraw Request</span>
+          </button>
         </div>
       </div>
     </div>

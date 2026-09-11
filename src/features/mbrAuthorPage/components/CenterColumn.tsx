@@ -1,10 +1,4 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
 import StoryMatePanel from './StoryMatePanel';
 import StoryEditorPanel from './StoryEditorPanel';
 import MbrProfilePanel from '@/src/components/mbrProfilePanel';
@@ -15,6 +9,14 @@ import MbrStoryActivityPanel from '@/src/components/mbrStoryActivityPanel';
 import MbrStoryAchievementPanel from '@/src/components/mbrStoryAchievementPanel';
 import MbrStoryEducationPanel from '@/src/components/mbrStoryEducationPanel';
 import MbrStoryEmploymentPanel from '@/src/components/mbrStoryEmploymentPanel';
+import ProfileHeaderPanel from './ProfileHeaderPanel';
+import FamilyHeaderPanel from './FamilyHeaderPanel';
+import ResidenciesHeaderPanel from './ResidenciesHeaderPanel';
+import AchievementsHeaderPanel from './AchievementsHeaderPanel';
+import EducationHeaderPanel from './EducationHeaderPanel';
+import EmploymentHeaderPanel from './EmploymentHeaderPanel';
+import ActivitiesHeaderPanel from './ActivitiesHeaderPanel';
+import TopicHeaderPanel from './TopicHeaderPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
@@ -107,56 +109,71 @@ export default function CenterColumn({
     return () => window.removeEventListener('open-story-editor', handleOpenEditor);
   }, [activeSection]);
 
+  const sec = activeSection.toLowerCase();
+
   return (
     <div className="space-y-6 flex flex-col relative">
       
-      {/* --- BACK NAVIGATION LINK --- */}
-      <div>
-        <button
-          onClick={onClickBack}
-          className="group inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" />
-          <span>Back</span>
-        </button>
-      </div>
-
-      {/* --- PROFILE SUMMARY CARD --- */}
-      <MbrProfilePanel
-        isSandbox={isSandbox}
-        showConnectButton={false}
-        showReadStoryButton={false}
-        onClickAuthorProfile={onClickAuthorProfile}
-      />
-
-      {/* --- FAMILY DIRECTORY PANEL --- */}
-      {(activeSection.toLowerCase() === 'family') && (
-        <MbrStoryFamilyPanel isSandbox={isSandbox} />
+      {/* --- TOPIC HEADER PANELS --- */}
+      {sec === 'profile' && (
+        <>
+          <ProfileHeaderPanel />
+          <MbrProfilePanel
+            isSandbox={isSandbox}
+            showConnectButton={false}
+            showReadStoryButton={false}
+            onClickAuthorProfile={onClickAuthorProfile}
+          />
+        </>
       )}
 
-      {/* --- RESIDENCES PANEL --- */}
-      {(activeSection.toLowerCase() === 'residencies') && (
-        <MbrStoryResidencePanel isSandbox={isSandbox} />
+      {sec === 'family' && (
+        <>
+          <FamilyHeaderPanel />
+          <MbrStoryFamilyPanel isSandbox={isSandbox} />
+        </>
       )}
 
-      {/* --- ACTIVITIES & HOBBIES PANEL --- */}
-      {(activeSection.toLowerCase() === 'hobbies') && (
-        <MbrStoryActivityPanel isSandbox={isSandbox} />
+      {sec === 'residencies' && (
+        <>
+          <ResidenciesHeaderPanel />
+          <MbrStoryResidencePanel isSandbox={isSandbox} />
+        </>
       )}
 
-      {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
-      {(activeSection.toLowerCase() === 'achievements') && (
-        <MbrStoryAchievementPanel isSandbox={isSandbox} />
+      {sec === 'hobbies' && (
+        <>
+          <ActivitiesHeaderPanel />
+          <MbrStoryActivityPanel isSandbox={isSandbox} />
+        </>
       )}
 
-      {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
-      {(activeSection.toLowerCase() === 'education') && (
-        <MbrStoryEducationPanel isSandbox={isSandbox} />
+      {sec === 'achievements' && (
+        <>
+          <AchievementsHeaderPanel />
+          <MbrStoryAchievementPanel isSandbox={isSandbox} />
+        </>
       )}
 
-      {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
-      {(activeSection.toLowerCase() === 'employment') && (
-        <MbrStoryEmploymentPanel isSandbox={isSandbox} />
+      {sec === 'education' && (
+        <>
+          <EducationHeaderPanel />
+          <MbrStoryEducationPanel isSandbox={isSandbox} />
+        </>
+      )}
+
+      {sec === 'employment' && (
+        <>
+          <EmploymentHeaderPanel />
+          <MbrStoryEmploymentPanel isSandbox={isSandbox} />
+        </>
+      )}
+
+      {!['profile', 'family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(sec) && (
+        <>
+          <TopicHeaderPanel title={activeSection} />
+          <MbrBookEditorPanel sectionTitle={activeSection} content={activeContent} />
+        </>
       )}
 
       {storyEditorConfig && (

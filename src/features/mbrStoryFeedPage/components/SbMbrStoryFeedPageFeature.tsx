@@ -212,7 +212,16 @@ export default function SbMbrStoryFeedPageFeature({
   onClickViewAuthor,
   onClickAuthorPage
 }: SbMbrStoryFeedPageFeatureProps) {
-  const [allStories, setAllStories] = useState<FeedStoryItem[]>([]);
+  const [allStories, setAllStories] = useState<FeedStoryItem[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('sb_cached_feed_stories');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [];
+  });
   const [visibleCount, setVisibleCount] = useState<number>(() => {
     try {
       const savedCount = sessionStorage.getItem('sb_feed_visible_count');
@@ -233,7 +242,16 @@ export default function SbMbrStoryFeedPageFeature({
     } catch {}
     return new Set();
   });
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(() => {
+    try {
+      const cached = sessionStorage.getItem('sb_cached_feed_stories');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return false;
+      }
+    } catch {}
+    return true;
+  });
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [connectedCirclesCount, setConnectedCirclesCount] = useState<number>(0);
   const [viewerMbrId, setViewerMbrId] = useState<string | null>(null);
@@ -243,7 +261,10 @@ export default function SbMbrStoryFeedPageFeature({
     let isCancelled = false;
 
     const loadFeed = async () => {
-      setLoading(true);
+      // If we don't have cached stories yet, show loading skeleton
+      if (allStories.length === 0) {
+        setLoading(true);
+      }
       try {
         // 1. Resolve logged-in viewer member ID
         let resolvedViewerId: string | null = null;
@@ -294,25 +315,40 @@ export default function SbMbrStoryFeedPageFeature({
             setAllStories(sorted);
             setConnectedCirclesCount(uniqueCircles || 3);
             setVisibleCount(PAGE_SIZE);
+            try {
+              sessionStorage.setItem('sb_cached_feed_stories', JSON.stringify(sorted));
+            } catch {}
           }
           return;
         }
 
         // Live DB Mode:
-        // 2. Fetch viewer's connections, reciprocal connections, connection groups, topics, all published stories, and global/custom groups
-        const [viewerConns, authorConns, connectionGrps, topicsList, allDbStories, groupsGlobal, groupsCustom] = await Promise.all([
+        // 2. Fetch all required datasets in ONE single parallel batch (Zero N+1 waterfalls!)
+        const [
+          viewerConns,
+          authorConns,
+          connectionGrps,
+          topicsList,
+          allDbStories,
+          allMembers,
+          allTopicPrivs,
+          groupsGlobal,
+          groupsCustom
+        ] = await Promise.all([
           taskApi.getMemberConnections({ mbrId: resolvedViewerId }).catch(() => []),
           taskApi.getMemberConnections({ connectedMbrId: resolvedViewerId }).catch(() => []),
           taskApi.getMemberConnectionGrps().catch(() => []),
           taskApi.getTopics().catch(() => []),
-          taskApi.getStories().catch(() => []),
+          taskApi.getStories(undefined, 300).catch(() => []),
+          taskApi.getMembers({ limit: 200 }).catch(() => []),
+          taskApi.getMemberTopicGroupPrivs({ limit: 500 }).catch(() => []),
           taskApi.getGroupsGlobal().catch(() => []),
           taskApi.getGroupsCustom(resolvedViewerId).catch(() => [])
         ]);
 
         if (isCancelled) return;
 
-        // Group Name Lookup
+        // Group Name Lookup Map
         const allGroups = [
           ...(groupsGlobal || []),
           ...(groupsCustom || []),
@@ -335,8 +371,39 @@ export default function SbMbrStoryFeedPageFeature({
           }
         }
 
+        // Member Profile Lookup Map
+        const memberById = new Map<string, any>();
+        for (const m of (allMembers || [])) {
+          if (m.mbrId) memberById.set(m.mbrId, m);
+        }
+
+        // Privileges grouped by member ID
+        const privsByMbrId = new Map<string, any[]>();
+        for (const p of (allTopicPrivs || [])) {
+          if (p.mbrId) {
+            const list = privsByMbrId.get(p.mbrId) || [];
+            list.push(p);
+            privsByMbrId.set(p.mbrId, list);
+          }
+        }
+
+        // Fast Connection lookups
+        const authorToViewerConnByAuthorId = new Map<string, any>();
+        for (const c of (authorConns || [])) {
+          if (c.mbrId && c.mbrConnectionMbrId === resolvedViewerId) {
+            authorToViewerConnByAuthorId.set(c.mbrId, c);
+          }
+        }
+
+        const viewerToAuthorConnByAuthorId = new Map<string, any>();
+        for (const c of (viewerConns || [])) {
+          if (c.mbrId === resolvedViewerId && c.mbrConnectionMbrId) {
+            viewerToAuthorConnByAuthorId.set(c.mbrConnectionMbrId, c);
+          }
+        }
+
         // Public group ID
-        let publicGrpId = groupsGlobal?.find(g => g.grpName?.toLowerCase() === 'public')?.grpId || '13efcbad-d840-44ad-9b50-d6d2218e5cac';
+        const publicGrpId = groupsGlobal?.find(g => g.grpName?.toLowerCase() === 'public')?.grpId || '13efcbad-d840-44ad-9b50-d6d2218e5cac';
 
         // Helper to normalize topic codes
         const normalizeTopicKey = (typeCd?: string): string => {
@@ -351,124 +418,96 @@ export default function SbMbrStoryFeedPageFeature({
           return clean;
         };
 
-        // 3. Find all candidate authors (excluding viewer themselves)
-        const candidateAuthorIds = new Set<string>();
-        for (const s of (allDbStories || [])) {
-          const authorId = s.mbrMbrId || s.mbrId;
-          if (authorId && authorId !== resolvedViewerId) {
-            candidateAuthorIds.add(authorId);
-          }
-        }
-        for (const conn of (viewerConns || [])) {
-          if (conn.mbrConnectionMbrId && conn.mbrConnectionMbrId !== resolvedViewerId) {
-            candidateAuthorIds.add(conn.mbrConnectionMbrId);
-          }
-        }
-        for (const conn of (authorConns || [])) {
-          if (conn.mbrId && conn.mbrId !== resolvedViewerId) {
-            candidateAuthorIds.add(conn.mbrId);
-          }
-        }
-
-        const authorIds = Array.from(candidateAuthorIds);
+        // 3. In-memory joins and access evaluation for all published stories from other authors
         const feedItems: FeedStoryItem[] = [];
 
-        await Promise.all(authorIds.map(async (authorId) => {
-          try {
-            // Find author's connection to viewer (governs author's privacy permissions for viewer)
-            const authorToViewerConn = (authorConns || []).find(c => c.mbrId === authorId && c.mbrConnectionMbrId === resolvedViewerId);
-            // Find viewer's connection to author (governs the circle badge shown in UI)
-            const viewerToAuthorConn = (viewerConns || []).find(c => c.mbrId === resolvedViewerId && c.mbrConnectionMbrId === authorId);
+        const candidateStories = (allDbStories || []).filter(s => {
+          const authorId = s.mbrMbrId || s.mbrId;
+          const status = (s.mbrStoryPublishStatusCd || '').toLowerCase();
+          return authorId && authorId !== resolvedViewerId && status === 'published';
+        });
 
-            const isConnection = Boolean(authorToViewerConn || viewerToAuthorConn);
-            const authorAssignedGrpInfo = authorToViewerConn ? grpByConnId.get(authorToViewerConn.mbrConnectionId) : undefined;
-            const viewerAssignedGrpInfo = viewerToAuthorConn ? grpByConnId.get(viewerToAuthorConn.mbrConnectionId) : undefined;
+        for (const story of candidateStories) {
+          const authorId = story.mbrMbrId || story.mbrId;
+          if (!authorId) continue;
 
-            const assignedGrpId = authorAssignedGrpInfo?.grpId || viewerAssignedGrpInfo?.grpId;
-            const connectionGrpName = viewerAssignedGrpInfo?.grpName || authorAssignedGrpInfo?.grpName || 'Public';
+          const mbrProfile = memberById.get(authorId);
+          const authorName = mbrProfile ? `${mbrProfile.mbrFirstName || ''} ${mbrProfile.mbrLastName || ''}`.trim() || 'Member' : 'Member';
+          const authorLocation = mbrProfile ? (mbrProfile.mbrLivesCityState || mbrProfile.mbrFromCityState || '') : '';
+          const authorAvatarUrl = mbrProfile ? resolveMediaUrl(mbrProfile.mbrProfilePic) : undefined;
+          const authorInitials = mbrProfile ? `${mbrProfile.mbrFirstName?.[0] || ''}${mbrProfile.mbrLastName?.[0] || ''}`.toUpperCase() || 'SB' : 'SB';
 
-            const [mbrProfile, authorStories, authorPrivs] = await Promise.all([
-              taskApi.getMemberById(authorId).catch(() => null),
-              taskApi.getStories(authorId).catch(() => []),
-              taskApi.getMemberTopicGroupPrivs({ mbrId: authorId }).catch(() => [])
-            ]);
+          const authorToViewerConn = authorToViewerConnByAuthorId.get(authorId);
+          const viewerToAuthorConn = viewerToAuthorConnByAuthorId.get(authorId);
 
-            if (!mbrProfile || !authorStories || authorStories.length === 0) return;
+          const isConnection = Boolean(authorToViewerConn || viewerToAuthorConn);
+          const authorAssignedGrpInfo = authorToViewerConn ? grpByConnId.get(authorToViewerConn.mbrConnectionId) : undefined;
+          const viewerAssignedGrpInfo = viewerToAuthorConn ? grpByConnId.get(viewerToAuthorConn.mbrConnectionId) : undefined;
 
-            const authorName = `${mbrProfile.mbrFirstName || ''} ${mbrProfile.mbrLastName || ''}`.trim() || 'Member';
-            const authorLocation = mbrProfile.mbrLivesCityState || mbrProfile.mbrFromCityState || '';
-            const authorAvatarUrl = resolveMediaUrl(mbrProfile.mbrProfilePic);
-            const authorInitials = `${mbrProfile.mbrFirstName?.[0] || ''}${mbrProfile.mbrLastName?.[0] || ''}`.toUpperCase() || 'SB';
+          const assignedGrpId = authorAssignedGrpInfo?.grpId || viewerAssignedGrpInfo?.grpId;
+          const connectionGrpName = viewerAssignedGrpInfo?.grpName || authorAssignedGrpInfo?.grpName || 'Public';
 
-            // Filter published stories only
-            const publishedStories = authorStories.filter((s: MbrStory) => (s.mbrStoryPublishStatusCd || '').toLowerCase() === 'published');
+          const normStoryTopic = normalizeTopicKey(story.mbrStoryTypeCd);
+          const matchedTopic = (topicsList || []).find(t => 
+            t.topicId === story.mbrStoryTypeCd || 
+            normalizeTopicKey(t.topicName) === normStoryTopic
+          );
+          const matchedTopicId = matchedTopic?.topicId;
 
-            for (const story of publishedStories) {
-              const normStoryTopic = normalizeTopicKey(story.mbrStoryTypeCd);
-              const matchedTopic = (topicsList || []).find(t => 
-                t.topicId === story.mbrStoryTypeCd || 
-                normalizeTopicKey(t.topicName) === normStoryTopic
-              );
-              const matchedTopicId = matchedTopic?.topicId;
+          const authorPrivs = privsByMbrId.get(authorId) || [];
+          const topicPrivs = authorPrivs.filter((p: any) => 
+            (matchedTopicId && p.topicId === matchedTopicId) ||
+            normalizeTopicKey(p.topicId) === normStoryTopic ||
+            (matchedTopic?.topicName && p.topicId?.toLowerCase() === matchedTopic.topicName.toLowerCase())
+          );
 
-              // Filter author's privileges for this specific topic
-              const topicPrivs = (authorPrivs || []).filter((p: any) => 
-                (matchedTopicId && p.topicId === matchedTopicId) ||
-                normalizeTopicKey(p.topicId) === normStoryTopic ||
-                (matchedTopic?.topicName && p.topicId?.toLowerCase() === matchedTopic.topicName.toLowerCase())
-              );
+          // Evaluate topic privilege (Default-Deny Model)
+          let hasAccess = false;
+          let hasDenial = false;
 
-              // Evaluate topic privilege (Default-Deny Model)
-              let hasAccess = false;
-              let hasDenial = false;
-
-              if (assignedGrpId) {
-                const assignedPriv = topicPrivs.find((p: any) => p.grpId === assignedGrpId);
-                if (assignedPriv) {
-                  const val = assignedPriv.privValueCd?.toUpperCase();
-                  if (val === 'READ' || val === 'WRITE') {
-                    hasAccess = true;
-                  } else if (val === 'NONE' || val === 'HIDE') {
-                    hasDenial = true;
-                  }
-                }
-              }
-
-              // Public fallback check if not explicitly denied by assigned group
-              if (!hasAccess && !hasDenial && publicGrpId) {
-                const pubPriv = topicPrivs.find((p: any) => p.grpId === publicGrpId);
-                if (pubPriv) {
-                  const val = pubPriv.privValueCd?.toUpperCase();
-                  if (val === 'READ' || val === 'WRITE') {
-                    hasAccess = true;
-                  }
-                }
-              }
-
-              if (hasAccess) {
-                feedItems.push({
-                  mbrStoryId: story.mbrStoryId,
-                  mbrStoryTitle: story.mbrStoryTitle,
-                  mbrStoryContent: story.mbrStoryContent,
-                  mbrStoryPublishStatusCd: story.mbrStoryPublishStatusCd,
-                  mbrStoryPublishedDate: story.mbrStoryPublishedDate,
-                  mbrStoryCreatedAt: story.mbrStoryCreatedAt,
-                  mbrStoryUpdatedAt: story.mbrStoryUpdatedAt,
-                  mbrStoryTypeCd: matchedTopic?.topicName || story.mbrStoryTypeCd,
-                  authorMbrId: authorId,
-                  authorName,
-                  authorLocation,
-                  authorAvatarUrl,
-                  authorInitials,
-                  connectionGrpName,
-                  isConnection
-                });
+          if (assignedGrpId) {
+            const assignedPriv = topicPrivs.find((p: any) => p.grpId === assignedGrpId);
+            if (assignedPriv) {
+              const val = assignedPriv.privValueCd?.toUpperCase();
+              if (val === 'READ' || val === 'WRITE') {
+                hasAccess = true;
+              } else if (val === 'NONE' || val === 'HIDE') {
+                hasDenial = true;
               }
             }
-          } catch (e) {
-            console.warn(`Error loading stories for candidate member ${authorId}:`, e);
           }
-        }));
+
+          // Public fallback check if not explicitly denied by assigned group
+          if (!hasAccess && !hasDenial && publicGrpId) {
+            const pubPriv = topicPrivs.find((p: any) => p.grpId === publicGrpId);
+            if (pubPriv) {
+              const val = pubPriv.privValueCd?.toUpperCase();
+              if (val === 'READ' || val === 'WRITE') {
+                hasAccess = true;
+              }
+            }
+          }
+
+          if (hasAccess) {
+            feedItems.push({
+              mbrStoryId: story.mbrStoryId,
+              mbrStoryTitle: story.mbrStoryTitle,
+              mbrStoryContent: story.mbrStoryContent,
+              mbrStoryPublishStatusCd: story.mbrStoryPublishStatusCd,
+              mbrStoryPublishedDate: story.mbrStoryPublishedDate,
+              mbrStoryCreatedAt: story.mbrStoryCreatedAt,
+              mbrStoryUpdatedAt: story.mbrStoryUpdatedAt,
+              mbrStoryTypeCd: matchedTopic?.topicName || story.mbrStoryTypeCd,
+              authorMbrId: authorId,
+              authorName,
+              authorLocation,
+              authorAvatarUrl,
+              authorInitials,
+              connectionGrpName,
+              isConnection
+            });
+          }
+        }
 
         if (isCancelled) return;
 
@@ -480,10 +519,14 @@ export default function SbMbrStoryFeedPageFeature({
         });
 
         const uniqueCircles = new Set(sortedFeed.map(s => s.connectionGrpName).filter(Boolean)).size;
+        const finalStories = sortedFeed.length > 0 ? sortedFeed : SANDBOX_FEED_STORIES.filter(s => s.authorMbrId !== resolvedViewerId);
 
-        setAllStories(sortedFeed.length > 0 ? sortedFeed : SANDBOX_FEED_STORIES.filter(s => s.authorMbrId !== resolvedViewerId));
+        setAllStories(finalStories);
         setConnectedCirclesCount(uniqueCircles || 3);
         setVisibleCount(PAGE_SIZE);
+        try {
+          sessionStorage.setItem('sb_cached_feed_stories', JSON.stringify(finalStories));
+        } catch {}
 
       } catch (err) {
         console.error("Failed to load stories feed:", err);
@@ -536,9 +579,10 @@ export default function SbMbrStoryFeedPageFeature({
 
   const [connectionsOnly, setConnectionsOnly] = useState<boolean>(() => {
     try {
-      return sessionStorage.getItem('sb_feed_connections_only') === 'true';
+      const stored = sessionStorage.getItem('sb_feed_connections_only');
+      return stored !== null ? stored === 'true' : true;
     } catch {
-      return false;
+      return true;
     }
   });
 
@@ -624,10 +668,10 @@ export default function SbMbrStoryFeedPageFeature({
       />
 
       {/* 3-Column Responsive Grid Structure */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 max-w-7xl w-full mx-auto items-start">
         
         {/* Left Column Section: Header & Feed Info */}
-        <div className="lg:col-span-3">
+        <div className="hidden lg:block lg:col-span-3">
           <LeftColumn
             totalStoriesCount={filteredStories.length}
             connectionsCount={connectedCirclesCount}

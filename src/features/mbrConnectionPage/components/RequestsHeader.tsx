@@ -6,52 +6,29 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  ArrowLeft, 
   Send, 
-  RotateCcw, 
-  Trash2, 
-  Loader2, 
   CheckCircle2, 
   AlertCircle 
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface RequestsHeaderProps {
-  isDirty: boolean;
-  saving: boolean;
   success: string | null;
   error: string | null;
-  onClickBack: () => void;
-  onReset: () => void;
-  onSave: () => void;
-  pendingWithdrawalsCount: number;
+  onClickBack?: () => void;
 }
 
 export default function RequestsHeader({
-  isDirty,
-  saving,
   success,
-  error,
-  onClickBack,
-  onReset,
-  onSave,
-  pendingWithdrawalsCount
+  error
 }: RequestsHeaderProps) {
   return (
     <div className="relative mb-8 pb-6 border-b border-slate-200 dark:border-slate-800">
       <AdminComponentTag name="RequestsHeader.tsx" />
 
-      {/* Navigation and Top Bar */}
+      {/* Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <button
-            type="button"
-            onClick={onClickBack}
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 mb-3 transition-colors cursor-pointer group"
-          >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>Back</span>
-          </button>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/20 text-white">
               <Send className="w-5 h-5" />
@@ -67,47 +44,7 @@ export default function RequestsHeader({
           </div>
         </div>
 
-        {/* Global Action Buttons */}
-        <div className="flex items-center gap-3">
-          {isDirty && (
-            <button
-              type="button"
-              onClick={onReset}
-              disabled={saving}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Discard Changes</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={!isDirty || saving}
-            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold font-sans shadow-md transition-all cursor-pointer ${
-              isDirty && !saving
-                ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-600/30 active:scale-98'
-                : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
-            }`}
-          >
-            {saving ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Processing...</span>
-              </>
-            ) : (
-              <>
-                <Trash2 className="w-4 h-4" />
-                <span>
-                  {pendingWithdrawalsCount > 0
-                    ? `Save ${pendingWithdrawalsCount} Withdrawal${pendingWithdrawalsCount > 1 ? 's' : ''}`
-                    : 'Save Changes'}
-                </span>
-              </>
-            )}
-          </button>
-        </div>
+        {/* Left: Title & Description */}
       </div>
 
       {/* Notifications / Feedback Alerts */}

@@ -21,7 +21,10 @@ export default function SbPublicSearchCard({
   onRefreshLocation
 }: SbPublicSearchCardProps) {
   return (
-    <div className="bg-[#FDFCFB] dark:bg-slate-900 border border-[#EFECE7] dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] space-y-3.5 sm:space-y-4 relative">
+    <div className="bg-[#FDFCFB] dark:bg-slate-900 border border-[#EFECE7] dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] space-y-3.5 sm:space-y-4 relative overflow-hidden group">
+      {/* Top Accent Line */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+
       {/* Top Header Row */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2">

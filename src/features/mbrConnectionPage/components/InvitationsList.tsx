@@ -13,15 +13,15 @@ interface InvitationsListProps {
   loading: boolean;
   invitationList: MemberInvitationItem[];
   groups: UnifiedGroupOption[];
-  onSelectDecision: (contactId: string, decision: InvitationDecision, selectedGrpId?: string) => void;
-  onOpenAcceptModal?: (item: MemberInvitationItem) => void;
+  onIgnore: (contactId: string) => void;
+  onOpenAcceptModal: (item: MemberInvitationItem) => void;
 }
 
 export default function InvitationsList({
   loading,
   invitationList,
   groups,
-  onSelectDecision,
+  onIgnore,
   onOpenAcceptModal
 }: InvitationsListProps) {
 
@@ -60,7 +60,7 @@ export default function InvitationsList({
           key={item.contact.mbrContactId}
           item={item}
           groups={groups}
-          onSelectDecision={onSelectDecision}
+          onIgnore={onIgnore}
           onOpenAcceptModal={onOpenAcceptModal}
         />
       ))}

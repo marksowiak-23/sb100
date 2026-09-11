@@ -13,14 +13,14 @@ interface RequestsListProps {
   loading: boolean;
   requestList: MemberRequestItem[];
   groups: UnifiedGroupOption[];
-  onToggleWithdrawal: (contactId: string) => void;
+  onWithdraw: (contactId: string) => void;
 }
 
 export default function RequestsList({
   loading,
   requestList,
   groups,
-  onToggleWithdrawal
+  onWithdraw
 }: RequestsListProps) {
   if (loading) {
     return (
@@ -57,7 +57,7 @@ export default function RequestsList({
           key={item.contact.mbrContactId}
           item={item}
           groups={groups}
-          onToggleWithdrawal={onToggleWithdrawal}
+          onWithdraw={onWithdraw}
         />
       ))}
     </div>

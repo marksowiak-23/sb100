@@ -27,7 +27,8 @@ export interface FeedStoryItem {
   isConnection?: boolean;
 }
 
-interface MbrStoryFeedStoryPanelProps {
+export interface MbrStoryFeedStoryPanelProps {
+  key?: string;
   story: FeedStoryItem;
   isRead?: boolean;
   onClickReadStory?: (storyId: string, memberId: string) => void;
@@ -98,7 +99,7 @@ export default function MbrStoryFeedStoryPanel({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className={`bg-white dark:bg-slate-900 border rounded-2xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group ${
+      className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 sm:p-7 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group ${
         isRead
           ? 'border-emerald-200/80 dark:border-emerald-800/50 bg-emerald-50/20 dark:bg-emerald-950/10'
           : 'border-slate-200/80 dark:border-slate-800'
@@ -114,83 +115,85 @@ export default function MbrStoryFeedStoryPanel({
       />
 
       {/* Header: Author Info & Connection Metadata */}
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div className="flex items-center gap-3.5">
+      <div className="flex items-start justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-5">
+        <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
           {/* Author Avatar */}
           <button
             type="button"
             onClick={() => (onClickViewAuthor ? onClickViewAuthor(story.authorMbrId) : onClickReadStory?.(story.mbrStoryId, story.authorMbrId))}
-            className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 hover:ring-2 hover:ring-blue-500/50 transition-all focus:outline-none cursor-pointer"
+            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 hover:ring-2 hover:ring-blue-500/50 transition-all focus:outline-none cursor-pointer"
             title={`View ${story.authorName}'s storybook`}
           >
             {story.authorAvatarUrl ? (
               <img
                 src={story.authorAvatarUrl}
                 alt={story.authorName}
+                loading="lazy"
+                decoding="async"
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
               />
             ) : (
-              <span className="font-serif font-bold text-sm text-slate-700 dark:text-slate-200">
+              <span className="font-serif font-bold text-xs sm:text-sm text-slate-700 dark:text-slate-200">
                 {story.authorInitials || 'SB'}
               </span>
             )}
           </button>
 
           {/* Author Details */}
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
               <button
                 type="button"
                 onClick={() => (onClickViewAuthor ? onClickViewAuthor(story.authorMbrId) : onClickReadStory?.(story.mbrStoryId, story.authorMbrId))}
-                className="font-serif text-base font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 text-left transition-colors focus:outline-none cursor-pointer"
+                className="font-serif text-sm sm:text-base font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 text-left transition-colors focus:outline-none cursor-pointer truncate max-w-full"
               >
                 {story.authorName}
               </button>
 
               {story.connectionGrpName && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium tracking-wide bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/70 dark:border-blue-800/40">
+                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9.5px] sm:text-[10px] font-medium tracking-wide bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/70 dark:border-blue-800/40 shrink-0">
                   <Users className="w-2.5 h-2.5" />
                   {story.connectionGrpName}
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <div className="flex items-center gap-x-2 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
               {story.authorLocation && (
-                <span className="flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-slate-400" />
-                  {story.authorLocation}
+                <span className="inline-flex items-center gap-1 shrink-0">
+                  <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                  <span className="truncate max-w-[130px] sm:max-w-none">{story.authorLocation}</span>
                 </span>
               )}
-              {story.authorLocation && <span>•</span>}
-              <span className="flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-slate-400" />
-                {formattedDate}
+              {story.authorLocation && <span className="hidden sm:inline text-slate-300 dark:text-slate-600">•</span>}
+              <span className="inline-flex items-center gap-1 shrink-0">
+                <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                <span>{formattedDate}</span>
               </span>
             </div>
           </div>
         </div>
 
         {/* Badges: Topic and Read Indicator */}
-        <div className="flex items-center gap-2 flex-wrap justify-end">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 self-start justify-end flex-wrap max-w-[48%] sm:max-w-none">
           {isRead && (
             <span
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs"
+              className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10.5px] sm:text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 shadow-2xs shrink-0"
               title="You have read this story in this session"
             >
-              <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+              <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
               <span>Read</span>
             </span>
           )}
 
           <span
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border} shrink-0`}
+            className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[10.5px] sm:text-xs font-medium border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border} shrink-0 max-w-full`}
           >
-            <Bookmark className="w-3 h-3" />
-            {displayTopic}
+            <Bookmark className="w-3 h-3 shrink-0" />
+            <span className="truncate">{displayTopic}</span>
           </span>
         </div>
       </div>

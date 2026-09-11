@@ -838,7 +838,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
                 className="overflow-hidden pt-2"
               >
                 <div className="pl-3.5 border-l-2 border-slate-500 max-h-60 overflow-y-auto pr-1">
-                  <p className="text-slate-600 font-serif leading-relaxed text-xs md:text-sm italic whitespace-pre-line">
+                  <p className="text-slate-600 font-sans text-sm sm:text-[15px] leading-relaxed font-normal whitespace-pre-line">
                     "{introductionText}"
                   </p>
                 </div>

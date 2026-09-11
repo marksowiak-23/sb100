@@ -299,7 +299,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
         
         {/* Left Column Section */}
-        <div className="lg:col-span-3">
+        <div className="hidden lg:block lg:col-span-3">
           <LeftColumn onClickAuthorPage={onClickAuthorPage} onClickReadStory={onClickReadStory} />
         </div>
 

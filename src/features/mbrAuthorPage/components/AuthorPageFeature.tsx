@@ -7,9 +7,10 @@ import React, { useState } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
+import AuthorMobileMenuBar from './AuthorMobileMenuBar';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-interface SbMbrAuthorPageFeatureProps {
+interface AuthorPageFeatureProps {
   isSandbox: boolean;
   onClickBack: () => void;
   onClickAuthorProfile?: () => void;
@@ -30,9 +31,22 @@ const STORY_CONTENTS: Record<string, string[]> = {
   ]
 };
 
-export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack, onClickAuthorProfile }: SbMbrAuthorPageFeatureProps) {
-  const [activeSection, setActiveSection] = useState('family');
+export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAuthorProfile }: AuthorPageFeatureProps) {
+  const [activeSection, setActiveSection] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem('sb_author_active_section') || 'Profile';
+    } catch {
+      return 'Profile';
+    }
+  });
   const [storyContents, setStoryContents] = useState<Record<string, string[]>>(STORY_CONTENTS);
+
+  const handleSetActiveSection = (sec: string) => {
+    setActiveSection(sec);
+    try {
+      sessionStorage.setItem('sb_author_active_section', sec);
+    } catch {}
+  };
 
   const getActiveContent = (): string[] => {
     return storyContents[activeSection] || ["This chapter draft is empty."];
@@ -46,14 +60,20 @@ export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack, onClick
   };
 
   return (
-    <div className="w-full relative">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
+    <div className="w-full relative space-y-4 lg:space-y-0">
+      {/* Mobile Menu Bar: Story Index Navigation */}
+      <AuthorMobileMenuBar
+        activeSection={activeSection}
+        setActiveSection={handleSetActiveSection}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 max-w-7xl w-full mx-auto items-start">
         
-        {/* Left Column Sidebar */}
-        <div className="lg:col-span-3">
+        {/* Left Column Sidebar (Desktop only) */}
+        <div className="hidden lg:block lg:col-span-3">
           <LeftColumn
             activeSection={activeSection}
-            setActiveSection={setActiveSection}
+            setActiveSection={handleSetActiveSection}
           />
         </div>
 
@@ -75,7 +95,10 @@ export default function SbMbrAuthorPageFeature({ isSandbox, onClickBack, onClick
         </div>
 
       </div>
-      <AdminComponentTag name="SbMbrAuthorPageFeature" />
+      <AdminComponentTag name="AuthorPageFeature" />
     </div>
   );
 }
+
+export { AuthorPageFeature as SbMbrAuthorPageFeature, AuthorPageFeature as MbrAuthorPageFeature };
+

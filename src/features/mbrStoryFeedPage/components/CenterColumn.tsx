@@ -28,7 +28,7 @@ export default function CenterColumn({
   loadingMore,
   hasMore,
   readStoryIds,
-  connectionsOnly = false,
+  connectionsOnly = true,
   setConnectionsOnly,
   onLoadMore,
   onClickReadStory,

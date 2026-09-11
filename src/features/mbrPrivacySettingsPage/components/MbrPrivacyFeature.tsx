@@ -332,7 +332,7 @@ export default function MbrPrivacyFeature({ isSandbox, onClickBack, onDirtyChang
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-8 relative">
+    <div className="w-full max-w-6xl mx-auto px-1 sm:px-4 pt-1 sm:pt-6 md:pt-8 pb-8 relative">
       <AdminComponentTag name="MbrPrivacyFeature.tsx" />
 
       {/* Header Section */}

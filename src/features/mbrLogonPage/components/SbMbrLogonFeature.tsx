@@ -114,7 +114,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
   };
 
   return (
-    <div className="w-full max-w-md mx-auto py-12 px-4">
+    <div className="w-full max-w-md mx-auto py-12 px-1 sm:px-4">
       <PageSeo
         title="Sign In | StoryBook Storytelling Community"
         description="Sign in to your StoryBook account to write, share real life stories, connect with friends, and inspire others."

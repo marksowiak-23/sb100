@@ -23,18 +23,18 @@ interface InvitationCardProps {
   key?: React.Key;
   item: MemberInvitationItem;
   groups: UnifiedGroupOption[];
-  onSelectDecision: (contactId: string, decision: InvitationDecision, selectedGrpId?: string) => void;
-  onOpenAcceptModal?: (item: MemberInvitationItem) => void;
+  onIgnore: (contactId: string) => void;
+  onOpenAcceptModal: (item: MemberInvitationItem) => void;
 }
 
 
 export default function InvitationCard({
   item,
   groups,
-  onSelectDecision,
+  onIgnore,
   onOpenAcceptModal
 }: InvitationCardProps) {
-  const { contact, senderMember, selectedDecision, selectedGrpId } = item;
+  const { contact, senderMember } = item;
   
   const senderName = senderMember
     ? `${senderMember.mbrFirstName || ''} ${senderMember.mbrLastName || ''}`.trim() || 'StoryBook Member'
@@ -59,25 +59,13 @@ export default function InvitationCard({
     : '';
   const showReasonBadge = Boolean(reasonLabel && reasonLabel.toLowerCase() !== 'other');
 
-  // Resolved group name (either from user selection or contact's suggested group)
-  const activeGroupId = selectedGrpId ?? contact.grpId;
-  const assignedGroup = activeGroupId
-    ? groups.find((g) => g.grpId === activeGroupId)
-    : null;
+  // Suggested group
   const suggestedGroup = contact.grpId
     ? groups.find(g => g.grpId === contact.grpId)
     : null;
 
   return (
-    <div
-      className={`relative p-5 rounded-3xl border bg-white dark:bg-slate-900 transition-all flex flex-col justify-between gap-5 shadow-xs hover:shadow-md ${
-        selectedDecision === 'ACCEPT'
-          ? 'border-emerald-400 dark:border-emerald-500 ring-2 ring-emerald-400/20 bg-emerald-50/20 dark:bg-emerald-950/20'
-          : selectedDecision === 'IGNORE'
-          ? 'border-rose-300 dark:border-rose-600 ring-2 ring-rose-300/20 bg-rose-50/20 dark:bg-rose-950/20'
-          : 'border-slate-200 dark:border-slate-800'
-      }`}
-    >
+    <div className="relative p-5 rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all flex flex-col justify-between gap-5 shadow-xs hover:shadow-md">
       <AdminComponentTag name="InvitationCard.tsx" />
 
       {/* Top Header: Sender Profile & Reason Tag */}
@@ -145,7 +133,7 @@ export default function InvitationCard({
       )}
 
       {/* Suggested Group badge (if available) */}
-      {suggestedGroup && selectedDecision !== 'ACCEPT' && (
+      {suggestedGroup && (
         <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-serif">
           <Users className="w-3.5 h-3.5 text-emerald-500" />
           <span>Requested Group: <strong className="text-slate-700 dark:text-slate-200">{suggestedGroup.grpName}</strong></span>
@@ -154,36 +142,9 @@ export default function InvitationCard({
 
       {/* Actions: Accept or Ignore */}
       <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-        {/* Status Indicator */}
-        <div className="text-xs font-serif">
-          {selectedDecision === 'ACCEPT' ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 font-bold text-emerald-700 dark:text-emerald-400">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>
-                  Accept into <strong>"{assignedGroup?.grpName || 'None'}"</strong>
-                </span>
-              </span>
-              {onOpenAcceptModal && (
-                <button
-                  type="button"
-                  onClick={() => onOpenAcceptModal(item)}
-                  className="text-[11px] font-sans font-semibold text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 underline cursor-pointer"
-                >
-                  Change Group
-                </button>
-              )}
-            </div>
-          ) : selectedDecision === 'IGNORE' ? (
-            <span className="inline-flex items-center gap-1.5 font-bold text-rose-700 dark:text-rose-400">
-              <XCircle className="w-4 h-4" />
-              <span>Marked to Ignore (Click Save to confirm)</span>
-            </span>
-          ) : (
-            <span className="text-slate-400 dark:text-slate-500">
-              Select an action:
-            </span>
-          )}
+        {/* Status Prompt */}
+        <div className="text-xs font-serif text-slate-400 dark:text-slate-500">
+          Accept or ignore this connection request:
         </div>
 
         {/* Action Buttons */}
@@ -191,12 +152,8 @@ export default function InvitationCard({
           {/* Ignore Button */}
           <button
             type="button"
-            onClick={() => onSelectDecision(contact.mbrContactId, selectedDecision === 'IGNORE' ? null : 'IGNORE')}
-            className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer ${
-              selectedDecision === 'IGNORE'
-                ? 'bg-rose-600 text-white shadow-xs'
-                : 'bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700'
-            }`}
+            onClick={() => onIgnore(contact.mbrContactId)}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 border border-slate-200 dark:border-slate-700"
           >
             <X className="w-3.5 h-3.5" />
             <span>Ignore</span>
@@ -205,23 +162,11 @@ export default function InvitationCard({
           {/* Accept Button */}
           <button
             type="button"
-            onClick={() => {
-              if (selectedDecision === 'ACCEPT') {
-                onSelectDecision(contact.mbrContactId, null);
-              } else if (onOpenAcceptModal) {
-                onOpenAcceptModal(item);
-              } else {
-                onSelectDecision(contact.mbrContactId, 'ACCEPT');
-              }
-            }}
-            className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer ${
-              selectedDecision === 'ACCEPT'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-xs hover:shadow'
-            }`}
+            onClick={() => onOpenAcceptModal(item)}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer bg-blue-600 hover:bg-blue-500 text-white shadow-xs hover:shadow"
           >
             <Check className="w-3.5 h-3.5" />
-            <span>{selectedDecision === 'ACCEPT' ? 'Accepted' : 'Accept Connection'}</span>
+            <span>Accept Connection</span>
           </button>
         </div>
       </div>

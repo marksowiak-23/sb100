@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, Save, X } from 'lucide-react';
 import { taskApi, Mbr, GroupGlobal, GroupCustom, MbrConnection, MbrConnectionGrp, MbrContact } from '@/src/services/api.ts';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { 
@@ -10,9 +8,7 @@ import {
   ConnectionFilterType,
   ConnectionSection,
   MemberInvitationItem,
-  InvitationDecision,
-  MemberRequestItem,
-  RequestDecision
+  MemberRequestItem
 } from '../types';
 import ManageConnectionsMenu from './ManageConnectionsMenu';
 import ConnectionHeader from './ConnectionHeader';
@@ -23,6 +19,7 @@ import InvitationsList from './InvitationsList';
 import RequestsHeader from './RequestsHeader';
 import RequestsList from './RequestsList';
 import ConnectionPageHeaderPanel from './ConnectionPageHeaderPanel';
+import ConnectionMobileMenuBar from './ConnectionMobileMenuBar';
 import AcceptInvitationModal from './AcceptInvitationModal';
 import { generateConnectionPdf } from '../utils/generateConnectionPdf';
 
@@ -32,7 +29,6 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   const [activeSection, setActiveSection] = useState<ConnectionSection>('connections');
 
   const [loading, setLoading] = useState<boolean>(true);
-  const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -47,57 +43,30 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [groupFilter, setGroupFilter] = useState<ConnectionFilterType>('ALL');
 
-  // Navigation Guard Modal State
-  const [showSavePromptModal, setShowSavePromptModal] = useState<boolean>(false);
-  const [pendingNavigationTarget, setPendingNavigationTarget] = useState<string | null>(null);
-  const [pendingSectionTarget, setPendingSectionTarget] = useState<ConnectionSection | null>(null);
-
   // Accept Connection Group Selection Modal State
   const [acceptModalInvitation, setAcceptModalInvitation] = useState<MemberInvitationItem | null>(null);
 
-
-  // Determine dirty state across Connections, Invitations, and Requests
-  const isConnectionsDirty = useMemo(() => {
-    return (Object.values(items) as MemberConnectionItem[]).some(item => item.selectedGrpId !== item.originalGrpId);
-  }, [items]);
-
-  const isInvitationsDirty = useMemo(() => {
-    return (Object.values(invitations) as MemberInvitationItem[]).some(inv => inv.selectedDecision !== null);
-  }, [invitations]);
-
-  const isRequestsDirty = useMemo(() => {
-    return (Object.values(requests) as MemberRequestItem[]).some(req => req.selectedDecision !== null);
-  }, [requests]);
-
-  const isDirty = useMemo(() => {
-    return isConnectionsDirty || isInvitationsDirty || isRequestsDirty;
-  }, [isConnectionsDirty, isInvitationsDirty, isRequestsDirty]);
-
+  // Since all changes are saved immediately, dirty state is always false
   useEffect(() => {
     if (onDirtyChange) {
-      onDirtyChange(isDirty);
+      onDirtyChange(false);
     }
-  }, [isDirty, onDirtyChange]);
+  }, [onDirtyChange]);
 
-  // Intercept navigation events when dirty
+  // Handle direct navigation events
   useEffect(() => {
     const handleNavAttempt = (e: any) => {
       const targetTab = e.detail?.targetTab;
-      if (isDirty) {
-        setPendingNavigationTarget(targetTab || 'back');
-        setShowSavePromptModal(true);
+      if (targetTab && onNavigate) {
+        onNavigate(targetTab);
       } else {
-        if (targetTab && onNavigate) {
-          onNavigate(targetTab);
-        } else {
-          onClickBack();
-        }
+        onClickBack();
       }
     };
 
     window.addEventListener('attempt-connection-navigation', handleNavAttempt);
     return () => window.removeEventListener('attempt-connection-navigation', handleNavAttempt);
-  }, [isDirty, onClickBack, onNavigate]);
+  }, [onClickBack, onNavigate]);
 
   // Load all data: current user, members, groups, connections, invitations, requests
   const loadData = useCallback(async () => {
@@ -148,112 +117,146 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           console.warn("Error fetching member connections:", e);
         }
       } else {
-        const savedConn = sessionStorage.getItem(`sandbox_mbr_connections_${resolvedMbrId}`);
-        if (savedConn) {
-          try { connections = JSON.parse(savedConn); } catch {}
+        const savedConns = sessionStorage.getItem(`sandbox_mbr_connections_${resolvedMbrId}`);
+        const savedGrps = sessionStorage.getItem(`sandbox_mbr_connection_grps_${resolvedMbrId}`);
+        if (savedConns) {
+          try { connections = JSON.parse(savedConns); } catch {}
         }
-        const savedConnGrp = sessionStorage.getItem(`sandbox_mbr_connection_grps_${resolvedMbrId}`);
-        if (savedConnGrp) {
-          try { connectionGrps = JSON.parse(savedConnGrp); } catch {}
-        }
-
-        if (connections.length === 0) {
-          connections = [
-            {
-              mbrConnectionId: 'conn-1',
-              mbrId: resolvedMbrId,
-              mbrConnectionMbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0'
-            },
-            {
-              mbrConnectionId: 'conn-2',
-              mbrId: resolvedMbrId,
-              mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341'
-            }
-          ];
-          connectionGrps = [
-            { mbrConnectionGrpId: 'cg-1', mbrConnectionId: 'conn-1', grpId: 'g1' },
-            { mbrConnectionGrpId: 'cg-2', mbrConnectionId: 'conn-2', grpId: 'g2' }
-          ];
+        if (savedGrps) {
+          try { connectionGrps = JSON.parse(savedGrps); } catch {}
         }
       }
 
-      // Extract only member IDs that are in mbrConnection (excluding self)
-      const connectedMbrIds = Array.from(
-        new Set(
-          connections
-            .map(c => c.mbrConnectionMbrId)
-            .filter(id => id && id !== resolvedMbrId)
-        )
-      );
-
-      // 3. Fetch ONLY members who are in mbrConnection
-      let connectedMembers: Mbr[] = [];
-      if (connectedMbrIds.length > 0) {
-        if (!isSandbox) {
-          const memberPromises = connectedMbrIds.map(id => taskApi.getMemberById(id).catch(() => null));
-          const fetchedMembers = await Promise.all(memberPromises);
-          connectedMembers = fetchedMembers.filter((m): m is Mbr => m !== null && Boolean(m.mbrId));
+      // 3. Fetch all members
+      let allMembers: Mbr[] = [];
+      if (!isSandbox) {
+        try {
+          allMembers = await taskApi.getMembers();
+        } catch (e) {
+          console.warn("Error fetching all members:", e);
         }
-
-        // Fallback for any missing member records or sandbox mode
-        if (connectedMembers.length < connectedMbrIds.length) {
-          const loadedIds = new Set(connectedMembers.map(m => m.mbrId));
-          const mockData: Record<string, Partial<Mbr>> = {
-            'e20986fa-0fb9-4081-ae5d-35bc8f504df0': {
-              mbrFirstName: 'Eleanor',
-              mbrLastName: 'Vance',
-              mbrEmailAddress: 'eleanor.vance@storybook.ai',
-              mbrLivesCityState: 'Boston, MA',
-              mbrWorkAt: 'Architectural Historian'
-            },
-            'f87a329c-982a-4a56-8a03-9bb54fc82341': {
-              mbrFirstName: 'James',
-              mbrLastName: 'Sterling',
-              mbrEmailAddress: 'james.sterling@storybook.ai',
-              mbrLivesCityState: 'San Francisco, CA',
-              mbrWorkAt: 'Product Designer'
-            }
-          };
-
-          for (const id of connectedMbrIds) {
-            if (!loadedIds.has(id)) {
-              const mock = mockData[id] || {
-                mbrFirstName: 'Connected',
-                mbrLastName: 'Member',
-                mbrEmailAddress: 'member@storybook.ai'
-              };
-              connectedMembers.push({
-                mbrId: id,
-                mbrFirstName: mock.mbrFirstName || 'Connected',
-                mbrLastName: mock.mbrLastName || 'Member',
-                ...mock
-              } as Mbr);
-            }
+      } else {
+        allMembers = [
+          {
+            mbrId: 'e1a2b3c4-1111-4000-8000-000000000001',
+            mbrFirstName: 'Eleanor',
+            mbrLastName: 'Vance',
+            mbrEmailAddress: 'eleanor.vance@storybook.ai',
+            mbrLivesCityState: 'Boston, MA',
+            mbrFromCityState: 'Concord, NH',
+            mbrProfilePic: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+            mbrWorkAt: 'Architectural Historian'
+          },
+          {
+            mbrId: 'e1a2b3c4-2222-4000-8000-000000000002',
+            mbrFirstName: 'Thomas',
+            mbrLastName: 'Sterling',
+            mbrEmailAddress: 'thomas.sterling@storybook.ai',
+            mbrLivesCityState: 'New York, NY',
+            mbrFromCityState: 'Philadelphia, PA',
+            mbrProfilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+            mbrWorkAt: 'University Professor'
+          },
+          {
+            mbrId: 'e1a2b3c4-3333-4000-8000-000000000003',
+            mbrFirstName: 'Clara',
+            mbrLastName: 'Oswald',
+            mbrEmailAddress: 'clara.oswald@storybook.ai',
+            mbrLivesCityState: 'London, UK',
+            mbrFromCityState: 'Blackpool, UK',
+            mbrProfilePic: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+            mbrWorkAt: 'High School Literature Teacher'
+          },
+          {
+            mbrId: 'e1a2b3c4-4444-4000-8000-000000000004',
+            mbrFirstName: 'Arthur',
+            mbrLastName: 'Pendelton',
+            mbrEmailAddress: 'arthur.pendelton@storybook.ai',
+            mbrLivesCityState: 'Chicago, IL',
+            mbrFromCityState: 'Detroit, MI',
+            mbrProfilePic: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+            mbrWorkAt: 'Senior Civil Engineer'
+          },
+          {
+            mbrId: 'e1a2b3c4-5555-4000-8000-000000000005',
+            mbrFirstName: 'Miriam',
+            mbrLastName: 'Al-Mansoor',
+            mbrEmailAddress: 'miriam.mansoor@storybook.ai',
+            mbrLivesCityState: 'Toronto, ON',
+            mbrFromCityState: 'Dubai, UAE',
+            mbrProfilePic: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+            mbrWorkAt: 'Biomedical Researcher'
+          },
+          {
+            mbrId: 'e1a2b3c4-6666-4000-8000-000000000006',
+            mbrFirstName: 'Samuel',
+            mbrLastName: 'Rivers',
+            mbrEmailAddress: 'samuel.rivers@storybook.ai',
+            mbrLivesCityState: 'Austin, TX',
+            mbrFromCityState: 'Nashville, TN',
+            mbrProfilePic: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
+            mbrWorkAt: 'Music Producer & Composer'
+          },
+          {
+            mbrId: 'e1a2b3c4-7777-4000-8000-000000000007',
+            mbrFirstName: 'Beatrice',
+            mbrLastName: 'Fontaine',
+            mbrEmailAddress: 'beatrice.fontaine@storybook.ai',
+            mbrLivesCityState: 'Montreal, QC',
+            mbrFromCityState: 'Paris, France',
+            mbrProfilePic: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+            mbrWorkAt: 'Documentary Filmmaker'
+          },
+          {
+            mbrId: 'e1a2b3c4-8888-4000-8000-000000000008',
+            mbrFirstName: 'Henry',
+            mbrLastName: 'Zimmerman',
+            mbrEmailAddress: 'henry.zimmerman@storybook.ai',
+            mbrLivesCityState: 'San Francisco, CA',
+            mbrFromCityState: 'Seattle, WA',
+            mbrProfilePic: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+            mbrWorkAt: 'Software Architect'
           }
-        }
+        ];
       }
 
+      // Filter connected members: either connected in DB or fallback sandbox members
+      const connectedMbrIds = new Set(connections.map(c => c.mbrConnectionMbrId));
+      let connectedMembers = allMembers.filter(m => m.mbrId !== resolvedMbrId && (connectedMbrIds.size === 0 || connectedMbrIds.has(m.mbrId)));
+      if (connectedMembers.length === 0 && allMembers.length > 0) {
+        connectedMembers = allMembers.filter(m => m.mbrId !== resolvedMbrId);
+      }
 
-      // 4. Fetch groups (Global & Custom)
+      // 4. Fetch Global and Custom Groups
       let fetchedGlobals: GroupGlobal[] = [];
       let fetchedCustoms: GroupCustom[] = [];
-      try {
-        fetchedGlobals = await taskApi.getGroupsGlobal();
-      } catch (e) {
-        console.warn("Error fetching global groups:", e);
-      }
-      try {
-        fetchedCustoms = await taskApi.getGroupsCustom(resolvedMbrId);
-      } catch (e) {
-        console.warn("Error fetching custom groups:", e);
+
+      if (!isSandbox) {
+        try {
+          fetchedGlobals = await taskApi.getGroupsGlobal();
+          fetchedCustoms = await taskApi.getGroupsCustom(resolvedMbrId);
+        } catch (e) {
+          console.warn("Error fetching groups:", e);
+        }
+      } else {
+        fetchedGlobals = [
+          { grpId: '00000000-0000-4000-8000-000000000001', grpName: 'Family', grpDescription: 'Immediate and extended family', grpSortOrder: 10 },
+          { grpId: '00000000-0000-4000-8000-000000000002', grpName: 'Friends', grpDescription: 'Close friends & peers', grpSortOrder: 20 },
+          { grpId: '00000000-0000-4000-8000-000000000003', grpName: 'Work', grpDescription: 'Colleagues & professional circle', grpSortOrder: 30 },
+          { grpId: '00000000-0000-4000-8000-000000000004', grpName: 'Public', grpDescription: 'All StoryBook members', grpSortOrder: 40 }
+        ];
+        fetchedCustoms = [
+          { grpId: '00000000-0000-4000-8000-0000000000c1', mbrId: resolvedMbrId, grpName: 'Book Club', grpSortOrder: 50 },
+          { grpId: '00000000-0000-4000-8000-0000000000c2', mbrId: resolvedMbrId, grpName: 'Travel Buddies', grpSortOrder: 60 }
+        ];
       }
 
       if (!fetchedGlobals || fetchedGlobals.length === 0) {
         fetchedGlobals = [
-          { grpId: 'g1', grpName: 'Family', grpDescription: 'Immediate and extended family', grpSortOrder: 10 },
-          { grpId: 'g2', grpName: 'Friends', grpDescription: 'Close friends & peers', grpSortOrder: 20 },
-          { grpId: 'g3', grpName: 'Work', grpDescription: 'Colleagues & professional circle', grpSortOrder: 30 },
-          { grpId: 'g4', grpName: 'Public', grpDescription: 'All StoryBook members', grpSortOrder: 40 }
+          { grpId: '00000000-0000-4000-8000-000000000001', grpName: 'Family', grpDescription: 'Immediate and extended family', grpSortOrder: 10 },
+          { grpId: '00000000-0000-4000-8000-000000000002', grpName: 'Friends', grpDescription: 'Close friends & peers', grpSortOrder: 20 },
+          { grpId: '00000000-0000-4000-8000-000000000003', grpName: 'Work', grpDescription: 'Colleagues & professional circle', grpSortOrder: 30 },
+          { grpId: '00000000-0000-4000-8000-000000000004', grpName: 'Public', grpDescription: 'All StoryBook members', grpSortOrder: 40 }
         ];
       }
 
@@ -343,7 +346,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
               mbrContactReasonCd: 'FRIEND',
               mbrContactResponseInd: 0,
               mbrContactCreatedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-              grpId: 'g2'
+              grpId: '00000000-0000-4000-8000-000000000002'
             },
             {
               mbrContactId: 'inv-102',
@@ -354,7 +357,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
               mbrContactReasonCd: 'WORK',
               mbrContactResponseInd: 0,
               mbrContactCreatedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-              grpId: 'g3'
+              grpId: '00000000-0000-4000-8000-000000000003'
             },
             {
               mbrContactId: 'req-201',
@@ -365,7 +368,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
               mbrContactReasonCd: 'FRIEND',
               mbrContactResponseInd: 0,
               mbrContactCreatedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
-              grpId: 'g2'
+              grpId: '00000000-0000-4000-8000-000000000002'
             }
           ];
           sessionStorage.setItem(`sandbox_mbr_contacts_${resolvedMbrId}`, JSON.stringify(rawContacts));
@@ -479,172 +482,112 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
     loadData();
   }, [loadData]);
 
-  // Handle section switching (with dirty guard)
+  // Handle section switching
   const handleSelectSection = (targetSection: ConnectionSection) => {
-    if (targetSection === activeSection) return;
-
-    if (isDirty) {
-      setPendingSectionTarget(targetSection);
-      setShowSavePromptModal(true);
-    } else {
-      setActiveSection(targetSection);
-    }
+    setActiveSection(targetSection);
   };
 
-  // Handle dropdown selection change for a member in Connections
-  const handleGroupSelect = (targetMbrId: string, grpId: string) => {
+  // Immediate update: Group dropdown selection change for a member in Connections
+  const handleGroupSelect = async (targetMbrId: string, grpId: string) => {
+    const currentItem = items[targetMbrId];
+    if (!currentItem) return;
+
+    // Optimistically update local state immediately
     setItems(prev => {
-      const existing = prev[targetMbrId];
-      if (!existing) return prev;
+      const item = prev[targetMbrId];
+      if (!item) return prev;
       return {
         ...prev,
         [targetMbrId]: {
-          ...existing,
-          selectedGrpId: grpId
+          ...item,
+          selectedGrpId: grpId,
+          originalGrpId: grpId
         }
       };
     });
-  };
 
-  // Handle Accept / Ignore decision toggle for an invitation
-  const handleSelectInvitationDecision = (contactId: string, decision: InvitationDecision, selectedGrpId?: string) => {
-    setInvitations(prev => {
-      const existing = prev[contactId];
-      if (!existing) return prev;
-      return {
-        ...prev,
-        [contactId]: {
-          ...existing,
-          selectedDecision: decision,
-          ...(selectedGrpId !== undefined ? { selectedGrpId } : {})
-        }
-      };
-    });
-  };
-
-  // Handle Withdraw toggle for an outgoing request
-  const handleToggleWithdrawal = (contactId: string) => {
-    setRequests(prev => {
-      const existing = prev[contactId];
-      if (!existing) return prev;
-      return {
-        ...prev,
-        [contactId]: {
-          ...existing,
-          selectedDecision: existing.selectedDecision === 'WITHDRAW' ? null : 'WITHDRAW'
-        }
-      };
-    });
-  };
-
-  // Discard all changes in Connections
-  const handleResetConnections = () => {
-    setItems(prev => {
-      const resetMap: Record<string, MemberConnectionItem> = {};
-      for (const [key, item] of Object.entries(prev) as [string, MemberConnectionItem][]) {
-        resetMap[key] = {
-          ...item,
-          selectedGrpId: item.originalGrpId
-        };
-      }
-      return resetMap;
-    });
-  };
-
-  // Discard all changes in Invitations
-  const handleResetInvitations = () => {
-    setInvitations(prev => {
-      const resetMap: Record<string, MemberInvitationItem> = {};
-      for (const [key, item] of Object.entries(prev) as [string, MemberInvitationItem][]) {
-        resetMap[key] = {
-          ...item,
-          selectedDecision: null
-        };
-      }
-      return resetMap;
-    });
-  };
-
-  // Discard all changes in Requests
-  const handleResetRequests = () => {
-    setRequests(prev => {
-      const resetMap: Record<string, MemberRequestItem> = {};
-      for (const [key, item] of Object.entries(prev) as [string, MemberRequestItem][]) {
-        resetMap[key] = {
-          ...item,
-          selectedDecision: null
-        };
-      }
-      return resetMap;
-    });
-  };
-
-
-  // Save Connections group changes
-  const handleSaveConnections = async () => {
-    setSaving(true);
-    setError(null);
-    setSuccess(null);
     try {
-      const changedItems = (Object.values(items) as MemberConnectionItem[]).filter(
-        item => item.selectedGrpId !== item.originalGrpId
-      );
+      let connId = currentItem.mbrConnectionId;
+      let connGrpId = currentItem.mbrConnectionGrpId;
 
-      for (const item of changedItems) {
-        const targetMbrId = item.member.mbrId;
-        const newGrpId = item.selectedGrpId;
-
-        if (newGrpId === '') {
-          if (item.mbrConnectionGrpId && !isSandbox) {
-            try {
-              await taskApi.deleteMemberConnectionGrp(item.mbrConnectionGrpId);
-            } catch (e) {
-              console.warn("Could not delete connection group:", e);
-            }
+      if (grpId === '') {
+        // Remove group assignment
+        if (connGrpId && !isSandbox) {
+          try {
+            await taskApi.deleteMemberConnectionGrp(connGrpId);
+          } catch (e) {
+            console.warn("Could not delete connection group:", e);
           }
-          item.mbrConnectionGrpId = undefined;
-          item.originalGrpId = '';
-        } else {
-          let connId = item.mbrConnectionId;
-
-          if (!connId) {
-            if (!isSandbox) {
-              const createdConn = await taskApi.createMemberConnection({
-                mbrId: currentMbrId,
-                mbrConnectionMbrId: targetMbrId
-              });
-              connId = createdConn.mbrConnectionId;
-              item.mbrConnectionId = connId;
-            } else {
-              connId = `conn-${Date.now()}-${targetMbrId.slice(0, 4)}`;
-              item.mbrConnectionId = connId;
-            }
-          }
-
-          if (item.mbrConnectionGrpId) {
-            if (!isSandbox) {
-              await taskApi.updateMemberConnectionGrp(item.mbrConnectionGrpId, {
-                mbrConnectionId: connId,
-                grpId: newGrpId
-              });
-            }
-          } else {
-            if (!isSandbox) {
-              const createdConnGrp = await taskApi.createMemberConnectionGrp({
-                mbrConnectionId: connId,
-                grpId: newGrpId
-              });
-              item.mbrConnectionGrpId = createdConnGrp.mbrConnectionGrpId;
-            } else {
-              item.mbrConnectionGrpId = `conngrp-${Date.now()}`;
-            }
-          }
-          item.originalGrpId = newGrpId;
         }
+        setItems(prev => {
+          const it = prev[targetMbrId];
+          if (!it) return prev;
+          return {
+            ...prev,
+            [targetMbrId]: { ...it, mbrConnectionGrpId: undefined }
+          };
+        });
+      } else {
+        // Ensure member connection exists
+        if (!connId) {
+          if (!isSandbox) {
+            const createdConn = await taskApi.createMemberConnection({
+              mbrId: currentMbrId,
+              mbrConnectionMbrId: targetMbrId
+            });
+            connId = createdConn.mbrConnectionId;
+          } else {
+            connId = `conn-${Date.now()}-${targetMbrId.slice(0, 4)}`;
+          }
+        }
+
+        // Create or update connection group
+        if (connGrpId) {
+          if (!isSandbox) {
+            await taskApi.updateMemberConnectionGrp(connGrpId, {
+              mbrConnectionId: connId,
+              grpId: grpId
+            });
+          }
+        } else {
+          if (!isSandbox) {
+            const createdConnGrp = await taskApi.createMemberConnectionGrp({
+              mbrConnectionId: connId,
+              grpId: grpId
+            });
+            connGrpId = createdConnGrp.mbrConnectionGrpId;
+          } else {
+            connGrpId = `conngrp-${Date.now()}`;
+          }
+        }
+
+        setItems(prev => {
+          const it = prev[targetMbrId];
+          if (!it) return prev;
+          return {
+            ...prev,
+            [targetMbrId]: {
+              ...it,
+              mbrConnectionId: connId,
+              mbrConnectionGrpId: connGrpId
+            }
+          };
+        });
       }
 
       if (isSandbox) {
-        const allConns = (Object.values(items) as MemberConnectionItem[])
+        const updatedList = Object.values({
+          ...items,
+          [targetMbrId]: {
+            ...currentItem,
+            selectedGrpId: grpId,
+            originalGrpId: grpId,
+            mbrConnectionId: connId,
+            mbrConnectionGrpId: grpId === '' ? undefined : connGrpId
+          }
+        }) as MemberConnectionItem[];
+
+        const allConns = updatedList
           .filter(it => it.mbrConnectionId)
           .map(it => ({
             mbrConnectionId: it.mbrConnectionId!,
@@ -653,7 +596,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           }));
         sessionStorage.setItem(`sandbox_mbr_connections_${currentMbrId}`, JSON.stringify(allConns));
 
-        const allConnGrps = (Object.values(items) as MemberConnectionItem[])
+        const allConnGrps = updatedList
           .filter(it => it.mbrConnectionGrpId && it.selectedGrpId)
           .map(it => ({
             mbrConnectionGrpId: it.mbrConnectionGrpId!,
@@ -662,90 +605,69 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           }));
         sessionStorage.setItem(`sandbox_mbr_connection_grps_${currentMbrId}`, JSON.stringify(allConnGrps));
       }
-
-      setItems({ ...items });
-      setSuccess("Member connections and group assignments saved successfully.");
-      setTimeout(() => setSuccess(null), 4000);
     } catch (err: any) {
-      console.error("Failed to save member connections:", err);
-      setError(err?.message || "Failed to save member connections. Please check server status.");
-    } finally {
-      setSaving(false);
+      console.error("Failed to update member connection group:", err);
+      setError(err?.message || "Failed to update connection group.");
     }
   };
 
-  // Save Invitations decisions (Accept / Ignore)
-  const handleSaveInvitations = async () => {
-    setSaving(true);
-    setError(null);
-    setSuccess(null);
+  // Immediate update: Confirm & Accept Invitation
+  const handleConfirmAcceptInvitation = async (contactId: string, selectedGrpId: string) => {
+    const invItem = invitations[contactId];
+    if (!invItem) return;
+
+    // Optimistically remove from invitations immediately
+    setInvitations(prev => {
+      const next = { ...prev };
+      delete next[contactId];
+      return next;
+    });
+
     try {
-      const decidedItems = (Object.values(invitations) as MemberInvitationItem[]).filter(inv => inv.selectedDecision !== null);
-
-      if (decidedItems.length === 0) {
-        setSaving(false);
-        return;
-      }
-
+      const senderMbrId = invItem.contact.mbrId;
       const timestamp = new Date().toISOString();
 
-      for (const item of decidedItems) {
-        const contactId = item.contact.mbrContactId;
-        const senderMbrId = item.contact.mbrId;
-        const decision = item.selectedDecision;
+      if (!isSandbox) {
+        await taskApi.updateMemberContact(contactId, {
+          mbrContactResponseInd: 1,
+          mbrContactResponseDt: timestamp
+        });
 
-        if (!isSandbox) {
-          await taskApi.updateMemberContact(contactId, {
-            mbrContactResponseInd: 1,
-            mbrContactResponseDt: timestamp
+        // 1. Recipient -> Sender Connection & Group
+        try {
+          const recipientConn = await taskApi.createMemberConnection({
+            mbrId: currentMbrId,
+            mbrConnectionMbrId: senderMbrId
           });
-        }
-
-        if (decision === 'ACCEPT') {
-          if (!isSandbox) {
-            try {
-              // 1. Create Recipient's Connection record (Recipient -> Sender)
-              const recipientConn = await taskApi.createMemberConnection({
-                mbrId: currentMbrId,
-                mbrConnectionMbrId: senderMbrId
-              });
-
-              const recipientChosenGrpId = item.selectedGrpId;
-              if (recipientChosenGrpId && recipientConn?.mbrConnectionId) {
-                await taskApi.createMemberConnectionGrp({
-                  mbrConnectionId: recipientConn.mbrConnectionId,
-                  grpId: recipientChosenGrpId
-                }).catch(() => null);
-              }
-
-              // 2. Create Sender's Connection record (Sender -> Recipient)
-              const senderConn = await taskApi.createMemberConnection({
-                mbrId: senderMbrId,
-                mbrConnectionMbrId: currentMbrId
-              });
-
-              const senderOriginalGrpId = item.contact.grpId;
-              if (senderOriginalGrpId && senderConn?.mbrConnectionId) {
-                await taskApi.createMemberConnectionGrp({
-                  mbrConnectionId: senderConn.mbrConnectionId,
-                  grpId: senderOriginalGrpId
-                }).catch(() => null);
-              }
-            } catch (e) {
-              console.warn("Could not create bidirectional connections for accepted invitation:", e);
-            }
+          if (selectedGrpId && recipientConn?.mbrConnectionId) {
+            await taskApi.createMemberConnectionGrp({
+              mbrConnectionId: recipientConn.mbrConnectionId,
+              grpId: selectedGrpId
+            }).catch(() => null);
           }
-        }
-      }
 
-      if (isSandbox) {
+          // 2. Sender -> Recipient Connection & Group
+          const senderConn = await taskApi.createMemberConnection({
+            mbrId: senderMbrId,
+            mbrConnectionMbrId: currentMbrId
+          });
+          const senderOriginalGrpId = invItem.contact.grpId;
+          if (senderOriginalGrpId && senderConn?.mbrConnectionId) {
+            await taskApi.createMemberConnectionGrp({
+              mbrConnectionId: senderConn.mbrConnectionId,
+              grpId: senderOriginalGrpId
+            }).catch(() => null);
+          }
+        } catch (e) {
+          console.warn("Could not create bidirectional connections for accepted invitation:", e);
+        }
+      } else {
         const rawContactsStr = sessionStorage.getItem(`sandbox_mbr_contacts_${currentMbrId}`);
         if (rawContactsStr) {
           try {
             const rawContacts: MbrContact[] = JSON.parse(rawContactsStr);
             for (const c of rawContacts) {
-              const matched = decidedItems.find(it => it.contact.mbrContactId === c.mbrContactId);
-              if (matched) {
+              if (c.mbrContactId === contactId) {
                 c.mbrContactResponseInd = 1;
                 c.mbrContactResponseDt = timestamp;
               }
@@ -754,125 +676,139 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           } catch {}
         }
 
-        const acceptedSenders = decidedItems.filter(it => it.selectedDecision === 'ACCEPT');
-        if (acceptedSenders.length > 0) {
-          const rawConnsStr = sessionStorage.getItem(`sandbox_mbr_connections_${currentMbrId}`);
-          let connsList: any[] = [];
-          if (rawConnsStr) {
-            try { connsList = JSON.parse(rawConnsStr); } catch {}
-          }
-          for (const it of acceptedSenders) {
-            // 1. Recipient -> Sender Connection & Group
-            const newConnId1 = `conn-${Date.now()}-${it.contact.mbrId.slice(0, 4)}-recip`;
-            connsList.push({
-              mbrConnectionId: newConnId1,
-              mbrId: currentMbrId,
-              mbrConnectionMbrId: it.contact.mbrId
-            });
-
-            const recipientChosenGrpId = it.selectedGrpId;
-            if (recipientChosenGrpId) {
-              const rawConnGrpsStr = sessionStorage.getItem(`sandbox_mbr_connection_grps_${currentMbrId}`);
-              let connGrpsList: any[] = [];
-              if (rawConnGrpsStr) {
-                try { connGrpsList = JSON.parse(rawConnGrpsStr); } catch {}
-              }
-              connGrpsList.push({
-                mbrConnectionGrpId: `cg-${Date.now()}-1`,
-                mbrConnectionId: newConnId1,
-                grpId: recipientChosenGrpId
-              });
-              sessionStorage.setItem(`sandbox_mbr_connection_grps_${currentMbrId}`, JSON.stringify(connGrpsList));
-            }
-
-            // 2. Sender -> Recipient Connection & Group
-            const newConnId2 = `conn-${Date.now()}-${it.contact.mbrId.slice(0, 4)}-sender`;
-            connsList.push({
-              mbrConnectionId: newConnId2,
-              mbrId: it.contact.mbrId,
-              mbrConnectionMbrId: currentMbrId
-            });
-
-            const senderOriginalGrpId = it.contact.grpId;
-            if (senderOriginalGrpId) {
-              const rawConnGrpsStr = sessionStorage.getItem(`sandbox_mbr_connection_grps_${currentMbrId}`);
-              let connGrpsList: any[] = [];
-              if (rawConnGrpsStr) {
-                try { connGrpsList = JSON.parse(rawConnGrpsStr); } catch {}
-              }
-              connGrpsList.push({
-                mbrConnectionGrpId: `cg-${Date.now()}-2`,
-                mbrConnectionId: newConnId2,
-                grpId: senderOriginalGrpId
-              });
-              sessionStorage.setItem(`sandbox_mbr_connection_grps_${currentMbrId}`, JSON.stringify(connGrpsList));
-            }
-          }
-          sessionStorage.setItem(`sandbox_mbr_connections_${currentMbrId}`, JSON.stringify(connsList));
+        const rawConnsStr = sessionStorage.getItem(`sandbox_mbr_connections_${currentMbrId}`);
+        let connsList: any[] = [];
+        if (rawConnsStr) {
+          try { connsList = JSON.parse(rawConnsStr); } catch {}
         }
+
+        const newConnId1 = `conn-${Date.now()}-${senderMbrId.slice(0, 4)}-recip`;
+        connsList.push({
+          mbrConnectionId: newConnId1,
+          mbrId: currentMbrId,
+          mbrConnectionMbrId: senderMbrId
+        });
+
+        if (selectedGrpId) {
+          const rawConnGrpsStr = sessionStorage.getItem(`sandbox_mbr_connection_grps_${currentMbrId}`);
+          let connGrpsList: any[] = [];
+          if (rawConnGrpsStr) {
+            try { connGrpsList = JSON.parse(rawConnGrpsStr); } catch {}
+          }
+          connGrpsList.push({
+            mbrConnectionGrpId: `cg-${Date.now()}-1`,
+            mbrConnectionId: newConnId1,
+            grpId: selectedGrpId
+          });
+          sessionStorage.setItem(`sandbox_mbr_connection_grps_${currentMbrId}`, JSON.stringify(connGrpsList));
+        }
+
+        const newConnId2 = `conn-${Date.now()}-${senderMbrId.slice(0, 4)}-sender`;
+        connsList.push({
+          mbrConnectionId: newConnId2,
+          mbrId: senderMbrId,
+          mbrConnectionMbrId: currentMbrId
+        });
+
+        const senderOriginalGrpId = invItem.contact.grpId;
+        if (senderOriginalGrpId) {
+          const rawConnGrpsStr = sessionStorage.getItem(`sandbox_mbr_connection_grps_${currentMbrId}`);
+          let connGrpsList: any[] = [];
+          if (rawConnGrpsStr) {
+            try { connGrpsList = JSON.parse(rawConnGrpsStr); } catch {}
+          }
+          connGrpsList.push({
+            mbrConnectionGrpId: `cg-${Date.now()}-2`,
+            mbrConnectionId: newConnId2,
+            grpId: senderOriginalGrpId
+          });
+          sessionStorage.setItem(`sandbox_mbr_connection_grps_${currentMbrId}`, JSON.stringify(connGrpsList));
+        }
+
+        sessionStorage.setItem(`sandbox_mbr_connections_${currentMbrId}`, JSON.stringify(connsList));
       }
 
-
-      setSuccess(`Successfully updated ${decidedItems.length} connection invitation response${decidedItems.length > 1 ? 's' : ''}.`);
-      setTimeout(() => setSuccess(null), 4000);
+      setSuccess("Invitation accepted and member added to connections.");
+      setTimeout(() => setSuccess(null), 3500);
 
       await loadData();
       window.dispatchEvent(new CustomEvent('invitations-updated'));
     } catch (err: any) {
-
-      console.error("Failed to save invitation responses:", err);
-      setError(err?.message || "Failed to save invitation responses. Please check server status.");
-    } finally {
-      setSaving(false);
+      console.error("Failed to accept invitation:", err);
+      setError(err?.message || "Failed to accept invitation.");
+      await loadData();
     }
   };
 
-  // Save Requests withdrawals (Delete mbrContact records)
-  const handleSaveRequests = async () => {
-    setSaving(true);
-    setError(null);
-    setSuccess(null);
+  // Immediate update: Ignore Invitation
+  const handleIgnoreInvitation = async (contactId: string) => {
+    const invItem = invitations[contactId];
+    if (!invItem) return;
+
+    // Optimistically remove from invitations immediately
+    setInvitations(prev => {
+      const next = { ...prev };
+      delete next[contactId];
+      return next;
+    });
+
     try {
-      const withdrawnItems = (Object.values(requests) as MemberRequestItem[]).filter(req => req.selectedDecision === 'WITHDRAW');
-
-      if (withdrawnItems.length === 0) {
-        setSaving(false);
-        return;
-      }
-
-      for (const item of withdrawnItems) {
-        const contactId = item.contact.mbrContactId;
-        if (!isSandbox) {
-          try {
-            await taskApi.deleteMemberContact(contactId);
-          } catch (e) {
-            console.warn(`Could not delete mbrContact record ${contactId}:`, e);
-          }
-        }
-      }
-
-      if (isSandbox) {
+      const timestamp = new Date().toISOString();
+      if (!isSandbox) {
+        await taskApi.updateMemberContact(contactId, {
+          mbrContactResponseInd: 1,
+          mbrContactResponseDt: timestamp
+        });
+      } else {
         const rawContactsStr = sessionStorage.getItem(`sandbox_mbr_contacts_${currentMbrId}`);
         if (rawContactsStr) {
           try {
             const rawContacts: MbrContact[] = JSON.parse(rawContactsStr);
-            const remaining = rawContacts.filter(
-              c => !withdrawnItems.some(it => it.contact.mbrContactId === c.mbrContactId)
-            );
-            sessionStorage.setItem(`sandbox_mbr_contacts_${currentMbrId}`, JSON.stringify(remaining));
+            for (const c of rawContacts) {
+              if (c.mbrContactId === contactId) {
+                c.mbrContactResponseInd = 1;
+                c.mbrContactResponseDt = timestamp;
+              }
+            }
+            sessionStorage.setItem(`sandbox_mbr_contacts_${currentMbrId}`, JSON.stringify(rawContacts));
           } catch {}
         }
       }
 
-      setSuccess(`Successfully withdrawn ${withdrawnItems.length} outgoing connection request${withdrawnItems.length > 1 ? 's' : ''}.`);
-      setTimeout(() => setSuccess(null), 4000);
-
-      await loadData();
+      window.dispatchEvent(new CustomEvent('invitations-updated'));
     } catch (err: any) {
-      console.error("Failed to withdraw connection requests:", err);
-      setError(err?.message || "Failed to withdraw connection requests. Please check server status.");
-    } finally {
-      setSaving(false);
+      console.error("Failed to ignore invitation:", err);
+      setError(err?.message || "Failed to ignore invitation.");
+      await loadData();
+    }
+  };
+
+  // Immediate update: Withdraw Outgoing Request
+  const handleWithdrawRequest = async (contactId: string) => {
+    // Optimistically remove from requests immediately
+    setRequests(prev => {
+      const next = { ...prev };
+      delete next[contactId];
+      return next;
+    });
+
+    try {
+      if (!isSandbox) {
+        await taskApi.deleteMemberContact(contactId);
+      } else {
+        const rawContactsStr = sessionStorage.getItem(`sandbox_mbr_contacts_${currentMbrId}`);
+        if (rawContactsStr) {
+          try {
+            const rawContacts: MbrContact[] = JSON.parse(rawContactsStr);
+            const remaining = rawContacts.filter(c => c.mbrContactId !== contactId);
+            sessionStorage.setItem(`sandbox_mbr_contacts_${currentMbrId}`, JSON.stringify(remaining));
+          } catch {}
+        }
+      }
+    } catch (err: any) {
+      console.error("Failed to withdraw connection request:", err);
+      setError(err?.message || "Failed to withdraw connection request.");
+      await loadData();
     }
   };
 
@@ -903,63 +839,12 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   
   const pendingInvitationsList = useMemo(() => Object.values(invitations) as MemberInvitationItem[], [invitations]);
   const pendingInvitationsCount = pendingInvitationsList.length;
-  const pendingDecisionsCount = pendingInvitationsList.filter(inv => inv.selectedDecision !== null).length;
 
   const pendingRequestsList = useMemo(() => Object.values(requests) as MemberRequestItem[], [requests]);
   const pendingRequestsCount = pendingRequestsList.length;
-  const pendingWithdrawalsCount = pendingRequestsList.filter(req => req.selectedDecision === 'WITHDRAW').length;
 
   const handleBack = () => {
-    if (isDirty) {
-      setPendingNavigationTarget('back');
-      setShowSavePromptModal(true);
-    } else {
-      onClickBack();
-    }
-  };
-
-  const handleSaveAndProceed = async () => {
-    if (isConnectionsDirty) {
-      await handleSaveConnections();
-    }
-    if (isInvitationsDirty) {
-      await handleSaveInvitations();
-    }
-    if (isRequestsDirty) {
-      await handleSaveRequests();
-    }
-    setShowSavePromptModal(false);
-
-    if (pendingSectionTarget) {
-      setActiveSection(pendingSectionTarget);
-      setPendingSectionTarget(null);
-    } else if (pendingNavigationTarget && pendingNavigationTarget !== 'back' && onNavigate) {
-      onNavigate(pendingNavigationTarget);
-    } else {
-      onClickBack();
-    }
-  };
-
-  const handleDiscardAndProceed = () => {
-    if (isConnectionsDirty) handleResetConnections();
-    if (isInvitationsDirty) handleResetInvitations();
-    if (isRequestsDirty) handleResetRequests();
-    setShowSavePromptModal(false);
-
-    if (pendingSectionTarget) {
-      setActiveSection(pendingSectionTarget);
-      setPendingSectionTarget(null);
-    } else if (pendingNavigationTarget && pendingNavigationTarget !== 'back' && onNavigate) {
-      onNavigate(pendingNavigationTarget);
-    } else {
-      onClickBack();
-    }
-  };
-
-  const handleKeepEditing = () => {
-    setShowSavePromptModal(false);
-    setPendingNavigationTarget(null);
-    setPendingSectionTarget(null);
+    onClickBack();
   };
 
   const handlePrintPdf = () => {
@@ -973,92 +858,31 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 py-8 relative">
+    <div className="w-full max-w-7xl mx-auto px-1 sm:px-4 pt-1 sm:pt-6 md:pt-8 pb-8 relative">
       <AdminComponentTag name="MbrConnectionFeature.tsx" />
 
-      {/* --- UNSAVED CHANGES PROMPT DIALOG MODAL --- */}
-      <AnimatePresence>
-        {showSavePromptModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0 shadow-xs">
-                  <AlertTriangle className="w-6 h-6" />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleKeepEditing}
-                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white">
-                  Save Changes Before Leaving?
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-serif leading-relaxed">
-                  You have unsaved changes in your connection management settings. Would you like to save your modifications before proceeding?
-                </p>
-              </div>
-
-              <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={handleKeepEditing}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
-                >
-                  Keep Editing
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDiscardAndProceed}
-                  className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-700 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl text-xs font-semibold transition-all cursor-pointer border border-slate-200 dark:border-slate-700"
-                >
-                  Discard Changes
-                </button>
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={handleSaveAndProceed}
-                  className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold font-sans shadow-md shadow-blue-600/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  {saving ? (
-                    <span>Saving...</span>
-                  ) : (
-                    <>
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Save Changes</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* Mobile Menu Bar: Connections Navigation */}
+      <ConnectionMobileMenuBar
+        activeSection={activeSection}
+        onSelectSection={handleSelectSection}
+        connectionsCount={totalConnectionsCount}
+        invitationsCount={pendingInvitationsCount}
+        requestsCount={pendingRequestsCount}
+        className="mb-4"
+      />
 
       {/* 2-Column Responsive Layout: Left Column Menu + Right Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start">
         
-        {/* Left Column Section: Brand Header & "Manage my Connections" Menu */}
-        <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
+        {/* Left Column Section: Brand Header & "Manage my Connections" Menu (Desktop only) */}
+        <aside className="hidden lg:block lg:col-span-4 xl:col-span-3 space-y-6">
           <ConnectionPageHeaderPanel />
           <ManageConnectionsMenu
-
             activeSection={activeSection}
             onSelectSection={handleSelectSection}
             connectionsCount={totalConnectionsCount}
             invitationsCount={pendingInvitationsCount}
             requestsCount={pendingRequestsCount}
-            hasUnsavedInvitations={isInvitationsDirty}
-            hasUnsavedRequests={isRequestsDirty}
           />
         </aside>
 
@@ -1068,13 +892,8 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             <div>
               {/* Header Section for Connections */}
               <ConnectionHeader
-                isDirty={isConnectionsDirty}
-                saving={saving}
                 success={success}
                 error={error}
-                onClickBack={handleBack}
-                onReset={handleResetConnections}
-                onSave={handleSaveConnections}
               />
 
               {/* Search & Filter Toolbar */}
@@ -1103,14 +922,8 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             <div>
               {/* Header Section for Invitations */}
               <InvitationsHeader
-                isDirty={isInvitationsDirty}
-                saving={saving}
                 success={success}
                 error={error}
-                onClickBack={handleBack}
-                onReset={handleResetInvitations}
-                onSave={handleSaveInvitations}
-                pendingDecisionsCount={pendingDecisionsCount}
               />
 
               {/* Invitations List Component */}
@@ -1118,7 +931,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
                 loading={loading}
                 invitationList={pendingInvitationsList}
                 groups={groups}
-                onSelectDecision={handleSelectInvitationDecision}
+                onIgnore={handleIgnoreInvitation}
                 onOpenAcceptModal={(item) => setAcceptModalInvitation(item)}
               />
             </div>
@@ -1128,14 +941,8 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             <div>
               {/* Header Section for Requests */}
               <RequestsHeader
-                isDirty={isRequestsDirty}
-                saving={saving}
                 success={success}
                 error={error}
-                onClickBack={handleBack}
-                onReset={handleResetRequests}
-                onSave={handleSaveRequests}
-                pendingWithdrawalsCount={pendingWithdrawalsCount}
               />
 
               {/* Requests List Component */}
@@ -1143,7 +950,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
                 loading={loading}
                 requestList={pendingRequestsList}
                 groups={groups}
-                onToggleWithdrawal={handleToggleWithdrawal}
+                onWithdraw={handleWithdrawRequest}
               />
             </div>
           )}
@@ -1158,10 +965,9 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         invitation={acceptModalInvitation}
         groups={groups}
         onConfirmAccept={(contactId, selectedGrpId) => {
-          handleSelectInvitationDecision(contactId, 'ACCEPT', selectedGrpId);
+          handleConfirmAcceptInvitation(contactId, selectedGrpId);
         }}
       />
     </div>
   );
 }
-

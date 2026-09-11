@@ -769,11 +769,11 @@ const getInitialMockData = (tableId: string): any[] => {
   }
 };
 
-interface DbAdminFeatureProps {
+interface AdminDbProps {
   isSandbox: boolean;
 }
 
-export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
+export default function AdminDb({ isSandbox }: AdminDbProps) {
   // Sorted list of all 24 system tables by their actual table name
   const sortedTables = useMemo(() => {
     return [...TABLES].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
@@ -1439,7 +1439,9 @@ export default function DbAdminFeature({ isSandbox }: DbAdminFeatureProps) {
           </div>
         )}
       </AnimatePresence>
-      <AdminComponentTag name="DbAdminFeature" />
+      <AdminComponentTag name="AdminDb" />
     </div>
   );
 }
+
+export { AdminDb as DbAdminFeature, AdminDb as AdminDbPageFeature };

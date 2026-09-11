@@ -6,8 +6,6 @@
 import React from 'react';
 import HomePageHeaderPanel from './HomePageHeaderPanel';
 import SbMyConnectionsCard from './SbMyConnectionsCard';
-import SbMyStorybookStatusCard from './SbMyStorybookStatusCard';
-import SbMbrStats from './SbMbrStats';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface LeftColumnProps {
@@ -21,8 +19,6 @@ export default function LeftColumn({ onClickAuthorPage, onClickReadStory }: Left
       <HomePageHeaderPanel />
 
       <SbMyConnectionsCard onClickMember={onClickReadStory} />
-      <SbMyStorybookStatusCard onClickAuthorPage={onClickAuthorPage} />
-      <SbMbrStats />
       <AdminComponentTag name="LeftColumn" />
     </div>
   );

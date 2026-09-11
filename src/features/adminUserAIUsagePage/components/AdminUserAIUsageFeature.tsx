@@ -374,7 +374,7 @@ export default function AdminUserAIUsageFeature({ isSandbox }: { isSandbox?: boo
   const activeData = activeView === 'weekly' ? weeklyAggregates : monthlyAggregates;
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-fadeIn">
+    <div className="w-full max-w-7xl mx-auto px-1 sm:px-6 lg:px-8 pt-1 sm:pt-6 md:pt-8 pb-8 space-y-8 animate-fadeIn">
       {/* Page Header */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-amber-500/10 via-blue-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
