@@ -337,17 +337,24 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
       
       {/* --- PANEL HEADER --- */}
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#EFECE7]">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-50/50 border border-emerald-100 text-emerald-700 rounded-xl">
-            <MapPin className="w-5 h-5" />
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
+            detail: { topicId: 'residencies', topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' }
+          }))}
+          className="flex items-center gap-3 group/topic cursor-pointer text-left focus:outline-none transition-transform active:scale-98"
+          title={readOnly ? "View Stories" : "Story Editor"}
+        >
+          <div className="p-2.5 bg-emerald-50/50 group-hover/topic:bg-emerald-100/70 border border-emerald-100 group-hover/topic:border-emerald-200 text-emerald-700 rounded-xl transition-all shadow-2xs">
+            <MapPin className="w-5 h-5 transition-transform group-hover/topic:scale-105" />
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest font-mono">
               {isEditing ? 'Status: Editing' : 'Status: Draft'}
             </span>
-            <h2 className="font-serif text-lg font-bold text-slate-800">Residencies</h2>
+            <span className="block font-serif text-lg font-bold text-slate-800 group-hover/topic:text-emerald-700 transition-colors">Residencies</span>
           </div>
-        </div>
+        </button>
 
         {/* Toggle Mode Buttons */}
         {!isEditing && (

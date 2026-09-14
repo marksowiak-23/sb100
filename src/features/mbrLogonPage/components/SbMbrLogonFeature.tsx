@@ -49,7 +49,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
           sessionStorage.setItem('user', JSON.stringify(result.user));
           setStatusState('success');
 
-          await new Promise((resolve) => setTimeout(resolve, 800));
+          await new Promise((resolve) => setTimeout(resolve, 3000));
           if (!active) return;
           if (targetStoryMemberId) {
             setActiveTab('mbrStoryPage');
@@ -102,7 +102,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
           } else {
             setActiveTab('mbrHomePage');
           }
-        }, 900);
+        }, 3000);
       } else {
         setErrorMessage(result.error || 'Invalid email or password.');
       }
@@ -183,7 +183,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
                 Welcome back to Storybook!
               </p>
               <p className="text-xs text-slate-400 mt-1 font-serif">
-                Loading your author workspace dashboard...
+                Loading your Storybook dashboard...
               </p>
             </div>
             <Loader2 className="w-5 h-5 text-emerald-600 animate-spin mt-2" />
@@ -301,7 +301,13 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
                     if (res.success && res.user) {
                       sessionStorage.setItem('user', JSON.stringify(res.user));
                       setStatusState('success');
-                      setTimeout(() => setActiveTab('mbrHomePage'), 800);
+                      setTimeout(() => {
+                        if (targetStoryMemberId) {
+                          setActiveTab('mbrStoryPage');
+                        } else {
+                          setActiveTab('mbrHomePage');
+                        }
+                      }, 3000);
                     } else {
                       setStatusState('failed');
                       setErrorMessage(res.error || 'Google logon failed');
@@ -327,7 +333,13 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
                     if (res.success && res.user) {
                       sessionStorage.setItem('user', JSON.stringify(res.user));
                       setStatusState('success');
-                      setTimeout(() => setActiveTab('mbrHomePage'), 800);
+                      setTimeout(() => {
+                        if (targetStoryMemberId) {
+                          setActiveTab('mbrStoryPage');
+                        } else {
+                          setActiveTab('mbrHomePage');
+                        }
+                      }, 3000);
                     } else {
                       setStatusState('failed');
                       setErrorMessage(res.error || 'Apple logon failed');

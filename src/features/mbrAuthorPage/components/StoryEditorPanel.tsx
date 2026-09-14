@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles } from 'lucide-react';
+import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical } from 'lucide-react';
 import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
@@ -86,17 +86,24 @@ const formatPublishedDate = (dateStr?: string | null) => {
   const parts = dateStr.split('T')[0].split('-');
   if (parts.length === 3) {
     const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
+    const month = parseInt(parts[1], 10);
     const day = parseInt(parts[2], 10);
-    const d = new Date(year, month, day);
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
+    if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+      const mm = String(month).padStart(2, '0');
+      const dd = String(day).padStart(2, '0');
+      const yyyy = String(year);
+      return `${mm}/${dd}/${yyyy}`;
     }
   }
+  try {
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) {
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const yyyy = String(d.getFullYear());
+      return `${mm}/${dd}/${yyyy}`;
+    }
+  } catch {}
   return dateStr;
 };
 
@@ -131,6 +138,21 @@ export default function StoryEditorPanel({
   const [activeThreadId, setActiveThreadId] = useState<string | undefined>(undefined);
   const [activeIntentId, setActiveIntentId] = useState<string | undefined>(undefined);
   const [storyStatsMap, setStoryStatsMap] = useState<Record<string, number>>({});
+  const [showActionMenu, setShowActionMenu] = useState(false);
+
+  // Close mobile action menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.story-action-menu-container')) {
+        setShowActionMenu(false);
+      }
+    }
+    if (showActionMenu) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showActionMenu]);
 
   useEffect(() => {
     const handleContentUpdate = (e: any) => {
@@ -759,19 +781,22 @@ export default function StoryEditorPanel({
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
 
   return (
-    <div id="story-editor-panel" className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.015)] flex flex-col gap-5 relative">
+    <div id="story-editor-panel" className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl py-4 sm:py-5 px-2.5 sm:px-4 shadow-[0_8px_20px_rgba(0,0,0,0.015)] flex flex-col gap-4 sm:gap-5 relative overflow-hidden group">
+      {/* Top Accent Line */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+
       {/* --- HEADER BAR --- */}
-      <div className="flex items-center justify-between pb-4 border-b border-[#EFECE7]">
+      <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-[#EFECE7]">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-blue-50/60 border border-blue-100 text-blue-700 rounded-xl">
             <BookOpen className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-serif text-base font-bold text-slate-800 leading-tight">
-              {readOnly ? `Member Stories — ${topicTitle}` : `Story Editor — ${topicTitle}`}
+            <h3 className="font-serif text-base sm:text-lg font-bold text-slate-800 leading-tight">
+              {readOnly ? 'Member Stories' : 'Story Editor'}
             </h3>
-            <p className="text-[10px] text-slate-400 font-medium tracking-wide">
-              {readOnly ? 'View narrative stories and personal memoirs for this section' : 'Craft narrative stories and personal memoirs for this section'}
+            <p className="text-xs font-sans font-bold text-amber-500 tracking-wide mt-0.5">
+              {subordinateName ? `${topicTitle} (${subordinateName})` : topicTitle}
             </p>
           </div>
         </div>
@@ -780,20 +805,12 @@ export default function StoryEditorPanel({
           {!readOnly && !isEditing && (
             <button
               onClick={handleCreateNew}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all duration-150 cursor-pointer shadow-sm active:scale-95 border border-blue-600 font-sans"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New Story</span>
             </button>
           )}
-          
-          <button
-            onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-            title="Close Story Editor"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
       </div>
 
@@ -804,7 +821,7 @@ export default function StoryEditorPanel({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="flex items-start gap-2.5 p-3.5 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl"
+            className="flex items-start gap-2.5 py-2.5 px-3 bg-rose-50 border border-rose-100 text-rose-800 rounded-2xl"
           >
             <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
             <div className="text-xs font-medium flex-grow">{error}</div>
@@ -819,7 +836,7 @@ export default function StoryEditorPanel({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="flex items-start gap-2.5 p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-2xl"
+            className="flex items-start gap-2.5 py-2.5 px-3 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-2xl"
           >
             <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
             <div className="text-xs font-medium flex-grow">{successMsg}</div>
@@ -833,50 +850,49 @@ export default function StoryEditorPanel({
       {/* --- STORIES TABLE --- */}
       {!isEditing && stories.length > 0 && (
         <div className="bg-white border border-[#EFECE7] rounded-2xl overflow-hidden shadow-xs">
-          <div className="max-h-[225px] overflow-y-auto scrollbar-thin">
-            <table className="w-full table-fixed text-left text-xs border-collapse">
-              <thead className="sticky top-0 bg-slate-50/95 backdrop-blur-xs border-b border-[#EFECE7] z-10">
-                <tr>
-                  <th className="py-2.5 px-4 font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Title
+          <div className="max-h-[225px] overflow-y-auto scrollbar-thin rounded-2xl">
+            <table className="w-full table-fixed text-left text-xs border-separate border-spacing-0">
+              <thead className="sticky top-0 z-10">
+                <tr className="text-[10px] sm:text-[11px] font-serif font-bold text-slate-500 uppercase tracking-wider bg-[#FAF8F5]">
+                  <th className="py-2.5 pl-3 sm:pl-4 pr-1 sm:pr-2 text-left w-auto rounded-tl-2xl border-b border-[#EFECE7] align-bottom">
+                    Story
                   </th>
-                  <th className="py-2.5 px-3 font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right w-20 shrink-0">
+                  <th className="py-2.5 px-1 sm:px-2 text-right w-14 sm:w-16 shrink-0 border-b border-[#EFECE7] align-bottom">
                     Views
                   </th>
-                  <th className="py-2.5 px-4 font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider text-right w-32 shrink-0">
-                    Published Date
+                  <th className="py-2.5 pr-2.5 sm:pr-3.5 pl-1 text-right w-[88px] sm:w-28 min-w-[88px] shrink-0 rounded-tr-2xl border-b border-[#EFECE7] align-bottom">
+                    Date
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#EFECE7]">
-                {stories.map((s) => {
+              <tbody>
+                {stories.map((s, idx) => {
                   const isActive = activeStoryId === s.mbrStoryId;
                   const formattedDate = formatPublishedDate(s.mbrStoryPublishedDate);
                   const viewCount = (s.mbrStoryId && storyStatsMap[s.mbrStoryId] !== undefined) ? storyStatsMap[s.mbrStoryId] : 0;
+                  const isLastRow = idx === stories.length - 1;
                   return (
                     <tr
                       key={s.mbrStoryId}
                       onClick={() => selectStory(s)}
                       className={`cursor-pointer transition-colors duration-150 ${
                         isActive
-                          ? 'bg-slate-100/90 font-bold text-slate-900'
+                          ? 'bg-blue-50/70 font-bold text-slate-900'
                           : 'hover:bg-slate-50/80 text-slate-700'
                       }`}
                     >
-                      <td className="py-2.5 px-4 font-serif">
-                        <div className="flex items-start gap-2">
-                          {isActive && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-800 shrink-0 mt-1.5" />
-                          )}
-                          <span className="whitespace-normal break-words leading-snug">
+                      <td className={`py-2.5 pl-2.5 sm:pl-3 pr-1 sm:pr-2 font-serif text-left border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-1 sm:w-1.5 h-4 rounded-full shrink-0 ${isActive ? 'bg-blue-600' : 'bg-transparent'}`} />
+                          <span className="text-left whitespace-normal break-words leading-snug">
                             {s.mbrStoryTitle || 'Untitled Story'}
                           </span>
                         </div>
                       </td>
-                      <td className="py-2.5 px-3 text-right font-mono text-[11px] text-slate-600 align-top pt-3">
+                      <td className={`py-2.5 px-1 sm:px-2 text-right font-mono text-[10.5px] sm:text-[11px] text-slate-600 align-top pt-2.5 border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
                         {viewCount.toLocaleString()}
                       </td>
-                      <td className="py-2.5 px-4 text-right font-mono text-[11px] text-slate-500 whitespace-nowrap align-top pt-3">
+                      <td className={`py-2.5 pr-2.5 sm:pr-3.5 pl-1 text-right font-mono text-[10.5px] sm:text-[11px] text-slate-500 whitespace-nowrap align-top pt-2.5 border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
                         {formattedDate}
                       </td>
                     </tr>
@@ -922,7 +938,7 @@ export default function StoryEditorPanel({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. A Summer to Remember..."
-              className="w-full bg-white border border-[#EFECE7] rounded-xl text-sm font-serif font-bold text-slate-800 px-3.5 py-2.5 outline-none focus:border-slate-800 transition-colors"
+              className="w-full bg-white border border-[#EFECE7] rounded-xl text-sm font-serif font-bold text-slate-800 px-3 py-2 sm:py-2.5 outline-none focus:border-slate-800 transition-colors"
             />
           </div>
 
@@ -940,7 +956,7 @@ export default function StoryEditorPanel({
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your story details here. Share memories, feelings, and reflection..."
-              className="w-full bg-white border border-[#EFECE7] rounded-2xl text-xs font-serif text-slate-700 p-4 leading-relaxed outline-none focus:border-slate-800 transition-colors resize-y"
+              className="w-full bg-white border border-[#EFECE7] rounded-2xl text-xs font-serif text-slate-700 p-3 sm:p-3.5 leading-relaxed outline-none focus:border-slate-800 transition-colors resize-y"
             />
           </div>
 
@@ -963,25 +979,25 @@ export default function StoryEditorPanel({
                   }
                 }));
               }}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-800 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-800 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
               title="StoryMate AI Assistant"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               <span>StoryMate AI</span>
             </button>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3">
               <button
                 onClick={() => setIsEditing(false)}
                 disabled={saving}
-                className="px-4 py-2 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50"
+                className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 transition-all duration-150 cursor-pointer disabled:opacity-50 border border-blue-600"
+                className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 transition-all duration-150 cursor-pointer disabled:opacity-50 border border-blue-600"
               >
                 {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                 <span>Save Story</span>
@@ -992,7 +1008,7 @@ export default function StoryEditorPanel({
       ) : (
         /* VIEW MODE */
         <div className="flex flex-col gap-4">
-          <div className="bg-white border border-[#EFECE7] rounded-2xl p-5 flex flex-col gap-3">
+          <div className="bg-white border border-[#EFECE7] rounded-2xl py-3.5 sm:py-4 px-2.5 sm:px-3.5 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h4 className="font-serif text-lg font-bold text-slate-850 leading-snug">
@@ -1007,42 +1023,135 @@ export default function StoryEditorPanel({
                 </span>
               </div>
               {!readOnly && (
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={confirmDelete}
-                    title="Delete Story"
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-150 rounded-xl cursor-pointer transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={confirmPublish}
-                    disabled={status === 'Published'}
-                    title={status === 'Published' ? 'Story is already Published' : 'Publish Story'}
-                    className={`p-2 border rounded-xl transition-colors ${
-                      status === 'Published'
-                        ? 'text-emerald-600 bg-emerald-50/60 border-emerald-200 opacity-60 cursor-not-allowed'
-                        : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border-slate-200 hover:border-emerald-150 cursor-pointer'
-                    }`}
-                  >
-                    <Globe className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={handlePrivacyClick}
-                    title="Privacy Settings"
-                    className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-                  >
-                    <ShieldAlert className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={handleEditClick}
-                    disabled={saving}
-                    title={status.toLowerCase() === 'published' ? 'Edit Published Story (Creates a new Draft copy)' : 'Edit Story'}
-                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl cursor-pointer transition-colors flex items-center gap-1"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                </div>
+                <>
+                  {/* Desktop Expanded Action Icons */}
+                  <div className="hidden sm:flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={confirmDelete}
+                      title="Delete Story"
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-150 rounded-xl cursor-pointer transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={confirmPublish}
+                      disabled={status === 'Published'}
+                      title={status === 'Published' ? 'Story is already Published' : 'Publish Story'}
+                      className={`p-2 border rounded-xl transition-colors ${
+                        status === 'Published'
+                          ? 'text-emerald-600 bg-emerald-50/60 border-emerald-200 opacity-60 cursor-not-allowed'
+                          : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border-slate-200 hover:border-emerald-150 cursor-pointer'
+                      }`}
+                    >
+                      <Globe className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handlePrivacyClick}
+                      title="Privacy Settings"
+                      className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                    >
+                      <ShieldAlert className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handleEditClick}
+                      disabled={saving}
+                      title={status.toLowerCase() === 'published' ? 'Edit Published Story (Creates a new Draft copy)' : 'Edit Story'}
+                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl cursor-pointer transition-colors flex items-center gap-1"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Mobile Vertical Ellipsis Dropdown Menu */}
+                  <div className="sm:hidden relative inline-flex items-center story-action-menu-container shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowActionMenu(!showActionMenu);
+                      }}
+                      className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
+                        showActionMenu
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : 'text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+                      }`}
+                      title="Story actions"
+                      aria-label="Story actions"
+                    >
+                      <MoreVertical className="w-4 h-4" />
+                    </button>
+
+                    <AnimatePresence>
+                      {showActionMenu && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.92 }}
+                          transition={{ duration: 0.12 }}
+                          className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-xl shadow-xl py-1 min-w-[155px] text-left divide-y divide-slate-100"
+                        >
+                          <div className="py-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowActionMenu(false);
+                                handleEditClick();
+                              }}
+                              disabled={saving}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
+                            >
+                              <Edit3 className="w-4 h-4 text-blue-600 shrink-0" />
+                              <span>Edit Story</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowActionMenu(false);
+                                confirmPublish();
+                              }}
+                              disabled={status === 'Published'}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors text-left ${
+                                status === 'Published'
+                                  ? 'text-slate-300 cursor-not-allowed'
+                                  : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer'
+                              }`}
+                            >
+                              <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
+                              <span>{status === 'Published' ? 'Published' : 'Publish Story'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowActionMenu(false);
+                                handlePrivacyClick();
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-left"
+                            >
+                              <ShieldAlert className="w-4 h-4 text-slate-500 shrink-0" />
+                              <span>Privacy Settings</span>
+                            </button>
+                          </div>
+
+                          <div className="py-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowActionMenu(false);
+                                confirmDelete();
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
+                            >
+                              <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
+                              <span>Delete Story</span>
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </>
               )}
             </div>
 

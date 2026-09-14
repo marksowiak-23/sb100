@@ -4,9 +4,11 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
+import StoryMobileMenuBar from './StoryMobileMenuBar';
 import { MEMBER_STORIES, MemberStory } from '@/src/features/publicPage/constants/memberData';
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -15,6 +17,9 @@ import PageSeo from '@/src/components/PageSeo';
 interface SbMbrStoryPageFeatureProps {
   memberId: string;
   onClickBack: () => void;
+  previousTab?: string | null;
+  backLabel?: string;
+  initialSection?: string;
 }
 
 const STORY_CONTENTS: Record<string, Record<string, string[]>> = {
@@ -36,9 +41,18 @@ const STORY_CONTENTS: Record<string, Record<string, string[]>> = {
 
 export default function SbMbrStoryPageFeature({
   memberId,
-  onClickBack
+  onClickBack,
+  previousTab,
+  backLabel,
+  initialSection = 'Profile'
 }: SbMbrStoryPageFeatureProps) {
-  const [activeSection, setActiveSection] = useState('Family');
+  const [activeSection, setActiveSection] = useState(initialSection || 'Profile');
+
+  useEffect(() => {
+    if (initialSection) {
+      setActiveSection(initialSection);
+    }
+  }, [memberId, initialSection]);
   const [liveMember, setLiveMember] = useState<MemberStory | null>(null);
   const [lockedTopicIds, setLockedTopicIds] = useState<string[]>([]);
   const [connectionGrpName, setConnectionGrpName] = useState<string>('');
@@ -288,9 +302,10 @@ export default function SbMbrStoryPageFeature({
         setLockedTopicIds(locked);
 
         // If currently active section is locked, switch to first unlocked section if available
-        if (locked.some(id => id.toLowerCase() === activeSection.toLowerCase())) {
-          const firstUnlocked = topicsList.find(t => !locked.some(lid => lid.toLowerCase() === t.topicName.toLowerCase()));
-          if (firstUnlocked) {
+        const activeSecKey = (activeSection || '').toLowerCase();
+        if (locked && Array.isArray(locked) && locked.some(id => typeof id === 'string' && id.toLowerCase() === activeSecKey)) {
+          const firstUnlocked = (topicsList || []).find(t => !locked.some(lid => typeof lid === 'string' && lid.toLowerCase() === (t.topicName || '').toLowerCase()));
+          if (firstUnlocked?.topicName) {
             setActiveSection(firstUnlocked.topicName);
           }
         }
@@ -308,27 +323,33 @@ export default function SbMbrStoryPageFeature({
   }, [memberId, storyAuthorMbrId]);
 
   // Look up current member
-  const member = liveMember || MEMBER_STORIES.find((m) => m.id === memberId) || MEMBER_STORIES[0];
+  const member = liveMember || (memberId ? MEMBER_STORIES.find((m) => m.id === memberId) : null) || MEMBER_STORIES[0];
 
   // Retrieve active section contents
   const getActiveContent = (): string[] => {
-    const secKey = activeSection.toLowerCase();
-    if (member.id === 'm1' && STORY_CONTENTS.m1[secKey]) {
+    const secKey = (activeSection || '').toLowerCase();
+    if (member?.id === 'm1' && STORY_CONTENTS?.m1 && STORY_CONTENTS.m1[secKey]) {
       return STORY_CONTENTS.m1[secKey];
     }
     
     // Dynamic fallback copy for other members
+    const memberName = member?.name || 'Member';
+    const memberLocation = member?.location || 'Storybook';
+    const memberJoined = member?.joinedDate || '2025';
+    const memberChapters = member?.chaptersCount || 1;
+    const memberTags = Array.isArray(member?.tags) ? member.tags.join(', ') : 'Memoirs, Family, Heritage';
+
     if (secKey === 'introduction') {
       return [
-        `${member.name} joined Storybook in ${member.joinedDate} to document a life lived across different eras. Residing in ${member.location}, they have already published ${member.chaptersCount} chapters of their memoirs, capturing personal anecdotes, family histories, and local transitions.`,
-        `Their recollections focus heavily on themes of ${member.tags.join(', ')} — drawing connections between past events and the wisdom they hold today.`,
+        `${memberName} joined Storybook in ${memberJoined} to document a life lived across different eras. Residing in ${memberLocation}, they have already published ${memberChapters} chapters of their memoirs, capturing personal anecdotes, family histories, and local transitions.`,
+        `Their recollections focus heavily on themes of ${memberTags} — drawing connections between past events and the wisdom they hold today.`,
         "This is their story, written in their own words, preserved forever."
       ];
     }
     
     if (secKey === 'demographics') {
       return [
-        `${member.name} was born and raised in ${member.location}. They have built a lifetime of experiences, establishing deep roots in their community while documenting their ancestry and descent.`,
+        `${memberName} was born and raised in ${memberLocation}. They have built a lifetime of experiences, establishing deep roots in their community while documenting their ancestry and descent.`,
         `As a member of the Storybook platform, they actively collaborate with family and friends to co-author and refine their life records. This section details their early education, family structure, marriages, and professional achievements.`
       ];
     }
@@ -336,66 +357,102 @@ export default function SbMbrStoryPageFeature({
     return ["This chapter is currently in draft status and will be available once the author has finalized the edit and clicked publish."];
   };
 
+  const isFromConnections = previousTab === 'mbrConnectionPage' || previousTab === 'mbrConnections';
+  const isFromStoriesFeed = previousTab === 'mbrStoryFeedPage' || previousTab === 'sbStoryFeed';
+  const backButtonText = backLabel || (
+    isFromConnections
+      ? 'Back to Connections'
+      : isFromStoriesFeed
+      ? 'Back to Stories'
+      : 'Back to Members'
+  );
+
   return (
     <div className="w-full relative">
       <PageSeo
-        title={`${member.name}'s Story & Experiences`}
-        description={member.excerpt || `Read the personal journey, experiences, and stories shared by ${member.name} on StoryBook.`}
-        keywords={`real life stories, ${member.name}, ${member.location || ''}, personal journey, creative writing, true stories, storybook`}
+        title={`${member?.name || 'Member'}'s Story & Experiences`}
+        description={member?.excerpt || `Read the personal journey, experiences, and stories shared by ${member?.name || 'Member'} on StoryBook.`}
+        keywords={`real life stories, ${member?.name || ''}, ${member?.location || ''}, personal journey, creative writing, true stories, storybook`}
         ogType="article"
-        ogTitle={`${member.name}'s Story & Experiences`}
-        ogDescription={member.excerpt || `Discover the stories and life moments shared by ${member.name} on StoryBook.`}
-        ogImage={member.avatarUrl}
+        ogTitle={`${member?.name || 'Member'}'s Story & Experiences`}
+        ogDescription={member?.excerpt || `Discover the stories and life moments shared by ${member?.name || 'Member'} on StoryBook.`}
+        ogImage={member?.avatarUrl}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "Article",
-          "headline": `${member.name}'s Story & Journey`,
-          "description": member.excerpt || 'A life story and journey on StoryBook.',
+          "headline": `${member?.name || 'Member'}'s Story & Journey`,
+          "description": member?.excerpt || 'A life story and journey on StoryBook.',
           "author": {
             "@type": "Person",
-            "name": member.name
+            "name": member?.name || 'Member'
           },
           "publisher": {
             "@type": "Organization",
             "name": "StoryBook",
             "url": "https://storybook.ai"
           },
-          "image": member.avatarUrl || undefined
+          "image": member?.avatarUrl || undefined
         }}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
-        
-        {/* Left Column Sidebar */}
-        <div className="lg:col-span-3">
-          <LeftColumn
-            onClickBack={onClickBack}
-            activeSection={activeSection}
-            setActiveSection={setActiveSection}
-            memberName={member.name}
-            lockedTopicIds={lockedTopicIds}
-          />
+      <div className="w-full relative space-y-4 lg:space-y-0">
+        {/* Mobile View Top Back Button */}
+        {onClickBack && (
+          <div className="flex lg:hidden items-center pt-1 pb-1">
+            <button
+              type="button"
+              onClick={onClickBack}
+              className="group inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus:outline-none cursor-pointer"
+            >
+              <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-xs group-hover:border-blue-300 dark:group-hover:border-blue-600 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/40 transition-all">
+                <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+              </div>
+              <span>{backButtonText}</span>
+            </button>
+          </div>
+        )}
+
+        {/* Mobile Menu Bar: Story Index Dropdown Navigation */}
+        <StoryMobileMenuBar
+          activeSection={activeSection}
+          setActiveSection={setActiveSection}
+          lockedTopicIds={lockedTopicIds}
+        />
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 max-w-7xl w-full mx-auto items-start">
+          
+          {/* Left Column Sidebar (Desktop only) */}
+          <div className="hidden lg:block lg:col-span-3">
+            <LeftColumn
+              onClickBack={onClickBack}
+              activeSection={activeSection}
+              setActiveSection={setActiveSection}
+              memberName={member.name}
+              lockedTopicIds={lockedTopicIds}
+            />
+          </div>
+
+          {/* Center Column Main Panel */}
+          <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
+            <CenterColumn
+              member={member}
+              activeSection={activeSection}
+              activeContent={getActiveContent()}
+              lockedTopicIds={lockedTopicIds}
+              onClickBack={onClickBack}
+              previousTab={previousTab}
+              backLabel={backLabel}
+              connectionGrpName={connectionGrpName}
+              isConnected={isConnected}
+              viewerMbrId={viewerMbrId}
+            />
+          </div>
+
+          {/* Right Column Sidebar (Desktop only) */}
+          <div className="hidden lg:block lg:col-span-3">
+            <RightColumn />
+          </div>
+
         </div>
-
-        {/* Center Column Main Panel */}
-        <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
-          <CenterColumn
-            member={member}
-            activeSection={activeSection}
-            activeContent={getActiveContent()}
-            lockedTopicIds={lockedTopicIds}
-            onClickBack={onClickBack}
-            connectionGrpName={connectionGrpName}
-            isConnected={isConnected}
-            viewerMbrId={viewerMbrId}
-          />
-        </div>
-
-
-        {/* Right Column Sidebar */}
-        <div className="lg:col-span-3">
-          <RightColumn />
-        </div>
-
       </div>
       <AdminComponentTag name="SbMbrStoryPageFeature" />
     </div>

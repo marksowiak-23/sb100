@@ -343,7 +343,7 @@ export default function SbStoryPageFeature({
       {/* lg:grid-cols-12 distributes proportions as 3/12 (Left), 6/12 (Center), and 3/12 (Right) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
         {/* Left Column */}
-        <div className="lg:col-span-3">
+        <div className="hidden lg:block lg:col-span-3">
           <LeftColumn
             topicName={story?.mbrStoryTypeCd}
             onClickBack={onClickBack}
@@ -374,7 +374,7 @@ export default function SbStoryPageFeature({
         </div>
 
         {/* Right Column */}
-        <div className="lg:col-span-3">
+        <div className="hidden lg:block lg:col-span-3">
           <RightColumn />
         </div>
       </div>

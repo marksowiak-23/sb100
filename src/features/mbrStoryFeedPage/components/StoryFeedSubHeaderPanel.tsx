@@ -32,7 +32,7 @@ export default function StoryFeedSubHeaderPanel({
   };
 
   return (
-    <div className={`bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden group ${className}`}>
+    <div className={`hidden sm:block bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 relative overflow-hidden group ${className}`}>
       {/* Top Accent Line */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover:opacity-100 transition-opacity" />
 

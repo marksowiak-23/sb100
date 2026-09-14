@@ -372,27 +372,7 @@ export default function MainLayout({
               <span className="text-[11px] font-sans tracking-tight leading-none">Home</span>
             </button>
 
-            {/* 2. Stories */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('mbrStoryFeedPage');
-                setDropdownOpen(false);
-                setIsMessagingOpen(false);
-                setIsNotificationsOpen(false);
-              }}
-              className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
-                activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage'
-                  ? 'text-white border-b-2 border-white font-bold'
-                  : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
-              }`}
-              title="Stories Feed"
-            >
-              <BookMarked className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
-              <span className="text-[11px] font-sans tracking-tight leading-none">Stories</span>
-            </button>
-
-            {/* 3. Author */}
+            {/* 2. Author */}
             <button
               type="button"
               onClick={() => {
@@ -440,6 +420,26 @@ export default function MainLayout({
                 )}
               </div>
               <span className="text-[11px] font-sans tracking-tight leading-none">Connections</span>
+            </button>
+
+            {/* 4. Stories */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('mbrStoryFeedPage');
+                setDropdownOpen(false);
+                setIsMessagingOpen(false);
+                setIsNotificationsOpen(false);
+              }}
+              className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
+                activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage'
+                  ? 'text-white border-b-2 border-white font-bold'
+                  : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
+              }`}
+              title="Stories Feed"
+            >
+              <BookMarked className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
+              <span className="text-[11px] font-sans tracking-tight leading-none">Stories</span>
             </button>
 
             {/* 3. Messaging */}
@@ -1085,25 +1085,6 @@ export default function MainLayout({
                 </div>
               </button>
 
-              {/* Stories */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('mbrStoryFeedPage');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
-                  activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage'
-                    ? 'bg-blue-600/30 text-white font-bold border border-blue-500/40 shadow-xs'
-                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <BookMarked className="w-5 h-5 text-indigo-400 shrink-0" />
-                  <span>Stories Feed</span>
-                </div>
-              </button>
-
               {/* Author */}
               <button
                 type="button"
@@ -1145,6 +1126,25 @@ export default function MainLayout({
                     {invitationCount} pending
                   </span>
                 )}
+              </button>
+
+              {/* Stories */}
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('mbrStoryFeedPage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
+                  activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage'
+                    ? 'bg-blue-600/30 text-white font-bold border border-blue-500/40 shadow-xs'
+                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <BookMarked className="w-5 h-5 text-indigo-400 shrink-0" />
+                  <span>Stories Feed</span>
+                </div>
               </button>
             </div>
 
@@ -1335,7 +1335,9 @@ export default function MainLayout({
       {/* --- FOOTER STATUS BAR --- */}
       <footer
         id="app-footer"
-        className={`h-12 bg-[#2E2C2A] text-slate-400 px-6 md:px-8 flex items-center justify-between text-xs font-medium border-t border-[#3E3C3A] ${isMemberLoggedIn ? 'mb-16 lg:mb-0' : ''}`}
+        className={`h-12 bg-[#2E2C2A] text-slate-400 px-6 md:px-8 items-center justify-between text-xs font-medium border-t border-[#3E3C3A] ${
+          isMemberLoggedIn ? 'hidden lg:flex' : 'flex'
+        }`}
       >
         <div className="flex items-center gap-2">
           <span>&copy; {new Date().getFullYear()} StoryBook</span>
@@ -1377,28 +1379,7 @@ export default function MainLayout({
               <span className="text-[10px] tracking-tight mt-0.5 leading-none">Home</span>
             </button>
 
-            {/* 2. Stories */}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('mbrStoryFeedPage');
-                setIsMobileAccountOpen(false);
-                setIsMobileMenuOpen(false);
-              }}
-              className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all cursor-pointer ${
-                activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage' || activeTab === 'mbrStoryPage' || activeTab === 'sbMbrStoryPage'
-                  ? 'text-white font-bold'
-                  : 'text-slate-400 hover:text-slate-200 font-medium'
-              }`}
-              title="Stories Feed"
-            >
-              <div className={`p-1 rounded-lg transition-transform ${activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage' || activeTab === 'mbrStoryPage' || activeTab === 'sbMbrStoryPage' ? 'bg-indigo-600/30 text-indigo-400 scale-105' : ''}`}>
-                <BookMarked className="w-5 h-5" />
-              </div>
-              <span className="text-[10px] tracking-tight mt-0.5 leading-none">Stories</span>
-            </button>
-
-            {/* 3. Author */}
+            {/* 2. Author */}
             <button
               type="button"
               onClick={() => {
@@ -1419,7 +1400,7 @@ export default function MainLayout({
               <span className="text-[10px] tracking-tight mt-0.5 leading-none">Author</span>
             </button>
 
-            {/* 4. Connections */}
+            {/* 3. Connections */}
             <button
               type="button"
               onClick={() => {
@@ -1445,6 +1426,27 @@ export default function MainLayout({
                 )}
               </div>
               <span className="text-[10px] tracking-tight mt-0.5 leading-none">Connections</span>
+            </button>
+
+            {/* 4. Stories */}
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('mbrStoryFeedPage');
+                setIsMobileAccountOpen(false);
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage' || activeTab === 'mbrStoryPage' || activeTab === 'sbMbrStoryPage'
+                  ? 'text-white font-bold'
+                  : 'text-slate-400 hover:text-slate-200 font-medium'
+              }`}
+              title="Stories Feed"
+            >
+              <div className={`p-1 rounded-lg transition-transform ${activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage' || activeTab === 'mbrStoryPage' || activeTab === 'sbMbrStoryPage' ? 'bg-indigo-600/30 text-indigo-400 scale-105' : ''}`}>
+                <BookMarked className="w-5 h-5" />
+              </div>
+              <span className="text-[10px] tracking-tight mt-0.5 leading-none">Stories</span>
             </button>
 
             {/* 5. Account */}

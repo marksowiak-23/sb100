@@ -23,6 +23,8 @@ export interface MbrProfilePanelProps {
   onClickAuthorProfile?: () => void;
   defaultCollapseIntro?: boolean;
   defaultCollapseDetails?: boolean;
+  clampIntroduction?: boolean;
+  maxIntroLines?: number;
 }
 
 export type SbMbrProfilePanelProps = MbrProfilePanelProps;
@@ -42,7 +44,9 @@ export default function MbrProfilePanel({
   onClickReadStory,
   onClickAuthorProfile,
   defaultCollapseIntro = false,
-  defaultCollapseDetails = true
+  defaultCollapseDetails = false,
+  clampIntroduction = false,
+  maxIntroLines = 8
 }: MbrProfilePanelProps) {
 
   const [loading, setLoading] = useState(true);
@@ -837,8 +841,21 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
                 transition={{ duration: 0.2, ease: 'easeInOut' }}
                 className="overflow-hidden pt-2"
               >
-                <div className="pl-3.5 border-l-2 border-slate-500 max-h-60 overflow-y-auto pr-1">
-                  <p className="text-slate-600 font-sans text-sm sm:text-[15px] leading-relaxed font-normal whitespace-pre-line">
+                <div className="pl-3.5 border-l-2 border-slate-500">
+                  <p
+                    className="text-slate-600 font-sans text-sm sm:text-[15px] leading-relaxed font-normal whitespace-pre-line"
+                    style={
+                      clampIntroduction
+                        ? {
+                            display: '-webkit-box',
+                            WebkitLineClamp: maxIntroLines,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }
+                        : undefined
+                    }
+                  >
                     "{introductionText}"
                   </p>
                 </div>
@@ -880,7 +897,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
 
       {/* --- LOWER ACTION BAR (Connection Status/Actions) --- */}
       <div className="pt-3 border-t border-[#EFECE7] flex items-center justify-between gap-3">
-        {/* LOWER LEFT: Connection Badge (or Connect Button / Inquiry Sent / Author Profile) */}
+        {/* LOWER LEFT: Connection Badge (or Connect Button / Request Sent / Author Profile) */}
         <div className="flex items-center min-h-[32px]">
           {isSelf ? (
             <button
@@ -930,7 +947,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
               title="Connection request sent"
             >
               <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span className="font-semibold text-xs tracking-tight">Inquiry Sent</span>
+              <span className="font-semibold text-xs tracking-tight">Request Sent</span>
             </div>
           ) : null}
         </div>
@@ -951,10 +968,10 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
                 }
               }}
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-serif font-bold rounded-xl shadow-xs hover:shadow transition-all duration-150 cursor-pointer active:scale-95 group shrink-0"
-              title="Read member's public story"
+              title="Read member's stories"
             >
               <BookOpen className="w-3.5 h-3.5 text-blue-200 group-hover:text-white transition-colors" />
-              <span>Read Story</span>
+              <span>Read Stories</span>
               <ChevronRight className="w-3 h-3 text-blue-200 group-hover:translate-x-0.5 transition-transform" />
             </button>
           )}

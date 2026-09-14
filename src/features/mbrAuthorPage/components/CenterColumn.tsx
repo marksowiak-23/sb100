@@ -28,6 +28,15 @@ interface CenterColumnProps {
   onClickAuthorProfile?: () => void;
 }
 
+const TOPIC_DETAILS: Record<string, { topicId: string; topicTitle: string; componentName: string }> = {
+  family: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' },
+  residencies: { topicId: 'residencies', topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' },
+  hobbies: { topicId: 'hobbies', topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' },
+  achievements: { topicId: 'achievements', topicTitle: 'Achievements', componentName: 'sbMbrStryAchievement' },
+  education: { topicId: 'education', topicTitle: 'Education and Training', componentName: 'sbMbrStryEducation' },
+  employment: { topicId: 'employment', topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' },
+};
+
 export default function CenterColumn({
   isSandbox,
   activeSection,
@@ -37,15 +46,10 @@ export default function CenterColumn({
   onClickAuthorProfile
 }: CenterColumnProps) {
   const [showStoryMate, setShowStoryMate] = useState(false);
-  const [storyEditorConfig, setStoryEditorConfig] = useState<{
-    topicId: string;
-    topicTitle: string;
-    componentName?: string;
-    subordinateId?: string;
-    subordinateName?: string;
-  } | null>(null);
+  const [subordinateId, setSubordinateId] = useState<string | null>(null);
+  const [subordinateName, setSubordinateName] = useState<string | undefined>(undefined);
 
-  // Hide StoryMate panel and StoryEditor panel whenever the active topic/section changes
+  // StoryMate panel configuration
   const [storyMateConfig, setStoryMateConfig] = useState<{
     componentName?: string;
     topicId?: string;
@@ -57,10 +61,12 @@ export default function CenterColumn({
     storyContent?: string;
   } | null>(null);
 
+  // Reset subordinate filter and StoryMate state whenever active section changes
   useEffect(() => {
     setShowStoryMate(false);
     setStoryMateConfig(null);
-    setStoryEditorConfig(null);
+    setSubordinateId(null);
+    setSubordinateName(undefined);
   }, [activeSection]);
 
   useEffect(() => {
@@ -91,25 +97,39 @@ export default function CenterColumn({
   useEffect(() => {
     const handleOpenEditor = (e: any) => {
       const detail = e.detail || {};
-      setStoryEditorConfig({
-        topicId: detail.topicId || activeSection,
-        topicTitle: detail.topicTitle || 'Section',
-        componentName: detail.componentName,
-        subordinateId: detail.subordinateId || detail.mbrStorySubordinateId,
-        subordinateName: detail.subordinateName
-      });
+      if (detail.subordinateId || detail.mbrStorySubordinateId) {
+        setSubordinateId(detail.subordinateId || detail.mbrStorySubordinateId);
+      } else {
+        setSubordinateId(null);
+      }
+      if (detail.subordinateName) {
+        setSubordinateName(detail.subordinateName);
+      } else {
+        setSubordinateName(undefined);
+      }
       setTimeout(() => {
         const el = document.getElementById('story-editor-panel');
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth' });
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 100);
     };
+
     window.addEventListener('open-story-editor', handleOpenEditor);
-    return () => window.removeEventListener('open-story-editor', handleOpenEditor);
+    window.addEventListener('open-topic-stories', handleOpenEditor);
+    return () => {
+      window.removeEventListener('open-story-editor', handleOpenEditor);
+      window.removeEventListener('open-topic-stories', handleOpenEditor);
+    };
   }, [activeSection]);
 
-  const sec = activeSection.toLowerCase();
+  const sec = (activeSection || 'Profile').toLowerCase();
+  const isStandardTopic = ['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(sec);
+  const currentTopicInfo = TOPIC_DETAILS[sec] || {
+    topicId: sec,
+    topicTitle: activeSection || 'Section',
+    componentName: `sbMbrStry${activeSection}`
+  };
 
   return (
     <div className="space-y-6 flex flex-col relative">
@@ -176,16 +196,22 @@ export default function CenterColumn({
         </>
       )}
 
-      {storyEditorConfig && (
-        <StoryEditorPanel
-          topicId={storyEditorConfig.topicId}
-          topicTitle={storyEditorConfig.topicTitle}
-          componentName={storyEditorConfig.componentName}
-          subordinateId={storyEditorConfig.subordinateId}
-          subordinateName={storyEditorConfig.subordinateName}
-          isSandbox={isSandbox}
-          onClose={() => setStoryEditorConfig(null)}
-        />
+      {/* --- STORY EDITOR PANEL (Automatically shown for topic) --- */}
+      {isStandardTopic && (
+        <div id="story-editor-panel">
+          <StoryEditorPanel
+            topicId={currentTopicInfo.topicId}
+            topicTitle={currentTopicInfo.topicTitle}
+            componentName={currentTopicInfo.componentName}
+            subordinateId={subordinateId || undefined}
+            subordinateName={subordinateName}
+            isSandbox={isSandbox}
+            onClose={() => {
+              setSubordinateId(null);
+              setSubordinateName(undefined);
+            }}
+          />
+        </div>
       )}
 
       {/* --- STORY MATE PANEL --- */}

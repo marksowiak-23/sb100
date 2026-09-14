@@ -278,17 +278,24 @@ export default function MbrStoryActivityPanel({ isSandbox = false, memberId, rea
       
       {/* --- PANEL HEADER --- */}
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#EFECE7]">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-50/50 border border-indigo-100 text-indigo-700 rounded-xl">
-            <Sparkles className="w-5 h-5" />
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
+            detail: { topicId: 'hobbies', topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' }
+          }))}
+          className="flex items-center gap-3 group/topic cursor-pointer text-left focus:outline-none transition-transform active:scale-98"
+          title={readOnly ? "View Stories" : "Story Editor"}
+        >
+          <div className="p-2.5 bg-indigo-50/50 group-hover/topic:bg-indigo-100/70 border border-indigo-100 group-hover/topic:border-indigo-200 text-indigo-700 rounded-xl transition-all shadow-2xs">
+            <Sparkles className="w-5 h-5 transition-transform group-hover/topic:scale-105" />
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest font-mono">
               {isEditing ? 'Status: Editing' : 'Status: Draft'}
             </span>
-            <h2 className="font-serif text-lg font-bold text-slate-800">Activities & Hobbies</h2>
+            <span className="block font-serif text-lg font-bold text-slate-800 group-hover/topic:text-indigo-700 transition-colors">Activities & Hobbies</span>
           </div>
-        </div>
+        </button>
 
         {/* Toggle Mode Buttons */}
         {!isEditing && (

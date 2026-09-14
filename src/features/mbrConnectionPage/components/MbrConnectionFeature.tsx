@@ -11,9 +11,10 @@ import {
   MemberRequestItem
 } from '../types';
 import ManageConnectionsMenu from './ManageConnectionsMenu';
-import ConnectionHeader from './ConnectionHeader';
+import ConnectionsHeader from './ConnectionsHeader';
+import GroupHeader from './GroupHeader';
 import ConnectionSearchToolbar from './ConnectionSearchToolbar';
-import MemberConnectionList from './MemberConnectionList';
+import GroupConnectionsList from './GroupConnectionsList';
 import InvitationsHeader from './InvitationsHeader';
 import InvitationsList from './InvitationsList';
 import RequestsHeader from './RequestsHeader';
@@ -21,12 +22,18 @@ import RequestsList from './RequestsList';
 import ConnectionPageHeaderPanel from './ConnectionPageHeaderPanel';
 import ConnectionMobileMenuBar from './ConnectionMobileMenuBar';
 import AcceptInvitationModal from './AcceptInvitationModal';
+import SbMbrSearchCard from './SbMbrSearchCard';
+import SbMbrSearchResults from './SbMbrSearchResults';
+import RightColumn from './RightColumn';
+import { detectUserLocation, getCachedUserLocation, UserLocation } from '@/src/utils/userLocation';
 import { generateConnectionPdf } from '../utils/generateConnectionPdf';
 
+const SEARCH_PAGE_SIZE = 5;
+const AUTO_SCROLL_LIMIT = 20;
 
-export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyChange, onNavigate }: MbrConnectionFeatureProps) {
-  // Navigation / View state: 'connections' | 'invitations' | 'requests'
-  const [activeSection, setActiveSection] = useState<ConnectionSection>('connections');
+export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyChange, onNavigate, onClickReadStory }: MbrConnectionFeatureProps) {
+  // Navigation / View state: 'my-connections' (default) | 'groups' | 'invitations' | 'requests'
+  const [activeSection, setActiveSection] = useState<ConnectionSection>('my-connections');
 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,9 +46,64 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   const [invitations, setInvitations] = useState<Record<string, MemberInvitationItem>>({});
   const [requests, setRequests] = useState<Record<string, MemberRequestItem>>({});
   
-  // Search and Filtering State for Connections
+  // Search and Filtering State for Groups view
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [groupFilter, setGroupFilter] = useState<ConnectionFilterType>('ALL');
+
+  // Search and Processing State for "My Connections" view
+  const [mbrSearchQuery, setMbrSearchQuery] = useState<string>('');
+  const [connectionsOnly, setConnectionsOnly] = useState<boolean>(() => {
+    try {
+      const stored = sessionStorage.getItem('sb_search_connections_only');
+      return stored !== null ? stored === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('sb_search_connections_only', String(connectionsOnly));
+    } catch (e) {
+      console.warn("Failed to persist connectionsOnly to sessionStorage:", e);
+    }
+  }, [connectionsOnly]);
+
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(getCachedUserLocation());
+  const [searchMembers, setSearchMembers] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState<boolean>(true);
+  const [searchLoadingMore, setSearchLoadingMore] = useState<boolean>(false);
+  const [searchHasMore, setSearchHasMore] = useState<boolean>(true);
+
+  // User location detection
+  useEffect(() => {
+    let isMounted = true;
+    detectUserLocation().then((loc) => {
+      if (isMounted && loc) {
+        setUserLocation(loc);
+      }
+    });
+
+    const handleLocUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<UserLocation | null>;
+      if (isMounted) {
+        setUserLocation(customEvent.detail || null);
+      }
+    };
+
+    window.addEventListener('user_location:detected', handleLocUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('user_location:detected', handleLocUpdate);
+    };
+  }, []);
+
+  const handleRefreshLocation = useCallback(async () => {
+    const loc = await detectUserLocation(true);
+    if (loc) {
+      setUserLocation(loc);
+    }
+  }, []);
 
   // Accept Connection Group Selection Modal State
   const [acceptModalInvitation, setAcceptModalInvitation] = useState<MemberInvitationItem | null>(null);
@@ -843,6 +905,143 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   const pendingRequestsList = useMemo(() => Object.values(requests) as MemberRequestItem[], [requests]);
   const pendingRequestsCount = pendingRequestsList.length;
 
+  // Connections lookup map for MbrProfilePanel cards
+  const connectionsMap = useMemo(() => {
+    const map = new Map<string, { isConnected: boolean; grpName?: string }>();
+    const groupNameById = new Map<string, string>();
+    groups.forEach(g => groupNameById.set(g.grpId, g.grpName));
+
+    Object.values(items).forEach(it => {
+      if (it.member && it.member.mbrId) {
+        const grpName = it.selectedGrpId ? groupNameById.get(it.selectedGrpId) : undefined;
+        map.set(it.member.mbrId, {
+          isConnected: !!it.mbrConnectionId,
+          grpName: grpName || (it.mbrConnectionId ? 'Connected' : undefined)
+        });
+      }
+    });
+    return map;
+  }, [items, groups]);
+
+  // Debounced member search for "My Connections" section
+  useEffect(() => {
+    let isMounted = true;
+    setSearchLoading(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const queryTrimmed = mbrSearchQuery.trim();
+        const fetchLimit = connectionsOnly ? 200 : SEARCH_PAGE_SIZE;
+
+        let result: any[] = [];
+        if (!isSandbox) {
+          result = await taskApi.getMembers({
+            query: queryTrimmed || undefined,
+            proximity: userLocation?.label || undefined,
+            proximity_lat: userLocation?.latitude,
+            proximity_lng: userLocation?.longitude,
+            public_only: true,
+            limit: fetchLimit,
+            skip: 0
+          });
+        } else {
+          result = Object.values(items).map(i => i.member);
+        }
+
+        if (isMounted) {
+          let uniqueList = Array.from(new Map((result || []).map((m: any) => [m.mbrId || m.id, m])).values());
+
+          // Exclude logged in member profile
+          if (currentMbrId) {
+            uniqueList = uniqueList.filter((m: any) => (m.mbrId || m.id) !== currentMbrId);
+          }
+
+          if (connectionsOnly) {
+            uniqueList = uniqueList.filter((m: any) => {
+              const targetId = m.mbrId || m.id;
+              return connectionsMap.has(targetId) && connectionsMap.get(targetId)?.isConnected === true;
+            });
+            setSearchMembers(uniqueList);
+            setSearchHasMore(false);
+          } else {
+            setSearchMembers(uniqueList);
+            setSearchHasMore((result || []).length === SEARCH_PAGE_SIZE);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to search members:", err);
+        if (isMounted) {
+          setSearchMembers([]);
+          setSearchHasMore(false);
+        }
+      } finally {
+        if (isMounted) {
+          setSearchLoading(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [mbrSearchQuery, connectionsOnly, userLocation, connectionsMap, currentMbrId, isSandbox, items]);
+
+  const handleLoadMoreSearchMembers = useCallback(async () => {
+    if (searchLoading || searchLoadingMore || !searchHasMore || connectionsOnly) return;
+    setSearchLoadingMore(true);
+    try {
+      const queryTrimmed = mbrSearchQuery.trim();
+      const currentSkip = searchMembers.length;
+      const nextBatch = await taskApi.getMembers({
+        query: queryTrimmed || undefined,
+        proximity: userLocation?.label || undefined,
+        proximity_lat: userLocation?.latitude,
+        proximity_lng: userLocation?.longitude,
+        public_only: true,
+        limit: SEARCH_PAGE_SIZE,
+        skip: currentSkip
+      });
+
+      if (nextBatch && nextBatch.length > 0) {
+        setSearchMembers((prev) => {
+          let combined = [...prev, ...nextBatch];
+          if (currentMbrId) {
+            combined = combined.filter((m: any) => (m.mbrId || m.id) !== currentMbrId);
+          }
+          return Array.from(new Map(combined.map((m: any) => [m.mbrId || m.id, m])).values());
+        });
+        setSearchHasMore(nextBatch.length === SEARCH_PAGE_SIZE);
+      } else {
+        setSearchHasMore(false);
+      }
+    } catch (err) {
+      console.error("Failed to load more search members:", err);
+      setSearchHasMore(false);
+    } finally {
+      setSearchLoadingMore(false);
+    }
+  }, [searchLoading, searchLoadingMore, searchHasMore, connectionsOnly, mbrSearchQuery, userLocation, searchMembers.length, currentMbrId]);
+
+  // Infinite scroll listener: auto-fetch another 5 members when scrolling to the bottom until 20 are loaded
+  useEffect(() => {
+    const handleScroll = () => {
+      if (activeSection !== 'my-connections') return;
+      if (searchLoading || searchLoadingMore || !searchHasMore || connectionsOnly) return;
+      if (searchMembers.length >= AUTO_SCROLL_LIMIT) return;
+
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const threshold = document.documentElement.scrollHeight - 300;
+
+      if (scrollPosition >= threshold) {
+        handleLoadMoreSearchMembers();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeSection, handleLoadMoreSearchMembers, searchLoading, searchLoadingMore, searchHasMore, connectionsOnly, searchMembers.length]);
+
   const handleBack = () => {
     onClickBack();
   };
@@ -858,7 +1057,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-1 sm:px-4 pt-1 sm:pt-6 md:pt-8 pb-8 relative">
+    <div className="w-full relative space-y-4 lg:space-y-0">
       <AdminComponentTag name="MbrConnectionFeature.tsx" />
 
       {/* Mobile Menu Bar: Connections Navigation */}
@@ -868,14 +1067,14 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         connectionsCount={totalConnectionsCount}
         invitationsCount={pendingInvitationsCount}
         requestsCount={pendingRequestsCount}
-        className="mb-4"
+        className="mb-4 lg:mb-0"
       />
 
-      {/* 2-Column Responsive Layout: Left Column Menu + Right Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start">
+      {/* 3-Column Responsive Layout: Left Column Menu + Center Content Area + Right Column Sponsors */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto items-start">
         
         {/* Left Column Section: Brand Header & "Manage my Connections" Menu (Desktop only) */}
-        <aside className="hidden lg:block lg:col-span-4 xl:col-span-3 space-y-6">
+        <aside className="hidden lg:block lg:col-span-3 space-y-6">
           <ConnectionPageHeaderPanel />
           <ManageConnectionsMenu
             activeSection={activeSection}
@@ -886,12 +1085,51 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           />
         </aside>
 
-        {/* Right Main Content Area: Connections, Invitations, or Requests */}
-        <main className="lg:col-span-8 xl:col-span-9 min-w-0">
-          {activeSection === 'connections' && (
+        {/* Center Main Content Area: My Connections, Groups, Invitations, or Requests */}
+        <main className="lg:col-span-6 min-w-0">
+          {activeSection === 'my-connections' && (
+            <div className="space-y-6">
+              {/* Header Section for My Connections */}
+              <ConnectionsHeader
+                success={success}
+                error={error}
+              />
+
+              <SbMbrSearchCard
+                searchQuery={mbrSearchQuery}
+                setSearchQuery={setMbrSearchQuery}
+                connectionsOnly={connectionsOnly}
+                setConnectionsOnly={setConnectionsOnly}
+                connectedCount={connectionsMap.size}
+                userLocation={userLocation}
+                onRefreshLocation={handleRefreshLocation}
+              />
+              <SbMbrSearchResults
+                searchQuery={mbrSearchQuery}
+                connectionsOnly={connectionsOnly}
+                members={searchMembers}
+                loading={searchLoading}
+                loadingMore={searchLoadingMore}
+                hasMore={searchHasMore}
+                connectionsMap={connectionsMap}
+                viewerMbrId={currentMbrId}
+                onLoadMore={handleLoadMoreSearchMembers}
+                onClickReadStory={(memberId) => {
+                  if (onClickReadStory) {
+                    onClickReadStory(memberId);
+                  } else {
+                    window.dispatchEvent(new CustomEvent('open-member-story', { detail: { memberId } }));
+                  }
+                }}
+                userLocation={userLocation}
+              />
+            </div>
+          )}
+
+          {(activeSection === 'groups' || activeSection === 'connections') && (
             <div>
-              {/* Header Section for Connections */}
-              <ConnectionHeader
+              {/* Header Section for Groups */}
+              <GroupHeader
                 success={success}
                 error={error}
               />
@@ -909,7 +1147,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
               />
 
               {/* Member Cards Directory */}
-              <MemberConnectionList
+              <GroupConnectionsList
                 loading={loading}
                 memberList={filteredMemberList}
                 groups={groups}
@@ -955,6 +1193,11 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             </div>
           )}
         </main>
+
+        {/* Right Column Section: Recommended publishing sponsors and legal footer links */}
+        <div className="hidden lg:block lg:col-span-3">
+          <RightColumn />
+        </div>
 
       </div>
 

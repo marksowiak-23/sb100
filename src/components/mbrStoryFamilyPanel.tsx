@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, BookOpen, Images, ChevronLeft, ChevronRight, Upload, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, BookOpen, Images, ChevronLeft, ChevronRight, Upload, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical } from 'lucide-react';
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
@@ -163,13 +163,14 @@ const getRelationshipRank = (cd?: string): number => {
 };
 
 const sortFamilyList = (list: FamilyMember[]): FamilyMember[] => {
+  if (!Array.isArray(list)) return [];
   return [...list].sort((a, b) => {
-    const relA = a.mbrFamilyRelationshipCd.toLowerCase();
-    const relB = b.mbrFamilyRelationshipCd.toLowerCase();
+    const relA = (a?.mbrFamilyRelationshipCd || '').toLowerCase();
+    const relB = (b?.mbrFamilyRelationshipCd || '').toLowerCase();
     if (relA === 'spouse' && relB !== 'spouse') return -1;
     if (relB === 'spouse' && relA !== 'spouse') return 1;
-    const nameA = `${a.mbrFamilyFirstNm} ${a.mbrFamilyLastNm}`.toLowerCase();
-    const nameB = `${b.mbrFamilyFirstNm} ${b.mbrFamilyLastNm}`.toLowerCase();
+    const nameA = `${a?.mbrFamilyFirstNm || ''} ${a?.mbrFamilyLastNm || ''}`.trim().toLowerCase();
+    const nameB = `${b?.mbrFamilyFirstNm || ''} ${b?.mbrFamilyLastNm || ''}`.trim().toLowerCase();
     return nameA.localeCompare(nameB);
   });
 };
@@ -201,20 +202,141 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
 
   // --- FAMILY PHOTO GALLERY STATE ---
   const [showFamilyGalleryModal, setShowFamilyGalleryModal] = useState(false);
-  const [selectedFamilyMemberForGallery, setSelectedFamilyMemberForGallery] = useState<FamilyMember | null>(null);
   const [activeGallerySubordinateId, setActiveGallerySubordinateId] = useState<string | null>(null);
   const [activeGalleryTitle, setActiveGalleryTitle] = useState<string>('Family');
-  const [familyGalleryItems, setFamilyGalleryItems] = useState<MbrMedia[]>([]);
-  const [currentFamilyPhotoIndex, setCurrentFamilyPhotoIndex] = useState(0);
-  const [uploadingFamilyPhoto, setUploadingFamilyPhoto] = useState(false);
-  const [deletingFamilyMediaId, setDeletingFamilyMediaId] = useState<string | null>(null);
-  const [galleryError, setGalleryError] = useState<string | null>(null);
-  const [gallerySuccess, setGallerySuccess] = useState<string | null>(null);
 
-  // --- PHOTO DESCRIPTION EDIT STATE ---
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
-  const [editDescriptionInput, setEditDescriptionInput] = useState('');
-  const [savingDescription, setSavingDescription] = useState(false);
+  // --- SUBORDINATE STORIES & PHOTOS COUNT MAPS ---
+  const [memberPhotosMap, setMemberPhotosMap] = useState<Record<string, number>>({});
+  const [memberStoriesMap, setMemberStoriesMap] = useState<Record<string, number>>({});
+  const [headerPhotoCount, setHeaderPhotoCount] = useState<number>(0);
+  const [headerStoryCount, setHeaderStoryCount] = useState<number>(0);
+
+  // --- MOBILE ACTION DROPDOWN STATE ---
+  const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+
+  useEffect(() => {
+    if (!activeActionMenuId && !showHeaderMenu) return;
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.family-action-menu-container')) {
+        setActiveActionMenuId(null);
+      }
+      if (!target.closest('.family-header-menu-container')) {
+        setShowHeaderMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [activeActionMenuId, showHeaderMenu]);
+
+  const loadSubordinateCounts = async (targetMbrId: string, currentFamily: FamilyMember[]) => {
+    try {
+      const photoCounts: Record<string, number> = {};
+      const storyCounts: Record<string, number> = {};
+      let hdrPhotos = 0;
+      let hdrStories = 0;
+
+      if (isSandbox) {
+        const savedMedia = sessionStorage.getItem('sandbox_media');
+        if (savedMedia) {
+          try {
+            const parsedMedia: MbrMedia[] = JSON.parse(savedMedia);
+            if (Array.isArray(parsedMedia)) {
+              parsedMedia.forEach((m) => {
+                if ((m.mbrMediaCategoryCd || '').toLowerCase() === 'family') {
+                  if (m.mbrMediaSubordinateId) {
+                    photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
+                  } else {
+                    hdrPhotos++;
+                  }
+                }
+              });
+            }
+          } catch {}
+        }
+
+        const genStoriesStr = sessionStorage.getItem('sandbox_stories_sbMbrStryFamly_all');
+        if (genStoriesStr) {
+          try {
+            const parsed = JSON.parse(genStoriesStr);
+            if (Array.isArray(parsed)) hdrStories = parsed.length;
+          } catch {}
+        }
+
+        currentFamily.forEach((m) => {
+          const key = `sandbox_stories_sbMbrStryFamly_${m.mbrFamilyId}`;
+          const item = sessionStorage.getItem(key);
+          if (item) {
+            try {
+              const list = JSON.parse(item);
+              if (Array.isArray(list)) storyCounts[m.mbrFamilyId] = list.length;
+            } catch {}
+          }
+        });
+      } else {
+        try {
+          const [mediaList, storyList] = await Promise.all([
+            taskApi.getMemberMedia(targetMbrId).catch(() => []),
+            taskApi.getStories(targetMbrId).catch(() => [])
+          ]);
+
+          if (Array.isArray(mediaList)) {
+            mediaList.forEach((m) => {
+              if ((m.mbrMediaCategoryCd || '').toLowerCase() === 'family') {
+                if (m.mbrMediaSubordinateId) {
+                  photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
+                } else {
+                  hdrPhotos++;
+                }
+              }
+            });
+          }
+
+          if (Array.isArray(storyList)) {
+            storyList.forEach((s) => {
+              const isFamilyType = (s.mbrStoryTypeCd === 'sbMbrStryFamly' || s.mbrStoryTypeCd === 'Family' || s.mbrStoryTypeCd === 'sbMbrStryFamilyMember');
+              if (isFamilyType) {
+                if (s.mbrStorySubordinateId) {
+                  storyCounts[s.mbrStorySubordinateId] = (storyCounts[s.mbrStorySubordinateId] || 0) + 1;
+                } else {
+                  hdrStories++;
+                }
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('Could not load family subordinate media and stories counts:', e);
+        }
+      }
+
+      setMemberPhotosMap(photoCounts);
+      setMemberStoriesMap(storyCounts);
+      setHeaderPhotoCount(hdrPhotos);
+      setHeaderStoryCount(hdrStories);
+    } catch (err) {
+      console.warn('Error computing family member content counts:', err);
+    }
+  };
+
+  // Re-fetch subordinate counts when story or gallery events occur
+  useEffect(() => {
+    const handleSync = () => {
+      loadSubordinateCounts(mbrId, familyList);
+    };
+    window.addEventListener('update-story-editor-content', handleSync);
+    window.addEventListener('story-saved', handleSync);
+    window.addEventListener('storage', handleSync);
+    return () => {
+      window.removeEventListener('update-story-editor-content', handleSync);
+      window.removeEventListener('story-saved', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
+  }, [mbrId, familyList, isSandbox]);
 
   // --- INITIAL DATA FETCH ---
   useEffect(() => {
@@ -269,33 +391,35 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
         setMbrId(memberId);
       }
 
+      let loadedFamily: FamilyMember[] = [];
       if (isSandbox) {
         const saved = sessionStorage.getItem('sandbox_family');
         if (saved) {
-          setFamilyList(sortFamilyList(JSON.parse(saved)));
+          loadedFamily = sortFamilyList(JSON.parse(saved));
         } else {
-          const sorted = sortFamilyList(SANDBOX_FAMILY);
-          setFamilyList(sorted);
-          sessionStorage.setItem('sandbox_family', JSON.stringify(sorted));
+          loadedFamily = sortFamilyList(SANDBOX_FAMILY);
+          sessionStorage.setItem('sandbox_family', JSON.stringify(loadedFamily));
         }
       } else {
         try {
           const dbFamily = await taskApi.getFamilyMembers(currentMbrId);
           if (dbFamily && dbFamily.length > 0) {
-            setFamilyList(sortFamilyList(dbFamily));
+            loadedFamily = sortFamilyList(dbFamily);
           } else if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
-            setFamilyList(sortFamilyList(SANDBOX_FAMILY));
+            loadedFamily = sortFamilyList(SANDBOX_FAMILY);
           } else {
-            setFamilyList([]);
+            loadedFamily = [];
           }
         } catch (err) {
           if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
-            setFamilyList(sortFamilyList(SANDBOX_FAMILY));
+            loadedFamily = sortFamilyList(SANDBOX_FAMILY);
           } else {
             throw err;
           }
         }
       }
+      setFamilyList(loadedFamily);
+      await loadSubordinateCounts(currentMbrId, loadedFamily);
     } catch (err: any) {
       setError(`Failed to load family directory: ${err.message}`);
     } finally {
@@ -431,8 +555,9 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
     return (f + l).toUpperCase() || '?';
   };
 
-  const getRelationLabel = (cdVal: string) => {
-    const codeObj = relationshipCodes.find((c) => c.cdValue === cdVal);
+  const getRelationLabel = (cdVal?: string) => {
+    if (!cdVal) return 'Family';
+    const codeObj = relationshipCodes.find((c) => c?.cdValue?.toLowerCase() === cdVal?.toLowerCase());
     return codeObj ? codeObj.cdDesc : cdVal;
   };
 
@@ -468,25 +593,26 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
   };
 
   const sortedFamilyList = useMemo(() => {
+    if (!Array.isArray(familyList)) return [];
     if (!sortColumn) {
       return sortFamilyList(familyList);
     }
     return [...familyList].sort((a, b) => {
       let comparison = 0;
       if (sortColumn === 'name') {
-        const nameA = `${a.mbrFamilyFirstNm} ${a.mbrFamilyLastNm}`.toLowerCase();
-        const nameB = `${b.mbrFamilyFirstNm} ${b.mbrFamilyLastNm}`.toLowerCase();
+        const nameA = `${a?.mbrFamilyFirstNm || ''} ${a?.mbrFamilyLastNm || ''}`.trim().toLowerCase();
+        const nameB = `${b?.mbrFamilyFirstNm || ''} ${b?.mbrFamilyLastNm || ''}`.trim().toLowerCase();
         comparison = nameA.localeCompare(nameB);
       } else if (sortColumn === 'age') {
-        const ageA = calculateAge(a.mbrFamilyBirthDt);
-        const ageB = calculateAge(b.mbrFamilyBirthDt);
+        const ageA = calculateAge(a?.mbrFamilyBirthDt);
+        const ageB = calculateAge(b?.mbrFamilyBirthDt);
         if (ageA === null && ageB === null) comparison = 0;
         else if (ageA === null) comparison = 1;
         else if (ageB === null) comparison = -1;
         else comparison = ageA - ageB;
       } else if (sortColumn === 'relationship') {
-        const relA = getRelationLabel(a.mbrFamilyRelationshipCd).toLowerCase();
-        const relB = getRelationLabel(b.mbrFamilyRelationshipCd).toLowerCase();
+        const relA = (getRelationLabel(a?.mbrFamilyRelationshipCd) || '').toLowerCase();
+        const relB = (getRelationLabel(b?.mbrFamilyRelationshipCd) || '').toLowerCase();
         comparison = relA.localeCompare(relB);
       }
       return sortDirection === 'asc' ? comparison : -comparison;
@@ -494,211 +620,38 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
   }, [familyList, sortColumn, sortDirection, relationshipCodes]);
 
   // --- FAMILY PHOTO GALLERY HANDLERS ---
-  const loadFamilyGallery = async (targetMbrId: string) => {
-    if (!targetMbrId) return;
-    try {
-      const mediaList = await taskApi.getMemberMedia(targetMbrId);
-      if (mediaList && Array.isArray(mediaList)) {
-        // Filter strictly for category code "Family" only
-        const familyMedia = mediaList.filter((m) => m.mbrMediaCategoryCd === 'Family');
-        setFamilyGalleryItems(familyMedia);
-      }
-    } catch (err) {
-      console.error("Error loading family gallery photos:", err);
-    }
-  };
-
-  const handleOpenFamilyGalleryModal = async () => {
+  const handleOpenFamilyGalleryModal = () => {
     setActiveGallerySubordinateId(null);
     setActiveGalleryTitle('Family');
     setShowFamilyGalleryModal(true);
-    setCurrentFamilyPhotoIndex(0);
-    setGalleryError(null);
-    setGallerySuccess(null);
-    await loadFamilyGallery(mbrId);
   };
 
   const handleOpenFamilyMemberGalleryModal = (member: FamilyMember) => {
     setActiveGallerySubordinateId(member.mbrFamilyId);
     setActiveGalleryTitle(`Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`);
     setShowFamilyGalleryModal(true);
-    setCurrentFamilyPhotoIndex(0);
-    setGalleryError(null);
-    setGallerySuccess(null);
   };
-
-  const handleUploadFamilyPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (familyGalleryItems.length >= 40) {
-      setGalleryError("Maximum limit of 40 family photos reached. Please delete an existing photo before adding a new one.");
-      e.target.value = '';
-      return;
-    }
-
-    const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-    const validExtensions = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
-
-    if (!validMimeTypes.includes(file.type) && !validExtensions.test(file.name)) {
-      setGalleryError("Invalid file format. Please upload an image file.");
-      e.target.value = '';
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      setGalleryError("File size exceeds 10MB limit.");
-      e.target.value = '';
-      return;
-    }
-
-    setUploadingFamilyPhoto(true);
-    setGalleryError(null);
-    setGallerySuccess(null);
-
-    try {
-      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      // Storage path required: member/{mbrID}/family/{filename}
-      const destinationPath = `member/${mbrId}/family/${cleanFileName}`;
-
-      const uploadRes = await mediaApi.uploadMedia(file, destinationPath);
-      const mediaBase = MEDIA_API_BASE_URL;
-      const rawUrl = uploadRes.data?.name ? `${mediaBase}/media/read/${uploadRes.data.name}` : `${mediaBase}/media/read/${destinationPath}`;
-      const storageUrl = resolveMediaUrl(rawUrl);
-
-      if (!isSandbox) {
-        const newMediaRecord = await taskApi.createMemberMedia({
-          mbrId: mbrId,
-          mbrMediaPath: storageUrl,
-          mbrMediaOriginalFilename: file.name,
-          mbrMediaMimeType: file.type,
-          mbrMediaCategoryCd: 'Family',
-          mbrMediaDescription: 'Enter a Description'
-        });
-        setFamilyGalleryItems((prev) => [newMediaRecord, ...prev]);
-      } else {
-        const mockItem: MbrMedia = {
-          mbrMediaId: `fam-mock-${Date.now()}`,
-          mbrId: mbrId,
-          mbrMediaPath: storageUrl,
-          mbrMediaOriginalFilename: file.name,
-          mbrMediaMimeType: file.type,
-          mbrMediaCategoryCd: 'Family',
-          mbrMediaDescription: 'Enter a Description',
-          mbrMediaCreatedAt: new Date().toISOString()
-        };
-        setFamilyGalleryItems((prev) => [mockItem, ...prev]);
-      }
-
-      setCurrentFamilyPhotoIndex(0);
-      setGallerySuccess("Family photo uploaded successfully.");
-    } catch (err: any) {
-      console.error("Error uploading family photo:", err);
-      setGalleryError(`Upload failed: ${err.message || 'Unknown error'}`);
-    } finally {
-      setUploadingFamilyPhoto(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleDeleteFamilyPhoto = async (mbrMediaId: string) => {
-    if (!mbrMediaId) return;
-    setDeletingFamilyMediaId(mbrMediaId);
-    setGalleryError(null);
-    setGallerySuccess(null);
-
-    try {
-      if (!isSandbox && !mbrMediaId.startsWith('fam-mock-') && !mbrMediaId.startsWith('f-mock-')) {
-        await taskApi.deleteMemberMedia(mbrMediaId);
-      }
-      setFamilyGalleryItems((prev) => prev.filter((item) => item.mbrMediaId !== mbrMediaId));
-      setCurrentFamilyPhotoIndex(0);
-      setGallerySuccess("Family photo deleted.");
-    } catch (err: any) {
-      console.error("Error deleting family photo:", err);
-      setGalleryError(`Delete failed: ${err.message || 'Unknown error'}`);
-    } finally {
-      setDeletingFamilyMediaId(null);
-    }
-  };
-
-  const activeFamilyPhotos = useMemo<MbrMedia[]>(() => {
-    return familyGalleryItems;
-  }, [familyGalleryItems]);
-
-  const currentFamilyPhoto = activeFamilyPhotos[currentFamilyPhotoIndex] || activeFamilyPhotos[0];
-
-  const handlePrevFamilyPhoto = () => {
-    setIsEditingDescription(false);
-    setCurrentFamilyPhotoIndex((prev) => (prev - 1 + activeFamilyPhotos.length) % activeFamilyPhotos.length);
-  };
-
-  const handleNextFamilyPhoto = () => {
-    setIsEditingDescription(false);
-    setCurrentFamilyPhotoIndex((prev) => (prev + 1) % activeFamilyPhotos.length);
-  };
-
-  const handleSavePhotoDescription = async () => {
-    if (!currentFamilyPhoto?.mbrMediaId) return;
-    setSavingDescription(true);
-    setGalleryError(null);
-    setGallerySuccess(null);
-
-    try {
-      const updatedDesc = editDescriptionInput.trim();
-      if (!isSandbox && !currentFamilyPhoto.mbrMediaId.startsWith('fam-mock-') && !currentFamilyPhoto.mbrMediaId.startsWith('f-mock-')) {
-        await taskApi.updateMemberMedia(currentFamilyPhoto.mbrMediaId, {
-          mbrMediaDescription: updatedDesc
-        });
-      }
-      setFamilyGalleryItems((prev) =>
-        prev.map((item) =>
-          item.mbrMediaId === currentFamilyPhoto.mbrMediaId
-            ? { ...item, mbrMediaDescription: updatedDesc }
-            : item
-        )
-      );
-      setGallerySuccess("Photo description updated successfully.");
-      setIsEditingDescription(false);
-    } catch (err: any) {
-      console.error("Failed to update photo description:", err);
-      setGalleryError(`Failed to save description: ${err.message || 'Unknown error'}`);
-    } finally {
-      setSavingDescription(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!showFamilyGalleryModal) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') {
-        setIsEditingDescription(false);
-        setCurrentFamilyPhotoIndex((prev) => (prev + 1) % activeFamilyPhotos.length);
-      } else if (e.key === 'ArrowLeft') {
-        setIsEditingDescription(false);
-        setCurrentFamilyPhotoIndex((prev) => (prev - 1 + activeFamilyPhotos.length) % activeFamilyPhotos.length);
-      } else if (e.key === 'Escape') {
-        setIsEditingDescription(false);
-        setShowFamilyGalleryModal(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showFamilyGalleryModal, activeFamilyPhotos.length]);
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-6 relative overflow-hidden group">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl py-4 sm:py-5 px-2.5 sm:px-4 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 sm:gap-5 relative overflow-hidden group">
       {/* Top Accent Line */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover:opacity-100 transition-opacity" />
       
       {/* --- PANEL HEADER --- */}
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#EFECE7]">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-blue-50/50 border border-blue-100 text-blue-700 rounded-xl">
-            <Users className="w-5 h-5" />
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
+            detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' }
+          }))}
+          className="flex items-center gap-3 group/topic cursor-pointer text-left focus:outline-none transition-transform active:scale-98"
+          title={readOnly ? "View Stories" : "Story Editor"}
+        >
+          <div className="p-2.5 bg-blue-50/50 group-hover/topic:bg-blue-100/70 border border-blue-100 group-hover/topic:border-blue-200 text-blue-700 rounded-xl transition-all shadow-2xs">
+            <Users className="w-5 h-5 transition-transform group-hover/topic:scale-105" />
           </div>
-          <h2 className="font-serif text-lg font-bold text-slate-800">Family</h2>
-        </div>
+          <span className="block font-serif text-lg font-bold text-slate-800 group-hover/topic:text-blue-700 transition-colors">Family</span>
+        </button>
 
         {/* Action Header Buttons */}
         <div className="flex items-center gap-2">
@@ -712,33 +665,138 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
             </button>
           )}
 
-          {/* Photo Gallery Icon Button */}
-          <button
-            onClick={handleOpenFamilyGalleryModal}
-            className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-            title="Family Photo Gallery"
-          >
-            <Images className="w-4 h-4 text-blue-600" />
-          </button>
-
-          {/* Storybook Icon Button */}
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' } }))}
-            className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-            title={readOnly ? "View Member Stories" : "Story Editor"}
-          >
-            <BookOpen className="w-4 h-4 text-blue-500" />
-          </button>
-
-          {!readOnly && (
+          {/* Desktop Action Icons */}
+          <div className="hidden sm:flex items-center gap-2">
+            {/* Photo Gallery Icon Button */}
             <button
-              onClick={() => alert('Opening Privacy settings for family members...')}
-              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title="Privacy settings"
+              onClick={handleOpenFamilyGalleryModal}
+              className="relative p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title={`Family Photo Gallery${headerPhotoCount > 0 ? ` (${headerPhotoCount} photos)` : ''}`}
             >
-              <ShieldAlert className="w-4 h-4" />
+              <Images className="w-4 h-4 text-blue-600" />
+              {headerPhotoCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 px-1 min-w-[16px] h-4 flex items-center justify-center text-[9px] font-bold bg-blue-600 text-white rounded-full leading-none shadow-xs">
+                  {headerPhotoCount}
+                </span>
+              )}
             </button>
-          )}
+
+            {/* Storybook Icon Button */}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' } }))}
+              className="relative p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title={readOnly ? `View Member Stories${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}` : `Story Editor${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}`}
+            >
+              <BookOpen className={`w-4 h-4 ${headerStoryCount > 0 ? 'text-amber-500' : 'text-blue-500'}`} />
+              {headerStoryCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 px-1 min-w-[16px] h-4 flex items-center justify-center text-[9px] font-bold bg-amber-500 text-white rounded-full leading-none shadow-xs">
+                  {headerStoryCount}
+                </span>
+              )}
+            </button>
+
+            {!readOnly && (
+              <button
+                onClick={() => alert('Opening Privacy settings for family members...')}
+                className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                title="Privacy settings"
+              >
+                <ShieldAlert className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Mobile Top Panel Vertical Ellipsis Dropdown Menu */}
+          <div className="sm:hidden relative inline-flex items-center family-header-menu-container">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowHeaderMenu(!showHeaderMenu);
+              }}
+              className={`relative p-1.5 rounded-xl border transition-colors cursor-pointer ${
+                showHeaderMenu
+                  ? 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+              }`}
+              title="More options"
+              aria-label="More options"
+            >
+              <MoreVertical className="w-4 h-4" />
+              {(headerPhotoCount > 0 || headerStoryCount > 0) && (
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
+              )}
+            </button>
+
+            <AnimatePresence>
+              {showHeaderMenu && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.92 }}
+                  transition={{ duration: 0.12 }}
+                  className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-xl shadow-xl py-1 min-w-[165px] text-left divide-y divide-slate-100"
+                >
+                  <div className="py-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHeaderMenu(false);
+                        handleOpenFamilyGalleryModal();
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Images className="w-4 h-4 text-blue-600 shrink-0" />
+                        <span>Photo Gallery</span>
+                      </div>
+                      {headerPhotoCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-blue-100 text-blue-700">
+                          {headerPhotoCount}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowHeaderMenu(false);
+                        window.dispatchEvent(new CustomEvent('open-story-editor', {
+                          detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' }
+                        }));
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <BookOpen className="w-4 h-4 text-blue-500 shrink-0" />
+                        <span>{readOnly ? 'View Stories' : 'Story Editor'}</span>
+                      </div>
+                      {headerStoryCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800">
+                          {headerStoryCount}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+
+                  {!readOnly && (
+                    <div className="py-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowHeaderMenu(false);
+                          alert('Opening Privacy settings for family members...');
+                        }}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
+                      >
+                        <ShieldAlert className="w-4 h-4 text-slate-500 shrink-0" />
+                        <span>Privacy Settings</span>
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
@@ -795,153 +853,305 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
         </div>
       ) : (
         /* FAMILY TABLE VIEW */
-        <div className="border border-[#EFECE7] rounded-2xl overflow-hidden bg-white shadow-xs">
-          <div className="max-h-[220px] overflow-y-auto overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+        <div className="border border-[#EFECE7] rounded-2xl bg-white shadow-xs overflow-hidden">
+          <div className="max-h-[240px] overflow-y-auto overflow-x-hidden sm:overflow-x-auto rounded-t-2xl">
+            <table className="w-full text-left border-collapse table-fixed sm:table-auto">
               <thead>
-                <tr className="bg-[#FAF8F5] border-b border-[#EFECE7] text-[11px] font-serif font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
-                  <th className="py-2.5 px-3.5 align-bottom">
+                <tr className="bg-[#FAF8F5] border-b border-[#EFECE7] text-[10px] sm:text-[11px] font-serif font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
+                  <th className="py-2 sm:py-2.5 pl-2 sm:pl-3 pr-1 sm:pr-2 align-bottom w-[46%] sm:w-auto rounded-tl-2xl">
                     <button
                       type="button"
                       onClick={() => handleSort('name')}
-                      className="group/btn inline-flex items-center gap-1.5 cursor-pointer select-none text-left font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider"
+                      className="group/btn inline-flex items-center gap-1 cursor-pointer select-none text-left font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider text-[10px] sm:text-[11px]"
                     >
                       <span>Member</span>
                       {sortColumn === 'name' ? (
                         sortDirection === 'asc' ? (
-                          <ArrowUp className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <ArrowUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
                         ) : (
-                          <ArrowDown className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
                         )
                       ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
+                        <ArrowUpDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
                       )}
                     </button>
                   </th>
-                  <th className="py-2.5 px-3 align-bottom">
+                  <th className="py-2 sm:py-2.5 px-1 sm:px-2 align-bottom w-[14%] sm:w-auto text-center sm:text-left">
                     <button
                       type="button"
                       onClick={() => handleSort('age')}
-                      className="group/btn inline-flex items-center gap-1.5 cursor-pointer select-none text-left font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider"
+                      className="group/btn inline-flex items-center gap-0.5 sm:gap-1 cursor-pointer select-none font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider text-[10px] sm:text-[11px]"
                     >
                       <span>Age</span>
                       {sortColumn === 'age' ? (
                         sortDirection === 'asc' ? (
-                          <ArrowUp className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <ArrowUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
                         ) : (
-                          <ArrowDown className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
                         )
                       ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
+                        <ArrowUpDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
                       )}
                     </button>
                   </th>
-                  <th className="py-2.5 px-3 align-bottom">
+                  <th className="py-2 sm:py-2.5 px-1 sm:px-2 align-bottom w-[28%] sm:w-auto">
                     <button
                       type="button"
                       onClick={() => handleSort('relationship')}
-                      className="group/btn inline-flex items-center gap-1.5 cursor-pointer select-none text-left font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider"
+                      className="group/btn inline-flex items-center gap-0.5 sm:gap-1 cursor-pointer select-none text-left font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider text-[10px] sm:text-[11px]"
                     >
-                      <span>Relationship</span>
+                      <span className="hidden xs:inline">Relationship</span>
+                      <span className="xs:hidden">Rel</span>
                       {sortColumn === 'relationship' ? (
                         sortDirection === 'asc' ? (
-                          <ArrowUp className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <ArrowUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
                         ) : (
-                          <ArrowDown className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
                         )
                       ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
+                        <ArrowUpDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
                       )}
                     </button>
                   </th>
-                  <th className="py-2.5 px-3.5 text-right align-bottom">
-                    <span className="inline-block uppercase tracking-wider">Actions</span>
+                  <th className="py-2 sm:py-2.5 pr-2 sm:pr-3 pl-1 sm:pl-2 text-right align-bottom w-[12%] sm:w-auto rounded-tr-2xl">
+                    <span className="hidden sm:inline-block uppercase tracking-wider">Actions</span>
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#EFECE7]/70 text-xs">
-                {sortedFamilyList.map((member) => (
-                  <tr
-                    key={member.mbrFamilyId}
-                    className="hover:bg-slate-50/80 transition-colors group"
-                  >
-                    {/* Member Name + Avatar (without middle name) */}
-                    <td className="py-2.5 px-3.5">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-7 h-7 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-700 font-serif font-bold text-xs shrink-0">
-                          {getInitials(member.mbrFamilyFirstNm, member.mbrFamilyLastNm)}
+                {sortedFamilyList.map((member, idx) => {
+                  const storyCount = memberStoriesMap[member.mbrFamilyId] || 0;
+                  const photoCount = memberPhotosMap[member.mbrFamilyId] || 0;
+                  const hasContent = storyCount > 0 || photoCount > 0;
+
+                  return (
+                    <tr
+                      key={member.mbrFamilyId}
+                      className="hover:bg-slate-50/80 transition-colors group"
+                    >
+                      {/* Member Name + Avatar + Indicator Badges */}
+                      <td className="py-2 sm:py-2.5 pl-2 sm:pl-3 pr-1 sm:pr-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+                          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-700 font-serif font-bold text-[10px] sm:text-xs shrink-0">
+                            {getInitials(member.mbrFamilyFirstNm, member.mbrFamilyLastNm)}
+                          </div>
+                          <div className="flex flex-col min-w-0 justify-center">
+                            <span className="font-serif font-bold text-slate-800 truncate text-[11px] sm:text-xs">
+                              {member.mbrFamilyFirstNm} {member.mbrFamilyLastNm}
+                            </span>
+                            {hasContent && (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                {storyCount > 0 && (
+                                  <span
+                                    className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] sm:text-[9px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/70"
+                                    title={`${storyCount} ${storyCount === 1 ? 'story' : 'stories'} available`}
+                                  >
+                                    <BookOpen className="w-2.5 h-2.5 text-amber-600 shrink-0" />
+                                    <span>{storyCount}</span>
+                                  </span>
+                                )}
+                                {photoCount > 0 && (
+                                  <span
+                                    className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] sm:text-[9px] font-semibold bg-blue-50 text-blue-800 border border-blue-200/70"
+                                    title={`${photoCount} ${photoCount === 1 ? 'photo' : 'photos'} available`}
+                                  >
+                                    <Images className="w-2.5 h-2.5 text-blue-600 shrink-0" />
+                                    <span>{photoCount}</span>
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <span className="font-serif font-bold text-slate-800 truncate">
-                          {member.mbrFamilyFirstNm} {member.mbrFamilyLastNm}
-                        </span>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Age */}
-                    <td className="py-2.5 px-3">
-                      {calculateAge(member.mbrFamilyBirthDt) !== null ? (
-                        <span className="font-mono text-slate-700 font-semibold text-xs">
-                          {calculateAge(member.mbrFamilyBirthDt)}
-                        </span>
-                      ) : (
-                        <span className="text-slate-300 font-mono text-xs">—</span>
-                      )}
-                    </td>
-
-                    {/* Relationship Badge */}
-                    <td className="py-2.5 px-3">
-                      <span className="inline-flex items-center px-2 py-0.5 text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-100/70 rounded-full uppercase tracking-wider">
-                        {getRelationLabel(member.mbrFamilyRelationshipCd)}
-                      </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-2.5 px-3.5 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={() => handleOpenFamilyMemberGalleryModal(member)}
-                          title={`Photo Gallery for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Images className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                            detail: {
-                              topicId: 'family',
-                              topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
-                              componentName: 'sbMbrStryFamilyMember',
-                              subordinateId: member.mbrFamilyId,
-                              subordinateName: `${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`
-                            }
-                          }))}
-                          title={readOnly ? `View Stories for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}` : `Story Editor for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                        </button>
-                        {!readOnly && (
-                          <>
-                            <button
-                              onClick={() => handleOpenEditModal(member)}
-                              title="Edit Family Member"
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => promptDeleteMember(member)}
-                              title="Delete Family Member"
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </>
+                      {/* Age */}
+                      <td className="py-2 sm:py-2.5 px-1 sm:px-2 text-center sm:text-left">
+                        {calculateAge(member.mbrFamilyBirthDt) !== null ? (
+                          <span className="font-mono text-slate-700 font-semibold text-[11px] sm:text-xs">
+                            {calculateAge(member.mbrFamilyBirthDt)}
+                          </span>
+                        ) : (
+                          <span className="text-slate-300 font-mono text-xs">—</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      {/* Relationship Badge */}
+                      <td className="py-2 sm:py-2.5 px-1 sm:px-2">
+                        <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 text-[8.5px] sm:text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-100/70 rounded-full uppercase tracking-wider truncate max-w-full">
+                          {getRelationLabel(member.mbrFamilyRelationshipCd)}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-2 sm:py-2.5 pr-2 sm:pr-3 pl-1 sm:pl-2 text-right">
+                        {/* Desktop Expanded Action Icons */}
+                        <div className="hidden sm:inline-flex items-center gap-1">
+                          <button
+                            onClick={() => handleOpenFamilyMemberGalleryModal(member)}
+                            title={`Photo Gallery for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}${photoCount > 0 ? ` (${photoCount} photos)` : ''}`}
+                            className="relative p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <Images className={`w-3.5 h-3.5 ${photoCount > 0 ? 'text-blue-600' : ''}`} />
+                            {photoCount > 0 && (
+                              <span className="absolute -top-1 -right-1 px-1 min-w-[14px] h-3.5 flex items-center justify-center text-[8.5px] font-bold bg-blue-600 text-white rounded-full leading-none shadow-xs">
+                                {photoCount}
+                              </span>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
+                              detail: {
+                                topicId: 'family',
+                                topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
+                                componentName: 'sbMbrStryFamilyMember',
+                                subordinateId: member.mbrFamilyId,
+                                subordinateName: `${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`
+                              }
+                            }))}
+                            title={readOnly ? `View Stories for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}${storyCount > 0 ? ` (${storyCount} stories)` : ''}` : `Story Editor for ${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}${storyCount > 0 ? ` (${storyCount} stories)` : ''}`}
+                            className="relative p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <BookOpen className={`w-3.5 h-3.5 ${storyCount > 0 ? 'text-amber-500' : 'text-blue-500'}`} />
+                            {storyCount > 0 && (
+                              <span className="absolute -top-1 -right-1 px-1 min-w-[14px] h-3.5 flex items-center justify-center text-[8.5px] font-bold bg-amber-500 text-white rounded-full leading-none shadow-xs">
+                                {storyCount}
+                              </span>
+                            )}
+                          </button>
+                          {!readOnly && (
+                            <>
+                              <button
+                                onClick={() => handleOpenEditModal(member)}
+                                title="Edit Family Member"
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => promptDeleteMember(member)}
+                                title="Delete Family Member"
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Mobile 3-Dots Dropdown Menu */}
+                        <div className="sm:hidden relative inline-flex items-center justify-end family-action-menu-container">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveActionMenuId(activeActionMenuId === member.mbrFamilyId ? null : member.mbrFamilyId);
+                            }}
+                            className={`relative p-1 rounded-md transition-colors cursor-pointer ${
+                              activeActionMenuId === member.mbrFamilyId
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                            }`}
+                            aria-label="Actions"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                            {hasContent && (
+                              <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
+                            )}
+                          </button>
+
+                          <AnimatePresence>
+                            {activeActionMenuId === member.mbrFamilyId && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.92, y: idx >= sortedFamilyList.length - 2 && sortedFamilyList.length > 2 ? 6 : -6 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.92 }}
+                                transition={{ duration: 0.12 }}
+                                className={`absolute right-0 z-40 ${
+                                  idx >= sortedFamilyList.length - 2 && sortedFamilyList.length > 2 ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+                                } bg-white border border-[#EFECE7] rounded-xl shadow-xl py-1 min-w-[155px] text-left divide-y divide-slate-100`}
+                              >
+                                <div className="py-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveActionMenuId(null);
+                                      handleOpenFamilyMemberGalleryModal(member);
+                                    }}
+                                    className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <Images className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                      <span>Photo Gallery</span>
+                                    </div>
+                                    {photoCount > 0 && (
+                                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-blue-100 text-blue-700">
+                                        {photoCount}
+                                      </span>
+                                    )}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveActionMenuId(null);
+                                      window.dispatchEvent(new CustomEvent('open-story-editor', {
+                                        detail: {
+                                          topicId: 'family',
+                                          topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
+                                          componentName: 'sbMbrStryFamilyMember',
+                                          subordinateId: member.mbrFamilyId,
+                                          subordinateName: `${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm}`
+                                        }
+                                      }));
+                                    }}
+                                    className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <BookOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                      <span>{readOnly ? 'View Stories' : 'Story Editor'}</span>
+                                    </div>
+                                    {storyCount > 0 && (
+                                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800">
+                                        {storyCount}
+                                      </span>
+                                    )}
+                                  </button>
+                                </div>
+
+                                {!readOnly && (
+                                  <div className="py-0.5">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveActionMenuId(null);
+                                        handleOpenEditModal(member);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                      <span>Edit Member</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveActionMenuId(null);
+                                        promptDeleteMember(member);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                      <span>Delete Member</span>
+                                    </button>
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1137,7 +1347,10 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
       {/* Reusable Photo Gallery Modal Dialog */}
       <MbrPhotoGalleryPanel
         isOpen={showFamilyGalleryModal}
-        onClose={() => setShowFamilyGalleryModal(false)}
+        onClose={() => {
+          setShowFamilyGalleryModal(false);
+          loadSubordinateCounts(mbrId, familyList);
+        }}
         mbrId={mbrId}
         categoryCd="Family"
         categoryTitle={activeGalleryTitle}

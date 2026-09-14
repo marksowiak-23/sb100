@@ -12,19 +12,19 @@ import {
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-interface ConnectionHeaderProps {
-  success: string | null;
-  error: string | null;
+interface ConnectionsHeaderProps {
+  success?: string | null;
+  error?: string | null;
   onClickBack?: () => void;
 }
 
-export default function ConnectionHeader({
+export default function ConnectionsHeader({
   success,
   error
-}: ConnectionHeaderProps) {
+}: ConnectionsHeaderProps) {
   return (
     <div className="relative mb-8 pb-6 border-b border-slate-200 dark:border-slate-800">
-      <AdminComponentTag name="ConnectionHeader.tsx" />
+      <AdminComponentTag name="ConnectionsHeader.tsx" />
 
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -38,13 +38,11 @@ export default function ConnectionHeader({
                 My Connections
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Organize other StoryBook members into your personal groups to control sharing and story access permissions.
+                Explore your personal network and search members across the StoryBook community.
               </p>
             </div>
           </div>
         </div>
-
-        {/* Left: Title & Description */}
       </div>
 
       {/* Notifications / Feedback Alerts */}

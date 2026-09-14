@@ -9,22 +9,22 @@ import { UnifiedGroupOption, MemberConnectionItem } from '../types';
 import MemberConnectionCard from './MemberConnectionCard';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-interface MemberConnectionListProps {
+interface GroupConnectionsListProps {
   loading: boolean;
   memberList: MemberConnectionItem[];
   groups: UnifiedGroupOption[];
   onGroupSelect: (targetMbrId: string, grpId: string) => void;
 }
 
-export default function MemberConnectionList({
+export default function GroupConnectionsList({
   loading,
   memberList,
   groups,
   onGroupSelect
-}: MemberConnectionListProps) {
+}: GroupConnectionsListProps) {
   return (
     <div className="relative">
-      <AdminComponentTag name="MemberConnectionList.tsx" />
+      <AdminComponentTag name="GroupConnectionsList.tsx" />
 
       {loading ? (
         <div className="w-full h-72 flex flex-col items-center justify-center gap-3">
@@ -58,3 +58,5 @@ export default function MemberConnectionList({
     </div>
   );
 }
+
+export { GroupConnectionsList as MemberConnectionList, GroupConnectionsList as memberConnectionList };

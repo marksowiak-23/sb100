@@ -1,12 +1,13 @@
 import { Mbr, MbrContact } from '@/src/services/api';
 
-export type ConnectionSection = 'connections' | 'invitations' | 'requests';
+export type ConnectionSection = 'my-connections' | 'connections' | 'groups' | 'invitations' | 'requests';
 
 export interface MbrConnectionFeatureProps {
   isSandbox: boolean;
   onClickBack: () => void;
   onDirtyChange?: (dirty: boolean) => void;
   onNavigate?: (tab: string) => void;
+  onClickReadStory?: (memberId: string) => void;
 }
 
 export interface UnifiedGroupOption {

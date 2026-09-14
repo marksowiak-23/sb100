@@ -5,6 +5,8 @@
 
 export { default as MbrConnectionFeature } from './components/MbrConnectionFeature';
 export { default as MbrConnectionPageFeature } from './components/MbrConnectionFeature';
-export { default as ConnectionPageHeaderPanel } from './components/ConnectionPageHeaderPanel';
-export { default as ConnectionMobileMenuBar, connectionMobileMenuBar } from './components/ConnectionMobileMenuBar';
+export { default as ConnectionsHeader } from './components/ConnectionsHeader';
+export { default as RightColumn } from './components/RightColumn';
+export { default as SbMbrSearchCard } from './components/SbMbrSearchCard';
+export { default as SbMbrSearchResults } from './components/SbMbrSearchResults';
 

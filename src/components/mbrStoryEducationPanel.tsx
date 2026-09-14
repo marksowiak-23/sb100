@@ -297,19 +297,26 @@ export default function MbrStoryEducationPanel({ isSandbox = false, memberId, re
       
       {/* --- PANEL HEADER --- */}
       <div className="flex items-center justify-between gap-4 pb-4 border-b border-[#EFECE7]">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-blue-50/50 border border-blue-100 text-blue-700 rounded-xl">
-            <GraduationCap className="w-5 h-5" />
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
+            detail: { topicId: 'education', topicTitle: 'Education and Training', componentName: 'sbMbrStryEducation' }
+          }))}
+          className="flex items-center gap-3 group/topic cursor-pointer text-left focus:outline-none transition-transform active:scale-98"
+          title={readOnly ? "View Stories" : "Story Editor"}
+        >
+          <div className="p-2.5 bg-blue-50/50 group-hover/topic:bg-blue-100/70 border border-blue-100 group-hover/topic:border-blue-200 text-blue-700 rounded-xl transition-all shadow-2xs">
+            <GraduationCap className="w-5 h-5 transition-transform group-hover/topic:scale-105" />
           </div>
           <div>
-            <h3 className="font-serif text-sm font-bold text-slate-800 leading-tight">
+            <span className="block font-serif text-sm font-bold text-slate-800 group-hover/topic:text-blue-700 transition-colors leading-tight">
               Education & Training
-            </h3>
-            <p className="text-[10px] text-slate-400 font-medium tracking-wide">
+            </span>
+            <span className="block text-[10px] text-slate-400 font-medium tracking-wide">
               Degrees, credentials, and schools attended
-            </p>
+            </span>
           </div>
-        </div>
+        </button>
 
         {/* Toggle Mode Buttons */}
         {!isEditing && (

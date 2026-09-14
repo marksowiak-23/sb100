@@ -11,3 +11,6 @@ export { default as LeftColumn } from './components/LeftColumn';
 export { default as CenterColumn } from './components/CenterColumn';
 export { default as RightColumn } from './components/RightColumn';
 export { default as StoryFeedQuickInfoCard, StoriesFeedQuickInfoCard } from './components/StoryFeedQuickInfoCard';
+export { default as StoryFeedSubHeaderPanel, storyFeedSubHeaderPanel } from './components/StoryFeedSubHeaderPanel';
+export { default as StoryFeedMobileSubHeaderPanel, storyFeedMobileSubHeaderPanel } from './components/StoryFeedMobileSubHeaderPanel';
+export { default as StoriesHeader, StoryFeedHeader, StoriesFeedHeader } from './components/StoriesHeader';

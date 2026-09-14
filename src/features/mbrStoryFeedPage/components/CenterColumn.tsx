@@ -4,8 +4,10 @@
  */
 
 import React from 'react';
+import StoriesHeader from './StoriesHeader';
 import MbrStoryFeedStoryPanel, { FeedStoryItem } from './MbrStoryFeedStoryPanel';
 import StoryFeedSubHeaderPanel from './StoryFeedSubHeaderPanel';
+import StoryFeedMobileSubHeaderPanel from './StoryFeedMobileSubHeaderPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { BookOpen, Loader2, CheckCircle2, ArrowDown } from 'lucide-react';
 
@@ -20,6 +22,8 @@ interface CenterColumnProps {
   onLoadMore?: () => void;
   onClickReadStory?: (storyId: string, memberId: string) => void;
   onClickViewAuthor?: (memberId: string) => void;
+  success?: string | null;
+  error?: string | null;
 }
 
 export default function CenterColumn({
@@ -32,16 +36,31 @@ export default function CenterColumn({
   setConnectionsOnly,
   onLoadMore,
   onClickReadStory,
-  onClickViewAuthor
+  onClickViewAuthor,
+  success,
+  error
 }: CenterColumnProps) {
   return (
     <div className="space-y-6 relative">
-      {/* Feed Sub-Header */}
-      <StoryFeedSubHeaderPanel
-        storiesCount={stories.length}
-        connectionsOnly={connectionsOnly}
-        setConnectionsOnly={setConnectionsOnly}
+      {/* Stories Page Header */}
+      <StoriesHeader
+        success={success}
+        error={error}
       />
+
+      {/* Feed Sub-Headers: Desktop vs Mobile */}
+      <div>
+        <StoryFeedSubHeaderPanel
+          storiesCount={stories.length}
+          connectionsOnly={connectionsOnly}
+          setConnectionsOnly={setConnectionsOnly}
+        />
+        <StoryFeedMobileSubHeaderPanel
+          storiesCount={stories.length}
+          connectionsOnly={connectionsOnly}
+          setConnectionsOnly={setConnectionsOnly}
+        />
+      </div>
 
       {/* Loading Skeleton */}
       {loading && (
@@ -119,7 +138,7 @@ export default function CenterColumn({
             <span>You're all caught up!</span>
           </div>
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            You have seen all published stories from your connected circle.
+            You have seen all the published stories from your feed.
           </p>
         </div>
       )}

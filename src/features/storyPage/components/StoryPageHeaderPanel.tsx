@@ -10,14 +10,16 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 interface StoryPageHeaderPanelProps {
   onClickBack?: () => void;
   topicName?: string;
+  className?: string;
 }
 
 export default function StoryPageHeaderPanel({
   onClickBack,
-  topicName
+  topicName,
+  className = ''
 }: StoryPageHeaderPanelProps) {
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm relative overflow-hidden mb-6 group">
+    <div className={`hidden lg:block bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm relative overflow-hidden mb-6 group ${className}`}>
       {/* Top Accent Line */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-80" />
 

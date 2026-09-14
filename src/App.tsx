@@ -85,8 +85,14 @@ type TabType =
   | 'adminProperties'
   | 'adminSystemProperties';
 
-
-
+interface NavigationOptions {
+  selectedMemberId?: string;
+  selectedStoryId?: string | null;
+  targetStoryMemberId?: string | null;
+  logonType?: 'Google' | 'Apple';
+  replace?: boolean;
+  skipHistory?: boolean;
+}
 
 export default function App() {
   // --- STATE DEFINITIONS ---
@@ -118,30 +124,80 @@ export default function App() {
   const [showAppDiscardModal, setShowAppDiscardModal] = useState(false);
   const [pendingTab, setPendingTab] = useState<TabType | null>(null);
 
-  const forceNavigateAway = (targetTab?: TabType) => {
-    setIsProfileDirty(false);
-    setIsConnectionsDirty(false);
-    const dest = (targetTab && targetTab !== 'mbrProfile' && targetTab !== 'mbrProfilePage' && targetTab !== 'mbrConnections' && targetTab !== 'mbrConnectionPage') 
-      ? targetTab 
-      : (previousTab && previousTab !== 'mbrProfile' && previousTab !== 'mbrProfilePage' && previousTab !== 'mbrConnections' && previousTab !== 'mbrConnectionPage' ? previousTab : 'mbrHomePage');
-    setActiveTab(dest);
-  };
+  const applyNavigation = (newTab: TabType, options?: NavigationOptions) => {
+    setActiveTab((currentTab) => {
+      if (newTab !== currentTab) {
+        setPreviousTab(currentTab);
+      }
+      return newTab;
+    });
 
-  const handleTabChange = (newTab: TabType) => {
-    if (newTab !== activeTab && activeTab !== 'mbrProfile' && activeTab !== 'mbrProfilePage' && activeTab !== 'mbrConnections' && activeTab !== 'mbrConnectionPage') {
-      setPreviousTab(activeTab);
+    if (options?.selectedMemberId !== undefined) {
+      setSelectedMemberId(options.selectedMemberId);
     }
-    if (newTab !== 'mbrRegistrationPage' && newTab !== 'sbMbrRegister' && newTab !== 'mbrStoryPage' && newTab !== 'sbMbrStoryPage' && newTab !== 'mbrLogonPage' && newTab !== 'sbMbrLogon') {
+    if (options?.selectedStoryId !== undefined) {
+      setSelectedStoryId(options.selectedStoryId);
+    } else if (newTab !== 'storyPage') {
+      setSelectedStoryId(null);
+    }
+    if (options?.targetStoryMemberId !== undefined) {
+      setTargetStoryMemberId(options.targetStoryMemberId);
+    } else if (
+      newTab !== 'mbrRegistrationPage' &&
+      newTab !== 'sbMbrRegister' &&
+      newTab !== 'mbrStoryPage' &&
+      newTab !== 'sbMbrStoryPage' &&
+      newTab !== 'mbrLogonPage' &&
+      newTab !== 'sbMbrLogon'
+    ) {
       setTargetStoryMemberId(null);
     }
+    if (options?.logonType) {
+      setLogonType(options.logonType);
+    }
+
+    if (!options?.skipHistory) {
+      const stateObj = {
+        tab: newTab,
+        selectedMemberId: options?.selectedMemberId !== undefined ? options.selectedMemberId : selectedMemberId,
+        selectedStoryId: options?.selectedStoryId !== undefined ? options.selectedStoryId : (newTab === 'storyPage' ? selectedStoryId : null),
+        targetStoryMemberId: options?.targetStoryMemberId !== undefined ? options.targetStoryMemberId : (newTab === 'mbrRegistrationPage' || newTab === 'sbMbrRegister' || newTab === 'mbrStoryPage' || newTab === 'sbMbrStoryPage' || newTab === 'mbrLogonPage' || newTab === 'sbMbrLogon' ? targetStoryMemberId : null),
+        logonType: options?.logonType || logonType
+      };
+      if (options?.replace) {
+        window.history.replaceState(stateObj, '', window.location.href);
+      } else {
+        window.history.pushState(stateObj, '', window.location.href);
+      }
+    }
+  };
+
+  const navigateTo = (newTab: TabType, options?: NavigationOptions) => {
     if ((activeTab === 'mbrProfile' || activeTab === 'mbrProfilePage') && isProfileDirty && newTab !== 'mbrProfile' && newTab !== 'mbrProfilePage') {
       setPendingTab(newTab);
       setShowAppDiscardModal(true);
-    } else if ((activeTab === 'mbrConnections' || activeTab === 'mbrConnectionPage') && isConnectionsDirty && newTab !== 'mbrConnections' && newTab !== 'mbrConnectionPage') {
-      window.dispatchEvent(new CustomEvent('attempt-connection-navigation', { detail: { targetTab: newTab } }));
-    } else {
-      setActiveTab(newTab);
+      return;
     }
+    if ((activeTab === 'mbrConnections' || activeTab === 'mbrConnectionPage') && isConnectionsDirty && newTab !== 'mbrConnections' && newTab !== 'mbrConnectionPage') {
+      window.dispatchEvent(new CustomEvent('attempt-connection-navigation', { detail: { targetTab: newTab } }));
+      return;
+    }
+
+    applyNavigation(newTab, options);
+  };
+
+  const forceNavigateAway = (targetTab?: TabType) => {
+    setIsProfileDirty(false);
+    setIsConnectionsDirty(false);
+    setShowAppDiscardModal(false);
+    const dest = (targetTab && targetTab !== 'mbrProfile' && targetTab !== 'mbrProfilePage' && targetTab !== 'mbrConnections' && targetTab !== 'mbrConnectionPage') 
+      ? targetTab 
+      : (previousTab && previousTab !== 'mbrProfile' && previousTab !== 'mbrProfilePage' && previousTab !== 'mbrConnections' && previousTab !== 'mbrConnectionPage' ? previousTab : 'mbrHomePage');
+    navigateTo(dest);
+  };
+
+  const handleTabChange = (newTab: TabType) => {
+    navigateTo(newTab);
   };
 
   // --- SIDE EFFECTS (useEffect) ---
@@ -150,6 +206,45 @@ export default function App() {
   // - [] (Empty array): Tells React to run this effect EXACTLY ONCE, when the component initially mounts (loads).
   useEffect(() => {
     loadHealth();
+
+    // 1. Initialize browser history state for current initial view if not already present
+    const currentState = window.history.state;
+    if (!currentState || !currentState.tab) {
+      window.history.replaceState(
+        {
+          tab: activeTab,
+          selectedMemberId,
+          selectedStoryId,
+          targetStoryMemberId,
+          logonType
+        },
+        '',
+        window.location.href
+      );
+    }
+
+    // 2. Popstate listener: handles browser Back and Forward navigation within StoryBook
+    const handlePopState = (event: PopStateEvent) => {
+      const state = event.state;
+      if (state && state.tab) {
+        setIsProfileDirty(false);
+        setIsConnectionsDirty(false);
+        setShowAppDiscardModal(false);
+
+        applyNavigation(state.tab, {
+          selectedMemberId: state.selectedMemberId,
+          selectedStoryId: state.selectedStoryId,
+          targetStoryMemberId: state.targetStoryMemberId,
+          logonType: state.logonType,
+          skipHistory: true
+        });
+      } else {
+        // Fallback to public landing page if popping past initial entry
+        applyNavigation('publicPage', { skipHistory: true });
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
 
     // Periodically re-check backend health if initially in Sandbox mode
     const healthInterval = setInterval(() => {
@@ -177,6 +272,7 @@ export default function App() {
     window.addEventListener('storage', applyGlobalTheme);
     return () => {
       clearInterval(healthInterval);
+      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('theme-changed', applyGlobalTheme);
       window.removeEventListener('storage', applyGlobalTheme);
     };
@@ -202,22 +298,26 @@ export default function App() {
   };
 
   const handleReadStory = (storyIdOrMemberId: string, authorMemberId?: string) => {
-    setPreviousTab(activeTab);
     if (authorMemberId) {
-      setSelectedStoryId(storyIdOrMemberId);
-      setSelectedMemberId(authorMemberId);
-      setActiveTab('storyPage');
+      navigateTo('storyPage', {
+        selectedStoryId: storyIdOrMemberId,
+        selectedMemberId: authorMemberId
+      });
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       return;
     }
-    setSelectedMemberId(storyIdOrMemberId);
-    setSelectedStoryId(null);
     if (activeTab === 'publicPage' || activeTab === 'sbPublicPage') {
-      setTargetStoryMemberId(storyIdOrMemberId);
-      setActiveTab('mbrRegistrationPage');
+      navigateTo('mbrRegistrationPage', {
+        selectedMemberId: storyIdOrMemberId,
+        targetStoryMemberId: storyIdOrMemberId,
+        selectedStoryId: null
+      });
     } else {
-      setTargetStoryMemberId(null);
-      setActiveTab('mbrStoryPage');
+      navigateTo('mbrStoryPage', {
+        selectedMemberId: storyIdOrMemberId,
+        targetStoryMemberId: null,
+        selectedStoryId: null
+      });
     }
   };
 
@@ -293,7 +393,7 @@ export default function App() {
                     setShowAppDiscardModal(false);
                     setIsProfileDirty(false);
                     if (pendingTab) {
-                      setActiveTab(pendingTab);
+                      applyNavigation(pendingTab);
                       setPendingTab(null);
                     }
                   }}
@@ -333,7 +433,7 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="w-full flex justify-center"
           >
-            <AccountLookup isSandbox={isSandbox} setActiveTab={setActiveTab} />
+            <AccountLookup isSandbox={isSandbox} setActiveTab={handleTabChange} />
           </motion.div>
         )}
 
@@ -349,14 +449,11 @@ export default function App() {
           >
             <PublicPageFeature
               setActiveTab={(tab) => {
-                setTargetStoryMemberId(null);
-                handleTabChange(tab);
+                navigateTo(tab, { targetStoryMemberId: null });
               }}
               onClickReadStory={handleReadStory}
               onSelectLogonType={(type) => {
-                setTargetStoryMemberId(null);
-                setLogonType(type);
-                setActiveTab('mbrLogonPage');
+                navigateTo('mbrLogonPage', { logonType: type, targetStoryMemberId: null });
               }}
             />
           </motion.div>
@@ -375,8 +472,7 @@ export default function App() {
             <MbrHomePageFeature
               onClickReadStory={handleReadStory}
               onClickAuthorPage={() => {
-                setPreviousTab(activeTab);
-                setActiveTab('mbrAuthorPage');
+                navigateTo('mbrAuthorPage');
               }}
             />
           </motion.div>
@@ -395,19 +491,18 @@ export default function App() {
             <MbrStoryFeedPageFeature
               isSandbox={isSandbox}
               onClickReadStory={(storyId, authorMbrId) => {
-                setPreviousTab('mbrStoryFeedPage');
-                setSelectedStoryId(storyId);
-                setSelectedMemberId(authorMbrId);
-                setActiveTab('storyPage');
+                navigateTo('storyPage', {
+                  selectedStoryId: storyId,
+                  selectedMemberId: authorMbrId
+                });
               }}
               onClickViewAuthor={(authorMbrId) => {
-                setPreviousTab('mbrStoryFeedPage');
-                setSelectedMemberId(authorMbrId);
-                setActiveTab('mbrStoryPage');
+                navigateTo('mbrStoryPage', {
+                  selectedMemberId: authorMbrId
+                });
               }}
               onClickAuthorPage={() => {
-                setPreviousTab(activeTab);
-                setActiveTab('mbrAuthorPage');
+                navigateTo('mbrAuthorPage');
               }}
             />
           </motion.div>
@@ -429,15 +524,15 @@ export default function App() {
               isSandbox={isSandbox}
               onClickBack={() => {
                 if (previousTab && previousTab !== 'storyPage') {
-                  setActiveTab(previousTab);
+                  navigateTo(previousTab);
                 } else {
-                  setActiveTab('mbrStoryFeedPage');
+                  navigateTo('mbrStoryFeedPage');
                 }
               }}
               onClickViewAuthorStorybook={(authorId) => {
-                setSelectedMemberId(authorId);
-                setPreviousTab('storyPage');
-                setActiveTab('mbrStoryPage');
+                navigateTo('mbrStoryPage', {
+                  selectedMemberId: authorId
+                });
               }}
             />
           </motion.div>
@@ -455,11 +550,13 @@ export default function App() {
           >
             <MbrStoryPageFeature
               memberId={selectedMemberId}
+              previousTab={previousTab}
+              initialSection="Profile"
               onClickBack={() => {
-                if (previousTab && previousTab !== 'mbrStoryPage') {
-                  setActiveTab(previousTab);
+                if (previousTab && previousTab !== 'mbrStoryPage' && previousTab !== 'sbMbrStoryPage') {
+                  navigateTo(previousTab);
                 } else {
-                  setActiveTab('mbrHomePage');
+                  navigateTo('mbrHomePage');
                 }
               }}
             />
@@ -478,7 +575,7 @@ export default function App() {
           >
             <MbrAuthorPageFeature
               isSandbox={isSandbox}
-              onClickBack={() => setActiveTab('mbrHomePage')}
+              onClickBack={() => navigateTo('mbrHomePage')}
               onClickAuthorProfile={() => handleTabChange('mbrProfilePage')}
             />
           </motion.div>
@@ -494,7 +591,7 @@ export default function App() {
             className="w-full"
           >
             <MbrLogonPageFeature
-              setActiveTab={setActiveTab}
+              setActiveTab={handleTabChange}
               targetStoryMemberId={targetStoryMemberId}
             />
           </motion.div>
@@ -510,7 +607,7 @@ export default function App() {
             className="w-full"
           >
             <MbrRegistrationPageFeature
-              setActiveTab={setActiveTab}
+              setActiveTab={handleTabChange}
               targetStoryMemberId={targetStoryMemberId}
             />
           </motion.div>
@@ -574,13 +671,14 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
-            className="w-full flex justify-center"
+            className="w-full"
           >
             <MbrConnectionFeature
               isSandbox={isSandbox}
               onClickBack={() => forceNavigateAway()}
               onDirtyChange={setIsConnectionsDirty}
               onNavigate={handleTabChange}
+              onClickReadStory={handleReadStory}
             />
           </motion.div>
         )}

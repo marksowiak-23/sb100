@@ -108,6 +108,8 @@ export default function SbMbrSearchResults({
                 connectionGrpName={connInfo?.grpName}
                 viewerMbrId={viewerMbrId}
                 onClickReadStory={onClickReadStory}
+                clampIntroduction={true}
+                maxIntroLines={8}
               />
             );
           })}

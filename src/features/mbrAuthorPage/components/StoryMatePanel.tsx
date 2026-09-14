@@ -765,49 +765,51 @@ ${conversationSummary}`;
 
 
   return (
-    <div id="story-mate-panel" className="bg-[#FAF9F6] dark:bg-slate-900 border border-[#E5E7EB] dark:border-slate-800 rounded-3xl p-5 shadow-[0_8px_24px_rgba(0,0,0,0.02)] flex flex-col gap-3.5 relative overflow-hidden">
+    <div id="story-mate-panel" className="bg-[#FAF9F6] dark:bg-slate-900 border border-[#E5E7EB] dark:border-slate-800 rounded-3xl p-3.5 sm:p-5 shadow-[0_8px_24px_rgba(0,0,0,0.02)] flex flex-col gap-3 sm:gap-3.5 relative overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-[#E8E5DF] dark:border-slate-800">
-        <div className="flex items-center gap-2.5">
+      <div className="flex items-center justify-between pb-2.5 border-b border-[#E8E5DF] dark:border-slate-800 gap-2">
+        <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
           {writerPersona?.chWriterProfilePic ? (
             <img
               src={writerPersona.chWriterProfilePic}
               alt={personaName}
-              className="w-8 h-8 rounded-full object-cover border border-amber-300 shadow-xs shrink-0"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border border-amber-300 shadow-xs shrink-0"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-amber-500 flex items-center justify-center text-xs font-bold text-white shadow-xs">
-              <Sparkles className="w-4 h-4" />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-amber-500 flex items-center justify-center text-xs font-bold text-white shadow-xs shrink-0">
+              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           )}
-          <div>
-            <h3 className="font-serif text-xs font-bold text-slate-850 dark:text-slate-100 flex items-center gap-1.5 flex-wrap">
-              <span>{personaName}</span>
+          <div className="min-w-0">
+            <h3 className="font-serif text-xs sm:text-sm font-bold text-slate-850 dark:text-slate-100 flex items-center gap-1.5 truncate">
+              <span className="truncate">{personaName}</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
             </h3>
-            <p className="text-[9px] font-mono text-slate-400 font-semibold uppercase tracking-wider">
-              Assisting {displayFirstName} • Style: {personaName}{writerPersona?.chWriterDesc ? ` (${writerPersona.chWriterDesc})` : ''}
+            <p className="text-[8.5px] sm:text-[9px] font-mono text-slate-400 font-semibold uppercase tracking-wider truncate">
+              <span className="hidden sm:inline">Assisting {displayFirstName} • Style: {personaName}{writerPersona?.chWriterDesc ? ` (${writerPersona.chWriterDesc})` : ''}</span>
+              <span className="sm:hidden">Assisting {displayFirstName} • {personaName}</span>
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => {
               setTempPersona(writerPersona);
               setShowPersonaDialog(true);
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-amber-300 dark:hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 rounded-xl text-[10.5px] font-semibold transition-all cursor-pointer shadow-2xs"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-amber-300 dark:hover:border-amber-500 hover:bg-amber-50/50 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 rounded-xl text-[10px] sm:text-[10.5px] font-semibold transition-all cursor-pointer shadow-2xs whitespace-nowrap"
             title="Temporarily change StoryMate persona for this story"
           >
-            <Users className="w-3.5 h-3.5 text-amber-500" />
-            <span>Change StoryMate</span>
+            <Users className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+            <span className="hidden sm:inline">Change StoryMate</span>
           </button>
 
           <button
             type="button"
             onClick={() => setShowHelpDialog(true)}
-            className="p-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            className="p-1 sm:p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
             title="How to chat with StoryMate"
           >
             <HelpCircle className="w-4 h-4" />
@@ -815,7 +817,7 @@ ${conversationSummary}`;
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+              className="p-1 sm:p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
               title="Close StoryMate Assistant"
             >
               <X className="w-3.5 h-3.5" />
@@ -824,15 +826,17 @@ ${conversationSummary}`;
         </div>
       </div>
 
-      {/* Message Feed (Height increased by 25% from max-h-64 to max-h-80 min-h-[220px]) */}
+      {/* Message Feed (Reduced right margin for AI messages for optimal reading width) */}
       <div className="space-y-3.5 max-h-80 min-h-[220px] overflow-y-auto pr-1 font-serif text-xs scrollbar-thin">
         {messages.map((msg, idx) => {
           const isAi = msg.sender === 'cassie';
           return (
             <div
               key={idx}
-              className={`flex items-start gap-2 max-w-[78%] sm:max-w-[75%] ${
-                isAi ? 'self-start' : 'self-end ml-auto flex-row-reverse'
+              className={`flex items-start gap-2 ${
+                isAi
+                  ? 'self-start max-w-[94%] sm:max-w-[88%]'
+                  : 'self-end ml-auto flex-row-reverse max-w-[82%] sm:max-w-[76%]'
               }`}
             >
               {/* Profile Picture Avatar */}
@@ -882,7 +886,7 @@ ${conversationSummary}`;
         })}
 
         {loading && (
-          <div className="flex items-start gap-2 max-w-[78%] sm:max-w-[75%] self-start animate-pulse">
+          <div className="flex items-start gap-2 max-w-[94%] sm:max-w-[88%] self-start animate-pulse">
             {writerPersona?.chWriterProfilePic ? (
               <img
                 src={writerPersona.chWriterProfilePic}
@@ -911,7 +915,7 @@ ${conversationSummary}`;
       </div>
 
       {/* Divider Line & Light Grey Shaded Bottom Tray for Input & Controls */}
-      <div className="pt-3 pb-2.5 -mx-5 -mb-5 px-5 bg-[#F1F3F5] dark:bg-slate-950/70 border-t border-[#E2E5E9] dark:border-slate-800 rounded-b-3xl flex flex-col gap-2.5">
+      <div className="pt-3 pb-2.5 -mx-3.5 -mb-3.5 sm:-mx-5 sm:-mb-5 px-3.5 sm:px-5 bg-[#F1F3F5] dark:bg-slate-950/70 border-t border-[#E2E5E9] dark:border-slate-800 rounded-b-3xl flex flex-col gap-2.5">
         {/* Write Story Action Strip */}
         <div className="flex items-center justify-between gap-2 pb-0.5 flex-wrap">
           <button

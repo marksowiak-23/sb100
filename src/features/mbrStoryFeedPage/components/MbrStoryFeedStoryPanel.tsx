@@ -219,7 +219,7 @@ export default function MbrStoryFeedStoryPanel({
           {isRead ? (
             <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Completed Reading</span>
+              <span>Read</span>
             </span>
           ) : (
             <span className="text-xs text-slate-400 dark:text-slate-500 italic">

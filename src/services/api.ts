@@ -957,13 +957,24 @@ export const taskApi = {
    * Fetch all media records for a specific member ID.
    */
   async getMemberMedia(mbrId: string): Promise<MbrMedia[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-media/member/${mbrId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    return handleResponse<MbrMedia[]>(response);
+    if (!mbrId) return [];
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(mbrId);
+    if (!isUuid) return [];
+    try {
+      const response = await fetch(`${API_BASE_URL}/mbr-media/member/${mbrId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      if (response.status === 404) {
+        return [];
+      }
+      return await handleResponse<MbrMedia[]>(response);
+    } catch (e) {
+      console.warn(`Could not fetch media for member ${mbrId}:`, e);
+      return [];
+    }
   },
 
   /**
