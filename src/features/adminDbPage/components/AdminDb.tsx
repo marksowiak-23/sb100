@@ -8,10 +8,11 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Database, Search, Plus, Edit2, Trash2, 
   ChevronLeft, ChevronRight, X, AlertTriangle, 
-  Check, Loader2, RefreshCw
+  Check, Loader2, RefreshCw, Printer
 } from 'lucide-react';
 import { adminDbApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { generateAdminDbPdf } from '../utils/generateAdminDbPdf';
 
 // Definition of a table field
 interface TableField {
@@ -1023,6 +1024,15 @@ export default function AdminDb({ isSandbox }: AdminDbProps) {
     setFormData((prev) => ({ ...prev, [fieldName]: value }));
   };
 
+  const handlePrintPdf = () => {
+    generateAdminDbPdf({
+      table: selectedTable,
+      data: filteredData,
+      searchQuery,
+      isSandbox
+    });
+  };
+
   return (
     <div className="w-full space-y-6 relative">
       {/* HEADER BAR */}
@@ -1134,6 +1144,18 @@ export default function AdminDb({ isSandbox }: AdminDbProps) {
               className="w-full bg-white border border-[#EFECE7] text-slate-800 text-xs rounded-xl pl-9 pr-4 py-2.5 focus:outline-none focus:border-blue-500 shadow-sm"
             />
           </div>
+
+          {/* Print PDF Button for AI tables */}
+          {['chInst', 'chIntent', 'chPrompt', 'chWriter'].includes(selectedTable.id) && (
+            <button
+              onClick={handlePrintPdf}
+              title={`Generate and download PDF report for ${selectedTable.name}`}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 shrink-0"
+            >
+              <Printer className="w-4 h-4 text-slate-300" />
+              <span>Print PDF</span>
+            </button>
+          )}
 
           <button
             onClick={handleAddClick}

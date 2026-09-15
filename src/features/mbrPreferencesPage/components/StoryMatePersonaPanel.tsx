@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Feather, Check } from 'lucide-react';
+import { resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { WriterPersona } from '../types';
 
@@ -40,6 +41,9 @@ export default function StoryMatePersonaPanel({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {personas.map((persona) => {
           const isSelected = selectedWriterId === persona.chWriterId;
+          const personaImg = persona.chWriterProfilePic ? resolveMediaUrl(persona.chWriterProfilePic) : null;
+          const displayName = persona.chWriterName || 'Assistant Persona';
+
           return (
             <div
               key={persona.chWriterId}
@@ -50,25 +54,29 @@ export default function StoryMatePersonaPanel({
                   : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 hover:shadow-xs'
               }`}
             >
-              {/* Header line: Avatar + Name + Desc Badge */}
+              {/* Header line: Avatar + Name from chWriter table + Desc Badge */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  {persona.chWriterProfilePic ? (
+                  {personaImg ? (
                     <img
-                      src={persona.chWriterProfilePic}
-                      alt={persona.chWriterName}
+                      src={personaImg}
+                      alt={displayName}
                       className="w-12 h-12 rounded-2xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 shadow-xs"
                     />
                   ) : (
                     <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-serif font-bold text-sm shrink-0 border border-slate-200 dark:border-slate-700">
-                      {persona.chWriterName.charAt(0)}
+                      {displayName.charAt(0)}
                     </div>
                   )}
                   <div>
-                    <h4 className="font-serif text-sm font-bold text-slate-900 dark:text-white">{persona.chWriterName}</h4>
-                    <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 rounded-full">
-                      {persona.chWriterDesc}
-                    </span>
+                    <h4 className="font-serif text-sm font-bold text-slate-900 dark:text-white">
+                      {displayName}
+                    </h4>
+                    {persona.chWriterDesc && (
+                      <span className="inline-block mt-1 px-2 py-0.5 text-[9px] font-mono font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 rounded-full">
+                        {persona.chWriterDesc}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -81,11 +89,13 @@ export default function StoryMatePersonaPanel({
               </div>
 
               {/* Prompt Instruction Excerpt */}
-              <div className="p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-xl">
-                <p className="text-[11px] font-serif text-slate-600 dark:text-slate-400 leading-relaxed italic">
-                  "{persona.chWriterPrompt}"
-                </p>
-              </div>
+              {persona.chWriterPrompt && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-xl">
+                  <p className="text-[11px] font-serif text-slate-600 dark:text-slate-400 leading-relaxed italic">
+                    "{persona.chWriterPrompt}"
+                  </p>
+                </div>
+              )}
             </div>
           );
         })}

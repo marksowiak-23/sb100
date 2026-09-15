@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Camera, User, Calendar, Save, ArrowLeft, Loader2, 
+  Camera, User, Calendar, Save, Loader2, 
   CheckCircle2, AlertCircle, Image as ImageIcon, Sparkles, Upload,
   AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Mail, Plus, Trash2, Check,
   Sliders, ShieldCheck, Eye, RotateCcw
@@ -17,6 +17,7 @@ import StoryMatePanel from '@/src/features/mbrAuthorPage/components/StoryMatePan
 import ImageCropModal from './ImageCropModal';
 import MbrProfileDisplaySettingsPanel from './MbrProfileDisplaySettingsPanel';
 import ProfilePageHeaderPanel from './ProfilePageHeaderPanel';
+import ProfileNavigationMenu from './ProfileNavigationMenu';
 
 
 interface MbrProfileFeatureProps {
@@ -634,7 +635,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-1 sm:px-4 pt-1 sm:pt-6 md:pt-8 pb-8 relative animate-fade-in">
+    <div className="w-full relative animate-fade-in">
       <AdminComponentTag name="MbrProfileFeature.tsx" />
       
       {/* --- UNSAVED CHANGES CONFIRMATION MODAL --- */}
@@ -689,88 +690,21 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
       </AnimatePresence>
 
       {/* --- TWO-COLUMN GRID LAYOUT --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 lg:gap-8 max-w-7xl w-full mx-auto items-start">
         
         {/* LEFT COLUMN: BRAND HEADER & NAVIGATION MENU */}
-        <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
+        <aside className="lg:col-span-4 xl:col-span-3 space-y-2.5 sm:space-y-4 lg:space-y-6">
           <ProfilePageHeaderPanel />
 
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 shadow-xs">
-
-            {/* Menu Header */}
-            <div className="pb-4 mb-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h2 className="text-sm font-bold font-serif text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span>Profile Navigation</span>
-              </h2>
-            </div>
-
-            {/* Navigation Items List */}
-            <nav className="space-y-1.5" aria-label="Profile Navigation">
-              {/* Menu Item 1: My Profile (Default) */}
-              <button
-                type="button"
-                onClick={() => setActiveSubTab('profile')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-serif font-bold transition-all cursor-pointer text-left ${
-                  activeSubTab === 'profile'
-                    ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                      activeSubTab === 'profile'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
-                    <User className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold font-serif text-slate-900 dark:text-white">My Profile</div>
-                    <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400 font-sans">Demographics & Biography</div>
-                  </div>
-                </div>
-                {isProfileDirty && (
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes in profile" />
-                )}
-              </button>
-
-              {/* Menu Item 2: My Profile Display Settings */}
-              <button
-                type="button"
-                onClick={() => setActiveSubTab('display-settings')}
-                className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-serif font-bold transition-all cursor-pointer text-left ${
-                  activeSubTab === 'display-settings'
-                    ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                      activeSubTab === 'display-settings'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
-                    <Sliders className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold font-serif text-slate-900 dark:text-white">My Profile Display Settings</div>
-                    <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400 font-sans">Public & Section Visibility</div>
-                  </div>
-                </div>
-                {isSettingsDirty && (
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved changes in display settings" />
-                )}
-              </button>
-            </nav>
-          </div>
+          <ProfileNavigationMenu
+            activeSubTab={activeSubTab}
+            onSelectTab={setActiveSubTab}
+            isProfileDirty={isProfileDirty}
+            isSettingsDirty={isSettingsDirty}
+          />
 
           {/* Quick Context / Privacy Info Card */}
-          <div className="bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5 shadow-xs">
+          <div className="hidden lg:block bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5 shadow-xs">
             <div className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
               <ShieldCheck className="w-4 h-4 text-blue-600 dark:text-blue-400" />
               <h4 className="text-xs font-bold font-serif">Display & Privacy Guidance</h4>
@@ -788,17 +722,9 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         <main className="lg:col-span-8 xl:col-span-9 min-w-0">
           
           {/* Header Section matching ConnectionHeader */}
-          <div className="relative mb-8 pb-6 border-b border-slate-200 dark:border-slate-800">
+          <div className="relative mb-4 sm:mb-6 lg:mb-8 pb-4 sm:pb-6 border-b border-slate-200 dark:border-slate-800">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <button
-                  type="button"
-                  onClick={handleAttemptBack}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 mb-3 transition-colors cursor-pointer group"
-                >
-                  <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                  <span>Back</span>
-                </button>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white">
                     {activeSubTab === 'profile' ? <User className="w-5 h-5" /> : <Sliders className="w-5 h-5" />}

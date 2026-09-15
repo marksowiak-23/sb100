@@ -1022,137 +1022,141 @@ export default function StoryEditorPanel({
                   {status || 'Draft'}
                 </span>
               </div>
-              {!readOnly && (
-                <>
-                  {/* Desktop Expanded Action Icons */}
-                  <div className="hidden sm:flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={confirmDelete}
-                      title="Delete Story"
-                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-150 rounded-xl cursor-pointer transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={confirmPublish}
-                      disabled={status === 'Published'}
-                      title={status === 'Published' ? 'Story is already Published' : 'Publish Story'}
-                      className={`p-2 border rounded-xl transition-colors ${
-                        status === 'Published'
-                          ? 'text-emerald-600 bg-emerald-50/60 border-emerald-200 opacity-60 cursor-not-allowed'
-                          : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border-slate-200 hover:border-emerald-150 cursor-pointer'
-                      }`}
-                    >
-                      <Globe className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={handlePrivacyClick}
-                      title="Privacy Settings"
-                      className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-                    >
-                      <ShieldAlert className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={handleEditClick}
-                      disabled={saving}
-                      title={status.toLowerCase() === 'published' ? 'Edit Published Story (Creates a new Draft copy)' : 'Edit Story'}
-                      className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl cursor-pointer transition-colors flex items-center gap-1"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
-                  </div>
+              {!readOnly && (() => {
+                const isStoryPublished = (status || '').toLowerCase() === 'published';
+                return (
+                  <>
+                    {/* Desktop Expanded Action Icons */}
+                    <div className="hidden sm:flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={confirmDelete}
+                        title="Delete Story"
+                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-150 rounded-xl cursor-pointer transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={confirmPublish}
+                        disabled={isStoryPublished}
+                        title={isStoryPublished ? 'Story is already Published' : 'Publish Story'}
+                        className={`p-2 border rounded-xl transition-colors ${
+                          isStoryPublished
+                            ? 'text-slate-300 bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed pointer-events-none'
+                            : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border-slate-200 hover:border-emerald-150 cursor-pointer'
+                        }`}
+                      >
+                        <Globe className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={handlePrivacyClick}
+                        title="Privacy Settings"
+                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                      >
+                        <ShieldAlert className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={handleEditClick}
+                        disabled={saving}
+                        title={isStoryPublished ? 'Edit Published Story (Creates a new Draft copy)' : 'Edit Story'}
+                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl cursor-pointer transition-colors flex items-center gap-1"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                    </div>
 
-                  {/* Mobile Vertical Ellipsis Dropdown Menu */}
-                  <div className="sm:hidden relative inline-flex items-center story-action-menu-container shrink-0">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowActionMenu(!showActionMenu);
-                      }}
-                      className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
-                        showActionMenu
-                          ? 'bg-blue-50 text-blue-700 border-blue-200'
-                          : 'text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
-                      }`}
-                      title="Story actions"
-                      aria-label="Story actions"
-                    >
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
+                    {/* Mobile Vertical Ellipsis Dropdown Menu */}
+                    <div className="sm:hidden relative inline-flex items-center story-action-menu-container shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowActionMenu(!showActionMenu);
+                        }}
+                        className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
+                          showActionMenu
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+                        }`}
+                        title="Story actions"
+                        aria-label="Story actions"
+                      >
+                        <MoreVertical className="w-4 h-4" />
+                      </button>
 
-                    <AnimatePresence>
-                      {showActionMenu && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.92, y: -6 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.92 }}
-                          transition={{ duration: 0.12 }}
-                          className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-xl shadow-xl py-1 min-w-[155px] text-left divide-y divide-slate-100"
-                        >
-                          <div className="py-0.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowActionMenu(false);
-                                handleEditClick();
-                              }}
-                              disabled={saving}
-                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
-                            >
-                              <Edit3 className="w-4 h-4 text-blue-600 shrink-0" />
-                              <span>Edit Story</span>
-                            </button>
+                      <AnimatePresence>
+                        {showActionMenu && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.92 }}
+                            transition={{ duration: 0.12 }}
+                            className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-xl shadow-xl py-1 min-w-[155px] text-left divide-y divide-slate-100"
+                          >
+                            <div className="py-0.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowActionMenu(false);
+                                  handleEditClick();
+                                }}
+                                disabled={saving}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
+                              >
+                                <Edit3 className="w-4 h-4 text-blue-600 shrink-0" />
+                                <span>Edit Story</span>
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowActionMenu(false);
-                                confirmPublish();
-                              }}
-                              disabled={status === 'Published'}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors text-left ${
-                                status === 'Published'
-                                  ? 'text-slate-300 cursor-not-allowed'
-                                  : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer'
-                              }`}
-                            >
-                              <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
-                              <span>{status === 'Published' ? 'Published' : 'Publish Story'}</span>
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isStoryPublished) return;
+                                  setShowActionMenu(false);
+                                  confirmPublish();
+                                }}
+                                disabled={isStoryPublished}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors text-left ${
+                                  isStoryPublished
+                                    ? 'text-slate-300 opacity-50 cursor-not-allowed pointer-events-none'
+                                    : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer'
+                                }`}
+                              >
+                                <Globe className={`w-4 h-4 shrink-0 ${isStoryPublished ? 'text-slate-300' : 'text-emerald-600'}`} />
+                                <span>{isStoryPublished ? 'Published' : 'Publish Story'}</span>
+                              </button>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowActionMenu(false);
-                                handlePrivacyClick();
-                              }}
-                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-left"
-                            >
-                              <ShieldAlert className="w-4 h-4 text-slate-500 shrink-0" />
-                              <span>Privacy Settings</span>
-                            </button>
-                          </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowActionMenu(false);
+                                  handlePrivacyClick();
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-left"
+                              >
+                                <ShieldAlert className="w-4 h-4 text-slate-500 shrink-0" />
+                                <span>Privacy Settings</span>
+                              </button>
+                            </div>
 
-                          <div className="py-0.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setShowActionMenu(false);
-                                confirmDelete();
-                              }}
-                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
-                            >
-                              <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
-                              <span>Delete Story</span>
-                            </button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </>
-              )}
+                            <div className="py-0.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowActionMenu(false);
+                                  confirmDelete();
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
+                              >
+                                <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
+                                <span>Delete Story</span>
+                              </button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             {content ? (

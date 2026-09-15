@@ -6,7 +6,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  ArrowLeft, 
   Shield, 
   RotateCcw, 
   Save, 
@@ -21,7 +20,7 @@ interface PrivacyHeaderProps {
   saving: boolean;
   success: string | null;
   error: string | null;
-  onClickBack: () => void;
+  onClickBack?: () => void;
   onReset: () => void;
   onSave: () => void;
 }
@@ -42,14 +41,6 @@ export default function PrivacyHeader({
       {/* Navigation and Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <button
-            type="button"
-            onClick={onClickBack}
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 mb-3 transition-colors cursor-pointer group"
-          >
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-            <span>Back</span>
-          </button>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center shadow-md shadow-amber-500/20 text-white">
               <Shield className="w-5 h-5" />

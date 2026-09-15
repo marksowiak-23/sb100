@@ -47,7 +47,7 @@ const DISPLAY_SETTINGS_SCHEMA: DisplaySettingItem[] = [
   {
     key: 'mbrSettingsAllowPublicFlag',
     title: 'Public Profile Visibility',
-    description: 'Allow public visitors and guests to search and view your member card and public stories.',
+    description: 'Allow visitors to search and view your public profile and stories.',
     icon: Globe,
     category: 'public',
     recommended: true
@@ -55,49 +55,49 @@ const DISPLAY_SETTINGS_SCHEMA: DisplaySettingItem[] = [
   {
     key: 'mbrSettingsShowBirthYr',
     title: 'Show Birth Year',
-    description: 'Display your birth year on your member profile header and story author cards.',
+    description: 'Display birth year on your profile header and story author cards.',
     icon: Calendar,
     category: 'demographics'
   },
   {
     key: 'mbrSettingsShowGender',
     title: 'Show Gender',
-    description: 'Display your gender identification on your member profile demographics.',
+    description: 'Display gender identification on your member profile.',
     icon: User,
     category: 'demographics'
   },
   {
     key: 'mbrSettingsShowRelationship',
     title: 'Show Relationship Status',
-    description: 'Display your relationship or marital status on your public profile.',
+    description: 'Display relationship or marital status on your public profile.',
     icon: Heart,
     category: 'demographics'
   },
   {
     key: 'mbrSettingsShowTown',
     title: 'Show Hometown & Current Town',
-    description: 'Display your hometown origin and current living location on your profile.',
+    description: 'Display hometown origin and current living location.',
     icon: MapPin,
     category: 'background'
   },
   {
     key: 'mbrSettingsShowWorksAt',
     title: 'Show Workplace & Employer',
-    description: 'Display your current job title, workplace, or employer details.',
+    description: 'Display current job title, workplace, or employer details.',
     icon: Briefcase,
     category: 'background'
   },
   {
     key: 'mbrSettingsShowStudiedAt',
     title: 'Show Education & Alma Mater',
-    description: 'Display your university, college, school, or degrees earned.',
+    description: 'Display university, college, school, or degrees earned.',
     icon: GraduationCap,
     category: 'background'
   },
   {
     key: 'mbrSettingsShowIntroduction',
     title: 'Show Biography & Introduction',
-    description: 'Display your personal introductory story and life narrative biography.',
+    description: 'Display personal introduction story and biography narrative.',
     icon: FileText,
     category: 'media',
     recommended: true
@@ -105,7 +105,7 @@ const DISPLAY_SETTINGS_SCHEMA: DisplaySettingItem[] = [
   {
     key: 'mbrSettingsShowPhotoGallery',
     title: 'Show Member Photo Gallery',
-    description: 'Display your uploaded member photo gallery collection to profile viewers.',
+    description: 'Display uploaded photo gallery collection to profile viewers.',
     icon: ImageIcon,
     category: 'media',
     recommended: true
@@ -250,21 +250,6 @@ export default function MbrProfileDisplaySettingsPanel({
     setSuccess(null);
   };
 
-  const handleSetAll = (value: boolean) => {
-    setSettings((prev) => ({
-      ...prev,
-      mbrSettingsAllowPublicFlag: value,
-      mbrSettingsShowBirthYr: value,
-      mbrSettingsShowGender: value,
-      mbrSettingsShowRelationship: value,
-      mbrSettingsShowTown: value,
-      mbrSettingsShowWorksAt: value,
-      mbrSettingsShowStudiedAt: value,
-      mbrSettingsShowIntroduction: value,
-      mbrSettingsShowPhotoGallery: value
-    }));
-  };
-
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!mbrId) return;
@@ -358,37 +343,14 @@ export default function MbrProfileDisplaySettingsPanel({
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Global Quick Action Toggles */}
-      <div className="flex items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <h2 className="text-lg font-serif font-bold text-slate-900 dark:text-white">Profile Display Preferences</h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Configure item visibility for public view and member searches.</p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => handleSetAll(true)}
-            className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer shadow-xs"
-          >
-            Show All
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSetAll(false)}
-            className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer shadow-xs"
-          >
-            Hide All
-          </button>
-        </div>
-      </div>
+    <div className="space-y-4 sm:space-y-6 md:space-y-8 animate-fade-in">
 
       {/* Notifications */}
       {error && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-2xl text-xs font-serif leading-relaxed"
+          className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 rounded-xl sm:rounded-2xl text-xs font-serif leading-relaxed"
         >
           <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
           <span>{error}</span>
@@ -399,7 +361,7 @@ export default function MbrProfileDisplaySettingsPanel({
         <motion.div 
           initial={{ opacity: 0, y: -10 }} 
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-2xl text-xs font-serif leading-relaxed"
+          className="flex items-center gap-2.5 sm:gap-3 p-3 sm:p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-xl sm:rounded-2xl text-xs font-serif leading-relaxed"
         >
           <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
           <span>{success}</span>
@@ -407,21 +369,21 @@ export default function MbrProfileDisplaySettingsPanel({
       )}
 
       {/* Settings Sections Grouped by Category */}
-      <form onSubmit={handleSave} className="space-y-8">
+      <form onSubmit={handleSave} className="space-y-4 sm:space-y-6 md:space-y-8">
         {categories.map((cat) => {
           const items = DISPLAY_SETTINGS_SCHEMA.filter((item) => item.category === cat.id);
           const CatIcon = cat.icon;
 
           return (
-            <div key={cat.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-4">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
-                  <CatIcon className="w-4 h-4" />
+            <div key={cat.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-3 sm:p-5 md:p-6 shadow-xs space-y-2.5 sm:space-y-3.5">
+              <div className="flex items-center gap-2 pb-2 sm:pb-3 border-b border-slate-100 dark:border-slate-800">
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                  <CatIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
-                <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white tracking-tight">{cat.label}</h3>
+                <h3 className="font-serif text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight">{cat.label}</h3>
               </div>
 
-              <div className="grid grid-cols-1 gap-3.5 pt-1">
+              <div className="grid grid-cols-1 gap-2 sm:gap-3 pt-0.5">
                 {items.map((item) => {
                   const ItemIcon = item.icon;
                   const isChecked = Boolean(settings[item.key]);
@@ -430,41 +392,41 @@ export default function MbrProfileDisplaySettingsPanel({
                     <div
                       key={item.key}
                       onClick={() => handleToggle(item.key)}
-                      className={`group flex items-start justify-between gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${
+                      className={`group flex items-center justify-between gap-2.5 sm:gap-4 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border transition-all cursor-pointer ${
                         isChecked
                           ? 'bg-blue-50/40 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700'
                           : 'bg-white dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 opacity-85'
                       }`}
                     >
-                      <div className="flex items-start gap-3.5">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                      <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+                        <div className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                           isChecked ? 'bg-blue-100/70 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'
                         }`}>
-                          <ItemIcon className="w-4 h-4" />
+                          <ItemIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </div>
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="font-serif text-sm font-bold text-slate-900 dark:text-white">{item.title}</span>
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-serif text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">{item.title}</span>
                             {item.recommended && (
-                              <span className="text-[9px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800 rounded-md">
+                              <span className="text-[8px] sm:text-[9px] font-mono font-bold uppercase tracking-wider px-1 sm:px-1.5 py-0.2 sm:py-0.5 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800 rounded-md shrink-0">
                                 Recommended
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 font-serif leading-relaxed">{item.description}</p>
+                          <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-serif leading-tight sm:leading-relaxed">{item.description}</p>
                         </div>
                       </div>
 
                       {/* Custom Toggle Switch */}
-                      <div className="shrink-0 pt-1">
-                        <div className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ease-in-out ${
+                      <div className="shrink-0 pl-1">
+                        <div className={`w-9 h-5 sm:w-11 sm:h-6 flex items-center rounded-full p-0.5 sm:p-1 transition-colors duration-200 ease-in-out ${
                           isChecked ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'
                         }`}>
                           <motion.div 
                             layout
                             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            className={`bg-white w-4 h-4 rounded-full shadow-sm ${
-                              isChecked ? 'ml-5' : 'ml-0'
+                            className={`bg-white w-4 h-4 rounded-full shadow-xs ${
+                              isChecked ? 'ml-4 sm:ml-5' : 'ml-0'
                             }`} 
                           />
                         </div>
@@ -478,7 +440,7 @@ export default function MbrProfileDisplaySettingsPanel({
         })}
 
         {/* Action Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-slate-200 dark:border-slate-800">
           <button
             type="button"
             onClick={() => {
@@ -487,7 +449,7 @@ export default function MbrProfileDisplaySettingsPanel({
               }
             }}
             disabled={!isDirty || saving}
-            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
+            className={`inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer ${
               isDirty && !saving
                 ? 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 shadow-xs'
                 : 'opacity-40 pointer-events-none text-slate-400 border border-transparent'
@@ -500,7 +462,7 @@ export default function MbrProfileDisplaySettingsPanel({
           <button
             type="submit"
             disabled={!isDirty || saving}
-            className={`inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold font-sans transition-all duration-200 cursor-pointer shadow-md ${
+            className={`inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs font-bold font-sans transition-all duration-200 cursor-pointer shadow-md ${
               isDirty && !saving
                 ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 active:scale-98'
                 : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'

@@ -9,6 +9,7 @@ import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangl
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
+import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
 
 export interface MbrStoryFamilyPanelProps {
   isSandbox?: boolean;
@@ -204,6 +205,9 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
   const [showFamilyGalleryModal, setShowFamilyGalleryModal] = useState(false);
   const [activeGallerySubordinateId, setActiveGallerySubordinateId] = useState<string | null>(null);
   const [activeGalleryTitle, setActiveGalleryTitle] = useState<string>('Family');
+
+  // --- PRIVACY MODAL STATE ---
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
   // --- SUBORDINATE STORIES & PHOTOS COUNT MAPS ---
   const [memberPhotosMap, setMemberPhotosMap] = useState<Record<string, number>>({});
@@ -549,6 +553,10 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
     }
   };
 
+  const handleOpenPrivacyModal = () => {
+    setShowPrivacyModal(true);
+  };
+
   const getInitials = (first: string, last: string) => {
     const f = first ? first[0] : '';
     const l = last ? last[0] : '';
@@ -697,7 +705,7 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
 
             {!readOnly && (
               <button
-                onClick={() => alert('Opening Privacy settings for family members...')}
+                onClick={handleOpenPrivacyModal}
                 className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
                 title="Privacy settings"
               >
@@ -784,7 +792,7 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
                         type="button"
                         onClick={() => {
                           setShowHeaderMenu(false);
-                          alert('Opening Privacy settings for family members...');
+                          handleOpenPrivacyModal();
                         }}
                         className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
                       >
@@ -1358,6 +1366,15 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
         isSandbox={isSandbox}
         maxPhotos={activeGallerySubordinateId ? 12 : 40}
         readOnly={readOnly}
+      />
+
+      {/* --- REUSABLE TOPIC PRIVACY SETTINGS MODAL --- */}
+      <MbrTopicPrivacyModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        mbrId={mbrId}
+        topicName="Family"
+        isSandbox={isSandbox}
       />
 
       <AdminComponentTag name="mbrStoryFamilyPanel" />

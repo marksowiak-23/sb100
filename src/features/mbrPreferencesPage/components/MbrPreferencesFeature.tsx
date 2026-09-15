@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Loader2, Save } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { Loader2 } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import PreferencesPageHeaderPanel from './PreferencesPageHeaderPanel';
@@ -17,6 +17,7 @@ import {
 } from '../types';
 import PreferencesHeader from './PreferencesHeader';
 import PreferencesNavigationMenu from './PreferencesNavigationMenu';
+import PreferencesGuidancePanel from './PreferencesGuidancePanel';
 import StoryMatePersonaPanel from './StoryMatePersonaPanel';
 import WorkspacePreferencesPanel from './WorkspacePreferencesPanel';
 
@@ -24,7 +25,8 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [savedNotification, setSavedNotification] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Active sub-tab state: 'story-mate' or 'workspace'
   const [activeSubTab, setActiveSubTab] = useState<PreferencesSubTab>('story-mate');
@@ -39,7 +41,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   const [notificationsInd, setNotificationsInd] = useState<boolean>(true);
   const [autoSaveInd, setAutoSaveInd] = useState<boolean>(true);
 
-  // Initial reference state for dirty comparison
+  // Initial reference state
   const [initialPrefs, setInitialPrefs] = useState({
     selectedWriterId: '',
     selectedTheme: 'System',
@@ -47,7 +49,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     autoSaveInd: true
   });
 
-  // Calculate dirty states
+  // Calculate dirty states (always clean because changes save automatically)
   const isStoryMateDirty = useMemo(() => {
     return selectedWriterId !== initialPrefs.selectedWriterId;
   }, [selectedWriterId, initialPrefs.selectedWriterId]);
@@ -63,6 +65,15 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   const isDirty = useMemo(() => {
     return isStoryMateDirty || isWorkspaceDirty;
   }, [isStoryMateDirty, isWorkspaceDirty]);
+
+  // Clean up auto-save notification timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Sync dirty state with parent handler
   useEffect(() => {
@@ -171,28 +182,38 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     }
   };
 
-  // --- SAVE OPERATION ---
-  const handleSavePreferences = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // --- AUTOMATIC SAVE OPERATION ---
+  const savePreferencesChange = async (updates: {
+    chWriterId?: string;
+    mbrPrefTheme?: string;
+    mbrPrefNotificationsInd?: boolean;
+    mbrPrefAutoSaveInd?: boolean;
+  }) => {
     setSaving(true);
     setError(null);
-    setSuccess(null);
+
+    const targetMbrId = mbrId || '299da1e4-a233-4333-ab7c-b9ca64b6b7d4';
+    const newWriterId = updates.chWriterId !== undefined ? updates.chWriterId : selectedWriterId;
+    const newTheme = updates.mbrPrefTheme !== undefined ? updates.mbrPrefTheme : selectedTheme;
+    const newNotif = updates.mbrPrefNotificationsInd !== undefined ? updates.mbrPrefNotificationsInd : notificationsInd;
+    const newAutoSave = updates.mbrPrefAutoSaveInd !== undefined ? updates.mbrPrefAutoSaveInd : autoSaveInd;
 
     try {
-      const targetMbrId = mbrId || '299da1e4-a233-4333-ab7c-b9ca64b6b7d4';
       const payload = {
         mbrId: targetMbrId,
-        chWriterId: selectedWriterId || null,
-        mbrPrefTheme: selectedTheme,
-        mbrPrefNotificationsInd: notificationsInd,
-        mbrPrefAutoSaveInd: autoSaveInd,
+        chWriterId: newWriterId || null,
+        mbrPrefTheme: newTheme,
+        mbrPrefNotificationsInd: newNotif,
+        mbrPrefAutoSaveInd: newAutoSave,
         mbrPrefJson: null
       };
 
-      sessionStorage.setItem('mbrPrefTheme', selectedTheme);
-      sessionStorage.setItem('theme', selectedTheme);
-      document.documentElement.setAttribute('data-theme', selectedTheme);
-      window.dispatchEvent(new Event('theme-changed'));
+      if (updates.mbrPrefTheme !== undefined) {
+        sessionStorage.setItem('mbrPrefTheme', newTheme);
+        sessionStorage.setItem('theme', newTheme);
+        document.documentElement.setAttribute('data-theme', newTheme);
+        window.dispatchEvent(new Event('theme-changed'));
+      }
 
       if (isSandbox) {
         const updatedPref = { ...payload, mbrPrefId: mbrPrefId || 'sandbox-pref-id' };
@@ -206,23 +227,25 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         }
       }
 
-      const newInit = {
-        selectedWriterId,
-        selectedTheme,
-        notificationsInd,
-        autoSaveInd
-      };
-      setInitialPrefs(newInit);
-      setSuccess("Member preferences saved successfully!");
+      setInitialPrefs({
+        selectedWriterId: newWriterId,
+        selectedTheme: newTheme,
+        notificationsInd: newNotif,
+        autoSaveInd: newAutoSave
+      });
 
       if (onDirtyChange) {
         onDirtyChange(false);
       }
-      
-      // Auto close and return to previous page
-      setTimeout(() => {
-        onClickBack();
-      }, 100);
+
+      // Pulse 'Changes saved' message then fade it out
+      setSavedNotification(true);
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      saveTimeoutRef.current = setTimeout(() => {
+        setSavedNotification(false);
+      }, 2500);
 
     } catch (err: any) {
       console.error("Error saving member preferences:", err);
@@ -232,23 +255,28 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     }
   };
 
-  // --- CANCEL / RESET ACTION ---
-  const handleCancel = () => {
-    setSelectedWriterId(initialPrefs.selectedWriterId);
-    setSelectedTheme(initialPrefs.selectedTheme);
-    setNotificationsInd(initialPrefs.notificationsInd);
-    setAutoSaveInd(initialPrefs.autoSaveInd);
+  const handleSelectWriterId = (writerId: string) => {
+    setSelectedWriterId(writerId);
+    savePreferencesChange({ chWriterId: writerId });
+  };
 
-    if (onDirtyChange) {
-      onDirtyChange(false);
-    }
-    setTimeout(() => {
-      onClickBack();
-    }, 0);
+  const handleSelectTheme = (theme: string) => {
+    setSelectedTheme(theme);
+    savePreferencesChange({ mbrPrefTheme: theme });
+  };
+
+  const handleToggleNotifications = (checked: boolean) => {
+    setNotificationsInd(checked);
+    savePreferencesChange({ mbrPrefNotificationsInd: checked });
+  };
+
+  const handleToggleAutoSave = (checked: boolean) => {
+    setAutoSaveInd(checked);
+    savePreferencesChange({ mbrPrefAutoSaveInd: checked });
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-1 sm:px-4 pt-1 sm:pt-6 md:pt-8 pb-8 relative animate-fade-in">
+    <div className="w-full relative">
       <AdminComponentTag name="MbrPreferencesFeature.tsx" />
       
       {loading ? (
@@ -257,37 +285,33 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
           <span className="text-xs font-serif font-medium">Loading preferences...</span>
         </div>
       ) : (
-        <form onSubmit={handleSavePreferences}>
+        <div className="w-full">
           
           {/* --- TWO-COLUMN GRID LAYOUT --- */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 lg:gap-8 max-w-7xl w-full mx-auto items-start">
             
             {/* LEFT COLUMN: BRAND HEADER & NAVIGATION MENU */}
-            <aside className="lg:col-span-4 xl:col-span-3 space-y-6">
+            <aside className="lg:col-span-4 xl:col-span-3 space-y-2.5 sm:space-y-4 lg:space-y-6">
               <PreferencesPageHeaderPanel />
               <PreferencesNavigationMenu
-
                 activeSubTab={activeSubTab}
                 onSelectTab={setActiveSubTab}
                 isStoryMateDirty={isStoryMateDirty}
                 isWorkspaceDirty={isWorkspaceDirty}
               />
+              <PreferencesGuidancePanel />
             </aside>
 
             {/* RIGHT COLUMN: MAIN CONTENT AREA & HEADER */}
             <main className="lg:col-span-8 xl:col-span-9 min-w-0">
 
-              {/* Top Header Navigation */}
+              {/* Top Header Navigation with Pulsing Save Notification */}
               <PreferencesHeader
                 activeSubTab={activeSubTab}
-                isDirty={isDirty}
+                savedNotification={savedNotification}
                 saving={saving}
                 error={error}
-                success={success}
-                onClickBack={onClickBack}
-                onReset={handleCancel}
                 onDismissError={() => setError(null)}
-                onDismissSuccess={() => setSuccess(null)}
               />
 
               {/* Sub-Panel 1: Story Craft Assistant Persona */}
@@ -295,7 +319,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
                 <StoryMatePersonaPanel
                   personas={personas}
                   selectedWriterId={selectedWriterId}
-                  onSelectWriterId={setSelectedWriterId}
+                  onSelectWriterId={handleSelectWriterId}
                 />
               )}
 
@@ -303,60 +327,15 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
               {activeSubTab === 'workspace' && (
                 <WorkspacePreferencesPanel
                   selectedTheme={selectedTheme}
-                  onSelectTheme={(theme) => {
-                    setSelectedTheme(theme);
-                    document.documentElement.setAttribute('data-theme', theme);
-                    sessionStorage.setItem('mbrPrefTheme', theme);
-                    sessionStorage.setItem('theme', theme);
-                    window.dispatchEvent(new Event('theme-changed'));
-                  }}
-                  notificationsInd={notificationsInd}
-                  onToggleNotifications={setNotificationsInd}
-                  autoSaveInd={autoSaveInd}
-                  onToggleAutoSave={setAutoSaveInd}
+                  onSelectTheme={handleSelectTheme}
                 />
               )}
-
-              {/* Bottom Action Footer */}
-              <div className="flex items-center justify-between pt-4 mt-6 border-t border-slate-200 dark:border-slate-800">
-                <div className="text-xs text-slate-400 font-serif">
-                  {isDirty ? (
-                    <span className="text-amber-600 dark:text-amber-400 font-medium">● Unsaved preference changes</span>
-                  ) : (
-                    <span>All preferences saved</span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleCancel}
-                    disabled={saving}
-                    className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl text-xs font-semibold font-sans transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={saving || !isDirty}
-                    className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold font-sans shadow-md shadow-blue-600/20 transition-all cursor-pointer disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed disabled:shadow-none"
-                  >
-                    {saving ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Save className="w-3.5 h-3.5" />
-                    )}
-                    <span>Save Preferences</span>
-                  </button>
-                </div>
-              </div>
 
             </main>
 
           </div>
 
-        </form>
+        </div>
       )}
 
       <AdminComponentTag name="MbrPreferencesFeature" />

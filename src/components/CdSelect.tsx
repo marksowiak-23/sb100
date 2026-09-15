@@ -65,8 +65,8 @@ export const CdSelect: React.FC<CdSelectProps> = ({
               {placeholder}
             </option>
           )}
-          {options.map((opt) => (
-            <option key={opt.cdId || `${opt.cdTag}-${opt.cdValue}`} value={opt.cdValue}>
+          {options.map((opt, index) => (
+            <option key={`${opt.cdId || opt.cdValue || opt.cdTag}-${index}`} value={opt.cdValue}>
               {opt.cdLabel && opt.cdLabel.trim() !== '' ? opt.cdLabel : opt.cdValue}
             </option>
           ))}

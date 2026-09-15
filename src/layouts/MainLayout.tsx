@@ -647,7 +647,13 @@ export default function MainLayout({
                   />
                   <div className="absolute right-0 top-16 w-52 bg-[#0F1B35] border border-slate-800 rounded-2xl shadow-2xl z-50 py-2 overflow-hidden">
                     {/* User Mini Card */}
-                    <div className="px-4 py-2 border-b border-slate-800 mb-1">
+                    <div
+                      onClick={() => {
+                        setActiveTab('mbrProfilePage');
+                        setDropdownOpen(false);
+                      }}
+                      className="px-4 py-2.5 border-b border-slate-800 mb-1 hover:bg-white/5 transition-colors cursor-pointer group"
+                    >
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-700 bg-slate-900 shrink-0 flex items-center justify-center">
                           {profilePic ? (
@@ -656,9 +662,9 @@ export default function MainLayout({
                             <User className="w-4 h-4 text-slate-400" />
                           )}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <h4 className="text-xs font-bold text-white truncate font-serif">{userName}</h4>
-                          <p className="text-[10px] text-blue-400">View & Edit Profile</p>
+                          <p className="text-[10px] text-blue-400 group-hover:text-blue-300 transition-colors">View & Edit Profile →</p>
                         </div>
                       </div>
                     </div>
@@ -701,24 +707,6 @@ export default function MainLayout({
                       }`}
                     >
                       My Privacy
-                    </div>
-                    <div
-                      onClick={() => {
-                        setActiveTab('mbrConnectionPage');
-                        setDropdownOpen(false);
-                      }}
-                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors flex items-center justify-between ${
-                        activeTab === 'mbrConnectionPage' || activeTab === 'mbrConnections'
-                          ? 'bg-white/10 text-white font-bold'
-                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      <span>My Connections</span>
-                      {invitationCount > 0 && (
-                        <span className="px-1.5 py-0.5 text-[9.5px] font-mono font-bold bg-rose-600 text-white rounded-full leading-none">
-                          {invitationCount}
-                        </span>
-                      )}
                     </div>
 
                     {/* Administrator Nested Menu Group */}
@@ -1062,95 +1050,24 @@ export default function MainLayout({
               </div>
             )}
 
-            {/* Primary Navigation Section */}
-            <div className="space-y-1">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-2 py-1 font-semibold">Navigation</div>
-
-              {/* Home */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('mbrHomePage');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
-                  activeTab === 'mbrHomePage' || activeTab === 'sbMbrHomePage'
-                    ? 'bg-blue-600/30 text-white font-bold border border-blue-500/40 shadow-xs'
-                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Home className="w-5 h-5 text-blue-400 shrink-0" />
-                  <span>Home</span>
-                </div>
-              </button>
-
-              {/* Author */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('mbrAuthorPage');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
-                  activeTab === 'mbrAuthorPage' || activeTab === 'sbMbrAuthorPage'
-                    ? 'bg-blue-600/30 text-white font-bold border border-blue-500/40 shadow-xs'
-                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <BookOpen className="w-5 h-5 text-amber-400 shrink-0" />
-                  <span>Author Page</span>
-                </div>
-              </button>
-
-              {/* Connections */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('mbrConnections');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
-                  activeTab === 'mbrConnections' || activeTab === 'mbrConnectionPage'
-                    ? 'bg-blue-600/30 text-white font-bold border border-blue-500/40 shadow-xs'
-                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Users className="w-5 h-5 text-emerald-400 shrink-0" />
-                  <span>Connections & Groups</span>
-                </div>
-                {invitationCount > 0 && (
-                  <span className="px-2 py-0.5 text-xs font-mono font-bold bg-rose-600 text-white rounded-full">
-                    {invitationCount} pending
-                  </span>
-                )}
-              </button>
-
-              {/* Stories */}
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('mbrStoryFeedPage');
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
-                  activeTab === 'mbrStoryFeedPage' || activeTab === 'sbMbrStoryFeedPage'
-                    ? 'bg-blue-600/30 text-white font-bold border border-blue-500/40 shadow-xs'
-                    : 'text-slate-200 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <BookMarked className="w-5 h-5 text-indigo-400 shrink-0" />
-                  <span>Stories Feed</span>
-                </div>
-              </button>
-            </div>
-
             {/* Account Settings Section */}
-            <div className="space-y-1 pt-2 border-t border-slate-800">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-2 py-1 font-semibold">Account Settings</div>
+            <div className="space-y-1 pt-1">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400 px-2 py-1 font-semibold">Account & Settings</div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('mbrProfilePage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer flex items-center justify-between ${
+                  activeTab === 'mbrProfilePage' || activeTab === 'mbrProfile'
+                    ? 'bg-white/10 text-white font-bold'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span>My Profile</span>
+              </button>
 
               <button
                 type="button"
@@ -1158,13 +1075,13 @@ export default function MainLayout({
                   setActiveTab('mbrPreferencesPage');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full text-left px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer flex items-center justify-between ${
                   activeTab === 'mbrPreferencesPage' || activeTab === 'mbrPreferences'
                     ? 'bg-white/10 text-white font-bold'
                     : 'text-slate-300 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                My Preferences
+                <span>My Preferences</span>
               </button>
 
               <button
@@ -1173,13 +1090,13 @@ export default function MainLayout({
                   setActiveTab('mbrPrivacySettingsPage');
                   setIsMobileMenuOpen(false);
                 }}
-                className={`w-full text-left px-3.5 py-2 rounded-xl text-xs font-medium transition-colors cursor-pointer ${
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer flex items-center justify-between ${
                   activeTab === 'mbrPrivacySettingsPage' || activeTab === 'mbrPrivacy'
                     ? 'bg-white/10 text-white font-bold'
                     : 'text-slate-300 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                My Privacy
+                <span>My Privacy</span>
               </button>
             </div>
 
@@ -1572,24 +1489,6 @@ export default function MainLayout({
                   }`}
                 >
                   My Privacy
-                </div>
-                <div
-                  onClick={() => {
-                    setActiveTab('mbrConnectionPage');
-                    setIsMobileAccountOpen(false);
-                  }}
-                  className={`px-3.5 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-colors flex items-center justify-between ${
-                    activeTab === 'mbrConnectionPage' || activeTab === 'mbrConnections'
-                      ? 'bg-white/10 text-white font-bold'
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  <span>My Connections</span>
-                  {invitationCount > 0 && (
-                    <span className="px-1.5 py-0.5 text-[9.5px] font-mono font-bold bg-rose-600 text-white rounded-full leading-none">
-                      {invitationCount}
-                    </span>
-                  )}
                 </div>
               </div>
 

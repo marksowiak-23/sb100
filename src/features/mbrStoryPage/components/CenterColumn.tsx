@@ -99,6 +99,9 @@ export default function CenterColumn({
     };
   }, [activeSection]);
 
+  const isOwner = !viewerMbrId || (Boolean(effectiveMemberId) && viewerMbrId === effectiveMemberId);
+  const isReadOnly = !isOwner;
+
   const isStandardTopic = ['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(topicId);
 
   const isFromConnections = previousTab === 'mbrConnectionPage' || previousTab === 'mbrConnections';
@@ -119,9 +122,9 @@ export default function CenterColumn({
           <button
             type="button"
             onClick={onClickBack}
-            className="group inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus:outline-none cursor-pointer"
+            className="group inline-flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus:outline-none cursor-pointer"
           >
-            <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-xs group-hover:border-blue-300 dark:group-hover:border-blue-600 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/40 transition-all">
+            <div className="w-7 h-7 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-xs group-hover:border-blue-300 dark:group-hover:border-blue-600 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/40 transition-all">
               <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
             </div>
             <span>{backButtonText}</span>
@@ -135,7 +138,7 @@ export default function CenterColumn({
           memberId={effectiveMemberId}
           profile={member}
           isSandbox={false}
-          readOnly={true}
+          readOnly={isReadOnly}
           defaultCollapseIntro={false}
           defaultCollapseDetails={false}
           clampIntroduction={false}
@@ -149,7 +152,7 @@ export default function CenterColumn({
           memberId={effectiveMemberId}
           profile={member}
           isSandbox={false}
-          readOnly={true}
+          readOnly={isReadOnly}
           connectionGrpName={connectionGrpName}
           isConnected={isConnected}
           viewerMbrId={viewerMbrId}
@@ -173,37 +176,37 @@ export default function CenterColumn({
         <>
           {/* --- FAMILY DIRECTORY PANEL --- */}
           {(topicId === 'family') && (
-            <MbrStoryFamilyPanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
+            <MbrStoryFamilyPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
           )}
 
           {/* --- RESIDENCES PANEL --- */}
           {(topicId === 'residencies') && (
-            <MbrStoryResidencePanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
+            <MbrStoryResidencePanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
           )}
 
           {/* --- ACTIVITIES & HOBBIES PANEL --- */}
           {(topicId === 'hobbies') && (
-            <MbrStoryActivityPanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
+            <MbrStoryActivityPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
           )}
 
           {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
           {(topicId === 'achievements') && (
-            <MbrStoryAchievementPanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
+            <MbrStoryAchievementPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
           )}
 
           {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
           {(topicId === 'education') && (
-            <MbrStoryEducationPanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
+            <MbrStoryEducationPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
           )}
 
           {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
           {(topicId === 'employment') && (
-            <MbrStoryEmploymentPanel memberId={effectiveMemberId} isSandbox={false} readOnly={true} />
+            <MbrStoryEmploymentPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
           )}
 
           {/* --- ACTIVE SECTION CONTENT AREA (for custom text sections) --- */}
           {!isStandardTopic && topicId !== 'profile' && (
-            <MbrBookEditorPanel sectionTitle={safeActiveSection} content={activeContent || []} readOnly={true} />
+            <MbrBookEditorPanel sectionTitle={safeActiveSection} content={activeContent || []} readOnly={isReadOnly} />
           )}
 
           {/* --- MEMBER STORIES VIEW PANEL (Displayed for standard topics) --- */}
@@ -216,7 +219,7 @@ export default function CenterColumn({
                 subordinateId={subordinateId || undefined}
                 subordinateName={subordinateName}
                 memberId={effectiveMemberId}
-                readOnly={true}
+                readOnly={isReadOnly}
                 isSandbox={false}
                 onClose={() => {
                   setSubordinateId(null);

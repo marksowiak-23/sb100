@@ -4,3 +4,4 @@
  */
 
 export { default as AdminDb, DbAdminFeature, AdminDbPageFeature } from './components/AdminDb';
+export { generateAdminDbPdf } from './utils/generateAdminDbPdf';

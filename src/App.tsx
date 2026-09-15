@@ -620,7 +620,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
-            className="w-full flex justify-center"
+            className="w-full"
           >
             <MbrProfileFeature
               isSandbox={isSandbox}
@@ -637,7 +637,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
-            className="w-full flex justify-center"
+            className="w-full"
           >
             <MbrPreferencesFeature
               isSandbox={isSandbox}
@@ -654,7 +654,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
-            className="w-full flex justify-center"
+            className="w-full"
           >
             <MbrPrivacyFeature
               isSandbox={isSandbox}

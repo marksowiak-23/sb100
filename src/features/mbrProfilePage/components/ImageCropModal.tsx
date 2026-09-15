@@ -1,5 +1,11 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ZoomIn, ZoomOut, RotateCw, RefreshCw, X, Check, Crop, Move } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCw, RefreshCw, X, Check, Crop, Move, Maximize, Minimize } from 'lucide-react';
+import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface ImageCropModalProps {
   isOpen: boolean;
@@ -7,6 +13,9 @@ interface ImageCropModalProps {
   onCropComplete: (croppedBlob: Blob, croppedDataUrl: string) => void;
   onCancel: () => void;
 }
+
+const VIEWPORT_SIZE = 280; // 280x280 square viewport box in modal
+const CIRCLE_DIAMETER = 260; // 260px circular avatar mask area
 
 export default function ImageCropModal({
   isOpen,
@@ -20,10 +29,26 @@ export default function ImageCropModal({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [imgLoaded, setImgLoaded] = useState<boolean>(false);
+  const [naturalDimensions, setNaturalDimensions] = useState<{ width: number; height: number }>({
+    width: VIEWPORT_SIZE,
+    height: VIEWPORT_SIZE,
+  });
   const [livePreviewUrl, setLivePreviewUrl] = useState<string>('');
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
+
+  // Compute base fitted dimensions (at zoom=1, the image fills the viewport cleanly without blowing up)
+  const aspect = naturalDimensions.width / (naturalDimensions.height || 1);
+  let baseWidth = VIEWPORT_SIZE;
+  let baseHeight = VIEWPORT_SIZE;
+  if (aspect > 1) {
+    baseWidth = VIEWPORT_SIZE * aspect;
+    baseHeight = VIEWPORT_SIZE;
+  } else {
+    baseWidth = VIEWPORT_SIZE;
+    baseHeight = VIEWPORT_SIZE / (aspect || 1);
+  }
 
   // Reset controls when a new image source is opened
   useEffect(() => {
@@ -32,12 +57,26 @@ export default function ImageCropModal({
       setRotation(0);
       setOffset({ x: 0, y: 0 });
       setImgLoaded(false);
+      setLivePreviewUrl('');
     }
   }, [isOpen, imageSrc]);
 
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const target = e.currentTarget;
+    if (target.naturalWidth && target.naturalHeight) {
+      setNaturalDimensions({
+        width: target.naturalWidth,
+        height: target.naturalHeight,
+      });
+    }
+    setImgLoaded(true);
+  };
+
   // Handle Drag Start
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
+    if (e.cancelable) {
+      e.preventDefault();
+    }
     setIsDragging(true);
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
@@ -48,6 +87,9 @@ export default function ImageCropModal({
   const handleMouseMove = useCallback(
     (e: MouseEvent | TouchEvent) => {
       if (!isDragging) return;
+      if (e.cancelable) {
+        e.preventDefault();
+      }
       const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
       const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
       setOffset({
@@ -65,9 +107,9 @@ export default function ImageCropModal({
 
   useEffect(() => {
     if (isDragging) {
-      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mousemove', handleMouseMove, { passive: false });
       window.addEventListener('mouseup', handleMouseUp);
-      window.addEventListener('touchmove', handleMouseMove);
+      window.addEventListener('touchmove', handleMouseMove, { passive: false });
       window.addEventListener('touchend', handleMouseUp);
     }
     return () => {
@@ -78,11 +120,35 @@ export default function ImageCropModal({
     };
   }, [isDragging, handleMouseMove, handleMouseUp]);
 
-  // Mouse Wheel Zoom
+  // Mouse Wheel Zoom (supports unzoom down to 0.2 and zoom up to 3.0)
   const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? 0.1 : -0.1;
-    setZoom((prev) => Math.min(Math.max(1, prev + delta), 3.5));
+    if (e.cancelable) {
+      e.preventDefault();
+    }
+    const delta = e.deltaY < 0 ? 0.05 : -0.05;
+    setZoom((prev) => Math.min(Math.max(0.2, +(prev + delta).toFixed(2)), 3.0));
+  };
+
+  // Zoom In / Out Buttons
+  const handleZoomIn = () => {
+    setZoom((prev) => Math.min(3.0, +(prev + 0.1).toFixed(2)));
+  };
+
+  const handleZoomOut = () => {
+    setZoom((prev) => Math.max(0.2, +(prev - 0.1).toFixed(2)));
+  };
+
+  // Fit whole image inside the circular crop mask
+  const handleFitEntireImage = () => {
+    const fitZoom = aspect > 1 ? CIRCLE_DIAMETER / baseWidth : CIRCLE_DIAMETER / baseHeight;
+    setZoom(Math.max(0.2, +fitZoom.toFixed(2)));
+    setOffset({ x: 0, y: 0 });
+  };
+
+  // Fill crop circle
+  const handleFillCircle = () => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
   };
 
   // Rotate 90 degrees
@@ -101,84 +167,98 @@ export default function ImageCropModal({
   const generateCrop = useCallback((): Promise<{ blob: Blob; dataUrl: string }> => {
     return new Promise((resolve, reject) => {
       const img = imageRef.current;
-      if (!img) {
-        reject(new Error('Image not loaded'));
+      if (!img || !img.complete || !img.naturalWidth || !img.naturalHeight) {
+        reject(new Error('Image not ready for cropping'));
         return;
       }
 
-      const canvas = document.createElement('canvas');
-      const outputSize = 400; // 400x400 square for profile avatars
-      canvas.width = outputSize;
-      canvas.height = outputSize;
-      const ctx = canvas.getContext('2d');
+      try {
+        const canvas = document.createElement('canvas');
+        const outputSize = 400; // 400x400 square for profile avatars
+        canvas.width = outputSize;
+        canvas.height = outputSize;
+        const ctx = canvas.getContext('2d');
 
-      if (!ctx) {
-        reject(new Error('Could not get canvas context'));
-        return;
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+
+        ctx.save();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, outputSize, outputSize);
+
+        // Translate canvas origin to center of output square
+        ctx.translate(outputSize / 2, outputSize / 2);
+
+        // Scale factor from viewport to output canvas
+        const scaleToCanvas = outputSize / VIEWPORT_SIZE;
+        ctx.translate(offset.x * scaleToCanvas, offset.y * scaleToCanvas);
+
+        // Apply Rotation & Zoom
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.scale(zoom, zoom);
+
+        const drawWidth = baseWidth * scaleToCanvas;
+        const drawHeight = baseHeight * scaleToCanvas;
+
+        ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+        ctx.restore();
+
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                resolve({ blob, dataUrl });
+              } else {
+                // Fallback from dataUrl if canvas.toBlob returns null
+                try {
+                  const byteString = atob(dataUrl.split(',')[1]);
+                  const mimeString = dataUrl.split(',')[0].split(':')[1].split(';')[0];
+                  const ab = new ArrayBuffer(byteString.length);
+                  const ia = new Uint8Array(ab);
+                  for (let i = 0; i < byteString.length; i++) {
+                    ia[i] = byteString.charCodeAt(i);
+                  }
+                  const fallbackBlob = new Blob([ab], { type: mimeString });
+                  resolve({ blob: fallbackBlob, dataUrl });
+                } catch (convErr) {
+                  reject(new Error('Canvas blob conversion failed'));
+                }
+              }
+            },
+            'image/jpeg',
+            0.92
+          );
+        } catch (exportErr) {
+          reject(exportErr);
+        }
+      } catch (drawErr) {
+        reject(drawErr);
       }
-
-      // Crop viewport box width (280px in UI)
-      const viewportSize = 280;
-
-      ctx.save();
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, outputSize, outputSize);
-
-      // Translate canvas origin to center of output square
-      ctx.translate(outputSize / 2, outputSize / 2);
-
-      // Scale factor from 280px viewport to 400px output canvas
-      const scaleToCanvas = outputSize / viewportSize;
-      ctx.translate(offset.x * scaleToCanvas, offset.y * scaleToCanvas);
-
-      // Apply Rotation & Zoom
-      ctx.rotate((rotation * Math.PI) / 180);
-      ctx.scale(zoom, zoom);
-
-      // Calculate initial fitted size of image inside 280px viewport box
-      const imgAspect = img.naturalWidth / img.naturalHeight;
-      let drawWidth = viewportSize;
-      let drawHeight = viewportSize;
-
-      if (imgAspect > 1) {
-        drawWidth = viewportSize * imgAspect;
-        drawHeight = viewportSize;
-      } else {
-        drawWidth = viewportSize;
-        drawHeight = viewportSize / imgAspect;
-      }
-
-      // Convert drawing dimensions to output canvas scale
-      drawWidth *= scaleToCanvas;
-      drawHeight *= scaleToCanvas;
-
-      ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
-      ctx.restore();
-
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            resolve({ blob, dataUrl });
-          } else {
-            reject(new Error('Canvas blob generation failed'));
-          }
-        },
-        'image/jpeg',
-        0.92
-      );
     });
-  }, [offset, rotation, zoom]);
+  }, [offset, rotation, zoom, baseWidth, baseHeight]);
 
   // Generate live circular avatar preview when user manipulates crop
   useEffect(() => {
+    let isCancelled = false;
     if (isOpen && imgLoaded) {
       const timer = setTimeout(() => {
         generateCrop()
-          .then(({ dataUrl }) => setLivePreviewUrl(dataUrl))
-          .catch(() => {});
-      }, 50);
-      return () => clearTimeout(timer);
+          .then(({ dataUrl }) => {
+            if (!isCancelled) {
+              setLivePreviewUrl(dataUrl);
+            }
+          })
+          .catch(() => {
+            // Silently ignore interim preview errors while image is loading/adjusting
+          });
+      }, 60);
+      return () => {
+        isCancelled = true;
+        clearTimeout(timer);
+      };
     }
   }, [isOpen, imgLoaded, generateCrop]);
 
@@ -194,69 +274,78 @@ export default function ImageCropModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md transition-opacity animate-in fade-in duration-200">
-      <div className="bg-white border border-slate-200 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-md transition-opacity animate-in fade-in duration-200">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[92vh]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+            <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400">
               <Crop className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-serif font-bold text-sm text-slate-800">Crop Profile Photo</h3>
-              <p className="text-[11px] text-slate-450 font-serif">Position and scale your photo for your member avatar</p>
+              <h3 className="font-serif font-bold text-sm text-slate-800 dark:text-white">Crop Profile Photo</h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif">Position, scale, and adjust your avatar photo</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onCancel}
-            className="w-8 h-8 rounded-xl hover:bg-slate-200/60 text-slate-400 hover:text-slate-700 flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-700/60 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-grow flex flex-col items-center">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-grow flex flex-col items-center">
           {/* Main Interactive Crop Canvas / Viewport Container */}
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6 w-full">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 w-full">
             {/* Viewport Box */}
-            <div className="flex flex-col items-center space-y-2">
+            <div className="flex flex-col items-center space-y-1.5">
               <div
                 ref={containerRef}
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleMouseDown}
                 onWheel={handleWheel}
-                className="relative w-[280px] h-[280px] rounded-2xl overflow-hidden bg-slate-900 border-2 border-dashed border-blue-400 shadow-inner cursor-move select-none touch-none group"
+                className="relative w-[280px] h-[280px] rounded-2xl overflow-hidden bg-slate-950 border-2 border-dashed border-blue-400/80 shadow-inner cursor-move select-none touch-none group"
               >
-                {/* Image Element */}
+                {/* Scaled & Positioned Image Element */}
                 <img
                   ref={imageRef}
                   src={imageSrc}
+                  crossOrigin="anonymous"
                   alt="Crop Target"
-                  onLoad={() => setImgLoaded(true)}
+                  onLoad={handleImageLoad}
+                  onError={() => {
+                    setImgLoaded(false);
+                    console.warn('Image failed to load in cropper');
+                  }}
                   style={{
+                    width: `${baseWidth}px`,
+                    height: `${baseHeight}px`,
+                    maxWidth: 'none',
+                    maxHeight: 'none',
                     transform: `translate(${offset.x}px, ${offset.y}px) rotate(${rotation}deg) scale(${zoom})`,
                     transformOrigin: 'center center',
-                    transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+                    transition: isDragging ? 'none' : 'transform 0.08s ease-out',
                   }}
-                  className="max-w-none max-h-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 object-contain pointer-events-none"
+                  className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 object-fill pointer-events-none select-none"
                 />
 
                 {/* Circular Crop Overlay Grid */}
                 <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                   {/* Outer dim background outside circular mask */}
-                  <div className="w-full h-full rounded-2xl ring-[200px] ring-black/40" />
+                  <div className="w-full h-full rounded-2xl ring-[200px] ring-black/50" />
                   {/* Circle outline */}
-                  <div className="absolute w-[260px] h-[260px] rounded-full border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)] flex items-center justify-center">
+                  <div className="absolute w-[260px] h-[260px] rounded-full border-2 border-white/90 shadow-[0_0_0_9999px_rgba(0,0,0,0.4)] flex items-center justify-center">
                     {/* Crosshair guide lines */}
-                    <div className="w-full h-[1px] bg-white/20" />
-                    <div className="h-full w-[1px] bg-white/20 absolute" />
+                    <div className="w-full h-[1px] bg-white/25" />
+                    <div className="h-full w-[1px] bg-white/25 absolute" />
                   </div>
                 </div>
 
                 {/* Hover Drag Hint */}
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-xs text-white text-[10px] font-mono px-3 py-1 rounded-full flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-slate-900/85 backdrop-blur-xs text-white text-[10px] font-mono px-3 py-0.5 rounded-full flex items-center gap-1.5 opacity-90 group-hover:opacity-100 transition-opacity pointer-events-none">
                   <Move className="w-3 h-3 text-blue-400" />
                   <span>Drag to reposition</span>
                 </div>
@@ -264,83 +353,120 @@ export default function ImageCropModal({
             </div>
 
             {/* Circular Preview Panel */}
-            <div className="flex flex-col items-center justify-center space-y-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+            <div className="flex sm:flex-col items-center justify-center gap-3 sm:gap-2">
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest font-mono">
                 Avatar Preview
               </span>
-              <div className="w-24 h-24 rounded-full p-1 bg-white border-2 border-blue-500 shadow-md overflow-hidden flex items-center justify-center">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full p-0.5 sm:p-1 bg-white dark:bg-slate-800 border-2 border-blue-500 shadow-md overflow-hidden flex items-center justify-center">
                 {livePreviewUrl ? (
                   <img src={livePreviewUrl} alt="Avatar Preview" className="w-full h-full rounded-full object-cover" />
                 ) : (
-                  <div className="w-full h-full rounded-full bg-slate-100 animate-pulse" />
+                  <div className="w-full h-full rounded-full bg-slate-100 dark:bg-slate-700 animate-pulse" />
                 )}
               </div>
-              <span className="text-[10px] text-slate-450 font-serif">1:1 Profile Ratio</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-serif">1:1 Square</span>
             </div>
           </div>
 
           {/* Controls Bar */}
-          <div className="w-full bg-slate-50 border border-slate-200/80 p-4 rounded-2xl space-y-3">
-            {/* Zoom Slider */}
-            <div className="flex items-center gap-3">
-              <ZoomOut className="w-4 h-4 text-slate-400" />
+          <div className="w-full bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 p-3.5 sm:p-4 rounded-2xl space-y-3">
+            {/* Zoom Slider with Clickable - and + buttons */}
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                title="Zoom out"
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
               <input
                 type="range"
-                min="1"
-                max="3.5"
-                step="0.05"
+                min="0.2"
+                max="3.0"
+                step="0.02"
                 value={zoom}
                 onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                className="w-full h-1.5 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
-              <ZoomIn className="w-4 h-4 text-slate-400" />
-              <span className="text-[11px] font-mono font-bold text-slate-600 w-10 text-right">
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                title="Zoom in"
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors cursor-pointer"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <span className="text-[11px] font-mono font-bold text-slate-600 dark:text-slate-300 w-12 text-right">
                 {Math.round(zoom * 100)}%
               </span>
             </div>
 
-            {/* Action Buttons: Rotate & Reset */}
-            <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-xs">
-              <button
-                type="button"
-                onClick={handleRotate}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-slate-700 font-sans font-medium transition-all cursor-pointer shadow-xs hover:bg-slate-50"
-              >
-                <RotateCw className="w-3.5 h-3.5 text-blue-600" />
-                <span>Rotate 90°</span>
-              </button>
+            {/* Quick Action Presets: Fit All, Fill Circle, Rotate, Reset */}
+            <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-slate-200/60 dark:border-slate-700/60 text-xs flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleFitEntireImage}
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-xl text-[11px] text-slate-700 dark:text-slate-200 font-sans font-medium transition-all cursor-pointer shadow-xs hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  <Minimize className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                  <span>Fit All</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={handleReset}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-slate-600 hover:text-slate-800 font-sans font-medium transition-all cursor-pointer shadow-xs hover:bg-slate-50"
-              >
-                <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-                <span>Reset</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={handleFillCircle}
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-xl text-[11px] text-slate-700 dark:text-slate-200 font-sans font-medium transition-all cursor-pointer shadow-xs hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  <Maximize className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                  <span>Fill Circle</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleRotate}
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-xl text-[11px] text-slate-700 dark:text-slate-200 font-sans font-medium transition-all cursor-pointer shadow-xs hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  <RotateCw className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                  <span>Rotate 90°</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="flex items-center gap-1 px-2.5 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 rounded-xl text-[11px] text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-sans font-medium transition-all cursor-pointer shadow-xs hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  <RefreshCw className="w-3 h-3 text-slate-500" />
+                  <span>Reset</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+        <div className="flex items-center justify-end gap-3 px-5 sm:px-6 py-3.5 sm:py-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
           <button
             type="button"
             onClick={onCancel}
-            className="px-5 py-2 bg-transparent hover:bg-slate-200/50 text-slate-650 hover:text-slate-800 border border-slate-200 rounded-xl text-xs font-bold font-sans transition-all cursor-pointer"
+            className="px-4 sm:px-5 py-2 bg-transparent hover:bg-slate-200/50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold font-sans transition-all cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleApplyCrop}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold font-sans transition-all cursor-pointer flex items-center gap-2 shadow-sm hover:shadow"
+            className="px-5 sm:px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold font-sans transition-all cursor-pointer flex items-center gap-2 shadow-sm hover:shadow"
           >
             <Check className="w-4 h-4" />
             <span>Crop & Save Photo</span>
           </button>
         </div>
       </div>
+      <AdminComponentTag name="ImageCropModal.tsx" />
     </div>
   );
 }

@@ -13,19 +13,13 @@ import {
   Cpu, 
   Leaf, 
   Minus, 
-  Compass, 
-  Bell, 
-  FileText 
+  Compass 
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface WorkspacePreferencesPanelProps {
   selectedTheme: string;
   onSelectTheme: (theme: string) => void;
-  notificationsInd: boolean;
-  onToggleNotifications: (checked: boolean) => void;
-  autoSaveInd: boolean;
-  onToggleAutoSave: (checked: boolean) => void;
 }
 
 const THEME_OPTIONS = [
@@ -41,11 +35,7 @@ const THEME_OPTIONS = [
 
 export default function WorkspacePreferencesPanel({
   selectedTheme,
-  onSelectTheme,
-  notificationsInd,
-  onToggleNotifications,
-  autoSaveInd,
-  onToggleAutoSave
+  onSelectTheme
 }: WorkspacePreferencesPanelProps) {
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
@@ -59,15 +49,14 @@ export default function WorkspacePreferencesPanel({
         <div>
           <h3 className="font-serif text-sm font-bold text-slate-900 dark:text-white">Workspace & UI Preferences</h3>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif leading-snug">
-            Manage application display theme, notifications, and editor auto-save behaviors.
+            Select your preferred application color theme and visual presentation style.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        
+      <div className="space-y-4">
         {/* Theme Preference Selector */}
-        <div className="space-y-2.5 md:col-span-2">
+        <div className="space-y-2.5">
           <label className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest block">
             Application Color Theme
           </label>
@@ -103,45 +92,6 @@ export default function WorkspacePreferencesPanel({
             })}
           </div>
         </div>
-
-        {/* Toggles Column */}
-        <div className="space-y-4 pt-1 md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          
-          {/* Notifications Toggle */}
-          <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl">
-            <div className="flex items-center gap-2.5">
-              <Bell className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              <div>
-                <h5 className="text-xs font-serif font-bold text-slate-700 dark:text-slate-200">App Notifications</h5>
-                <p className="text-[10px] text-slate-400 font-serif">Receive activity & story edit updates</p>
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={notificationsInd}
-              onChange={(e) => onToggleNotifications(e.target.checked)}
-              className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
-            />
-          </div>
-
-          {/* Auto-Save Toggle */}
-          <div className="flex items-center justify-between p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl">
-            <div className="flex items-center gap-2.5">
-              <FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-              <div>
-                <h5 className="text-xs font-serif font-bold text-slate-700 dark:text-slate-200">Story Auto-Save</h5>
-                <p className="text-[10px] text-slate-400 font-serif">Automatically save drafts while typing</p>
-              </div>
-            </div>
-            <input
-              type="checkbox"
-              checked={autoSaveInd}
-              onChange={(e) => onToggleAutoSave(e.target.checked)}
-              className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
-            />
-          </div>
-        </div>
-
       </div>
     </div>
   );
