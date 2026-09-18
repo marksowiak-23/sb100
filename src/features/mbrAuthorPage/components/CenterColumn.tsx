@@ -17,6 +17,7 @@ import EducationHeaderPanel from './EducationHeaderPanel';
 import EmploymentHeaderPanel from './EmploymentHeaderPanel';
 import ActivitiesHeaderPanel from './ActivitiesHeaderPanel';
 import TopicHeaderPanel from './TopicHeaderPanel';
+import AuthorHowToCard from './AuthorHowToCard';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface CenterColumnProps {
@@ -133,6 +134,10 @@ export default function CenterColumn({
 
   return (
     <div className="space-y-6 flex flex-col relative">
+      {/* --- HOW-TO GUIDE CARD (Desktop only; on mobile rendered above AuthorMobileMenuBar) --- */}
+      <div className="hidden lg:block">
+        <AuthorHowToCard />
+      </div>
       
       {/* --- TOPIC HEADER PANELS --- */}
       {sec === 'profile' && (

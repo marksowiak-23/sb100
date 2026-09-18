@@ -911,11 +911,11 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
                   window.dispatchEvent(new CustomEvent('open-member-profile'));
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-slate-900 border border-slate-200/80 rounded-xl text-xs font-serif font-medium shadow-2xs hover:shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer group shrink-0"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 border border-blue-600 font-sans shrink-0"
               title="View and edit your profile settings"
             >
-              <User className="w-3.5 h-3.5 text-slate-500 group-hover:text-slate-800 transition-colors" />
-              <span>Author Profile</span>
+              <User className="w-3.5 h-3.5" />
+              <span>Edit Profile</span>
             </button>
           ) : isConnected ? (
             <div

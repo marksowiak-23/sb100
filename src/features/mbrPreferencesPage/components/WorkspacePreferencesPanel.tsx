@@ -20,6 +20,10 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 interface WorkspacePreferencesPanelProps {
   selectedTheme: string;
   onSelectTheme: (theme: string) => void;
+  hideGettingStartedCard: boolean;
+  onToggleHideGettingStartedCard: (hide: boolean) => void;
+  hideHowToAuthorCard: boolean;
+  onToggleHideHowToAuthorCard: (hide: boolean) => void;
 }
 
 const THEME_OPTIONS = [
@@ -35,7 +39,11 @@ const THEME_OPTIONS = [
 
 export default function WorkspacePreferencesPanel({
   selectedTheme,
-  onSelectTheme
+  onSelectTheme,
+  hideGettingStartedCard,
+  onToggleHideGettingStartedCard,
+  hideHowToAuthorCard,
+  onToggleHideHowToAuthorCard
 }: WorkspacePreferencesPanelProps) {
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
@@ -54,7 +62,7 @@ export default function WorkspacePreferencesPanel({
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Theme Preference Selector */}
         <div className="space-y-2.5">
           <label className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest block">
@@ -90,6 +98,57 @@ export default function WorkspacePreferencesPanel({
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Home Page & Display Preferences */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+          <label className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-widest block">
+            Display & Card Preferences
+          </label>
+          
+          {/* Hide Getting Started Card */}
+          <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 flex items-center justify-between gap-4 transition-all">
+            <div className="space-y-0.5">
+              <span className="font-serif font-bold text-sm text-slate-800 dark:text-slate-100 block">
+                Hide Getting Started Card
+              </span>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-serif leading-relaxed">
+                When enabled, the Getting Started guide checklist on your Home page is completely hidden and will not process onboarding steps.
+              </p>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={hideGettingStartedCard}
+                onChange={(e) => onToggleHideGettingStartedCard(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+            </label>
+          </div>
+
+          {/* Hide HowTo Authoring Card */}
+          <div className="bg-slate-50/70 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-4 flex items-center justify-between gap-4 transition-all">
+            <div className="space-y-0.5">
+              <span className="font-serif font-bold text-sm text-slate-800 dark:text-slate-100 block">
+                Hide HowTo Authoring Card
+              </span>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-serif leading-relaxed">
+                When enabled, the How-To authoring guide card at the top of your Author page is completely hidden.
+              </p>
+            </div>
+
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={hideHowToAuthorCard}
+                onChange={(e) => onToggleHideHowToAuthorCard(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600"></div>
+            </label>
           </div>
         </div>
       </div>

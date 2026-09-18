@@ -380,7 +380,7 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
 
     const payload: Partial<Residence> = {
       mbrId,
-      mbrResidenceAddress: formAddress.trim() || undefined,
+      mbrResidenceAddress: formAddress.trim(),
       mbrResidenceCity: formCity.trim(),
       mbrResidenceState: formState.trim(),
       mbrResidenceCountry: formCountry.trim(),
@@ -399,7 +399,8 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
             if (r.mbrResidenceId === editingResidenceId) {
               return {
                 ...r,
-                ...payload
+                ...payload,
+                mbrResidenceAddress: formAddress.trim()
               } as Residence;
             }
             // If setting current/born/hometown to true, clear on others
@@ -819,12 +820,12 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
       ) : (
         /* RESIDENCY TABLE VIEW */
         <div className="border border-[#EFECE7] rounded-2xl bg-white shadow-xs overflow-hidden w-full max-w-full">
-          <div className="max-h-[250px] overflow-y-auto overflow-x-hidden rounded-t-2xl w-full">
-            <table className="w-full text-left border-collapse table-fixed">
+          <div className="max-h-[250px] overflow-y-auto overflow-x-hidden sm:overflow-x-auto rounded-t-2xl w-full">
+            <table className="w-full text-left border-collapse table-fixed sm:table-auto">
               <thead>
                 <tr className="bg-[#FAF8F5] border-b border-[#EFECE7] text-[10px] sm:text-[11px] font-serif font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
                   {/* Location Column */}
-                  <th className="py-2 sm:py-2.5 pl-2 sm:pl-3 pr-1 sm:pr-2 align-bottom w-[42%] sm:w-[38%] rounded-tl-2xl">
+                  <th className="py-2 sm:py-2.5 pl-2 sm:pl-3 pr-1 sm:pr-2 align-bottom w-[46%] sm:w-auto rounded-tl-2xl">
                     <button
                       type="button"
                       onClick={() => handleSort('location')}
@@ -844,7 +845,7 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
                   </th>
 
                   {/* Dates / Period Column */}
-                  <th className="py-2 sm:py-2.5 px-1 sm:px-2 align-bottom w-[32%] sm:w-[28%] text-left">
+                  <th className="py-2 sm:py-2.5 px-1 sm:px-2 align-bottom w-[28%] sm:w-auto text-left">
                     <button
                       type="button"
                       onClick={() => handleSort('date')}
@@ -864,7 +865,7 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
                   </th>
 
                   {/* Status Badges Column */}
-                  <th className="py-2 sm:py-2.5 px-1 sm:px-2 align-bottom w-[14%] sm:w-[16%]">
+                  <th className="py-2 sm:py-2.5 px-1 sm:px-2 align-bottom w-[14%] sm:w-auto">
                     <button
                       type="button"
                       onClick={() => handleSort('status')}
@@ -885,7 +886,7 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
                   </th>
 
                   {/* Actions Column */}
-                  <th className="py-2 sm:py-2.5 pr-2 sm:pr-3 pl-1 sm:pl-2 text-right align-bottom w-[12%] sm:w-[18%] rounded-tr-2xl">
+                  <th className="py-2 sm:py-2.5 pr-2 sm:pr-3 pl-1 sm:pl-2 text-right align-bottom w-[12%] sm:w-auto rounded-tr-2xl">
                     <span className="hidden sm:inline-block uppercase tracking-wider">Actions</span>
                   </th>
                 </tr>
@@ -991,9 +992,9 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
                       </td>
 
                       {/* Actions */}
-                      <td className="py-2 sm:py-2.5 pr-2 sm:pr-3 pl-1 sm:pl-2 text-right">
+                      <td className="py-2 sm:py-2.5 pr-2 sm:pr-3 pl-1 sm:pl-2 text-right sm:whitespace-nowrap">
                         {/* Desktop Expanded Action Icons */}
-                        <div className="hidden sm:inline-flex items-center gap-1">
+                        <div className="hidden sm:inline-flex items-center justify-end gap-1 shrink-0">
                           <button
                             onClick={() => handleOpenResidenceSubordinateGalleryModal(res)}
                             title={`Photo Gallery for ${res.mbrResidenceCity}, ${res.mbrResidenceState}${photoCount > 0 ? ` (${photoCount} photos)` : ''}`}
@@ -1327,24 +1328,44 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
               </div>
 
               {/* Modal Footer Action Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#EFECE7]">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  disabled={saving}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50 font-sans"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveModalRecord}
-                  disabled={saving}
-                  className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/10 transition-all cursor-pointer disabled:opacity-50 border border-blue-600 font-sans"
-                >
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                  <span>Save Record</span>
-                </button>
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#EFECE7]">
+                {editingResidenceId ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const res = residenceList.find((r) => r.mbrResidenceId === editingResidenceId);
+                      if (res) {
+                        setShowModal(false);
+                        promptDeleteResidence(res);
+                      }
+                    }}
+                    disabled={saving}
+                    className="flex items-center gap-1.5 px-3 py-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl font-bold text-xs transition-colors cursor-pointer font-sans"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </button>
+                ) : <div />}
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    disabled={saving}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50 font-sans"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveModalRecord}
+                    disabled={saving}
+                    className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/10 transition-all cursor-pointer disabled:opacity-50 border border-blue-600 font-sans"
+                  >
+                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                    <span>{editingResidenceId ? 'Save Changes' : 'Save Record'}</span>
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>

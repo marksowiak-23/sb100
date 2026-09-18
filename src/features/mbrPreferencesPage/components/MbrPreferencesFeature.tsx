@@ -40,13 +40,17 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   const [selectedTheme, setSelectedTheme] = useState<string>('System');
   const [notificationsInd, setNotificationsInd] = useState<boolean>(true);
   const [autoSaveInd, setAutoSaveInd] = useState<boolean>(true);
+  const [hideGettingStartedCard, setHideGettingStartedCard] = useState<boolean>(false);
+  const [hideHowToAuthorCard, setHideHowToAuthorCard] = useState<boolean>(false);
 
   // Initial reference state
   const [initialPrefs, setInitialPrefs] = useState({
     selectedWriterId: '',
     selectedTheme: 'System',
     notificationsInd: true,
-    autoSaveInd: true
+    autoSaveInd: true,
+    hideGettingStartedCard: false,
+    hideHowToAuthorCard: false
   });
 
   // Calculate dirty states (always clean because changes save automatically)
@@ -58,9 +62,11 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     return (
       selectedTheme !== initialPrefs.selectedTheme ||
       notificationsInd !== initialPrefs.notificationsInd ||
-      autoSaveInd !== initialPrefs.autoSaveInd
+      autoSaveInd !== initialPrefs.autoSaveInd ||
+      hideGettingStartedCard !== initialPrefs.hideGettingStartedCard ||
+      hideHowToAuthorCard !== initialPrefs.hideHowToAuthorCard
     );
-  }, [selectedTheme, notificationsInd, autoSaveInd, initialPrefs]);
+  }, [selectedTheme, notificationsInd, autoSaveInd, hideGettingStartedCard, hideHowToAuthorCard, initialPrefs]);
 
   const isDirty = useMemo(() => {
     return isStoryMateDirty || isWorkspaceDirty;
@@ -162,17 +168,36 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
       const defaultNotif = prefRecord?.mbrPrefNotificationsInd ?? true;
       const defaultAutoSave = prefRecord?.mbrPrefAutoSaveInd ?? true;
 
+      let parsedJson: any = {};
+      if (prefRecord?.mbrPrefJson) {
+        try {
+          parsedJson = typeof prefRecord.mbrPrefJson === 'string' ? JSON.parse(prefRecord.mbrPrefJson) : prefRecord.mbrPrefJson;
+        } catch (e) {
+          console.warn("Could not parse mbrPrefJson:", e);
+        }
+      }
+      const defaultHideGettingStarted = Boolean(parsedJson?.hideGettingStartedCard);
+      const defaultHideHowToAuthor = Boolean(parsedJson?.hideHowToAuthorCard);
+
+      sessionStorage.setItem(`sb_pref_json_${currentMbrId}`, JSON.stringify(parsedJson || {}));
+      sessionStorage.setItem(`sb_hide_getting_started_${currentMbrId}`, JSON.stringify(defaultHideGettingStarted));
+      sessionStorage.setItem(`sb_hide_howto_author_${currentMbrId}`, JSON.stringify(defaultHideHowToAuthor));
+
       setMbrPrefId(prefRecord?.mbrPrefId || null);
       setSelectedWriterId(defaultWriter);
       setSelectedTheme(activeTheme);
       setNotificationsInd(defaultNotif);
       setAutoSaveInd(defaultAutoSave);
+      setHideGettingStartedCard(defaultHideGettingStarted);
+      setHideHowToAuthorCard(defaultHideHowToAuthor);
 
       setInitialPrefs({
         selectedWriterId: defaultWriter,
         selectedTheme: activeTheme,
         notificationsInd: defaultNotif,
-        autoSaveInd: defaultAutoSave
+        autoSaveInd: defaultAutoSave,
+        hideGettingStartedCard: defaultHideGettingStarted,
+        hideHowToAuthorCard: defaultHideHowToAuthor
       });
 
     } catch (err: any) {
@@ -188,6 +213,8 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     mbrPrefTheme?: string;
     mbrPrefNotificationsInd?: boolean;
     mbrPrefAutoSaveInd?: boolean;
+    hideGettingStartedCard?: boolean;
+    hideHowToAuthorCard?: boolean;
   }) => {
     setSaving(true);
     setError(null);
@@ -197,15 +224,27 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     const newTheme = updates.mbrPrefTheme !== undefined ? updates.mbrPrefTheme : selectedTheme;
     const newNotif = updates.mbrPrefNotificationsInd !== undefined ? updates.mbrPrefNotificationsInd : notificationsInd;
     const newAutoSave = updates.mbrPrefAutoSaveInd !== undefined ? updates.mbrPrefAutoSaveInd : autoSaveInd;
+    const newHideGettingStarted = updates.hideGettingStartedCard !== undefined ? updates.hideGettingStartedCard : hideGettingStartedCard;
+    const newHideHowToAuthor = updates.hideHowToAuthorCard !== undefined ? updates.hideHowToAuthorCard : hideHowToAuthorCard;
 
     try {
+      let currentJsonObj: any = {};
+      const cachedJson = sessionStorage.getItem(`sb_pref_json_${targetMbrId}`);
+      if (cachedJson) {
+        try {
+          currentJsonObj = JSON.parse(cachedJson);
+        } catch {}
+      }
+      currentJsonObj.hideGettingStartedCard = newHideGettingStarted;
+      currentJsonObj.hideHowToAuthorCard = newHideHowToAuthor;
+
       const payload = {
         mbrId: targetMbrId,
         chWriterId: newWriterId || null,
         mbrPrefTheme: newTheme,
         mbrPrefNotificationsInd: newNotif,
         mbrPrefAutoSaveInd: newAutoSave,
-        mbrPrefJson: null
+        mbrPrefJson: JSON.stringify(currentJsonObj)
       };
 
       if (updates.mbrPrefTheme !== undefined) {
@@ -214,6 +253,17 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         document.documentElement.setAttribute('data-theme', newTheme);
         window.dispatchEvent(new Event('theme-changed'));
       }
+
+      sessionStorage.setItem(`sb_pref_json_${targetMbrId}`, JSON.stringify(currentJsonObj));
+      sessionStorage.setItem(`sb_hide_getting_started_${targetMbrId}`, JSON.stringify(newHideGettingStarted));
+      sessionStorage.setItem(`sb_hide_howto_author_${targetMbrId}`, JSON.stringify(newHideHowToAuthor));
+      window.dispatchEvent(new CustomEvent('preferences-changed', {
+        detail: {
+          mbrId: targetMbrId,
+          hideGettingStartedCard: newHideGettingStarted,
+          hideHowToAuthorCard: newHideHowToAuthor
+        }
+      }));
 
       if (isSandbox) {
         const updatedPref = { ...payload, mbrPrefId: mbrPrefId || 'sandbox-pref-id' };
@@ -231,7 +281,9 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         selectedWriterId: newWriterId,
         selectedTheme: newTheme,
         notificationsInd: newNotif,
-        autoSaveInd: newAutoSave
+        autoSaveInd: newAutoSave,
+        hideGettingStartedCard: newHideGettingStarted,
+        hideHowToAuthorCard: newHideHowToAuthor
       });
 
       if (onDirtyChange) {
@@ -263,6 +315,16 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   const handleSelectTheme = (theme: string) => {
     setSelectedTheme(theme);
     savePreferencesChange({ mbrPrefTheme: theme });
+  };
+
+  const handleToggleHideGettingStartedCard = (hide: boolean) => {
+    setHideGettingStartedCard(hide);
+    savePreferencesChange({ hideGettingStartedCard: hide });
+  };
+
+  const handleToggleHideHowToAuthorCard = (hide: boolean) => {
+    setHideHowToAuthorCard(hide);
+    savePreferencesChange({ hideHowToAuthorCard: hide });
   };
 
   const handleToggleNotifications = (checked: boolean) => {
@@ -328,6 +390,10 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
                 <WorkspacePreferencesPanel
                   selectedTheme={selectedTheme}
                   onSelectTheme={handleSelectTheme}
+                  hideGettingStartedCard={hideGettingStartedCard}
+                  onToggleHideGettingStartedCard={handleToggleHideGettingStartedCard}
+                  hideHowToAuthorCard={hideHowToAuthorCard}
+                  onToggleHideHowToAuthorCard={handleToggleHideHowToAuthorCard}
                 />
               )}
 

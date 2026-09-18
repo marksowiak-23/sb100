@@ -8,6 +8,7 @@ import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import AuthorMobileMenuBar from './AuthorMobileMenuBar';
+import AuthorHowToCard from './AuthorHowToCard';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface AuthorPageFeatureProps {
@@ -61,6 +62,11 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
 
   return (
     <div className="w-full relative space-y-4 lg:space-y-0">
+      {/* Mobile View: How-To Card placed above the Mobile Menu Bar */}
+      <div className="block lg:hidden">
+        <AuthorHowToCard />
+      </div>
+
       {/* Mobile Menu Bar: Story Index Navigation */}
       <AuthorMobileMenuBar
         activeSection={activeSection}

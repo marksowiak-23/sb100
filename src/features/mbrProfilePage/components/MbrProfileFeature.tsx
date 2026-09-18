@@ -316,9 +316,19 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         if (mbrId) {
           // UPDATE
           const res = await taskApi.updateMember(mbrId, payload);
-          setSuccess("Member profile updated successfully in sbDB100!");
+          setSuccess("Member profile updated successfully!");
           if (res.mbrId && payload.mbrProfilePic) {
             sessionStorage.setItem(`session_pic_${res.mbrId}`, payload.mbrProfilePic);
+          }
+          // Update current stored member in session
+          try {
+            const currentStored = sessionStorage.getItem('sb_current_mbr');
+            if (currentStored) {
+              const parsed = JSON.parse(currentStored);
+              sessionStorage.setItem('sb_current_mbr', JSON.stringify({ ...parsed, ...payload, mbrId: res.mbrId || mbrId }));
+            }
+          } catch (e) {
+            console.warn('Could not update session member object:', e);
           }
           setInitialData({ formData: { ...payload, mbrProfilePic: payload.mbrProfilePic || '' }, previewImage: previewImage });
         } else {
@@ -338,9 +348,14 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
           }
           const res = await response.json();
           setMbrId(res.mbrId);
-          setSuccess("Member profile created successfully in sbDB100!");
+          setSuccess("Member profile created successfully!");
           if (res.mbrId && payload.mbrProfilePic) {
             sessionStorage.setItem(`session_pic_${res.mbrId}`, payload.mbrProfilePic);
+          }
+          try {
+            sessionStorage.setItem('sb_current_mbr', JSON.stringify({ ...payload, mbrId: res.mbrId }));
+          } catch (e) {
+            console.warn('Could not set session member object:', e);
           }
           setInitialData({ formData: { ...payload, mbrProfilePic: payload.mbrProfilePic || '' }, previewImage: previewImage });
         }
@@ -349,9 +364,6 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
       if (onDirtyChange) {
         onDirtyChange(false);
       }
-      setTimeout(() => {
-        onClickBack();
-      }, 0);
     } catch (err: any) {
       console.error("Error saving member profile:", err);
       setError(`Failed to save changes: ${err.message}`);

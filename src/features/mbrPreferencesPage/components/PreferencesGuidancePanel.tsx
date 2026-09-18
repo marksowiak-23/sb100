@@ -23,7 +23,7 @@ export default function PreferencesGuidancePanel({ className = '' }: Preferences
         Use <strong>My Story Mate</strong> to choose the AI voice and style that best represents your storytelling tone.
       </p>
       <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif leading-relaxed">
-        Use <strong>My Workspace</strong> to configure your preferred application color theme.
+        Use <strong>My Workspace</strong> to configure your preferred application color theme and home page display settings.
       </p>
     </div>
   );

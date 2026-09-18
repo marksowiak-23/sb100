@@ -315,7 +315,7 @@ export default function MbrProfileDisplaySettingsPanel({
 
       setSettings(updatedState);
       setInitialSettings(updatedState);
-      setSuccess("Profile display settings updated successfully in sbDB100!");
+      setSuccess("Profile display settings updated successfully!");
     } catch (err: any) {
       console.error("Error saving display settings:", err);
       setError(`Failed to save display settings: ${err.message}`);

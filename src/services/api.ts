@@ -36,6 +36,9 @@ export interface Mbr {
   mbrLat?: number;
   mbrLng?: number;
   mbrLocationCanonical?: string;
+  mbrRegistrationDt?: string;
+  mbrLastLoginDate?: string;
+  mbrPriorLoginDate?: string;
   mbrCreatedAt?: string;
   mbrUpdatedAt?: string;
   user_id?: string;
@@ -2334,6 +2337,170 @@ export const eventApi = {
     return handleResponse<EventRecord>(response);
   }
 };
+
+// ==========================================
+// SESSION MANAGEMENT HELPER
+// ==========================================
+export function getOrCreateSessionId(): string {
+  if (typeof window === 'undefined') return 'sess_default';
+  let sid = sessionStorage.getItem('sb_session_id');
+  if (!sid) {
+    sid = 'sess_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
+    sessionStorage.setItem('sb_session_id', sid);
+  }
+  return sid;
+}
+
+// ==========================================
+// MBR PERSONAL TRIVIA & DID YOU KNOW API
+// ==========================================
+export const mbrPersonalTriviaApi = {
+  /**
+   * Fetch or generate today's daily personal trivia for a member.
+   */
+  async getDailyTrivia(mbrId: string): Promise<MbrPersonalTrivia> {
+    const sessionId = getOrCreateSessionId();
+    const response = await fetch(`${API_BASE_URL}/api/mbr/trivia/daily/${encodeURIComponent(mbrId)}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'x-session-id': sessionId,
+      },
+    });
+    return handleResponse<MbrPersonalTrivia>(response);
+  },
+
+  /**
+   * Force generate a new trivia item for a member on demand.
+   */
+  async generateNewTrivia(mbrId: string, preferredTopic?: string): Promise<MbrPersonalTrivia> {
+    const sessionId = getOrCreateSessionId();
+    const response = await fetch(`${API_BASE_URL}/api/mbr/trivia/generate/${encodeURIComponent(mbrId)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-session-id': sessionId,
+      },
+      body: JSON.stringify({
+        mbrId,
+        forceNew: true,
+        preferredTopic: preferredTopic || null
+      }),
+    });
+    return handleResponse<MbrPersonalTrivia>(response);
+  },
+
+  /**
+   * Get trivia history for a member.
+   */
+  async getTriviaHistory(
+    mbrId: string,
+    params?: { isFavorite?: boolean; anchorTopic?: string; skip?: number; limit?: number }
+  ): Promise<MbrPersonalTrivia[]> {
+    const query = new URLSearchParams();
+    if (params?.isFavorite !== undefined) query.set('is_favorite', params.isFavorite.toString());
+    if (params?.anchorTopic) query.set('anchor_topic', params.anchorTopic);
+    if (params?.skip !== undefined) query.set('skip', params.skip.toString());
+    if (params?.limit !== undefined) query.set('limit', params.limit.toString());
+
+    const response = await fetch(`${API_BASE_URL}/api/mbr/trivia/history/${encodeURIComponent(mbrId)}?${query.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrPersonalTrivia[]>(response);
+  },
+
+  /**
+   * Toggle favorite bookmark on a trivia item.
+   */
+  async toggleTriviaFavorite(triviaId: string): Promise<MbrPersonalTrivia> {
+    const response = await fetch(`${API_BASE_URL}/api/mbr/trivia/${encodeURIComponent(triviaId)}/favorite`, {
+      method: 'PUT',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrPersonalTrivia>(response);
+  },
+
+  /**
+   * Delete a trivia article.
+   */
+  async deleteTrivia(triviaId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/mbr/trivia/${encodeURIComponent(triviaId)}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || `Failed to delete trivia with status ${response.status}`);
+    }
+  }
+};
+
+export interface MbrPersonalTrivia {
+  mbrTriviaId: string;
+  mbrId: string;
+  anchorTopic: string;
+  anchorReference?: string;
+  headline: string;
+  storyContent: string;
+  promptSuggestion?: string;
+  chWriterId?: string;
+  isFavorite: boolean;
+  viewedAt: string;
+  createdAt: string;
+}
+
+// ==========================================
+// MBR REMEMBER WHEN & NOSTALGIA API
+// ==========================================
+export interface MbrRememberWhenGenerateParams {
+  birthYear?: number;
+  lifeStage?: string;
+  lifeStageLabel?: string;
+  targetYear?: number;
+  category?: string;
+}
+
+export interface MbrRememberWhenItem {
+  id: string;
+  year: number;
+  decade: number;
+  category: 'POP_CULTURE' | 'BIG_NEWS' | 'MOVIES_TV' | 'FADS_TRENDS' | 'COST_OF_LIVING';
+  headline: string;
+  storyContent: string;
+  promptSuggestion: string;
+  badge?: string;
+}
+
+export const mbrRememberWhenApi = {
+  /**
+   * Generate an AI-powered nostalgic memory and record token usage in mbrAiUsageLog.
+   */
+  async generateAiMemory(mbrId: string, params: MbrRememberWhenGenerateParams): Promise<MbrRememberWhenItem> {
+    const sessionId = getOrCreateSessionId();
+    const response = await fetch(`${API_BASE_URL}/api/mbr/remember-when/generate/${encodeURIComponent(mbrId)}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'x-session-id': sessionId,
+      },
+      body: JSON.stringify({
+        birthYear: params.birthYear,
+        lifeStage: params.lifeStage,
+        lifeStageLabel: params.lifeStageLabel,
+        targetYear: params.targetYear,
+        category: params.category,
+      }),
+    });
+    return handleResponse<MbrRememberWhenItem>(response);
+  },
+};
+
 
 
 

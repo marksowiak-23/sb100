@@ -163,6 +163,9 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrEmailAddress', label: 'Email Address', type: 'string', required: false },
       { name: 'mbrIntroduction', label: 'Introduction', type: 'textarea', required: false },
       { name: 'mbrProfilePic', label: 'Profile Picture URL', type: 'string', required: false },
+      { name: 'mbrRegistrationDt', label: 'Registration Date/Time', type: 'datetime', required: false },
+      { name: 'mbrLastLoginDate', label: 'Last Login Date/Time', type: 'datetime', required: false },
+      { name: 'mbrPriorLoginDate', label: 'Prior Login Date/Time', type: 'datetime', required: false },
       { name: 'user_id', label: 'Associated User ID (UUID)', type: 'uuid', required: false }
     ]
   },
@@ -443,6 +446,23 @@ const TABLES: TableDefinition[] = [
       { name: 'lastErrorMessage', label: 'Last Error Message', type: 'textarea', required: false },
       { name: 'ipAddress', label: 'IP Address', type: 'string', required: false },
       { name: 'userAgent', label: 'User Agent', type: 'string', required: false }
+    ]
+  },
+  {
+    id: 'mbrPersonalTrivia',
+    name: 'mbrPersonalTrivia',
+    endpoint: '/mbrPersonalTrivias',
+    primaryKey: 'mbrTriviaId',
+    searchField: 'headline',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'anchorTopic', label: 'Anchor Topic', type: 'string', required: true, placeholder: 'EDUCATION / RESIDENCE / EMPLOYMENT / ACHIEVEMENT / ERA' },
+      { name: 'anchorReference', label: 'Anchor Reference', type: 'string', required: false, placeholder: 'e.g. Stanford University (1988)' },
+      { name: 'headline', label: 'Headline', type: 'string', required: true, placeholder: 'Catchy headline' },
+      { name: 'storyContent', label: 'Story Content', type: 'textarea', required: true },
+      { name: 'promptSuggestion', label: 'Writing Prompt Suggestion', type: 'textarea', required: false },
+      { name: 'chWriterId', label: 'Writer / Persona ID (UUID)', type: 'uuid', required: false },
+      { name: 'isFavorite', label: 'Is Favorite', type: 'boolean', required: false }
     ]
   },
   {

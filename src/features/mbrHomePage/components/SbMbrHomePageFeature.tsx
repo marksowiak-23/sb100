@@ -6,10 +6,11 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrHomePageFeatureProps {
   onClickReadStory?: (memberId: string) => void;
-  onClickAuthorPage?: () => void;
+  onClickAuthorPage?: (initialPrompt?: string) => void;
+  onNavigate?: (tab: string) => void;
 }
 
-export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPage }: SbMbrHomePageFeatureProps) {
+export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPage, onNavigate }: SbMbrHomePageFeatureProps) {
   return (
     <div className="w-full relative">
       {/* 3-Column Responsive Grid Structure */}
@@ -22,8 +23,9 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
 
         {/* Center Column Section */}
         <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
-          <CenterColumn onClickReadStory={onClickReadStory} />
+          <CenterColumn onClickReadStory={onClickReadStory} onClickAuthorPage={onClickAuthorPage} onNavigate={onNavigate} />
         </div>
+
 
         {/* Right Column Section: Recommended publishing sponsors and legal footer links */}
         <div className="lg:col-span-3">

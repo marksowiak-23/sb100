@@ -32,6 +32,19 @@ export const userManager = {
   },
 
   /**
+   * Retrieves the current stored member profile from session storage.
+   */
+  getStoredMember(): any | null {
+    try {
+      const stored = sessionStorage.getItem('sb_current_mbr');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  },
+
+
+  /**
    * Generates authorization headers with Bearer token if present.
    */
   getAuthHeaders(existingHeaders: Record<string, string> = {}): Record<string, string> {

@@ -855,7 +855,7 @@ export default function MbrStoryEducationPanel({
               <thead>
                 <tr className="bg-[#FAF8F5] border-b border-[#EFECE7] text-[10px] sm:text-[11px] font-serif font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
                   {/* Institution Column */}
-                  <th className="py-2 sm:py-2.5 pl-2 sm:pl-3 pr-1 sm:pr-2 align-bottom w-[42%] sm:w-[38%] rounded-tl-2xl">
+                  <th className="py-2 sm:py-2.5 pl-2 sm:pl-3 pr-1 sm:pr-2 align-bottom w-[40%] sm:w-[36%] rounded-tl-2xl">
                     <button
                       type="button"
                       onClick={() => handleSort('institution')}
@@ -875,7 +875,7 @@ export default function MbrStoryEducationPanel({
                   </th>
 
                   {/* Dates / Period Column */}
-                  <th className="py-2 sm:py-2.5 px-1 sm:px-2 align-bottom w-[32%] sm:w-[28%] text-left">
+                  <th className="py-2 sm:py-2.5 px-1 sm:px-2 align-bottom w-[30%] sm:w-[25%] text-left">
                     <button
                       type="button"
                       onClick={() => handleSort('date')}
@@ -895,7 +895,7 @@ export default function MbrStoryEducationPanel({
                   </th>
 
                   {/* Degree / Credential Column */}
-                  <th className="py-2 sm:py-2.5 px-1 sm:px-2 align-bottom w-[14%] sm:w-[16%]">
+                  <th className="py-2 sm:py-2.5 px-1 sm:px-2 align-bottom w-[16%] sm:w-[15%]">
                     <button
                       type="button"
                       onClick={() => handleSort('degree')}
@@ -915,7 +915,7 @@ export default function MbrStoryEducationPanel({
                   </th>
 
                   {/* Actions Column */}
-                  <th className="py-2 sm:py-2.5 pr-2 sm:pr-3 pl-1 sm:pl-2 text-right align-bottom w-[12%] sm:w-[18%] rounded-tr-2xl">
+                  <th className="py-2 sm:py-2.5 pr-2 sm:pr-3 pl-1 sm:pl-2 text-right align-bottom w-[14%] sm:w-[24%] rounded-tr-2xl">
                     <span className="hidden sm:inline-block uppercase tracking-wider">Actions</span>
                   </th>
                 </tr>
@@ -1003,14 +1003,14 @@ export default function MbrStoryEducationPanel({
                       </td>
 
                       {/* Actions */}
-                      <td className="py-2 sm:py-2.5 pr-2 sm:pr-3 pl-1 sm:pl-2 text-right">
+                      <td className="py-2 sm:py-2.5 pr-1.5 sm:pr-2 pl-0.5 sm:pl-1 text-right">
                         {/* Desktop Action Icons */}
-                        <div className="hidden sm:inline-flex items-center gap-1">
+                        <div className="hidden sm:inline-flex items-center justify-end gap-0.5 sm:gap-1 shrink-0">
                           <button
                             type="button"
                             onClick={() => handleOpenEducationSubordinateGalleryModal(edu)}
                             title={`Photo Gallery for ${edu.mbrEducationInstitutionalNm}${photoCount > 0 ? ` (${photoCount} photos)` : ''}`}
-                            className="relative p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            className="relative p-1 sm:p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <Images className={`w-3.5 h-3.5 ${photoCount > 0 ? 'text-blue-600' : ''}`} />
                             {photoCount > 0 && (
@@ -1032,7 +1032,7 @@ export default function MbrStoryEducationPanel({
                               }
                             }))}
                             title={readOnly ? `View Stories for ${edu.mbrEducationInstitutionalNm}${storyCount > 0 ? ` (${storyCount} stories)` : ''}` : `Story Editor for ${edu.mbrEducationInstitutionalNm}${storyCount > 0 ? ` (${storyCount} stories)` : ''}`}
-                            className="relative p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            className="relative p-1 sm:p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <BookOpen className={`w-3.5 h-3.5 ${storyCount > 0 ? 'text-amber-500' : 'text-blue-500'}`} />
                             {storyCount > 0 && (
@@ -1048,7 +1048,7 @@ export default function MbrStoryEducationPanel({
                                 type="button"
                                 onClick={() => handleOpenEditModal(edu)}
                                 title="Edit Education Record"
-                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                className="p-1 sm:p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                               >
                                 <Edit3 className="w-3.5 h-3.5" />
                               </button>
@@ -1056,7 +1056,7 @@ export default function MbrStoryEducationPanel({
                                 type="button"
                                 onClick={() => promptDeleteEducation(edu)}
                                 title="Delete Education Record"
-                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                className="p-1 sm:p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
@@ -1335,23 +1335,44 @@ export default function MbrStoryEducationPanel({
                 </div>
 
                 {/* Modal Footer */}
-                <div className="flex items-center justify-end gap-3 pt-3.5 border-t border-[#EFECE7] shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleRequestCloseModal}
-                    disabled={saving}
-                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50 font-sans"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/10 transition-all cursor-pointer disabled:opacity-50 border border-blue-600 font-sans"
-                  >
-                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                    <span>{editingEducationId ? 'Save Changes' : 'Save Record'}</span>
-                  </button>
+                <div className="flex items-center justify-between gap-3 pt-3.5 border-t border-[#EFECE7] shrink-0">
+                  {editingEducationId ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const edu = educationList.find((e) => e.mbrEducationId === editingEducationId);
+                        if (edu) {
+                          setShowModal(false);
+                          setShowModalDiscardConfirm(false);
+                          promptDeleteEducation(edu);
+                        }
+                      }}
+                      disabled={saving}
+                      className="flex items-center gap-1.5 px-3 py-2 text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-xl font-bold text-xs transition-colors cursor-pointer font-sans"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  ) : <div />}
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleRequestCloseModal}
+                      disabled={saving}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50 font-sans"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={saving}
+                      className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/10 transition-all cursor-pointer disabled:opacity-50 border border-blue-600 font-sans"
+                    >
+                      {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                      <span>{editingEducationId ? 'Save Changes' : 'Save Record'}</span>
+                    </button>
+                  </div>
                 </div>
               </form>
 

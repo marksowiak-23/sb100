@@ -193,7 +193,7 @@ export default function App() {
     const dest = (targetTab && targetTab !== 'mbrProfile' && targetTab !== 'mbrProfilePage' && targetTab !== 'mbrConnections' && targetTab !== 'mbrConnectionPage') 
       ? targetTab 
       : (previousTab && previousTab !== 'mbrProfile' && previousTab !== 'mbrProfilePage' && previousTab !== 'mbrConnections' && previousTab !== 'mbrConnectionPage' ? previousTab : 'mbrHomePage');
-    navigateTo(dest);
+    applyNavigation(dest);
   };
 
   const handleTabChange = (newTab: TabType) => {
@@ -473,6 +473,9 @@ export default function App() {
               onClickReadStory={handleReadStory}
               onClickAuthorPage={() => {
                 navigateTo('mbrAuthorPage');
+              }}
+              onNavigate={(tab) => {
+                navigateTo(tab as any);
               }}
             />
           </motion.div>
