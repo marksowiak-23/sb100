@@ -73,6 +73,12 @@ const FALLBACK_INTENT_MAP: Record<string, { intentName: string; desc: string; in
     inst: 'Explore early work experiences, career pivots, teamwork, lessons learned, and professional growth.',
     prompt: 'What was your first job or a key career milestone you would like to describe in your story?'
   },
+  sbMbrStryCustom: {
+    intentName: 'Custom Topic Stories',
+    desc: 'Capture unique memories, personal adventures, and specialized reflections tailored to your custom topics.',
+    inst: 'Ask evocative sensory questions exploring the personal meaning, key moments, and reflections for this custom topic.',
+    prompt: 'What memory or reflection would you like to explore for this custom topic?'
+  },
   SbMbrProfile: {
     intentName: 'Member Profile & Introduction',
     desc: 'Craft a compelling biography narrative, background introduction, and personal profile context.',

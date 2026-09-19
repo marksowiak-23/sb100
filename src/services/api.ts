@@ -57,6 +57,7 @@ export interface MbrStory {
   mbrStoryCreatedAt: string;
   mbrStoryUpdatedAt: string;
   mbrStoryThreadID?: string;
+  mbrStoryTopicName?: string;
   mbrStorySubordinateId?: string;
   mbrMbrId: string;
   mbrId?: string;
@@ -112,6 +113,15 @@ export interface MbrTopicGroupPrivs {
   privValueCd: string;
   privCreatedAt?: string;
   privUpdatedAt?: string;
+}
+
+export interface MbrTopicCustom {
+  mbrCustomTopicId: string;
+  mbrId: string;
+  mbrCustomTopicName: string;
+  mbrCustomTopicDesc?: string;
+  mbrCustomTopicCreatedAt?: string;
+  mbrCustomTopicUpdatedAt?: string;
 }
 
 export interface MbrConnection {
@@ -867,6 +877,78 @@ export const taskApi = {
    */
   async deleteEmployment(mbrEmploymentId: string): Promise<any> {
     const response = await fetch(`${API_BASE_URL}/mbr-employments/${mbrEmploymentId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Fetch all custom topics for a given member.
+   */
+  async getCustomTopics(mbrId: string): Promise<MbrTopicCustom[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicCustom[]>(response);
+  },
+
+  /**
+   * Fetch a single custom topic by ID.
+   */
+  async getCustomTopic(mbrCustomTopicId: string): Promise<MbrTopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      }
+    });
+    return handleResponse<MbrTopicCustom>(response);
+  },
+
+  /**
+   * Create a new custom topic record.
+   */
+  async createCustomTopic(customTopic: Partial<MbrTopicCustom>): Promise<MbrTopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(customTopic),
+    });
+    return handleResponse<MbrTopicCustom>(response);
+  },
+
+  /**
+   * Update an existing custom topic record.
+   */
+  async updateCustomTopic(mbrCustomTopicId: string, customTopic: Partial<MbrTopicCustom>): Promise<MbrTopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(customTopic),
+    });
+    return handleResponse<MbrTopicCustom>(response);
+  },
+
+  /**
+   * Delete a custom topic record.
+   */
+  async deleteCustomTopic(mbrCustomTopicId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}`, {
       method: 'DELETE',
       headers: {
         'Accept': 'application/json',
@@ -1740,7 +1822,71 @@ export const mbrStoryStatApi = {
   }
 };
 
+export const mbrTopicCustomApi = {
+  async getCustomTopics(skip: number = 0, limit: number = 100): Promise<MbrTopicCustom[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs?skip=${skip}&limit=${limit}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrTopicCustom[]>(response);
+  },
 
+  async getCustomTopic(mbrCustomTopicId: string): Promise<MbrTopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrTopicCustom>(response);
+  },
+
+  async getCustomTopicsByMbrId(mbrId: string): Promise<MbrTopicCustom[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/member/${mbrId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrTopicCustom[]>(response);
+  },
+
+  async createCustomTopic(topic: Partial<MbrTopicCustom>): Promise<MbrTopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(topic)
+    });
+    return handleResponse<MbrTopicCustom>(response);
+  },
+
+  async updateCustomTopic(mbrCustomTopicId: string, topic: Partial<MbrTopicCustom>): Promise<MbrTopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(topic)
+    });
+    return handleResponse<MbrTopicCustom>(response);
+  },
+
+  async deleteCustomTopic(mbrCustomTopicId: string): Promise<MbrTopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrTopicCustom>(response);
+  }
+};
 
 export const adminDbApi = {
   async getTableData(endpoint: string): Promise<any[]> {

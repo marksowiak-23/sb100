@@ -28,6 +28,8 @@ const componentNameMap: Record<string, string> = {
   achievements: 'sbMbrStryAchievement',
   education: 'sbMbrStryEducation',
   employment: 'sbMbrStryEmployment',
+  other: 'sbMbrStryCustom',
+  custom: 'sbMbrStryCustom',
 };
 
 const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
@@ -76,6 +78,14 @@ const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
       mbrStoryId: 'st_act_1',
       mbrStoryTitle: 'Plein Air Painting in the Willamette Valley',
       mbrStoryContent: 'When I retired from teaching, I picked up watercolor brushes. Capturing the shifting light on Oregon hops fields became my weekend sanctuary and a new way of observing nature.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  other: [
+    {
+      mbrStoryId: 'st_cst_1',
+      mbrStoryTitle: 'Coast Highway Sunset Reflections',
+      mbrStoryContent: 'Driving south with the windows down, the Pacific breeze brought the scent of salt spray and pine needles. Custom adventures like this remind me of how vast and wonderful the world is.',
       mbrStoryPublishStatusCd: 'Draft'
     }
   ]
@@ -231,6 +241,13 @@ export default function StoryEditorPanel({
           const isAchievementType = (s.mbrStoryTypeCd === 'sbMbrStryAchievement' || s.mbrStoryTypeCd === 'Achievements' || s.mbrStoryTypeCd === 'Achievement');
           const isEducationType = (s.mbrStoryTypeCd === 'sbMbrStryEducation' || s.mbrStoryTypeCd === 'Education');
           const isActivityType = (s.mbrStoryTypeCd === 'sbMbrStryActivity' || s.mbrStoryTypeCd === 'Activities' || s.mbrStoryTypeCd === 'Activities and Hobbies' || s.mbrStoryTypeCd === 'Hobbies' || s.mbrStoryTypeCd === 'Activity');
+          const isCustomType = (
+            s.mbrStoryTypeCd === 'sbMbrStryCustom' ||
+            s.mbrStoryTypeCd === 'Other' ||
+            s.mbrStoryTypeCd === 'Custom' ||
+            s.mbrStoryTypeCd === 'sbMbrStryOther' ||
+            Boolean(s.mbrStoryTopicName && (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom'))
+          );
           
           let matchesType = false;
           if (topicId?.toLowerCase() === 'family' || finalStoryTypeCd === 'sbMbrStryFamly') {
@@ -243,13 +260,15 @@ export default function StoryEditorPanel({
             matchesType = isEducationType;
           } else if (topicId?.toLowerCase() === 'hobbies' || topicId?.toLowerCase() === 'activities' || finalStoryTypeCd === 'sbMbrStryActivity') {
             matchesType = isActivityType;
+          } else if (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom' || finalStoryTypeCd === 'sbMbrStryCustom') {
+            matchesType = isCustomType;
           } else {
             matchesType = s.mbrStoryTypeCd === finalStoryTypeCd || s.mbrStoryTypeCd?.toLowerCase() === topicId?.toLowerCase();
           }
           if (!matchesType) return false;
 
           if (subordinateId) {
-            return s.mbrStorySubordinateId === subordinateId;
+            return s.mbrStorySubordinateId === subordinateId || (subordinateName && s.mbrStoryTopicName === subordinateName);
           } else if (topicId?.toLowerCase() === 'family') {
             return !s.mbrStorySubordinateId;
           }
@@ -358,13 +377,15 @@ export default function StoryEditorPanel({
   const handleCreateNew = () => {
     const newId = `temp_${Date.now()}`;
     const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
+    const resolvedTopicName = subordinateName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined);
     const newStory: Partial<MbrStory> = {
       mbrStoryId: newId,
-      mbrStoryTitle: subordinateName ? `Story of ${subordinateName}` : `New ${topicTitle} Story`,
+      mbrStoryTitle: subordinateName ? `Story of ${subordinateName}` : (topicId?.toLowerCase() === 'other' ? 'New Custom Topic Story' : `New ${topicTitle} Story`),
       mbrStoryContent: '',
       mbrStoryPublishStatusCd: 'Draft',
       mbrStoryTypeCd: finalStoryTypeCd,
-      mbrStorySubordinateId: subordinateId || undefined
+      mbrStorySubordinateId: subordinateId || undefined,
+      mbrStoryTopicName: resolvedTopicName
     };
     setStories((prev) => [...prev, newStory]);
     setActiveStoryId(newId);
@@ -423,6 +444,7 @@ export default function StoryEditorPanel({
           mbrStoryPublishedDate: activeStory.mbrStoryPublishedDate || todayDateStr,
           mbrStoryTypeCd: finalStoryTypeCd,
           mbrStorySubordinateId: subordinateId || undefined,
+          mbrStoryTopicName: subordinateName || activeStory.mbrStoryTopicName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined),
           mbrMbrId: currentMbrId,
           mbrStoryVersion: version,
           mbrStoryThreadID: activeThreadId,
@@ -473,6 +495,7 @@ export default function StoryEditorPanel({
         mbrStoryPublishedDate: (status || '').toLowerCase() === 'published' ? (activeStory?.mbrStoryPublishedDate || todayDateStr) : activeStory?.mbrStoryPublishedDate,
         mbrStoryTypeCd: finalStoryTypeCd,
         mbrStorySubordinateId: subordinateId || undefined,
+        mbrStoryTopicName: subordinateName || activeStory?.mbrStoryTopicName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined),
         mbrMbrId: currentMbrId,
         mbrStoryVersion: version,
         mbrStoryThreadID: activeThreadId,

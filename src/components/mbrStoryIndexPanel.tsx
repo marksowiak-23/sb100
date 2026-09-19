@@ -50,7 +50,8 @@ const DEFAULT_TOPICS: StoryTopic[] = [
   { id: 'Achievements', label: 'Achievements' },
   { id: 'Education', label: 'Education and Training' },
   { id: 'Employment', label: 'Employment and Career' },
-  { id: 'Hobbies', label: 'Activities and Hobbies' }
+  { id: 'Hobbies', label: 'Activities and Hobbies' },
+  { id: 'Other', label: 'Other' }
 ];
 
 function getTopicIcon(id: string, label: string = '') {

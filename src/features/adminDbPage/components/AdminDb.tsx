@@ -163,15 +163,15 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrEmailAddress', label: 'Email Address', type: 'string', required: false },
       { name: 'mbrIntroduction', label: 'Introduction', type: 'textarea', required: false },
       { name: 'mbrProfilePic', label: 'Profile Picture URL', type: 'string', required: false },
-      { name: 'mbrRegistrationDt', label: 'Registration Date/Time', type: 'datetime', required: false },
-      { name: 'mbrLastLoginDate', label: 'Last Login Date/Time', type: 'datetime', required: false },
-      { name: 'mbrPriorLoginDate', label: 'Prior Login Date/Time', type: 'datetime', required: false },
+      { name: 'mbrRegistrationDt', label: 'Registration Date/Time', type: 'date', required: false },
+      { name: 'mbrLastLoginDate', label: 'Last Login Date/Time', type: 'date', required: false },
+      { name: 'mbrPriorLoginDate', label: 'Prior Login Date/Time', type: 'date', required: false },
       { name: 'user_id', label: 'Associated User ID (UUID)', type: 'uuid', required: false }
     ]
   },
   {
-    id: 'mbrAchievements',
-    name: 'mbrAchievements',
+    id: 'mbrTopicAchievements',
+    name: 'mbrTopicAchievements',
     endpoint: '/mbr-achievements',
     primaryKey: 'mbrAchievementId',
     searchField: 'mbrAchievementTitle',
@@ -183,8 +183,8 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
-    id: 'mbrActivity',
-    name: 'mbrActivity',
+    id: 'mbrTopicActivity',
+    name: 'mbrTopicActivity',
     endpoint: '/mbr-activities',
     primaryKey: 'mbrActivityId',
     searchField: 'mbrActivityName',
@@ -235,8 +235,20 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
-    id: 'mbrEducation',
-    name: 'mbrEducation',
+    id: 'mbrTopicCustom',
+    name: 'mbrTopicCustom',
+    endpoint: '/mbr-topic-customs',
+    primaryKey: 'mbrCustomTopicId',
+    searchField: 'mbrCustomTopicName',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrCustomTopicName', label: 'Custom Topic Name', type: 'string', required: true, placeholder: 'e.g. Military Service' },
+      { name: 'mbrCustomTopicDesc', label: 'Description', type: 'textarea', required: false, placeholder: 'Topic description or details...' }
+    ]
+  },
+  {
+    id: 'mbrTopicEducation',
+    name: 'mbrTopicEducation',
     endpoint: '/mbr-educations',
     primaryKey: 'mbrEducationId',
     searchField: 'mbrEducationInstitutionalNm',
@@ -250,8 +262,8 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
-    id: 'mbrEmployment',
-    name: 'mbrEmployment',
+    id: 'mbrTopicEmployment',
+    name: 'mbrTopicEmployment',
     endpoint: '/mbr-employments',
     primaryKey: 'mbrEmploymentId',
     searchField: 'mbrEmploymentCompany',
@@ -268,8 +280,8 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
-    id: 'mbrFamily',
-    name: 'mbrFamily',
+    id: 'mbrTopicFamily',
+    name: 'mbrTopicFamily',
     endpoint: '/mbr-families',
     primaryKey: 'mbrFamilyId',
     searchField: 'mbrFamilyLastNm',
@@ -333,8 +345,8 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
-    id: 'mbrResidence',
-    name: 'mbrResidence',
+    id: 'mbrTopicResidence',
+    name: 'mbrTopicResidence',
     endpoint: '/mbr-residences',
     primaryKey: 'mbrResidenceId',
     searchField: 'mbrResidenceCity',
@@ -386,6 +398,7 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrStoryStartDate', label: 'Start Date', type: 'date', required: false },
       { name: 'mbrStoryEndDate', label: 'End Date', type: 'date', required: false },
       { name: 'mbrStoryThreadID', label: 'Story Thread ID', type: 'string', required: false },
+      { name: 'mbrStoryTopicName', label: 'Story Topic Name', type: 'string', required: false, placeholder: 'e.g. Family, Education' },
       { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false },
       { name: 'mbrStoryOriginalId', label: 'Original Published Story ID (UUID)', type: 'uuid', required: false },
       { name: 'mbrStorySubordinateId', label: 'Subordinate Entity ID (UUID)', type: 'uuid', required: false }

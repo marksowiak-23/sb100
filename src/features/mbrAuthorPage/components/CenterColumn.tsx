@@ -9,6 +9,7 @@ import MbrStoryActivityPanel from '@/src/components/mbrStoryActivityPanel';
 import MbrStoryAchievementPanel from '@/src/components/mbrStoryAchievementPanel';
 import MbrStoryEducationPanel from '@/src/components/mbrStoryEducationPanel';
 import MbrStoryEmploymentPanel from '@/src/components/mbrStoryEmploymentPanel';
+import MbrStoryCustomPanel from '@/src/components/mbrStoryCustomPanel';
 import ProfileHeaderPanel from './ProfileHeaderPanel';
 import FamilyHeaderPanel from './FamilyHeaderPanel';
 import ResidenciesHeaderPanel from './ResidenciesHeaderPanel';
@@ -16,6 +17,7 @@ import AchievementsHeaderPanel from './AchievementsHeaderPanel';
 import EducationHeaderPanel from './EducationHeaderPanel';
 import EmploymentHeaderPanel from './EmploymentHeaderPanel';
 import ActivitiesHeaderPanel from './ActivitiesHeaderPanel';
+import OtherHeaderPanel from './OtherHeaderPanel';
 import TopicHeaderPanel from './TopicHeaderPanel';
 import AuthorHowToCard from './AuthorHowToCard';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -36,6 +38,7 @@ const TOPIC_DETAILS: Record<string, { topicId: string; topicTitle: string; compo
   achievements: { topicId: 'achievements', topicTitle: 'Achievements', componentName: 'sbMbrStryAchievement' },
   education: { topicId: 'education', topicTitle: 'Education and Training', componentName: 'sbMbrStryEducation' },
   employment: { topicId: 'employment', topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' },
+  other: { topicId: 'other', topicTitle: 'Other', componentName: 'sbMbrStryCustom' },
 };
 
 export default function CenterColumn({
@@ -125,7 +128,7 @@ export default function CenterColumn({
   }, [activeSection]);
 
   const sec = (activeSection || 'Profile').toLowerCase();
-  const isStandardTopic = ['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(sec);
+  const isStandardTopic = ['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment', 'other'].includes(sec);
   const currentTopicInfo = TOPIC_DETAILS[sec] || {
     topicId: sec,
     topicTitle: activeSection || 'Section',
@@ -194,7 +197,14 @@ export default function CenterColumn({
         </>
       )}
 
-      {!['profile', 'family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(sec) && (
+      {sec === 'other' && (
+        <>
+          <OtherHeaderPanel />
+          <MbrStoryCustomPanel isSandbox={isSandbox} />
+        </>
+      )}
+
+      {!['profile', 'family', 'residencies', 'hobbies', 'achievements', 'education', 'employment', 'other'].includes(sec) && (
         <>
           <TopicHeaderPanel title={activeSection} />
           <MbrBookEditorPanel sectionTitle={activeSection} content={activeContent} />

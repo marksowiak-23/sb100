@@ -15,7 +15,8 @@ import {
   GraduationCap, 
   Briefcase, 
   Palette,
-  Check
+  Check,
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -33,7 +34,8 @@ const AUTHOR_INDEX_TOPICS: StoryTopicItem[] = [
   { id: 'Achievements', label: 'Achievements', icon: Trophy },
   { id: 'Education', label: 'Education and Training', icon: GraduationCap },
   { id: 'Employment', label: 'Employment and Career', icon: Briefcase },
-  { id: 'Hobbies', label: 'Activities and Hobbies', icon: Palette }
+  { id: 'Hobbies', label: 'Activities and Hobbies', icon: Palette },
+  { id: 'Other', label: 'Other', icon: Sparkles }
 ];
 
 interface AuthorMobileMenuBarProps {

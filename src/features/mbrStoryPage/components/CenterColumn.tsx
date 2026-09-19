@@ -10,6 +10,7 @@ import MbrStoryActivityPanel from '@/src/components/mbrStoryActivityPanel';
 import MbrStoryAchievementPanel from '@/src/components/mbrStoryAchievementPanel';
 import MbrStoryEducationPanel from '@/src/components/mbrStoryEducationPanel';
 import MbrStoryEmploymentPanel from '@/src/components/mbrStoryEmploymentPanel';
+import MbrStoryCustomPanel from '@/src/components/mbrStoryCustomPanel';
 import StoryEditorPanel from '@/src/features/mbrAuthorPage/components/StoryEditorPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
@@ -33,6 +34,7 @@ const componentNameMap: Record<string, string> = {
   achievements: 'sbMbrStryAchievement',
   education: 'sbMbrStryEducation',
   employment: 'sbMbrStryEmployment',
+  other: 'sbMbrStryCustom',
 };
 
 export default function CenterColumn({
@@ -102,7 +104,7 @@ export default function CenterColumn({
   const isOwner = !viewerMbrId || (Boolean(effectiveMemberId) && viewerMbrId === effectiveMemberId);
   const isReadOnly = !isOwner;
 
-  const isStandardTopic = ['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment'].includes(topicId);
+  const isStandardTopic = ['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment', 'other'].includes(topicId);
 
   const isFromConnections = previousTab === 'mbrConnectionPage' || previousTab === 'mbrConnections';
   const isFromStoriesFeed = previousTab === 'mbrStoryFeedPage' || previousTab === 'sbStoryFeed';
@@ -202,6 +204,11 @@ export default function CenterColumn({
           {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
           {(topicId === 'employment') && (
             <MbrStoryEmploymentPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
+          )}
+
+          {/* --- CUSTOM TOPICS PANEL --- */}
+          {(topicId === 'other') && (
+            <MbrStoryCustomPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
           )}
 
           {/* --- ACTIVE SECTION CONTENT AREA (for custom text sections) --- */}

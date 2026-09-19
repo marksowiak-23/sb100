@@ -49,9 +49,13 @@ const topicBadgeColors: Record<string, { bg: string; text: string; border: strin
   hobbies: { bg: 'bg-teal-50 dark:bg-teal-950/30', text: 'text-teal-700 dark:text-teal-300', border: 'border-teal-200 dark:border-teal-800/40' },
   activities: { bg: 'bg-teal-50 dark:bg-teal-950/30', text: 'text-teal-700 dark:text-teal-300', border: 'border-teal-200 dark:border-teal-800/40' },
   sbmbrstryactivity: { bg: 'bg-teal-50 dark:bg-teal-950/30', text: 'text-teal-700 dark:text-teal-300', border: 'border-teal-200 dark:border-teal-800/40' },
+  other: { bg: 'bg-indigo-50 dark:bg-indigo-950/30', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800/40' },
+  custom: { bg: 'bg-indigo-50 dark:bg-indigo-950/30', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800/40' },
+  sbmbrstrycustom: { bg: 'bg-indigo-50 dark:bg-indigo-950/30', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200 dark:border-indigo-800/40' },
 };
 
-const formatTopicName = (typeCd?: string): string => {
+const formatTopicName = (typeCd?: string, topicName?: string): string => {
+  if (topicName) return topicName;
   if (!typeCd) return 'Story Chapter';
   const clean = typeCd.toLowerCase().replace('sbmbrstry', '').replace('mbrstry', '');
   if (clean === 'famly' || clean === 'family') return 'Family';
@@ -60,6 +64,7 @@ const formatTopicName = (typeCd?: string): string => {
   if (clean === 'education') return 'Education';
   if (clean === 'employment' || clean === 'career') return 'Employment';
   if (clean === 'activity' || clean === 'activities' || clean === 'hobbies') return 'Hobbies & Activities';
+  if (clean === 'custom' || clean === 'other') return 'Custom Topic';
   return typeCd.charAt(0).toUpperCase() + typeCd.slice(1);
 };
 
@@ -91,7 +96,7 @@ export default function MbrStoryFeedStoryPanel({
     border: 'border-slate-200 dark:border-slate-700'
   };
 
-  const displayTopic = formatTopicName(story.mbrStoryTypeCd);
+  const displayTopic = formatTopicName(story.mbrStoryTypeCd, story.mbrStoryTopicName);
   const formattedDate = formatDate(story.mbrStoryPublishedDate || story.mbrStoryUpdatedAt || story.mbrStoryCreatedAt);
 
   return (
