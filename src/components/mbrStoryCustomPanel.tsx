@@ -602,11 +602,6 @@ export default function MbrStoryCustomPanel({
           >
             <Images className="w-3.5 h-3.5 text-indigo-500" />
             <span>Photos</span>
-            {headerPhotoCount > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-100 font-bold text-slate-650">
-                {headerPhotoCount}
-              </span>
-            )}
           </button>
 
           <button
@@ -652,7 +647,7 @@ export default function MbrStoryCustomPanel({
                   className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-slate-50 text-slate-700"
                 >
                   <Images className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>Photo Gallery ({headerPhotoCount})</span>
+                  <span>Photo Gallery</span>
                 </button>
                 <button
                   type="button"
@@ -777,12 +772,6 @@ export default function MbrStoryCustomPanel({
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-serif font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                               <BookOpen className="w-2.5 h-2.5" />
                               {storyCount} {storyCount === 1 ? 'Story' : 'Stories'}
-                            </span>
-                          )}
-                          {photoCount > 0 && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-serif font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 shrink-0">
-                              <Images className="w-2.5 h-2.5" />
-                              {photoCount} {photoCount === 1 ? 'Photo' : 'Photos'}
                             </span>
                           )}
                         </div>

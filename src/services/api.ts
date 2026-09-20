@@ -63,6 +63,8 @@ export interface MbrStory {
   mbrId?: string;
   chIntentId?: string;
   mbrStoryOriginalId?: string;
+  topicId?: string;
+  mbrCustomTopicId?: string;
 }
 
 export interface MbrMedia {
@@ -83,6 +85,7 @@ export interface Topic {
   topicName: string;
   topicFullName?: string;
   topicSortOrder?: number | null;
+  chIntentId?: string | null;
   topicCreatedAt?: string;
   topicUpdatedAt?: string;
 }

@@ -399,6 +399,8 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrStoryEndDate', label: 'End Date', type: 'date', required: false },
       { name: 'mbrStoryThreadID', label: 'Story Thread ID', type: 'string', required: false },
       { name: 'mbrStoryTopicName', label: 'Story Topic Name', type: 'string', required: false, placeholder: 'e.g. Family, Education' },
+      { name: 'topicId', label: 'Standard Topic ID (UUID)', type: 'uuid', required: false },
+      { name: 'mbrCustomTopicId', label: 'Custom Topic ID (UUID)', type: 'uuid', required: false },
       { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false },
       { name: 'mbrStoryOriginalId', label: 'Original Published Story ID (UUID)', type: 'uuid', required: false },
       { name: 'mbrStorySubordinateId', label: 'Subordinate Entity ID (UUID)', type: 'uuid', required: false }
@@ -516,7 +518,8 @@ const TABLES: TableDefinition[] = [
     fields: [
       { name: 'topicName', label: 'Topic Name', type: 'string', required: true, placeholder: 'e.g. topicFamily' },
       { name: 'topicFullName', label: 'Topic Full Name', type: 'string', required: false, placeholder: 'e.g. Family & Heritage Stories' },
-      { name: 'topicSortOrder', label: 'Topic Sort Order', type: 'number', required: false, placeholder: 'e.g. 10' }
+      { name: 'topicSortOrder', label: 'Topic Sort Order', type: 'number', required: false, placeholder: 'e.g. 10' },
+      { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false, placeholder: 'Intent UUID (optional)' }
     ]
   },
   {
@@ -733,8 +736,8 @@ const getInitialMockData = (tableId: string): any[] => {
       ];
     case 'topic':
       return [
-        { topicId: 't1-topic-fam', topicName: 'topicFamily', topicFullName: 'Family & Heritage Stories', topicCreatedAt: now, topicUpdatedAt: now },
-        { topicId: 't2-topic-res', topicName: 'topicResidence', topicFullName: 'Residences & Places Lived', topicCreatedAt: now, topicUpdatedAt: now }
+        { topicId: 't1-topic-fam', topicName: 'topicFamily', topicFullName: 'Family & Heritage Stories', topicSortOrder: 10, chIntentId: null, topicCreatedAt: now, topicUpdatedAt: now },
+        { topicId: 't2-topic-res', topicName: 'topicResidence', topicFullName: 'Residences & Places Lived', topicSortOrder: 20, chIntentId: null, topicCreatedAt: now, topicUpdatedAt: now }
       ];
     case 'groupGlobal':
       return [
@@ -1178,17 +1181,21 @@ export default function AdminDb({ isSandbox }: AdminDbProps) {
             />
           </div>
 
-          {/* Print PDF Button for AI tables */}
-          {['chInst', 'chIntent', 'chPrompt', 'chWriter'].includes(selectedTable.id) && (
-            <button
-              onClick={handlePrintPdf}
-              title={`Generate and download PDF report for ${selectedTable.name}`}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 shrink-0"
-            >
-              <Printer className="w-4 h-4 text-slate-300" />
-              <span>Print PDF</span>
-            </button>
-          )}
+          {/* Print PDF Button for All Tables */}
+          <button
+            onClick={handlePrintPdf}
+            disabled={filteredData.length === 0}
+            title={`Generate and download PDF report for ${selectedTable.name} (${filteredData.length} records)`}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-sm active:scale-95 shrink-0"
+          >
+            <Printer className="w-4 h-4 text-slate-300" />
+            <span>Print PDF</span>
+            {filteredData.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full text-[10px] bg-slate-700 text-slate-200 font-mono">
+                {filteredData.length}
+              </span>
+            )}
+          </button>
 
           <button
             onClick={handleAddClick}
