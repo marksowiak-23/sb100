@@ -228,6 +228,7 @@ erDiagram
 | **`users`** | `user_id` (UUID) | None | System user authentication credentials, email, password hash, active status |
 | **`mbr`** | `mbrId` (UUID) | `userId` -> `users` | Core member profile, names, bio, avatar pic URL, latitude, longitude, location |
 | **`mbrStory`** | `mbrStoryId` (UUID) | `mbrId` -> `mbr`, `topicId` -> `topic` | Story chapters, drafts, markdown content, publication status, subordinate chapters |
+| **`mbrStoryLikes`** | `mbrStoryLikesId` (UUID) | `mbrStoryId` -> `mbrStory`, `mbrLikesMbrId` -> `mbr` | Story reaction and like interactions (Like, Love, Care, HaHa, Wow, Sad, Angry) |
 | **`mbrFamily`** | `mbrFamilyId` (UUID) | `mbrId` -> `mbr` | Structured records of relatives, birthdates, relationships, family stories |
 | **`mbrResidence`**| `mbrResidenceId` (UUID)| `mbrId` -> `mbr` | Past addresses, homes, cities, states, geocodes, sensory memories |
 | **`mbrActivity`** | `mbrActivityId` (UUID) | `mbrId` -> `mbr` | Hobbies, pastimes, sports, creative projects |

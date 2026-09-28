@@ -53,17 +53,7 @@ export default function SbEasyStoryWritingCard({ onClickAuthorPage }: SbEasyStor
       <div className="p-4 sm:p-5 space-y-4">
         {/* Header Section */}
         <div className="space-y-1">
-          <div className="flex items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80">
-              <Sparkles className="w-3 h-3 text-amber-600 animate-pulse" />
-              StoryMate Co-Writer
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              <Smile className="w-3 h-3" /> Fun &amp; Easy
-            </span>
-          </div>
-
-          <h3 className="font-serif text-lg font-bold text-slate-900 tracking-tight pt-1">
+          <h3 className="font-serif text-lg font-bold text-slate-900 tracking-tight">
             Easy Story Writing
           </h3>
           <p className="text-xs text-slate-600 font-serif leading-relaxed">

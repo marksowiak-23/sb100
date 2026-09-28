@@ -13,9 +13,10 @@ import MbrStoryEmploymentPanel from '@/src/components/mbrStoryEmploymentPanel';
 import MbrStoryCustomPanel from '@/src/components/mbrStoryCustomPanel';
 import StoryEditorPanel from '@/src/features/mbrAuthorPage/components/StoryEditorPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { taskApi, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
 
 interface CenterColumnProps {
-  member: MemberStory;
+  member: MemberStory | any;
   activeSection: string;
   activeContent: string[];
   lockedTopicIds?: string[];
@@ -31,10 +32,12 @@ const componentNameMap: Record<string, string> = {
   family: 'sbMbrStryFamly',
   residencies: 'sbMbrStryResidence',
   hobbies: 'sbMbrStryActivity',
+  activities: 'sbMbrStryActivity',
   achievements: 'sbMbrStryAchievement',
   education: 'sbMbrStryEducation',
   employment: 'sbMbrStryEmployment',
   other: 'sbMbrStryCustom',
+  custom: 'sbMbrStryCustom',
 };
 
 export default function CenterColumn({
@@ -49,8 +52,26 @@ export default function CenterColumn({
   previousTab,
   backLabel
 }: CenterColumnProps) {
+  const [dbTopics, setDbTopics] = useState<Topic[]>([]);
   const [subordinateId, setSubordinateId] = useState<string | null>(null);
   const [subordinateName, setSubordinateName] = useState<string | undefined>(undefined);
+
+  // Load topics from topic table
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTopics = async () => {
+      try {
+        const fetched = await taskApi.getTopics();
+        if (Array.isArray(fetched) && fetched.length > 0 && isMounted) {
+          setDbTopics(fetched);
+        }
+      } catch (err) {
+        console.warn("Could not load topics in mbrStoryPage CenterColumn:", err);
+      }
+    };
+    fetchTopics();
+    return () => { isMounted = false; };
+  }, []);
 
   // Normalize topic name for security lock comparison
   const safeActiveSection = typeof activeSection === 'string' ? activeSection : 'Profile';
@@ -59,6 +80,11 @@ export default function CenterColumn({
   const isSectionLocked = safeLocked.some(
     (id) => typeof id === 'string' && id.toLowerCase() === topicId
   );
+
+  const matchedTopic = matchTopicByName(safeActiveSection, dbTopics);
+  const currentTopicId = matchedTopic?.topicId || DEFAULT_TOPIC_LOOKUP[topicId]?.topicId || topicId;
+  const currentChIntentId = matchedTopic?.chIntentId || DEFAULT_TOPIC_LOOKUP[topicId]?.chIntentId;
+  const currentTopicTitle = matchedTopic?.topicFullName || matchedTopic?.topicName || safeActiveSection;
 
   const effectiveMemberId = member?.mbrId || member?.id || '';
 
@@ -104,7 +130,7 @@ export default function CenterColumn({
   const isOwner = !viewerMbrId || (Boolean(effectiveMemberId) && viewerMbrId === effectiveMemberId);
   const isReadOnly = !isOwner;
 
-  const isStandardTopic = ['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment', 'other'].includes(topicId);
+  const isStandardTopic = ['family', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'other', 'custom'].includes(topicId);
 
   const isFromConnections = previousTab === 'mbrConnectionPage' || previousTab === 'mbrConnections';
   const isFromStoriesFeed = previousTab === 'mbrStoryFeedPage' || previousTab === 'sbStoryFeed';
@@ -178,37 +204,79 @@ export default function CenterColumn({
         <>
           {/* --- FAMILY DIRECTORY PANEL --- */}
           {(topicId === 'family') && (
-            <MbrStoryFamilyPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
+            <MbrStoryFamilyPanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
           )}
 
           {/* --- RESIDENCES PANEL --- */}
           {(topicId === 'residencies') && (
-            <MbrStoryResidencePanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
+            <MbrStoryResidencePanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
           )}
 
           {/* --- ACTIVITIES & HOBBIES PANEL --- */}
-          {(topicId === 'hobbies') && (
-            <MbrStoryActivityPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
+          {(topicId === 'hobbies' || topicId === 'activities') && (
+            <MbrStoryActivityPanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
           )}
 
           {/* --- ACHIEVEMENTS & RECOGNITION PANEL --- */}
           {(topicId === 'achievements') && (
-            <MbrStoryAchievementPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
+            <MbrStoryAchievementPanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
           )}
 
           {/* --- EDUCATION & ACADEMIC HISTORY PANEL --- */}
           {(topicId === 'education') && (
-            <MbrStoryEducationPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
+            <MbrStoryEducationPanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
           )}
 
           {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
           {(topicId === 'employment') && (
-            <MbrStoryEmploymentPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
+            <MbrStoryEmploymentPanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
           )}
 
           {/* --- CUSTOM TOPICS PANEL --- */}
-          {(topicId === 'other') && (
-            <MbrStoryCustomPanel memberId={effectiveMemberId} isSandbox={false} readOnly={isReadOnly} />
+          {(topicId === 'other' || topicId === 'custom') && (
+            <MbrStoryCustomPanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
           )}
 
           {/* --- ACTIVE SECTION CONTENT AREA (for custom text sections) --- */}
@@ -220,8 +288,9 @@ export default function CenterColumn({
           {isStandardTopic && (
             <div id="story-editor-panel">
               <StoryEditorPanel
-                topicId={topicId}
-                topicTitle={safeActiveSection}
+                topicId={currentTopicId}
+                chIntentId={currentChIntentId}
+                topicTitle={currentTopicTitle}
                 componentName={componentNameMap[topicId] || `sbMbrStry${safeActiveSection}`}
                 subordinateId={subordinateId || undefined}
                 subordinateName={subordinateName}

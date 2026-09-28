@@ -38,6 +38,7 @@ import { AdminCacheManagement, AdminCachePage } from '@/src/features/adminCacheP
 import { AdminMediaManagement, AdminMediaPage } from '@/src/features/adminMediaPage';
 import { AdminPropertiesFeature, SystemPropertiesFeature } from '@/src/features/adminProperties';
 import { AdminUserAIUsageFeature } from '@/src/features/adminUserAIUsagePage';
+import { AdminTopicSparksFeature, TopicSparksAdmin, AdminTopicSparksPage } from '@/src/features/adminTopicSparksPage';
 
 
 // Define a TypeScript type to restrict activeTab to only these string values.
@@ -76,6 +77,9 @@ type TabType =
   | 'mbrConnections'
   | 'adminDbPage'
   | 'admin-db'
+  | 'adminTopicSparksPage'
+  | 'topicSparksAdmin'
+  | 'admin-topic-sparks'
   | 'adminUserAIUsagePage'
   | 'admin-user-ai-usage'
   | 'adminCachePage'
@@ -696,6 +700,19 @@ export default function App() {
             className="w-full"
           >
             <DbAdminFeature isSandbox={isSandbox} />
+          </motion.div>
+        )}
+        {/* If the active tab is 'adminTopicSparksPage' or 'topicSparksAdmin', render the Topic Sparks Questions Admin Feature */}
+        {(activeTab === 'adminTopicSparksPage' || activeTab === 'topicSparksAdmin' || activeTab === 'admin-topic-sparks') && (
+          <motion.div
+            key="adminTopicSparksPage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <AdminTopicSparksFeature />
           </motion.div>
         )}
         {/* If the active tab is 'adminUserAIUsagePage' or 'admin-user-ai-usage', render the AI Token & Compute Analytics Feature */}

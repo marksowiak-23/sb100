@@ -10,7 +10,7 @@ import {
   AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, 
   BookOpen, Images, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical 
 } from 'lucide-react';
-import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL } from '@/src/services/api';
+import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -19,6 +19,8 @@ export interface MbrStoryResidencePanelProps {
   isSandbox?: boolean;
   memberId?: string;
   readOnly?: boolean;
+  topicId?: string;
+  chIntentId?: string;
 }
 
 export type SbMbrStryResidenceProps = MbrStoryResidencePanelProps;
@@ -91,7 +93,10 @@ const sortResidenceList = (list: Residence[]): Residence[] => {
   });
 };
 
-export default function MbrStoryResidencePanel({ isSandbox = false, memberId, readOnly = false }: MbrStoryResidencePanelProps) {
+export default function MbrStoryResidencePanel({ isSandbox = false, memberId, readOnly = false, topicId, chIntentId }: MbrStoryResidencePanelProps) {
+  const resolvedTopicId = topicId || DEFAULT_TOPIC_LOOKUP['residencies'].topicId;
+  const resolvedChIntentId = chIntentId || DEFAULT_TOPIC_LOOKUP['residencies'].chIntentId;
+
   // --- STATE VARIABLES ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -597,7 +602,7 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-            detail: { topicId: 'residencies', topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' }
+            detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' }
           }))}
           className="flex items-center gap-2 sm:gap-3 group/topic cursor-pointer text-left focus:outline-none transition-transform active:scale-98 min-w-0"
           title={readOnly ? "View Stories" : "Story Editor"}
@@ -648,7 +653,7 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
             {/* Storybook Icon Button with Count Badge */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                detail: { topicId: 'residencies', topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' }
+                detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' }
               }))}
               className="relative p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
               title={readOnly ? `View Member Stories${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}` : `Story Editor${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}`}
@@ -727,7 +732,7 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
                       onClick={() => {
                         setShowHeaderMenu(false);
                         window.dispatchEvent(new CustomEvent('open-story-editor', {
-                          detail: { topicId: 'residencies', topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' }
+                          detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' }
                         }));
                       }}
                       className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
@@ -1010,7 +1015,8 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
                           <button
                             onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
                               detail: {
-                                topicId: 'residencies',
+                                topicId: resolvedTopicId,
+                                chIntentId: resolvedChIntentId,
                                 topicTitle: `Residency (${res.mbrResidenceCity}, ${res.mbrResidenceState})`,
                                 componentName: 'sbMbrStryResidence',
                                 subordinateId: res.mbrResidenceId,
@@ -1104,7 +1110,8 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
                                       setActiveActionMenuId(null);
                                       window.dispatchEvent(new CustomEvent('open-story-editor', {
                                         detail: {
-                                          topicId: 'residencies',
+                                          topicId: resolvedTopicId,
+                                          chIntentId: resolvedChIntentId,
                                           topicTitle: `Residency (${res.mbrResidenceCity}, ${res.mbrResidenceState})`,
                                           componentName: 'sbMbrStryResidence',
                                           subordinateId: res.mbrResidenceId,

@@ -66,9 +66,62 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
   const [showHideConfirmDialog, setShowHideConfirmDialog] = useState<boolean>(false);
   const [isHidingCard, setIsHidingCard] = useState<boolean>(false);
 
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
-  const [collapsedStepIds, setCollapsedStepIds] = useState<number[]>([]);
+  const [completedSteps, setCompletedSteps] = useState<number[]>(() => {
+    const mbr = userManager.getStoredMember();
+    if (mbr?.mbrId) {
+      try {
+        const cached = localStorage.getItem(`sb_getting_started_completed_${mbr.mbrId}`) || sessionStorage.getItem(`sb_getting_started_completed_${mbr.mbrId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    const mbr = userManager.getStoredMember();
+    if (mbr?.mbrId) {
+      try {
+        const savedCollapsed = localStorage.getItem(`sb_getting_started_collapsed_${mbr.mbrId}`);
+        if (savedCollapsed !== null) {
+          return JSON.parse(savedCollapsed) === true;
+        }
+        const cached = localStorage.getItem(`sb_getting_started_completed_${mbr.mbrId}`) || sessionStorage.getItem(`sb_getting_started_completed_${mbr.mbrId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length >= 5) return true;
+        }
+      } catch {}
+    }
+    // Default to true during initial resolution if undetermined, preventing abrupt expanded-then-collapse flash
+    return true;
+  });
+
+  const [collapsedStepIds, setCollapsedStepIds] = useState<number[]>(() => {
+    const mbr = userManager.getStoredMember();
+    if (mbr?.mbrId) {
+      try {
+        const cached = localStorage.getItem(`sb_getting_started_completed_${mbr.mbrId}`) || sessionStorage.getItem(`sb_getting_started_completed_${mbr.mbrId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  const [isDetermining, setIsDetermining] = useState<boolean>(() => {
+    const mbr = userManager.getStoredMember();
+    if (mbr?.mbrId) {
+      const cached = localStorage.getItem(`sb_getting_started_completed_${mbr.mbrId}`) || sessionStorage.getItem(`sb_getting_started_completed_${mbr.mbrId}`);
+      if (cached) return false;
+    }
+    return true;
+  });
+
   const [activeStepHover, setActiveStepHover] = useState<number | null>(null);
 
   const handleConfirmHideCard = async () => {
@@ -338,6 +391,12 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
           // Collapse any step that has been completed
           setCollapsedStepIds(finalCompleted);
 
+          // Save completed steps to cache
+          try {
+            localStorage.setItem(`sb_getting_started_completed_${mbrId}`, JSON.stringify(finalCompleted));
+            sessionStorage.setItem(`sb_getting_started_completed_${mbrId}`, JSON.stringify(finalCompleted));
+          } catch {}
+
           // Collapse the entire card if all steps are complete
           if (finalCompleted.length === 5) {
             setIsCollapsed(true);
@@ -354,6 +413,7 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
               setIsCollapsed(false);
             }
           }
+          setIsDetermining(false);
         }
       } catch (err) {
         console.warn('Could not auto-check onboarding progress:', err);
@@ -520,56 +580,58 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
   }
 
   return (
-    <div className="relative bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-all overflow-hidden">
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-md transition-all overflow-hidden">
       {/* Top Signature Gold & Amber Gradient Accent */}
-      <div className="h-1.5 w-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600" />
+      <div className="h-2 w-full bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500" />
+
+      {/* Top Folder Tab Title Header */}
+      <div className="bg-[#FFFDF7] dark:bg-slate-900/60 border-b border-amber-100/80 dark:border-slate-800 flex items-center justify-between gap-3 px-3.5 sm:px-5 py-2 flex-wrap">
+        {/* Left: Folder Tab Title */}
+        <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-950 dark:text-amber-200">
+          <Rocket className="w-4 h-4 text-amber-600 shrink-0" />
+          <span className="tracking-tight text-[13px] font-bold text-[#78350F] dark:text-amber-200">
+            Getting Started Guide
+          </span>
+        </div>
+
+        {/* Right: Hide Card & Show/Collapse Steps */}
+        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+          <button
+            type="button"
+            onClick={() => setShowHideConfirmDialog(true)}
+            title="Hide Getting Started card from Home page"
+            className="px-2.5 py-1 text-slate-500 hover:text-amber-800 hover:bg-amber-50/80 rounded-xl transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+          >
+            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+            <span>Hide Card</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsCollapsed(prev => {
+                const next = !prev;
+                const targetMbrId = activeMbrId || userManager.getStoredMember()?.mbrId;
+                if (targetMbrId) {
+                  try {
+                    localStorage.setItem(`sb_getting_started_collapsed_${targetMbrId}`, JSON.stringify(next));
+                  } catch {}
+                }
+                return next;
+              });
+            }}
+            title={isCollapsed ? 'Expand Getting Started steps' : 'Collapse Getting Started steps'}
+            className="p-1 sm:px-2.5 sm:py-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors flex items-center gap-1 text-xs font-medium cursor-pointer"
+          >
+            <span className="hidden sm:inline">{isCollapsed ? 'Show Steps' : 'Collapse Steps'}</span>
+            {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          </button>
+        </div>
+      </div>
 
       <div className="p-5 md:p-6 space-y-5">
         {/* Card Header */}
         <div className="space-y-2">
-          {/* Top Meta Row: Badge & Header Actions */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-xs">
-                <Rocket className="w-3.5 h-3.5 text-amber-600 animate-bounce" />
-                Getting Started Guide
-              </span>
-              
-              {isAllCompleted ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                  <PartyPopper className="w-3.5 h-3.5 text-emerald-600" /> All 5 Done!
-                </span>
-              ) : (
-                <span className="text-xs font-semibold text-slate-500">
-                  {completedSteps.length} of 5 Completed
-                </span>
-              )}
-            </div>
-
-            {/* Header Action Buttons: Hide Card & Collapse / Expand */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowHideConfirmDialog(true)}
-                title="Hide Getting Started card from Home page"
-                className="px-2.5 py-1 text-slate-500 hover:text-amber-800 hover:bg-amber-50/80 rounded-xl transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-              >
-                <EyeOff className="w-3.5 h-3.5 text-slate-400" />
-                <span>Hide Card</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsCollapsed(prev => !prev)}
-                title={isCollapsed ? 'Expand Getting Started steps' : 'Collapse Getting Started steps'}
-                className="p-1 sm:px-2.5 sm:py-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors flex items-center gap-1 text-xs font-medium cursor-pointer"
-              >
-                <span className="hidden sm:inline">{isCollapsed ? 'Show Steps' : 'Collapse Steps'}</span>
-                {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
           {/* Heading & Full-Width Subtitle */}
           <div className="space-y-1">
             <h3 className="font-serif text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight">

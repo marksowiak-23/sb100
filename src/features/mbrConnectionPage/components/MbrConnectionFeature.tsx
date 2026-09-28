@@ -911,7 +911,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
     const groupNameById = new Map<string, string>();
     groups.forEach(g => groupNameById.set(g.grpId, g.grpName));
 
-    Object.values(items).forEach(it => {
+    (Object.values(items) as any[]).forEach((it: any) => {
       if (it.member && it.member.mbrId) {
         const grpName = it.selectedGrpId ? groupNameById.get(it.selectedGrpId) : undefined;
         map.set(it.member.mbrId, {
@@ -945,7 +945,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             skip: 0
           });
         } else {
-          result = Object.values(items).map(i => i.member);
+          result = (Object.values(items) as any[]).map((i: any) => i.member);
         }
 
         if (isMounted) {

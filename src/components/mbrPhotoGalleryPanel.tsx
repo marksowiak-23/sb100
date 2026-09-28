@@ -120,7 +120,15 @@ export default function MbrPhotoGalleryPanel({
         const list = await taskApi.getMemberMedia(mbrId);
         if (list && Array.isArray(list)) {
           const filtered = list.filter((m) => {
-            const catMatch = (m.mbrMediaCategoryCd || '').toLowerCase() === categoryCd.toLowerCase();
+            const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
+            const targetCat = categoryCd.toLowerCase();
+            const catMatch =
+              cat === targetCat ||
+              (targetCat.startsWith('activ') && (cat.startsWith('activ') || cat.startsWith('hobb'))) ||
+              (targetCat.startsWith('hobb') && (cat.startsWith('activ') || cat.startsWith('hobb'))) ||
+              (targetCat.startsWith('residen') && (cat.startsWith('residen') || cat === 'home')) ||
+              (targetCat.startsWith('cust') && (cat.startsWith('cust') || cat.startsWith('other'))) ||
+              (targetCat.startsWith('other') && (cat.startsWith('cust') || cat.startsWith('other')));
             if (subordinateId) {
               return catMatch && m.mbrMediaSubordinateId === subordinateId;
             }

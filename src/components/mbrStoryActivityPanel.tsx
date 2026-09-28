@@ -24,7 +24,7 @@ import {
   ArrowUpDown,
   MoreVertical
 } from 'lucide-react';
-import { taskApi, MbrMedia } from '@/src/services/api';
+import { taskApi, MbrMedia, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -33,6 +33,8 @@ export interface MbrStoryActivityPanelProps {
   isSandbox?: boolean;
   memberId?: string;
   readOnly?: boolean;
+  topicId?: string;
+  chIntentId?: string;
 }
 
 export type SbMbrStryActivityProps = MbrStoryActivityPanelProps;
@@ -80,8 +82,13 @@ const SANDBOX_ACTIVITIES: Activity[] = [
 export default function MbrStoryActivityPanel({
   isSandbox = false,
   memberId,
-  readOnly = false
+  readOnly = false,
+  topicId,
+  chIntentId
 }: MbrStoryActivityPanelProps) {
+  const resolvedTopicId = topicId || DEFAULT_TOPIC_LOOKUP['activities'].topicId;
+  const resolvedChIntentId = chIntentId || DEFAULT_TOPIC_LOOKUP['activities'].chIntentId;
+
   // --- STATE VARIABLES ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -565,7 +572,7 @@ export default function MbrStoryActivityPanel({
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-            detail: { topicId: 'hobbies', topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' }
+            detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' }
           }))}
           className="flex items-center gap-2 sm:gap-3 group/topic cursor-pointer text-left focus:outline-none transition-transform active:scale-98 min-w-0"
           title={readOnly ? "View Stories" : "Story Editor"}
@@ -616,7 +623,7 @@ export default function MbrStoryActivityPanel({
             {/* Storybook Icon Button with Count Badge */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                detail: { topicId: 'hobbies', topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' }
+                detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' }
               }))}
               className="relative p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
               title={readOnly ? `View Member Stories${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}` : `Story Editor${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}`}
@@ -695,7 +702,7 @@ export default function MbrStoryActivityPanel({
                       onClick={() => {
                         setShowHeaderMenu(false);
                         window.dispatchEvent(new CustomEvent('open-story-editor', {
-                          detail: { topicId: 'hobbies', topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' }
+                          detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' }
                         }));
                       }}
                       className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
@@ -768,8 +775,8 @@ export default function MbrStoryActivityPanel({
       ) : sortedActivityList.length === 0 ? (
         <div className="py-10 flex flex-col items-center justify-center text-center p-4 border border-dashed border-[#EFECE7] rounded-2xl bg-white/50">
           <Sparkles className="w-8 h-8 text-slate-300 mb-2" />
-          <h4 className="font-serif font-bold text-sm text-slate-700">No activities or hobbies added yet</h4>
-          <p className="text-xs text-slate-400 font-serif max-w-sm mt-1 mb-4">
+          <h4 className="font-serif font-bold text-base text-slate-800">No activities or hobbies added yet</h4>
+          <p className="text-sm sm:text-[15px] text-slate-500 font-sans leading-relaxed max-w-sm mt-1 mb-4 font-normal">
             {readOnly
               ? "This member hasn't added any activities or hobbies to their storybook yet."
               : "Document personal pastimes, creative pursuits, sports, and recurring hobbies."}
@@ -848,7 +855,7 @@ export default function MbrStoryActivityPanel({
                     {/* Line 1: Title on left, Frequency and Action Icons on right */}
                     <div className="flex items-center justify-between gap-2 min-w-0">
                       {/* Activity Title */}
-                      <span className="font-serif font-bold text-slate-800 text-xs sm:text-[13px] leading-tight truncate">
+                      <span className="font-serif font-bold text-slate-800 dark:text-slate-100 text-sm sm:text-base leading-snug truncate">
                         {act.mbrActivityName}
                       </span>
 
@@ -881,7 +888,8 @@ export default function MbrStoryActivityPanel({
                             type="button"
                             onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
                               detail: { 
-                                topicId: 'hobbies', 
+                                topicId: resolvedTopicId,
+                                chIntentId: resolvedChIntentId, 
                                 topicTitle: 'Activities and Hobbies', 
                                 componentName: 'sbMbrStryActivity',
                                 subordinateId: act.mbrActivityId,
@@ -979,7 +987,8 @@ export default function MbrStoryActivityPanel({
                                       setActiveActionMenuId(null);
                                       window.dispatchEvent(new CustomEvent('open-story-editor', {
                                         detail: { 
-                                          topicId: 'hobbies', 
+                                          topicId: resolvedTopicId,
+                                          chIntentId: resolvedChIntentId, 
                                           topicTitle: 'Activities and Hobbies', 
                                           componentName: 'sbMbrStryActivity',
                                           subordinateId: act.mbrActivityId,
@@ -1036,7 +1045,7 @@ export default function MbrStoryActivityPanel({
 
                     {/* Line 2: Activity Description Underneath - perfectly left-aligned with title */}
                     {act.mbrActivityDescription && (
-                      <p className="text-[11px] sm:text-xs text-slate-500 font-serif leading-relaxed break-words pr-1">
+                      <p className="text-slate-600 dark:text-slate-300 font-sans text-sm sm:text-[15px] leading-relaxed font-normal break-words pr-1">
                         {act.mbrActivityDescription}
                       </p>
                     )}
@@ -1118,7 +1127,7 @@ export default function MbrStoryActivityPanel({
                     placeholder="e.g. Oil Painting, Gardening, Marathon Running, Chess"
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-sans text-slate-800 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:outline-none transition-colors"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-[15px] font-sans text-slate-800 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:outline-none transition-colors leading-relaxed font-normal"
                   />
                 </div>
 
@@ -1130,7 +1139,7 @@ export default function MbrStoryActivityPanel({
                   <select
                     value={formFrequency}
                     onChange={(e) => setFormFrequency(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-sans text-slate-800 focus:bg-white focus:border-indigo-500 focus:outline-none transition-colors cursor-pointer"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-[15px] font-sans text-slate-800 focus:bg-white focus:border-indigo-500 focus:outline-none transition-colors cursor-pointer font-normal"
                   >
                     <option value="">Select frequency (optional)</option>
                     {FREQUENCY_OPTIONS.map((opt) => (
@@ -1151,7 +1160,7 @@ export default function MbrStoryActivityPanel({
                     placeholder="Describe your involvement, favorite techniques, memorable experiences, or milestones..."
                     value={formDescription}
                     onChange={(e) => setFormDescription(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-sans text-slate-800 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:outline-none transition-colors resize-y"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm sm:text-[15px] font-sans text-slate-800 placeholder-slate-400 focus:bg-white focus:border-indigo-500 focus:outline-none transition-colors resize-y leading-relaxed font-normal"
                   />
                 </div>
 

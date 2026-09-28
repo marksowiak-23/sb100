@@ -156,59 +156,63 @@ export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTr
   };
 
   return (
-    <div className="relative bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
       {/* Top Accent Gradient Header Line */}
-      <div className="h-1.5 w-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500" />
+      <div className="h-2 w-full bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500" />
+
+      {/* Top Folder Tab Title Header */}
+      <div className="bg-[#FFFDF7] dark:bg-slate-900/60 border-b border-amber-100/80 dark:border-slate-800 flex items-center justify-between gap-2 px-3.5 sm:px-5 py-2">
+        {/* Left: Folder Tab Title */}
+        <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-950 dark:text-amber-200">
+          <Sparkles className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
+          <span className="tracking-tight text-[13px] font-bold text-[#78350F] dark:text-amber-200">
+            Did You Know?
+          </span>
+        </div>
+
+        {/* Right: Quick Action Icons (Favorite, History) */}
+        <div className="flex items-center gap-1 shrink-0">
+          {trivia && (
+            <button
+              onClick={handleToggleFavorite}
+              title={trivia.isFavorite ? 'Remove from Saved' : 'Save to Favorites'}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                trivia.isFavorite
+                  ? 'text-amber-600 bg-amber-50 hover:bg-amber-100'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {trivia.isFavorite ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+            </button>
+          )}
+
+          <button
+            onClick={handleOpenHistory}
+            title="Past Discoveries"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 text-xs cursor-pointer"
+          >
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline font-medium">History</span>
+          </button>
+        </div>
+      </div>
 
       <div className="p-5 md:p-6 space-y-4">
-        {/* Header Section with Badges and History Button */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/70">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-              Did You Know?
+        {/* Second Line: Topic and Subject */}
+        {trivia && (
+          <div className="flex items-center gap-2 flex-wrap text-xs text-slate-500 dark:text-slate-400">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-300">
+              {getTopicIcon(trivia.anchorTopic)}
+              {getTopicBadgeLabel(trivia.anchorTopic)}
             </span>
 
-            {trivia && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                {getTopicIcon(trivia.anchorTopic)}
-                {getTopicBadgeLabel(trivia.anchorTopic)}
-              </span>
-            )}
-
             {trivia?.anchorReference && (
-              <span className="text-xs text-slate-500 font-medium truncate max-w-[200px] md:max-w-xs" title={trivia.anchorReference}>
+              <span className="font-medium truncate max-w-[280px] sm:max-w-md text-slate-500 dark:text-slate-400" title={trivia.anchorReference}>
                 · {trivia.anchorReference}
               </span>
             )}
           </div>
-
-          {/* Quick Action Icons: Favorite, History */}
-          <div className="flex items-center gap-1">
-            {trivia && (
-              <button
-                onClick={handleToggleFavorite}
-                title={trivia.isFavorite ? 'Remove from Saved' : 'Save to Favorites'}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  trivia.isFavorite
-                    ? 'text-amber-600 bg-amber-50 hover:bg-amber-100'
-                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {trivia.isFavorite ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-              </button>
-            )}
-
-            <button
-              onClick={handleOpenHistory}
-              title="Past Discoveries"
-              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 text-xs"
-            >
-              <History className="w-4 h-4" />
-              <span className="hidden sm:inline font-medium">History</span>
-            </button>
-          </div>
-        </div>
+        )}
 
         {/* Body Section */}
         {loading ? (

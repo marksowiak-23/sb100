@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, BookOpen, Images, ChevronLeft, ChevronRight, Upload, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical } from 'lucide-react';
-import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL } from '@/src/services/api';
+import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -15,6 +15,8 @@ export interface MbrStoryFamilyPanelProps {
   isSandbox?: boolean;
   memberId?: string;
   readOnly?: boolean;
+  topicId?: string;
+  chIntentId?: string;
 }
 
 export type SbMbrStryFamilyProps = MbrStoryFamilyPanelProps;
@@ -176,7 +178,13 @@ const sortFamilyList = (list: FamilyMember[]): FamilyMember[] => {
   });
 };
 
-export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readOnly = false }: MbrStoryFamilyPanelProps) {
+export default function MbrStoryFamilyPanel({
+  isSandbox = false,
+  memberId,
+  readOnly = false,
+  topicId = DEFAULT_TOPIC_LOOKUP.family.topicId,
+  chIntentId = DEFAULT_TOPIC_LOOKUP.family.chIntentId
+}: MbrStoryFamilyPanelProps) {
   // --- STATE VARIABLES ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -650,7 +658,7 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-            detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' }
+            detail: { topicId, chIntentId, topicTitle: 'Family', componentName: 'sbMbrStryFamly' }
           }))}
           className="flex items-center gap-3 group/topic cursor-pointer text-left focus:outline-none transition-transform active:scale-98"
           title={readOnly ? "View Stories" : "Story Editor"}
@@ -691,7 +699,7 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
 
             {/* Storybook Icon Button */}
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' } }))}
+              onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', { detail: { topicId, chIntentId, topicTitle: 'Family', componentName: 'sbMbrStryFamly' } }))}
               className="relative p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
               title={readOnly ? `View Member Stories${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}` : `Story Editor${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}`}
             >
@@ -703,49 +711,40 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
               )}
             </button>
 
-            {!readOnly && (
-              <button
-                onClick={handleOpenPrivacyModal}
-                className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-                title="Privacy settings"
-              >
-                <ShieldAlert className="w-4 h-4" />
-              </button>
-            )}
+            {/* Privacy Modal Button */}
+            <button
+              onClick={() => setShowPrivacyModal(true)}
+              className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              title="Family Privacy Settings"
+            >
+              <ShieldAlert className="w-4 h-4 text-slate-500" />
+            </button>
           </div>
 
-          {/* Mobile Top Panel Vertical Ellipsis Dropdown Menu */}
-          <div className="sm:hidden relative inline-flex items-center family-header-menu-container">
+          {/* Mobile Actions Dropdown Trigger */}
+          <div className="sm:hidden relative inline-flex items-center">
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowHeaderMenu(!showHeaderMenu);
               }}
-              className={`relative p-1.5 rounded-xl border transition-colors cursor-pointer ${
-                showHeaderMenu
-                  ? 'bg-blue-50 text-blue-700 border-blue-200'
-                  : 'text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
-              }`}
-              title="More options"
-              aria-label="More options"
+              className="p-2 text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+              aria-label="More Actions"
             >
               <MoreVertical className="w-4 h-4" />
-              {(headerPhotoCount > 0 || headerStoryCount > 0) && (
-                <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
-              )}
             </button>
 
             <AnimatePresence>
               {showHeaderMenu && (
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                  initial={{ opacity: 0, scale: 0.95, y: -8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.92 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ duration: 0.12 }}
-                  className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-xl shadow-xl py-1 min-w-[165px] text-left divide-y divide-slate-100"
+                  className="absolute right-0 top-full mt-2 z-30 bg-white border border-[#EFECE7] rounded-2xl shadow-xl py-1.5 min-w-[160px] text-left divide-y divide-slate-100 font-sans"
                 >
-                  <div className="py-0.5">
+                  <div className="py-1">
                     <button
                       type="button"
                       onClick={() => {
@@ -769,7 +768,7 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
                       onClick={() => {
                         setShowHeaderMenu(false);
                         window.dispatchEvent(new CustomEvent('open-story-editor', {
-                          detail: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' }
+                          detail: { topicId, chIntentId, topicTitle: 'Family', componentName: 'sbMbrStryFamly' }
                         }));
                       }}
                       className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
@@ -1010,7 +1009,8 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
                           <button
                             onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
                               detail: {
-                                topicId: 'family',
+                                topicId,
+                                chIntentId,
                                 topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
                                 componentName: 'sbMbrStryFamilyMember',
                                 subordinateId: member.mbrFamilyId,
@@ -1104,7 +1104,8 @@ export default function MbrStoryFamilyPanel({ isSandbox = false, memberId, readO
                                       setActiveActionMenuId(null);
                                       window.dispatchEvent(new CustomEvent('open-story-editor', {
                                         detail: {
-                                          topicId: 'family',
+                                          topicId,
+                                          chIntentId,
                                           topicTitle: `Family (${member.mbrFamilyFirstNm} ${member.mbrFamilyLastNm})`,
                                           componentName: 'sbMbrStryFamilyMember',
                                           subordinateId: member.mbrFamilyId,

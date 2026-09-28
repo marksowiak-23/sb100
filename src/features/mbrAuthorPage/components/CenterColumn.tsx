@@ -21,6 +21,7 @@ import OtherHeaderPanel from './OtherHeaderPanel';
 import TopicHeaderPanel from './TopicHeaderPanel';
 import AuthorHowToCard from './AuthorHowToCard';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { taskApi, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
 
 interface CenterColumnProps {
   isSandbox: boolean;
@@ -31,14 +32,20 @@ interface CenterColumnProps {
   onClickAuthorProfile?: () => void;
 }
 
-const TOPIC_DETAILS: Record<string, { topicId: string; topicTitle: string; componentName: string }> = {
-  family: { topicId: 'family', topicTitle: 'Family', componentName: 'sbMbrStryFamly' },
-  residencies: { topicId: 'residencies', topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' },
-  hobbies: { topicId: 'hobbies', topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' },
-  achievements: { topicId: 'achievements', topicTitle: 'Achievements', componentName: 'sbMbrStryAchievement' },
-  education: { topicId: 'education', topicTitle: 'Education and Training', componentName: 'sbMbrStryEducation' },
-  employment: { topicId: 'employment', topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' },
-  other: { topicId: 'other', topicTitle: 'Other', componentName: 'sbMbrStryCustom' },
+const TOPIC_DETAILS: Record<string, { topicId: string; topicTitle: string; componentName: string; chIntentId?: string }> = {
+  family: { topicId: DEFAULT_TOPIC_LOOKUP.family.topicId, topicTitle: 'Family', componentName: 'sbMbrStryFamly', chIntentId: DEFAULT_TOPIC_LOOKUP.family.chIntentId },
+  residencies: { topicId: DEFAULT_TOPIC_LOOKUP.residencies.topicId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence', chIntentId: DEFAULT_TOPIC_LOOKUP.residencies.chIntentId },
+  residence: { topicId: DEFAULT_TOPIC_LOOKUP.residencies.topicId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence', chIntentId: DEFAULT_TOPIC_LOOKUP.residencies.chIntentId },
+  hobbies: { topicId: DEFAULT_TOPIC_LOOKUP.activities.topicId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity', chIntentId: DEFAULT_TOPIC_LOOKUP.activities.chIntentId },
+  activities: { topicId: DEFAULT_TOPIC_LOOKUP.activities.topicId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity', chIntentId: DEFAULT_TOPIC_LOOKUP.activities.chIntentId },
+  activity: { topicId: DEFAULT_TOPIC_LOOKUP.activities.topicId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity', chIntentId: DEFAULT_TOPIC_LOOKUP.activities.chIntentId },
+  achievements: { topicId: DEFAULT_TOPIC_LOOKUP.achievements.topicId, topicTitle: 'Achievements', componentName: 'sbMbrStryAchievement', chIntentId: DEFAULT_TOPIC_LOOKUP.achievements.chIntentId },
+  achievement: { topicId: DEFAULT_TOPIC_LOOKUP.achievements.topicId, topicTitle: 'Achievements', componentName: 'sbMbrStryAchievement', chIntentId: DEFAULT_TOPIC_LOOKUP.achievements.chIntentId },
+  education: { topicId: DEFAULT_TOPIC_LOOKUP.education.topicId, topicTitle: 'Education and Training', componentName: 'sbMbrStryEducation', chIntentId: DEFAULT_TOPIC_LOOKUP.education.chIntentId },
+  employment: { topicId: DEFAULT_TOPIC_LOOKUP.employment.topicId, topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment', chIntentId: DEFAULT_TOPIC_LOOKUP.employment.chIntentId },
+  other: { topicId: DEFAULT_TOPIC_LOOKUP.other.topicId, topicTitle: 'Other', componentName: 'sbMbrStryCustom', chIntentId: DEFAULT_TOPIC_LOOKUP.other.chIntentId },
+  custom: { topicId: DEFAULT_TOPIC_LOOKUP.custom.topicId, topicTitle: 'Other', componentName: 'sbMbrStryCustom', chIntentId: DEFAULT_TOPIC_LOOKUP.custom.chIntentId },
+  profile: { topicId: DEFAULT_TOPIC_LOOKUP.profile.topicId, topicTitle: 'Profile', componentName: 'SbMbrProfile', chIntentId: DEFAULT_TOPIC_LOOKUP.profile.chIntentId },
 };
 
 export default function CenterColumn({
@@ -49,9 +56,27 @@ export default function CenterColumn({
   onSaveActiveContent,
   onClickAuthorProfile
 }: CenterColumnProps) {
+  const [dbTopics, setDbTopics] = useState<Topic[]>([]);
   const [showStoryMate, setShowStoryMate] = useState(false);
   const [subordinateId, setSubordinateId] = useState<string | null>(null);
   const [subordinateName, setSubordinateName] = useState<string | undefined>(undefined);
+
+  // Load topics from topic table
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTopics = async () => {
+      try {
+        const fetched = await taskApi.getTopics();
+        if (Array.isArray(fetched) && fetched.length > 0 && isMounted) {
+          setDbTopics(fetched);
+        }
+      } catch (err) {
+        console.warn("Could not load topics in CenterColumn:", err);
+      }
+    };
+    fetchTopics();
+    return () => { isMounted = false; };
+  }, []);
 
   // StoryMate panel configuration
   const [storyMateConfig, setStoryMateConfig] = useState<{
@@ -63,6 +88,10 @@ export default function CenterColumn({
     chIntentId?: string;
     storyTitle?: string;
     storyContent?: string;
+    topicCustomName?: string;
+    topicCustomTopicDesc?: string;
+    topicCustomId?: string;
+    subordinateId?: string;
   } | null>(null);
 
   // Reset subordinate filter and StoryMate state whenever active section changes
@@ -73,18 +102,45 @@ export default function CenterColumn({
     setSubordinateName(undefined);
   }, [activeSection]);
 
+  const sec = (activeSection || 'Profile').toLowerCase();
+  const matchedTopic = matchTopicByName(activeSection, dbTopics);
+  const isStandardTopic = ['family', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'other', 'custom'].includes(sec);
+
+  const fallbackInfo = TOPIC_DETAILS[sec] || {
+    topicId: sec,
+    topicTitle: activeSection || 'Section',
+    componentName: `sbMbrStry${activeSection}`,
+    chIntentId: undefined
+  };
+
+  const currentTopicId = matchedTopic?.topicId || fallbackInfo.topicId;
+  const currentChIntentId = matchedTopic?.chIntentId || fallbackInfo.chIntentId;
+  const currentTopicTitle = matchedTopic?.topicFullName || matchedTopic?.topicName || fallbackInfo.topicTitle;
+  const currentComponentName = fallbackInfo.componentName;
+
   useEffect(() => {
     const handleOpen = (e: any) => {
       const detail = e?.detail || {};
+      const secKey = sec || (activeSection || '').toLowerCase();
+      const resolvedFallback = DEFAULT_TOPIC_LOOKUP[secKey]?.chIntentId || TOPIC_DETAILS[secKey]?.chIntentId;
+      const effectiveIntent = detail.chIntentId || currentChIntentId || resolvedFallback;
+      const effectiveTopicId = detail.topicId || currentTopicId || DEFAULT_TOPIC_LOOKUP[secKey]?.topicId;
+      const effectiveCompName = detail.componentName || currentComponentName || TOPIC_DETAILS[secKey]?.componentName;
+      const effectiveTitle = detail.topicTitle || currentTopicTitle || TOPIC_DETAILS[secKey]?.topicTitle;
+
       setStoryMateConfig({
-        componentName: detail.componentName,
-        topicId: detail.topicId || activeSection,
-        topicTitle: detail.topicTitle,
+        componentName: effectiveCompName,
+        topicId: effectiveTopicId,
+        topicTitle: effectiveTitle,
         activeStoryId: detail.activeStoryId,
         mbrStoryThreadID: detail.mbrStoryThreadID,
-        chIntentId: detail.chIntentId,
+        chIntentId: effectiveIntent,
         storyTitle: detail.storyTitle,
         storyContent: detail.storyContent,
+        topicCustomName: detail.topicCustomName || detail.mbrCustomTopicName,
+        topicCustomTopicDesc: detail.topicCustomTopicDesc || detail.topicCustomDesc || detail.mbrCustomTopicDesc || detail.topicCustomTipicDesc,
+        topicCustomId: detail.topicCustomId || detail.mbrCustomTopicId || detail.subordinateId,
+        subordinateId: detail.subordinateId || detail.mbrStorySubordinateId,
       });
       setShowStoryMate(true);
       setTimeout(() => {
@@ -96,7 +152,7 @@ export default function CenterColumn({
     };
     window.addEventListener('open-story-mate', handleOpen);
     return () => window.removeEventListener('open-story-mate', handleOpen);
-  }, [activeSection]);
+  }, [activeSection, sec, currentTopicId, currentChIntentId, currentTopicTitle, currentComponentName]);
 
   useEffect(() => {
     const handleOpenEditor = (e: any) => {
@@ -127,14 +183,6 @@ export default function CenterColumn({
     };
   }, [activeSection]);
 
-  const sec = (activeSection || 'Profile').toLowerCase();
-  const isStandardTopic = ['family', 'residencies', 'hobbies', 'achievements', 'education', 'employment', 'other'].includes(sec);
-  const currentTopicInfo = TOPIC_DETAILS[sec] || {
-    topicId: sec,
-    topicTitle: activeSection || 'Section',
-    componentName: `sbMbrStry${activeSection}`
-  };
-
   return (
     <div className="space-y-6 flex flex-col relative">
       {/* --- HOW-TO GUIDE CARD (Desktop only; on mobile rendered above AuthorMobileMenuBar) --- */}
@@ -158,53 +206,81 @@ export default function CenterColumn({
       {sec === 'family' && (
         <>
           <FamilyHeaderPanel />
-          <MbrStoryFamilyPanel isSandbox={isSandbox} />
+          <MbrStoryFamilyPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
         </>
       )}
 
       {sec === 'residencies' && (
         <>
           <ResidenciesHeaderPanel />
-          <MbrStoryResidencePanel isSandbox={isSandbox} />
+          <MbrStoryResidencePanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
         </>
       )}
 
-      {sec === 'hobbies' && (
+      {(sec === 'hobbies' || sec === 'activities') && (
         <>
           <ActivitiesHeaderPanel />
-          <MbrStoryActivityPanel isSandbox={isSandbox} />
+          <MbrStoryActivityPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
         </>
       )}
 
       {sec === 'achievements' && (
         <>
           <AchievementsHeaderPanel />
-          <MbrStoryAchievementPanel isSandbox={isSandbox} />
+          <MbrStoryAchievementPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
         </>
       )}
 
       {sec === 'education' && (
         <>
           <EducationHeaderPanel />
-          <MbrStoryEducationPanel isSandbox={isSandbox} />
+          <MbrStoryEducationPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
         </>
       )}
 
       {sec === 'employment' && (
         <>
           <EmploymentHeaderPanel />
-          <MbrStoryEmploymentPanel isSandbox={isSandbox} />
+          <MbrStoryEmploymentPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
         </>
       )}
 
-      {sec === 'other' && (
+      {(sec === 'other' || sec === 'custom') && (
         <>
           <OtherHeaderPanel />
-          <MbrStoryCustomPanel isSandbox={isSandbox} />
+          <MbrStoryCustomPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
         </>
       )}
 
-      {!['profile', 'family', 'residencies', 'hobbies', 'achievements', 'education', 'employment', 'other'].includes(sec) && (
+      {!['profile', 'family', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'other', 'custom'].includes(sec) && (
         <>
           <TopicHeaderPanel title={activeSection} />
           <MbrBookEditorPanel sectionTitle={activeSection} content={activeContent} />
@@ -215,9 +291,10 @@ export default function CenterColumn({
       {isStandardTopic && (
         <div id="story-editor-panel">
           <StoryEditorPanel
-            topicId={currentTopicInfo.topicId}
-            topicTitle={currentTopicInfo.topicTitle}
-            componentName={currentTopicInfo.componentName}
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            topicTitle={currentTopicTitle}
+            componentName={currentComponentName}
             subordinateId={subordinateId || undefined}
             subordinateName={subordinateName}
             isSandbox={isSandbox}
@@ -232,13 +309,18 @@ export default function CenterColumn({
       {/* --- STORY MATE PANEL --- */}
       {showStoryMate && (
         <StoryMatePanel
+          key={`${storyMateConfig?.chIntentId || currentChIntentId}_${storyMateConfig?.activeStoryId || 'new'}_${storyMateConfig?.componentName || currentComponentName}`}
           memberName="Eleanor"
-          componentName={storyMateConfig?.componentName}
-          topicId={storyMateConfig?.topicId || activeSection}
+          componentName={storyMateConfig?.componentName || currentComponentName}
+          topicId={storyMateConfig?.topicId || currentTopicId}
           storyTitle={storyMateConfig?.storyTitle}
           storyContent={storyMateConfig?.storyContent}
           mbrStoryThreadID={storyMateConfig?.mbrStoryThreadID}
-          chIntentId={storyMateConfig?.chIntentId}
+          chIntentId={storyMateConfig?.chIntentId || currentChIntentId}
+          topicCustomName={storyMateConfig?.topicCustomName}
+          topicCustomTopicDesc={storyMateConfig?.topicCustomTopicDesc}
+          topicCustomId={storyMateConfig?.topicCustomId}
+          subordinateId={storyMateConfig?.subordinateId}
           onClose={() => {
             setShowStoryMate(false);
             setStoryMateConfig(null);

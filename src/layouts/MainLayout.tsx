@@ -45,6 +45,9 @@ type TabType =
   | 'sbMbrRegister'
   | 'adminDbPage'
   | 'admin-db'
+  | 'adminTopicSparksPage'
+  | 'topicSparksAdmin'
+  | 'admin-topic-sparks'
   | 'adminUserAIUsagePage'
   | 'admin-user-ai-usage'
   | 'adminCachePage'
@@ -787,6 +790,19 @@ export default function MainLayout({
                           </div>
                           <div
                             onClick={() => {
+                              setActiveTab('adminTopicSparksPage');
+                              setDropdownOpen(false);
+                            }}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md cursor-pointer transition-colors ${
+                              activeTab === 'adminTopicSparksPage' || activeTab === 'topicSparksAdmin' || activeTab === 'admin-topic-sparks'
+                                ? 'bg-white/10 text-white font-bold'
+                                : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            Topic Sparks Admin
+                          </div>
+                          <div
+                            onClick={() => {
                               setActiveTab('adminCachePage');
                               setDropdownOpen(false);
                             }}
@@ -1179,6 +1195,20 @@ export default function MainLayout({
                   <button
                     type="button"
                     onClick={() => {
+                      setActiveTab('adminTopicSparksPage');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                      activeTab === 'adminTopicSparksPage' || activeTab === 'topicSparksAdmin' || activeTab === 'admin-topic-sparks'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    Topic Sparks Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
                       setActiveTab('adminCachePage');
                       setIsMobileMenuOpen(false);
                     }}
@@ -1567,6 +1597,20 @@ export default function MainLayout({
                       }`}
                     >
                       Database Admin
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('adminTopicSparksPage');
+                        setIsMobileAccountOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                        activeTab === 'adminTopicSparksPage' || activeTab === 'topicSparksAdmin' || activeTab === 'admin-topic-sparks'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Topic Sparks Admin
                     </button>
                     <button
                       type="button"

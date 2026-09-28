@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, 
   Lock, 
@@ -18,10 +18,13 @@ import {
   Sparkles
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { taskApi, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
 
 export interface StoryTopic {
   id: string;
   label: string;
+  topicId?: string;
+  chIntentId?: string | null;
   isLocked?: boolean;
 }
 
@@ -32,6 +35,7 @@ export interface MbrStoryIndexPanelProps {
   activeTopic?: string;
   setActiveSection?: (topicId: string) => void;
   setActiveTopic?: (topicId: string) => void;
+  onSelectTopic?: (topic: StoryTopic, rawTopic?: Topic) => void;
   topics?: StoryTopic[];
   sections?: StoryTopic[];
   lockedTopicIds?: string[];
@@ -44,14 +48,14 @@ export type SbStoryIndexPanelProps = MbrStoryIndexPanelProps;
 export type mbrStoryIndexPanelProps = MbrStoryIndexPanelProps;
 
 const DEFAULT_TOPICS: StoryTopic[] = [
-  { id: 'Profile', label: 'Profile' },
-  { id: 'Family', label: 'Family' },
-  { id: 'Residencies', label: 'Residencies' },
-  { id: 'Achievements', label: 'Achievements' },
-  { id: 'Education', label: 'Education and Training' },
-  { id: 'Employment', label: 'Employment and Career' },
-  { id: 'Hobbies', label: 'Activities and Hobbies' },
-  { id: 'Other', label: 'Other' }
+  { id: 'Profile', label: 'Profile', topicId: DEFAULT_TOPIC_LOOKUP.profile.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.profile.chIntentId },
+  { id: 'Family', label: 'Family', topicId: DEFAULT_TOPIC_LOOKUP.family.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.family.chIntentId },
+  { id: 'Residencies', label: 'Residencies', topicId: DEFAULT_TOPIC_LOOKUP.residencies.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.residencies.chIntentId },
+  { id: 'Achievements', label: 'Achievements', topicId: DEFAULT_TOPIC_LOOKUP.achievements.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.achievements.chIntentId },
+  { id: 'Education', label: 'Education and Training', topicId: DEFAULT_TOPIC_LOOKUP.education.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.education.chIntentId },
+  { id: 'Employment', label: 'Employment and Career', topicId: DEFAULT_TOPIC_LOOKUP.employment.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.employment.chIntentId },
+  { id: 'Hobbies', label: 'Activities and Hobbies', topicId: DEFAULT_TOPIC_LOOKUP.activities.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.activities.chIntentId },
+  { id: 'Other', label: 'Other', topicId: DEFAULT_TOPIC_LOOKUP.other.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.other.chIntentId }
 ];
 
 function getTopicIcon(id: string, label: string = '') {
@@ -88,6 +92,7 @@ export default function MbrStoryIndexPanel({
   activeTopic,
   setActiveSection,
   setActiveTopic,
+  onSelectTopic,
   topics,
   sections,
   lockedTopicIds = [],
@@ -95,12 +100,44 @@ export default function MbrStoryIndexPanel({
   onEditBiography,
   showEditControls = true
 }: MbrStoryIndexPanelProps) {
+  const [dbTopics, setDbTopics] = useState<Topic[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTopics = async () => {
+      try {
+        const fetched = await taskApi.getTopics();
+        if (Array.isArray(fetched) && fetched.length > 0 && isMounted) {
+          setDbTopics(fetched);
+        }
+      } catch (err) {
+        console.warn("Could not read topic table in MbrStoryIndexPanel:", err);
+      }
+    };
+    fetchTopics();
+    return () => { isMounted = false; };
+  }, []);
+
   const currentActive = activeTopic || activeSection || 'Profile';
-  const handleSelect = (topicId: string) => {
-    if (setActiveTopic) setActiveTopic(topicId);
-    if (setActiveSection) setActiveSection(topicId);
+  const rawList = topics || sections || DEFAULT_TOPICS;
+
+  // Match topic names to DB topics and enrich with topicId and chIntentId
+  const list: StoryTopic[] = rawList.map((item) => {
+    const matched = matchTopicByName(item.id || item.label, dbTopics);
+    return {
+      ...item,
+      label: item.label || matched?.topicFullName || matched?.topicName || item.id,
+      topicId: item.topicId || matched?.topicId,
+      chIntentId: item.chIntentId !== undefined ? item.chIntentId : (matched?.chIntentId ?? null)
+    };
+  });
+
+  const handleSelect = (item: StoryTopic) => {
+    const rawMatched = matchTopicByName(item.id, dbTopics);
+    if (setActiveTopic) setActiveTopic(item.id);
+    if (setActiveSection) setActiveSection(item.id);
+    if (onSelectTopic) onSelectTopic(item, rawMatched);
   };
-  const list = topics || sections || DEFAULT_TOPICS;
 
   return (
     <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
@@ -126,7 +163,7 @@ export default function MbrStoryIndexPanel({
               key={item.id}
               type="button"
               disabled={isItemLocked}
-              onClick={() => !isItemLocked && handleSelect(item.id)}
+              onClick={() => !isItemLocked && handleSelect(item)}
               className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-serif transition-all duration-150 ${
                 isItemLocked
                   ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60 bg-slate-50/50'
@@ -159,4 +196,5 @@ export default function MbrStoryIndexPanel({
 }
 
 export { MbrStoryIndexPanel, MbrStoryIndexPanel as mbrStoryIndexPanel, MbrStoryIndexPanel as SbStoryIndexPanel };
+
 

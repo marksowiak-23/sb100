@@ -33,7 +33,7 @@ interface TableDefinition {
   fields: TableField[];
 }
 
-// All 27 system tables mapped with their respective columns, endpoints, and data types
+// All 28 system tables mapped with their respective columns, endpoints, and data types
 const TABLES: TableDefinition[] = [
   {
     id: 'cd',
@@ -235,15 +235,17 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
-    id: 'mbrTopicCustom',
-    name: 'mbrTopicCustom',
-    endpoint: '/mbr-topic-customs',
-    primaryKey: 'mbrCustomTopicId',
-    searchField: 'mbrCustomTopicName',
+    id: 'topicCustom',
+    name: 'topicCustom',
+    endpoint: '/topic-customs',
+    primaryKey: 'topicCustomId',
+    searchField: 'topicCustomName',
     fields: [
       { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
-      { name: 'mbrCustomTopicName', label: 'Custom Topic Name', type: 'string', required: true, placeholder: 'e.g. Military Service' },
-      { name: 'mbrCustomTopicDesc', label: 'Description', type: 'textarea', required: false, placeholder: 'Topic description or details...' }
+      { name: 'topicCustomName', label: 'Custom Topic Name', type: 'string', required: true, placeholder: 'e.g. Military Service' },
+      { name: 'topicCustomTopicDesc', label: 'Description', type: 'textarea', required: false, placeholder: 'Topic description or details...' },
+      { name: 'topicCustomSortOrder', label: 'Sort Order', type: 'number', required: false, placeholder: 'e.g. 1' },
+      { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false, placeholder: '3a435df1-392c-433d-adf3-7fb9c3e5051a' }
     ]
   },
   {
@@ -434,6 +436,34 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrStoryStatLikedCnt', label: 'Stories Liked Count', type: 'number', required: true, placeholder: '0' }
     ]
   },
+  {
+    id: 'mbrStoryLikes',
+    name: 'mbrStoryLikes',
+    endpoint: '/mbr-story-likes',
+    primaryKey: 'mbrStoryLikesId',
+    searchField: 'mbrStoryLikesCd',
+    fields: [
+      { name: 'mbrStoryId', label: 'Story ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrStoryLikesCd', label: 'Reaction Code (Like, Love, Care, HaHa, Wow, Sad, Angry)', type: 'string', required: true, placeholder: 'e.g. Like, Love, Care, HaHa, Wow, Sad, Angry' },
+      { name: 'mbrLikesMbrId', label: 'Liking Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrLikesMbrName', label: 'Liking Member Full Name', type: 'string', required: false, placeholder: 'e.g. Eleanor Vance' }
+    ]
+  },
+  {
+    id: 'mbrStoryComments',
+    name: 'mbrStoryComments',
+    endpoint: '/mbr-story-comments',
+    primaryKey: 'mbrCommentsId',
+    searchField: 'mbrCommentsContent',
+    fields: [
+      { name: 'mbrStoryId', label: 'Story ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrCommentsMbrId', label: 'Member ID (UUID)', type: 'uuid', required: false, placeholder: 'Author mbrId' },
+      { name: 'mbrCommentsMbrName', label: 'Member Name', type: 'string', required: false, placeholder: 'e.g. Eleanor Vance' },
+      { name: 'mbrCommentsContent', label: 'Comment Content', type: 'textarea', required: true, placeholder: 'Enter story comment or reply...' },
+      { name: 'mbrCommentsParentId', label: 'Parent Comment ID (UUID if reply)', type: 'uuid', required: false, placeholder: 'Optional parent mbrCommentsId' },
+      { name: 'mbrCommentsPostDt', label: 'Post Date / Time', type: 'date', required: false }
+    ]
+  },
 
 
   {
@@ -518,8 +548,20 @@ const TABLES: TableDefinition[] = [
     fields: [
       { name: 'topicName', label: 'Topic Name', type: 'string', required: true, placeholder: 'e.g. topicFamily' },
       { name: 'topicFullName', label: 'Topic Full Name', type: 'string', required: false, placeholder: 'e.g. Family & Heritage Stories' },
+      { name: 'topicComponent', label: 'Topic Component', type: 'string', required: false, placeholder: 'e.g. sbMbrStryFamly' },
       { name: 'topicSortOrder', label: 'Topic Sort Order', type: 'number', required: false, placeholder: 'e.g. 10' },
       { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false, placeholder: 'Intent UUID (optional)' }
+    ]
+  },
+  {
+    id: 'topicSpark',
+    name: 'topicSpark',
+    endpoint: '/topic-sparks',
+    primaryKey: 'sparkId',
+    searchField: 'sparkQuestion',
+    fields: [
+      { name: 'topicId', label: 'Topic ID (UUID)', type: 'uuid', required: true, placeholder: 'Topic UUID' },
+      { name: 'sparkQuestion', label: 'Spark Question', type: 'string', required: true, placeholder: 'e.g. What was your favorite childhood memory?' }
     ]
   },
   {
@@ -682,6 +724,41 @@ const getInitialMockData = (tableId: string): any[] => {
           mbrStoryStatUpdatedAt: now
         }
       ];
+    case 'mbrStoryLikes':
+      return [
+        {
+          mbrStoryLikesId: 'like-mock-01',
+          mbrStoryId: 'st_fam_1',
+          mbrStoryLikesCd: 'Love',
+          mbrLikesMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          mbrLikesMbrName: 'David Miller',
+          mbrStoryLikesCreatedAt: now,
+          mbrStoryLikesUpdatedAt: now
+        }
+      ];
+    case 'mbrStoryComments':
+      return [
+        {
+          mbrCommentsId: 'comm-mock-01',
+          mbrStoryId: 'st_fam_1',
+          mbrCommentsMbrName: 'Eleanor Vance',
+          mbrCommentsContent: 'This is such a touching memoir. Thank you for sharing your memories!',
+          mbrCommentsPostDt: now,
+          mbrCommentsParentId: null,
+          mbrCommentsCreatedAt: now,
+          mbrCommentsUpdatedAt: now
+        },
+        {
+          mbrCommentsId: 'comm-mock-02',
+          mbrStoryId: 'st_fam_1',
+          mbrCommentsMbrName: 'David Miller',
+          mbrCommentsContent: 'I remember that summer afternoon by the lake like it was yesterday.',
+          mbrCommentsPostDt: now,
+          mbrCommentsParentId: 'comm-mock-01',
+          mbrCommentsCreatedAt: now,
+          mbrCommentsUpdatedAt: now
+        }
+      ];
 
 
     case 'mbrPreferences':
@@ -736,8 +813,13 @@ const getInitialMockData = (tableId: string): any[] => {
       ];
     case 'topic':
       return [
-        { topicId: 't1-topic-fam', topicName: 'topicFamily', topicFullName: 'Family & Heritage Stories', topicSortOrder: 10, chIntentId: null, topicCreatedAt: now, topicUpdatedAt: now },
-        { topicId: 't2-topic-res', topicName: 'topicResidence', topicFullName: 'Residences & Places Lived', topicSortOrder: 20, chIntentId: null, topicCreatedAt: now, topicUpdatedAt: now }
+        { topicId: 't1-topic-fam', topicName: 'topicFamily', topicFullName: 'Family & Heritage Stories', topicComponent: 'sbMbrStryFamly', topicSortOrder: 10, chIntentId: null, topicCreatedAt: now, topicUpdatedAt: now },
+        { topicId: 't2-topic-res', topicName: 'topicResidence', topicFullName: 'Residences & Places Lived', topicComponent: 'sbMbrStryResidence', topicSortOrder: 20, chIntentId: null, topicCreatedAt: now, topicUpdatedAt: now }
+      ];
+    case 'topicSpark':
+      return [
+        { sparkId: 'spk-1', topicId: 't1-topic-fam', sparkQuestion: 'What was your favorite childhood tradition with your family?', sparkCreatedAt: now, sparkUpdatedAt: now },
+        { sparkId: 'spk-2', topicId: 't2-topic-res', sparkQuestion: 'What is the most vivid memory of your first home or neighborhood?', sparkCreatedAt: now, sparkUpdatedAt: now }
       ];
     case 'groupGlobal':
       return [

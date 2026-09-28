@@ -7,6 +7,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { Bookmark, Calendar, Clock, MapPin, Users, ArrowLeft, BookOpen, ShieldAlert, Sparkles } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
 
 interface CenterColumnProps {
   storyTitle?: string;
@@ -285,6 +286,18 @@ export default function CenterColumn({
             </button>
           )}
         </div>
+
+        {/* Audiobook Narration Player */}
+        {storyContent && (
+          <div className="mb-8">
+            <StoryAudioPlayer
+              text={`${storyTitle}. ${storyContent}`}
+              storyId={storyTitle}
+              title={storyTitle}
+              variant="full"
+            />
+          </div>
+        )}
 
         {/* Story Body Text / Full Narrative */}
         <div className="prose prose-slate dark:prose-invert max-w-none">

@@ -24,7 +24,7 @@ import {
   ArrowUpDown,
   MoreVertical
 } from 'lucide-react';
-import { taskApi, MbrMedia } from '@/src/services/api';
+import { taskApi, MbrMedia, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -33,6 +33,8 @@ export interface MbrStoryEmploymentPanelProps {
   isSandbox?: boolean;
   memberId?: string;
   readOnly?: boolean;
+  topicId?: string;
+  chIntentId?: string;
 }
 
 export type SbMbrStryEmploymentProps = MbrStoryEmploymentPanelProps;
@@ -88,8 +90,13 @@ const SANDBOX_EMPLOYMENT: Employment[] = [
 export default function MbrStoryEmploymentPanel({
   isSandbox = false,
   memberId,
-  readOnly = false
+  readOnly = false,
+  topicId,
+  chIntentId
 }: MbrStoryEmploymentPanelProps) {
+  const resolvedTopicId = topicId || DEFAULT_TOPIC_LOOKUP['employment'].topicId;
+  const resolvedChIntentId = chIntentId || DEFAULT_TOPIC_LOOKUP['employment'].chIntentId;
+
   // --- STATE VARIABLES ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -675,7 +682,7 @@ export default function MbrStoryEmploymentPanel({
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-            detail: { topicId: 'employment', topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' }
+            detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' }
           }))}
           className="flex items-center gap-2 sm:gap-3 group/topic cursor-pointer text-left focus:outline-none transition-transform active:scale-98 min-w-0"
           title={readOnly ? "View Stories" : "Story Editor"}
@@ -726,7 +733,7 @@ export default function MbrStoryEmploymentPanel({
             {/* Storybook Icon Button with Count Badge */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                detail: { topicId: 'employment', topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' }
+                detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' }
               }))}
               className="relative p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
               title={readOnly ? `View Member Stories${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}` : `Story Editor${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}`}
@@ -805,7 +812,7 @@ export default function MbrStoryEmploymentPanel({
                       onClick={() => {
                         setShowHeaderMenu(false);
                         window.dispatchEvent(new CustomEvent('open-story-editor', {
-                          detail: { topicId: 'employment', topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' }
+                          detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' }
                         }));
                       }}
                       className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
@@ -1057,7 +1064,8 @@ export default function MbrStoryEmploymentPanel({
                             type="button"
                             onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
                               detail: {
-                                topicId: 'employment',
+                                topicId: resolvedTopicId,
+                                chIntentId: resolvedChIntentId,
                                 topicTitle: `Employment (${emp.mbrEmploymentCompany})`,
                                 componentName: 'sbMbrStryEmployment',
                                 subordinateId: emp.mbrEmploymentId,
@@ -1154,7 +1162,8 @@ export default function MbrStoryEmploymentPanel({
                                       setActiveActionMenuId(null);
                                       window.dispatchEvent(new CustomEvent('open-story-editor', {
                                         detail: {
-                                          topicId: 'employment',
+                                          topicId: resolvedTopicId,
+                                          chIntentId: resolvedChIntentId,
                                           topicTitle: `Employment (${emp.mbrEmploymentCompany})`,
                                           componentName: 'sbMbrStryEmployment',
                                           subordinateId: emp.mbrEmploymentId,

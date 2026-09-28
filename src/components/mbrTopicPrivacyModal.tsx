@@ -60,7 +60,7 @@ export default function MbrTopicPrivacyModal({
 
   // Check if any privilege value differs from its initial/original value
   const hasUnsavedChanges = useMemo(() => {
-    return Object.values(matrix).some((cell) => cell.privValueCd !== cell.originalPrivValueCd);
+    return (Object.values(matrix) as PrivilegeState[]).some((cell) => cell.privValueCd !== cell.originalPrivValueCd);
   }, [matrix]);
 
   const loadPrivacyData = useCallback(async () => {
@@ -270,7 +270,7 @@ export default function MbrTopicPrivacyModal({
     // Reset matrix values to original
     setMatrix((prev) => {
       const reverted: Record<string, PrivilegeState> = {};
-      for (const [k, v] of Object.entries(prev)) {
+      for (const [k, v] of Object.entries(prev) as [string, PrivilegeState][]) {
         reverted[k] = { ...v, privValueCd: v.originalPrivValueCd };
       }
       return reverted;

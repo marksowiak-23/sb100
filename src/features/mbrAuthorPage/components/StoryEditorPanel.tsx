@@ -3,15 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical } from 'lucide-react';
-import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory } from '@/src/services/api';
+import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer } from 'lucide-react';
+import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
+import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
+import AiVoiceModal from '@/src/components/AiVoiceModal';
+import StoryPdfPrintModal from './StoryPdfPrintModal';
 
 interface StoryEditorPanelProps {
   topicTitle?: string;
   topicId?: string;
+  chIntentId?: string;
   componentName?: string;
   subordinateId?: string;
   subordinateName?: string;
@@ -24,12 +29,17 @@ interface StoryEditorPanelProps {
 const componentNameMap: Record<string, string> = {
   family: 'sbMbrStryFamly',
   residencies: 'sbMbrStryResidence',
+  residence: 'sbMbrStryResidence',
   hobbies: 'sbMbrStryActivity',
+  activities: 'sbMbrStryActivity',
+  activity: 'sbMbrStryActivity',
   achievements: 'sbMbrStryAchievement',
+  achievement: 'sbMbrStryAchievement',
   education: 'sbMbrStryEducation',
   employment: 'sbMbrStryEmployment',
   other: 'sbMbrStryCustom',
   custom: 'sbMbrStryCustom',
+  profile: 'SbMbrProfile',
 };
 
 const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
@@ -81,6 +91,22 @@ const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
       mbrStoryPublishStatusCd: 'Draft'
     }
   ],
+  activities: [
+    {
+      mbrStoryId: 'st_act_1',
+      mbrStoryTitle: 'Plein Air Painting in the Willamette Valley',
+      mbrStoryContent: 'When I retired from teaching, I picked up watercolor brushes. Capturing the shifting light on Oregon hops fields became my weekend sanctuary and a new way of observing nature.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  activity: [
+    {
+      mbrStoryId: 'st_act_1',
+      mbrStoryTitle: 'Plein Air Painting in the Willamette Valley',
+      mbrStoryContent: 'When I retired from teaching, I picked up watercolor brushes. Capturing the shifting light on Oregon hops fields became my weekend sanctuary and a new way of observing nature.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
   other: [
     {
       mbrStoryId: 'st_cst_1',
@@ -120,6 +146,7 @@ const formatPublishedDate = (dateStr?: string | null) => {
 export default function StoryEditorPanel({
   topicTitle = 'Section',
   topicId = 'general',
+  chIntentId,
   componentName,
   subordinateId,
   subordinateName,
@@ -128,6 +155,13 @@ export default function StoryEditorPanel({
   isSandbox = true,
   onClose
 }: StoryEditorPanelProps) {
+  // Resolve topicId (UUID) and chIntentId (UUID)
+  const matchedTopic = matchTopicByName(topicTitle || topicId);
+  const resolvedTopicId = (topicId && topicId.includes('-') && topicId.length >= 30)
+    ? topicId
+    : (matchedTopic?.topicId || DEFAULT_TOPIC_LOOKUP[topicId?.toLowerCase()]?.topicId);
+  const resolvedChIntentId = chIntentId || matchedTopic?.chIntentId || DEFAULT_TOPIC_LOOKUP[topicId?.toLowerCase()]?.chIntentId;
+
   const [stories, setStories] = useState<Partial<MbrStory>[]>([]);
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -149,6 +183,135 @@ export default function StoryEditorPanel({
   const [activeIntentId, setActiveIntentId] = useState<string | undefined>(undefined);
   const [storyStatsMap, setStoryStatsMap] = useState<Record<string, number>>({});
   const [showActionMenu, setShowActionMenu] = useState(false);
+
+  // Photo Gallery & Media Modal State for Stories
+  const [showPhotoGalleryModal, setShowPhotoGalleryModal] = useState(false);
+  const [showAiVoiceModal, setShowAiVoiceModal] = useState(false);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+  const [storyPhotosCountMap, setStoryPhotosCountMap] = useState<Record<string, number>>({});
+  const [resolvedMbrId, setResolvedMbrId] = useState<string>(() => {
+    if (memberId && memberId !== 'm1') return memberId;
+    const storedMbr = sessionStorage.getItem('mbr');
+    if (storedMbr) {
+      try {
+        const m = JSON.parse(storedMbr);
+        if (m.mbrId) return m.mbrId;
+      } catch {}
+    }
+    const savedMbr = sessionStorage.getItem('sandbox_mbr');
+    if (savedMbr) {
+      try {
+        const m = JSON.parse(savedMbr);
+        if (m.mbrId) return m.mbrId;
+      } catch {}
+    }
+    return 'e20986fa-0fb9-4081-ae5d-35bc8f504df0';
+  });
+
+  const resolvedCategoryCd = useMemo(() => {
+    const t = (topicId || topicTitle || '').toLowerCase();
+    if (t.includes('activ') || t.includes('hobb')) return 'Activities';
+    if (t.includes('fam')) return 'Family';
+    if (t.includes('residen') || t.includes('home')) return 'Residencies';
+    if (t.includes('achiev')) return 'Achievements';
+    if (t.includes('edu') || t.includes('train')) return 'Education';
+    if (t.includes('employ') || t.includes('career')) return 'Employment';
+    if (t.includes('cust') || t.includes('other')) return 'Custom';
+    if (t.includes('prof') || t.includes('bio')) return 'Profile';
+    return topicTitle || 'Story';
+  }, [topicId, topicTitle]);
+
+  const [authorName, setAuthorName] = useState<string>('Storybook Author');
+  const [authorLocation, setAuthorLocation] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const resolveAuthorInfo = async () => {
+      try {
+        const storedMbr = sessionStorage.getItem('mbr') || sessionStorage.getItem('sandbox_mbr');
+        if (storedMbr) {
+          const m = JSON.parse(storedMbr);
+          const fullName = `${m.mbrFirstName || ''} ${m.mbrLastName || ''}`.trim();
+          if (fullName) setAuthorName(fullName);
+          if (m.mbrLivesCityState || m.mbrFromCityState) {
+            setAuthorLocation(m.mbrLivesCityState || m.mbrFromCityState);
+          }
+        }
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+          const u = JSON.parse(userStr);
+          if (u.user_id) {
+            const m = await taskApi.getMemberByUserId(u.user_id).catch(() => null);
+            if (m) {
+              const fullName = `${m.mbrFirstName || ''} ${m.mbrLastName || ''}`.trim();
+              if (fullName) setAuthorName(fullName);
+              if (m.mbrLivesCityState || m.mbrFromCityState) {
+                setAuthorLocation(m.mbrLivesCityState || m.mbrFromCityState);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Could not resolve author info for story PDF:', e);
+      }
+    };
+    resolveAuthorInfo();
+  }, [resolvedMbrId]);
+
+  const handlePrintToPdf = () => {
+    const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
+    const effectiveTitle = title || activeStory?.mbrStoryTitle || '';
+    const effectiveContent = content || activeStory?.mbrStoryText || '';
+
+    if (!effectiveContent && !effectiveTitle) {
+      setError('Please write some story content or enter a title before generating a PDF.');
+      return;
+    }
+    setShowPdfModal(true);
+  };
+
+  const loadStoryPhotoCounts = async (targetMbrId?: string) => {
+    const mbr = targetMbrId || resolvedMbrId;
+    if (!mbr) return;
+    try {
+      const counts: Record<string, number> = {};
+      if (isSandbox) {
+        const savedMedia = sessionStorage.getItem('sandbox_media');
+        if (savedMedia) {
+          try {
+            const list: MbrMedia[] = JSON.parse(savedMedia);
+            if (Array.isArray(list)) {
+              list.forEach((m) => {
+                if (m.mbrMediaSubordinateId) {
+                  counts[m.mbrMediaSubordinateId] = (counts[m.mbrMediaSubordinateId] || 0) + 1;
+                }
+              });
+            }
+          } catch {}
+        }
+      } else {
+        const list = await taskApi.getMemberMedia(mbr).catch(() => []);
+        if (Array.isArray(list)) {
+          list.forEach((m) => {
+            if (m.mbrMediaSubordinateId) {
+              counts[m.mbrMediaSubordinateId] = (counts[m.mbrMediaSubordinateId] || 0) + 1;
+            }
+          });
+        }
+      }
+      setStoryPhotosCountMap(counts);
+    } catch (e) {
+      console.warn('Could not load story photo counts:', e);
+    }
+  };
+
+  // Custom Topic Selection Modal state (for Other / Custom topics)
+  const [customTopics, setCustomTopics] = useState<TopicCustom[]>([]);
+  const [showCustomTopicModal, setShowCustomTopicModal] = useState(false);
+  const [selectedCustomTopic, setSelectedCustomTopic] = useState<TopicCustom | null>(null);
+  const [loadingCustomTopics, setLoadingCustomTopics] = useState(false);
+  const [newCustomTopicName, setNewCustomTopicName] = useState('');
+  const [showInlineNewTopic, setShowInlineNewTopic] = useState(false);
+  const [creatingCustomTopic, setCreatingCustomTopic] = useState(false);
 
   // Close mobile action menu when clicking outside
   useEffect(() => {
@@ -206,7 +369,9 @@ export default function StoryEditorPanel({
             ...s,
             mbrStoryTypeCd: finalStoryTypeCd,
             mbrStorySubordinateId: subordinateId || undefined,
-            mbrStoryVersion: s.mbrStoryVersion || 1
+            mbrStoryVersion: s.mbrStoryVersion || 1,
+            topicId: resolvedTopicId,
+            chIntentId: resolvedChIntentId
           }));
           sessionStorage.setItem(key, JSON.stringify(list));
         }
@@ -214,6 +379,7 @@ export default function StoryEditorPanel({
         if (list.length > 0) {
           selectStory(list[0]);
         }
+        loadStoryPhotoCounts(resolvedMbrId);
       } else {
         // DB load
         let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1'; // fallback
@@ -233,6 +399,8 @@ export default function StoryEditorPanel({
             }
           }
         }
+        setResolvedMbrId(currentMbrId);
+        loadStoryPhotoCounts(currentMbrId);
 
         const dbStories = await taskApi.getStories(currentMbrId);
         const filtered = dbStories.filter((s) => {
@@ -250,7 +418,9 @@ export default function StoryEditorPanel({
           );
           
           let matchesType = false;
-          if (topicId?.toLowerCase() === 'family' || finalStoryTypeCd === 'sbMbrStryFamly') {
+          if (resolvedTopicId && s.topicId && s.topicId === resolvedTopicId) {
+            matchesType = true;
+          } else if (topicId?.toLowerCase() === 'family' || finalStoryTypeCd === 'sbMbrStryFamly') {
             matchesType = isFamilyType;
           } else if (topicId?.toLowerCase() === 'residencies' || finalStoryTypeCd === 'sbMbrStryResidence') {
             matchesType = isResidencyType;
@@ -319,7 +489,7 @@ export default function StoryEditorPanel({
     setContent(story.mbrStoryContent || '');
     setStatus(story.mbrStoryPublishStatusCd || 'Draft');
     setActiveThreadId(story.mbrStoryThreadID);
-    setActiveIntentId(story.chIntentId);
+    setActiveIntentId(story.chIntentId || resolvedChIntentId);
     setIsEditing(false);
     setError(null);
     setSuccessMsg(null);
@@ -362,7 +532,7 @@ export default function StoryEditorPanel({
                 });
                 setStoryStatsMap((prev) => ({
                   ...prev,
-                  [story.mbrStoryId!]: (prev[story.mbrStoryId!] || 0) + 1
+                  [story.mbrStoryId!] : (prev[story.mbrStoryId!] || 0) + 1
                 }));
               }
             }
@@ -374,27 +544,201 @@ export default function StoryEditorPanel({
     }
   };
 
-  const handleCreateNew = () => {
+  const loadCustomTopics = async () => {
+    setLoadingCustomTopics(true);
+    try {
+      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+      const userStr = sessionStorage.getItem('user');
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+          if (mbrProfile && mbrProfile.mbrId) currentMbrId = mbrProfile.mbrId;
+        } catch (e) {}
+      }
+      let list: TopicCustom[] = [];
+      if (isSandbox) {
+        const saved = sessionStorage.getItem('sandbox_custom_topics');
+        if (saved) {
+          list = JSON.parse(saved);
+        } else {
+          list = [
+            {
+              topicCustomId: 'ct_1',
+              mbrId: currentMbrId,
+              topicCustomName: 'Pacific Road Trips',
+              topicCustomTopicDesc: 'Memories, coastal drives, and roadside diner stops along the scenic Pacific Coast Highway.',
+              chIntentId: DEFAULT_TOPIC_LOOKUP['other'].chIntentId,
+              mbrCustomTopicId: 'ct_1',
+              mbrCustomTopicName: 'Pacific Road Trips',
+            },
+            {
+              topicCustomId: 'ct_2',
+              mbrId: currentMbrId,
+              topicCustomName: 'Vintage Book Collecting',
+              topicCustomTopicDesc: 'Hunting for rare first editions and signed memoirs in dusty coastal antiquarian bookshops.',
+              chIntentId: DEFAULT_TOPIC_LOOKUP['other'].chIntentId,
+              mbrCustomTopicId: 'ct_2',
+              mbrCustomTopicName: 'Vintage Book Collecting',
+            }
+          ];
+          sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(list));
+        }
+      } else {
+        try {
+          const dbTopics = await taskApi.getCustomTopics(currentMbrId);
+          if (Array.isArray(dbTopics) && dbTopics.length > 0) {
+            list = dbTopics;
+          } else {
+            const saved = sessionStorage.getItem('sandbox_custom_topics');
+            if (saved) list = JSON.parse(saved);
+          }
+        } catch (err) {
+          console.warn("Could not load custom topics from DB, checking sandbox:", err);
+          const saved = sessionStorage.getItem('sandbox_custom_topics');
+          if (saved) list = JSON.parse(saved);
+        }
+      }
+      setCustomTopics(list);
+      if (list.length > 0) {
+        if (subordinateId) {
+          const match = list.find((t) => (t.topicCustomId || t.mbrCustomTopicId) === subordinateId);
+          setSelectedCustomTopic(match || list[0]);
+        } else {
+          setSelectedCustomTopic(list[0]);
+        }
+      }
+      return list;
+    } catch (err) {
+      console.warn("Error loading custom topics in StoryEditorPanel:", err);
+      return [];
+    } finally {
+      setLoadingCustomTopics(false);
+    }
+  };
+
+  const handleAddNewStoryClick = async () => {
+    const isOtherOrCustom = topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom' || topicTitle?.toLowerCase() === 'other' || topicTitle?.toLowerCase() === 'custom';
+    
+    if (isOtherOrCustom) {
+      const list = await loadCustomTopics();
+      setShowInlineNewTopic(false);
+      setNewCustomTopicName('');
+      setShowCustomTopicModal(true);
+    } else {
+      handleCreateNew();
+    }
+  };
+
+  const handleConfirmCustomTopicSelection = (topicToUse?: TopicCustom) => {
+    const target = topicToUse || selectedCustomTopic;
+    if (!target) return;
+    const customTopicId = target.topicCustomId || target.mbrCustomTopicId || `ct_${Date.now()}`;
+    const customTopicName = target.topicCustomName || target.mbrCustomTopicName || 'Custom Topic';
+    const customIntentId = target.chIntentId || resolvedChIntentId || DEFAULT_TOPIC_LOOKUP['other'].chIntentId;
+
     const newId = `temp_${Date.now()}`;
-    const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
-    const resolvedTopicName = subordinateName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined);
+    const finalStoryTypeCd = componentName || componentNameMap[topicId?.toLowerCase()] || 'sbMbrStryCustom';
     const newStory: Partial<MbrStory> = {
       mbrStoryId: newId,
-      mbrStoryTitle: subordinateName ? `Story of ${subordinateName}` : (topicId?.toLowerCase() === 'other' ? 'New Custom Topic Story' : `New ${topicTitle} Story`),
+      mbrStoryTitle: `Story of ${customTopicName}`,
       mbrStoryContent: '',
       mbrStoryPublishStatusCd: 'Draft',
       mbrStoryTypeCd: finalStoryTypeCd,
-      mbrStorySubordinateId: subordinateId || undefined,
-      mbrStoryTopicName: resolvedTopicName
+      mbrStorySubordinateId: customTopicId,
+      mbrStoryTopicName: customTopicName,
+      topicId: resolvedTopicId || DEFAULT_TOPIC_LOOKUP['other'].topicId,
+      chIntentId: customIntentId,
+      mbrCustomTopicId: customTopicId
     };
     setStories((prev) => [...prev, newStory]);
     setActiveStoryId(newId);
     setTitle(newStory.mbrStoryTitle!);
     setContent('');
     setStatus('Draft');
+    setActiveIntentId(customIntentId);
     setIsEditing(true);
     setError(null);
     setSuccessMsg(null);
+    setShowCustomTopicModal(false);
+  };
+
+  const handleCreateCustomTopicInline = async () => {
+    if (!newCustomTopicName.trim()) return;
+    setCreatingCustomTopic(true);
+    try {
+      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+      const userStr = sessionStorage.getItem('user');
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+          if (mbrProfile && mbrProfile.mbrId) currentMbrId = mbrProfile.mbrId;
+        } catch (e) {}
+      }
+      const newCustomTopic: TopicCustom = {
+        topicCustomId: `ct_${Date.now()}`,
+        mbrId: currentMbrId,
+        topicCustomName: newCustomTopicName.trim(),
+        topicCustomTopicDesc: `Memories and reflections for ${newCustomTopicName.trim()}.`,
+        chIntentId: DEFAULT_TOPIC_LOOKUP['other'].chIntentId,
+        mbrCustomTopicId: `ct_${Date.now()}`,
+        mbrCustomTopicName: newCustomTopicName.trim(),
+        mbrCustomTopicDesc: `Memories and reflections for ${newCustomTopicName.trim()}.`
+      };
+      if (isSandbox) {
+        const nextList = [...customTopics, newCustomTopic];
+        setCustomTopics(nextList);
+        sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(nextList));
+        handleConfirmCustomTopicSelection(newCustomTopic);
+      } else {
+        try {
+          const created = await taskApi.createCustomTopic(newCustomTopic);
+          setCustomTopics((prev) => [...prev, created]);
+          handleConfirmCustomTopicSelection(created);
+        } catch (e) {
+          const nextList = [...customTopics, newCustomTopic];
+          setCustomTopics(nextList);
+          sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(nextList));
+          handleConfirmCustomTopicSelection(newCustomTopic);
+        }
+      }
+    } finally {
+      setCreatingCustomTopic(false);
+    }
+  };
+
+  const handleCreateNew = (customTopic?: TopicCustom) => {
+    const isOtherOrCustom = topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom' || topicTitle?.toLowerCase() === 'other' || topicTitle?.toLowerCase() === 'custom';
+    const customTopicId = customTopic?.topicCustomId || customTopic?.mbrCustomTopicId || (isOtherOrCustom ? subordinateId : undefined);
+    const customTopicName = customTopic?.topicCustomName || customTopic?.mbrCustomTopicName || (isOtherOrCustom ? subordinateName : undefined);
+    const customIntentId = customTopic?.chIntentId || resolvedChIntentId || (isOtherOrCustom ? DEFAULT_TOPIC_LOOKUP['other'].chIntentId : undefined);
+
+    const newId = `temp_${Date.now()}`;
+    const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId?.toLowerCase()] || topicId);
+    const resolvedTopicName = customTopicName || subordinateName || (isOtherOrCustom ? (subordinateName || topicTitle) : undefined);
+    const newStory: Partial<MbrStory> = {
+      mbrStoryId: newId,
+      mbrStoryTitle: customTopicName ? `Story of ${customTopicName}` : (subordinateName ? `Story of ${subordinateName}` : (isOtherOrCustom ? 'New Custom Topic Story' : `New ${topicTitle} Story`)),
+      mbrStoryContent: '',
+      mbrStoryPublishStatusCd: 'Draft',
+      mbrStoryTypeCd: finalStoryTypeCd,
+      mbrStorySubordinateId: customTopicId || subordinateId || undefined,
+      mbrStoryTopicName: resolvedTopicName,
+      topicId: resolvedTopicId,
+      chIntentId: customIntentId || resolvedChIntentId,
+      mbrCustomTopicId: customTopicId || (isOtherOrCustom ? (subordinateId || undefined) : undefined)
+    };
+    setStories((prev) => [...prev, newStory]);
+    setActiveStoryId(newId);
+    setTitle(newStory.mbrStoryTitle!);
+    setContent('');
+    setStatus('Draft');
+    setActiveIntentId(newStory.chIntentId);
+    setIsEditing(true);
+    setError(null);
+    setSuccessMsg(null);
+    setShowCustomTopicModal(false);
   };
 
   const handleSave = async () => {
@@ -448,7 +792,9 @@ export default function StoryEditorPanel({
           mbrMbrId: currentMbrId,
           mbrStoryVersion: version,
           mbrStoryThreadID: activeThreadId,
-          chIntentId: activeIntentId,
+          chIntentId: activeIntentId || activeStory.chIntentId || resolvedChIntentId,
+          topicId: activeStory.topicId || resolvedTopicId,
+          mbrCustomTopicId: (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom') ? (subordinateId || undefined) : activeStory.mbrCustomTopicId,
         };
 
         if (isSandbox) {
@@ -494,12 +840,14 @@ export default function StoryEditorPanel({
         mbrStoryPublishStatusCd: status,
         mbrStoryPublishedDate: (status || '').toLowerCase() === 'published' ? (activeStory?.mbrStoryPublishedDate || todayDateStr) : activeStory?.mbrStoryPublishedDate,
         mbrStoryTypeCd: finalStoryTypeCd,
-        mbrStorySubordinateId: subordinateId || undefined,
-        mbrStoryTopicName: subordinateName || activeStory?.mbrStoryTopicName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined),
+        mbrStorySubordinateId: activeStory?.mbrStorySubordinateId || activeStory?.mbrCustomTopicId || subordinateId || undefined,
+        mbrStoryTopicName: activeStory?.mbrStoryTopicName || subordinateName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined),
         mbrMbrId: currentMbrId,
         mbrStoryVersion: version,
         mbrStoryThreadID: activeThreadId,
-        chIntentId: activeIntentId,
+        chIntentId: activeIntentId || activeStory?.chIntentId || resolvedChIntentId,
+        topicId: activeStory?.topicId || resolvedTopicId,
+        mbrCustomTopicId: activeStory?.mbrCustomTopicId || ((topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom') ? (subordinateId || undefined) : undefined),
         mbrStoryOriginalId: activeStory?.mbrStoryOriginalId,
       };
 
@@ -635,7 +983,9 @@ export default function StoryEditorPanel({
           mbrMbrId: currentMbrId,
           mbrStoryVersion: activeStory.mbrStoryVersion || 1,
           mbrStoryThreadID: activeThreadId,
-          chIntentId: activeIntentId,
+          chIntentId: activeIntentId || activeStory.chIntentId || resolvedChIntentId,
+          topicId: activeStory.topicId || resolvedTopicId,
+          mbrCustomTopicId: (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom') ? (subordinateId || undefined) : activeStory.mbrCustomTopicId,
         };
 
         if (isSandbox) {
@@ -682,7 +1032,9 @@ export default function StoryEditorPanel({
           mbrMbrId: currentMbrId,
           mbrStoryVersion: activeStory ? (activeStory.mbrStoryVersion || 1) : 1,
           mbrStoryThreadID: activeThreadId,
-          chIntentId: activeIntentId,
+          chIntentId: activeIntentId || activeStory?.chIntentId || resolvedChIntentId,
+          topicId: activeStory?.topicId || resolvedTopicId,
+          mbrCustomTopicId: (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom') ? (subordinateId || undefined) : activeStory?.mbrCustomTopicId,
         };
 
         if (isSandbox) {
@@ -761,7 +1113,9 @@ export default function StoryEditorPanel({
           mbrMbrId: currentMbrId,
           mbrStoryVersion: currentVersion + 1,
           mbrStoryThreadID: activeThreadId,
-          chIntentId: activeIntentId,
+          chIntentId: activeIntentId || activeStory?.chIntentId || resolvedChIntentId,
+          topicId: activeStory?.topicId || resolvedTopicId,
+          mbrCustomTopicId: (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom') ? (subordinateId || undefined) : activeStory?.mbrCustomTopicId,
           mbrStoryOriginalId: originalId,
         };
 
@@ -802,6 +1156,7 @@ export default function StoryEditorPanel({
   };
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const activePhotoCount = (activeStoryId && storyPhotosCountMap[activeStoryId]) || 0;
 
   return (
     <div id="story-editor-panel" className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl py-4 sm:py-5 px-2.5 sm:px-4 shadow-[0_8px_20px_rgba(0,0,0,0.015)] flex flex-col gap-4 sm:gap-5 relative overflow-hidden group">
@@ -827,7 +1182,7 @@ export default function StoryEditorPanel({
         <div className="flex items-center gap-2">
           {!readOnly && !isEditing && (
             <button
-              onClick={handleCreateNew}
+              onClick={handleAddNewStoryClick}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all duration-150 cursor-pointer shadow-sm active:scale-95 border border-blue-600 font-sans"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -877,7 +1232,10 @@ export default function StoryEditorPanel({
             <table className="w-full table-fixed text-left text-xs border-separate border-spacing-0">
               <thead className="sticky top-0 z-10">
                 <tr className="text-[10px] sm:text-[11px] font-serif font-bold text-slate-500 uppercase tracking-wider bg-[#FAF8F5]">
-                  <th className="py-2.5 pl-3 sm:pl-4 pr-1 sm:pr-2 text-left w-auto rounded-tl-2xl border-b border-[#EFECE7] align-bottom">
+                  <th className="py-2.5 pl-3 sm:pl-4 pr-1 sm:pr-2 text-left w-24 sm:w-28 md:w-32 shrink-0 rounded-tl-2xl border-b border-[#EFECE7] align-bottom">
+                    Topic
+                  </th>
+                  <th className="py-2.5 px-1 sm:px-2 text-left w-auto border-b border-[#EFECE7] align-bottom">
                     Story
                   </th>
                   <th className="py-2.5 px-1 sm:px-2 text-right w-14 sm:w-16 shrink-0 border-b border-[#EFECE7] align-bottom">
@@ -894,6 +1252,7 @@ export default function StoryEditorPanel({
                   const formattedDate = formatPublishedDate(s.mbrStoryPublishedDate);
                   const viewCount = (s.mbrStoryId && storyStatsMap[s.mbrStoryId] !== undefined) ? storyStatsMap[s.mbrStoryId] : 0;
                   const isLastRow = idx === stories.length - 1;
+                  const displayTopicName = s.mbrStoryTopicName || topicTitle || '—';
                   return (
                     <tr
                       key={s.mbrStoryId}
@@ -905,12 +1264,17 @@ export default function StoryEditorPanel({
                       }`}
                     >
                       <td className={`py-2.5 pl-2.5 sm:pl-3 pr-1 sm:pr-2 font-serif text-left border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                           <div className={`w-1 sm:w-1.5 h-4 rounded-full shrink-0 ${isActive ? 'bg-blue-600' : 'bg-transparent'}`} />
-                          <span className="text-left whitespace-normal break-words leading-snug">
-                            {s.mbrStoryTitle || 'Untitled Story'}
+                          <span className="text-left font-serif text-slate-800 truncate" title={displayTopicName}>
+                            {displayTopicName}
                           </span>
                         </div>
+                      </td>
+                      <td className={`py-2.5 px-1 sm:px-2 font-serif text-left border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
+                        <span className="text-left whitespace-normal break-words leading-snug">
+                          {s.mbrStoryTitle || 'Untitled Story'}
+                        </span>
                       </td>
                       <td className={`py-2.5 px-1 sm:px-2 text-right font-mono text-[10.5px] sm:text-[11px] text-slate-600 align-top pt-2.5 border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
                         {viewCount.toLocaleString()}
@@ -941,7 +1305,7 @@ export default function StoryEditorPanel({
           <p className="text-xs font-serif text-slate-500 italic">No stories found for this section.</p>
           {!readOnly && (
             <button
-              onClick={handleCreateNew}
+              onClick={handleAddNewStoryClick}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-blue-500/10 active:scale-95 border border-blue-600 font-sans"
             >
               <Plus className="w-3.5 h-3.5" />
@@ -961,7 +1325,7 @@ export default function StoryEditorPanel({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. A Summer to Remember..."
-              className="w-full bg-white border border-[#EFECE7] rounded-xl text-sm font-serif font-bold text-slate-800 px-3 py-2 sm:py-2.5 outline-none focus:border-slate-800 transition-colors"
+              className="w-full bg-white border border-[#EFECE7] rounded-xl font-serif text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 px-3 py-2 sm:py-2.5 outline-none focus:border-slate-800 transition-colors tracking-tight leading-snug"
             />
           </div>
 
@@ -975,39 +1339,99 @@ export default function StoryEditorPanel({
               </span>
             </div>
             <textarea
-              rows={7}
+              rows={8}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your story details here. Share memories, feelings, and reflection..."
-              className="w-full bg-white border border-[#EFECE7] rounded-2xl text-xs font-serif text-slate-700 p-3 sm:p-3.5 leading-relaxed outline-none focus:border-slate-800 transition-colors resize-y"
+              className="w-full bg-white border border-[#EFECE7] rounded-2xl text-sm sm:text-[15px] font-sans text-slate-600 dark:text-slate-300 p-3 sm:p-3.5 leading-relaxed outline-none focus:border-slate-800 transition-colors resize-y font-normal"
             />
           </div>
 
           {/* Action buttons */}
           <div className="flex items-center justify-between pt-2 border-t border-[#EFECE7]">
-            <button
-              type="button"
-              onClick={() => {
-                const compName = (subordinateId || componentName === 'sbMbrStryFamilyMember') ? 'sbMbrStryFamilyMember' : (componentName || componentNameMap[topicId] || topicId);
-                window.dispatchEvent(new CustomEvent('open-story-mate', {
-                  detail: {
-                    componentName: compName,
-                    topicId,
-                    topicTitle,
-                    activeStoryId,
-                    mbrStoryThreadID: activeThreadId,
-                    chIntentId: activeIntentId,
-                    storyTitle: title,
-                    storyContent: content,
-                  }
-                }));
-              }}
-              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-800 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
-              title="StoryMate AI Assistant"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>StoryMate AI</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const normalizedTopic = (topicId || topicTitle || '').toLowerCase();
+                  const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
+                  const isOtherOrCustom = normalizedTopic === 'other' || normalizedTopic === 'custom' || componentName === 'sbMbrStryCustom' || Boolean(activeStory?.mbrCustomTopicId);
+                  const compName = (subordinateId || activeStory?.mbrCustomTopicId || componentName === 'sbMbrStryFamilyMember')
+                    ? (normalizedTopic === 'family' ? 'sbMbrStryFamilyMember' : (componentName || componentNameMap[normalizedTopic] || 'sbMbrStryCustom'))
+                    : (componentName || componentNameMap[normalizedTopic] || (matchedTopic?.topicName ? componentNameMap[matchedTopic.topicName.toLowerCase()] : undefined) || 'sbMbrStryFamly');
+                  const intentToUse = activeStory?.chIntentId || activeIntentId || resolvedChIntentId || chIntentId || (normalizedTopic && DEFAULT_TOPIC_LOOKUP[normalizedTopic]?.chIntentId);
+
+                  // Find matching custom topic metadata
+                  const targetCustomId = activeStory?.mbrCustomTopicId || activeStory?.mbrStorySubordinateId || subordinateId;
+                  const matchedCustom = customTopics.find(t =>
+                    (targetCustomId && (t.topicCustomId === targetCustomId || t.mbrCustomTopicId === targetCustomId)) ||
+                    (activeStory?.mbrStoryTopicName && (t.topicCustomName === activeStory.mbrStoryTopicName || t.mbrCustomTopicName === activeStory.mbrStoryTopicName)) ||
+                    (subordinateName && (t.topicCustomName === subordinateName || t.mbrCustomTopicName === subordinateName))
+                  ) || (isOtherOrCustom ? selectedCustomTopic : null);
+
+                  const customName = matchedCustom?.topicCustomName || matchedCustom?.mbrCustomTopicName || activeStory?.mbrStoryTopicName || (isOtherOrCustom ? (subordinateName || title) : undefined);
+                  const customDesc = matchedCustom?.topicCustomTopicDesc || matchedCustom?.mbrCustomTopicDesc || (matchedCustom as any)?.topicCustomTipicDesc;
+                  const finalCustomId = matchedCustom?.topicCustomId || matchedCustom?.mbrCustomTopicId || targetCustomId;
+
+                  window.dispatchEvent(new CustomEvent('open-story-mate', {
+                    detail: {
+                      componentName: compName,
+                      topicId: resolvedTopicId || topicId,
+                      topicTitle: activeStory?.mbrStoryTopicName || topicTitle,
+                      activeStoryId,
+                      mbrStoryThreadID: activeThreadId,
+                      chIntentId: intentToUse,
+                      storyTitle: title,
+                      storyContent: content,
+                      topicCustomName: customName,
+                      topicCustomTopicDesc: customDesc,
+                      topicCustomId: finalCustomId,
+                      subordinateId: subordinateId || finalCustomId,
+                    }
+                  }));
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 text-amber-800 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                title="StoryMate AI Assistant"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                <span>StoryMate AI</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowPhotoGalleryModal(true)}
+                disabled={!activeStoryId}
+                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 text-indigo-800 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-50"
+                title={`Story Photo Gallery${activePhotoCount > 0 ? ` (${activePhotoCount} photos)` : ''}`}
+              >
+                <Images className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Photos</span>
+                {activePhotoCount > 0 && (
+                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-600 text-white leading-none">
+                    {activePhotoCount}
+                  </span>
+                )}
+              </button>
+
+              {content && (
+                <StoryAudioPlayer
+                  text={`${title}. ${content}`}
+                  storyId={activeStoryId || 'editor-draft'}
+                  title={title || 'Draft Story'}
+                  variant="inline-button"
+                />
+              )}
+
+              <button
+                type="button"
+                onClick={handlePrintToPdf}
+                title="Preview & Print story as a paperback chapter PDF"
+                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-200 hover:border-amber-300 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer shadow-2xs group"
+              >
+                <Printer className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-600 transition-colors" />
+                <span className="hidden sm:inline">Print PDF</span>
+              </button>
+            </div>
 
             <div className="flex items-center gap-2.5 sm:gap-3">
               <button
@@ -1034,7 +1458,7 @@ export default function StoryEditorPanel({
           <div className="bg-white border border-[#EFECE7] rounded-2xl py-3.5 sm:py-4 px-2.5 sm:px-3.5 flex flex-col gap-3">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h4 className="font-serif text-lg font-bold text-slate-850 leading-snug">
+                <h4 className="font-serif text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 leading-snug tracking-tight">
                   {title || 'Untitled Story'}
                 </h4>
                 <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold font-mono uppercase ${
@@ -1051,6 +1475,51 @@ export default function StoryEditorPanel({
                   <>
                     {/* Desktop Expanded Action Icons */}
                     <div className="hidden sm:flex items-center gap-2 shrink-0">
+                      {/* Photo Gallery Icon Button with Count Badge */}
+                      <button
+                        type="button"
+                        onClick={() => setShowPhotoGalleryModal(true)}
+                        disabled={!activeStoryId}
+                        title={`Story Photos${activePhotoCount > 0 ? ` (${activePhotoCount} photos)` : ''}`}
+                        className="relative p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-150 rounded-xl cursor-pointer transition-colors"
+                      >
+                        <Images className="w-4 h-4 text-indigo-600" />
+                        {activePhotoCount > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 px-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] font-bold bg-indigo-600 text-white rounded-full leading-none shadow-xs">
+                            {activePhotoCount}
+                          </span>
+                        )}
+                      </button>
+
+                      {/* AI Voice Narration Icon Button (Published state only) */}
+                      {isStoryPublished && (
+                        <button
+                          type="button"
+                          onClick={() => setShowAiVoiceModal(true)}
+                          disabled={!activeStoryId}
+                          title="Generate AI Voice Narration (MP3)"
+                          className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 rounded-xl cursor-pointer transition-colors"
+                        >
+                          <Mic className="w-4 h-4 text-purple-600" />
+                        </button>
+                      )}
+
+                      {content && (
+                        <StoryAudioPlayer
+                          text={`${title}. ${content}`}
+                          storyId={activeStoryId || 'editor-story'}
+                          title={title}
+                          variant="inline-button"
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={handlePrintToPdf}
+                        title="Print story as a paperback chapter PDF"
+                        className="p-2 text-slate-400 hover:text-amber-700 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-xl cursor-pointer transition-colors"
+                      >
+                        <Printer className="w-4 h-4" />
+                      </button>
                       <button
                         onClick={confirmDelete}
                         title="Delete Story"
@@ -1104,6 +1573,9 @@ export default function StoryEditorPanel({
                         aria-label="Story actions"
                       >
                         <MoreVertical className="w-4 h-4" />
+                        {activePhotoCount > 0 && (
+                          <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white" />
+                        )}
                       </button>
 
                       <AnimatePresence>
@@ -1113,9 +1585,56 @@ export default function StoryEditorPanel({
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.92 }}
                             transition={{ duration: 0.12 }}
-                            className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-xl shadow-xl py-1 min-w-[155px] text-left divide-y divide-slate-100"
+                            className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-xl shadow-xl py-1 min-w-[160px] text-left divide-y divide-slate-100"
                           >
                             <div className="py-0.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowActionMenu(false);
+                                  setShowPhotoGalleryModal(true);
+                                }}
+                                disabled={!activeStoryId}
+                                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-pointer text-left"
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <Images className="w-4 h-4 text-indigo-600 shrink-0" />
+                                  <span>Story Photos</span>
+                                </div>
+                                {activePhotoCount > 0 && (
+                                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-indigo-100 text-indigo-700">
+                                    {activePhotoCount}
+                                  </span>
+                                )}
+                              </button>
+
+                              {isStoryPublished && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowActionMenu(false);
+                                    setShowAiVoiceModal(true);
+                                  }}
+                                  disabled={!activeStoryId}
+                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer text-left"
+                                >
+                                  <Mic className="w-4 h-4 text-purple-600 shrink-0" />
+                                  <span>AI Voice Narration</span>
+                                </button>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowActionMenu(false);
+                                  handlePrintToPdf();
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 transition-colors cursor-pointer text-left"
+                              >
+                                <Printer className="w-4 h-4 text-amber-600 shrink-0" />
+                                <span>Print to PDF</span>
+                              </button>
+
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1183,18 +1702,31 @@ export default function StoryEditorPanel({
             </div>
 
             {content ? (
-              <div className="font-serif text-xs text-slate-700 leading-relaxed space-y-2.5 whitespace-pre-wrap pt-1 border-t border-slate-100">
+              <div className="text-slate-600 dark:text-slate-300 font-sans text-sm sm:text-[15px] leading-relaxed space-y-2.5 whitespace-pre-line font-normal pt-1 border-t border-slate-100">
                 {content}
               </div>
             ) : (
-              <div className="py-6 text-center text-slate-400 font-serif italic text-xs">
+              <div className="py-6 text-center text-slate-400 font-sans italic text-sm">
                 No content written for this story yet. Click the edit icon to start writing.
               </div>
             )}
 
-            <div className="flex items-center justify-between pt-3 border-t border-slate-100 text-[10px] font-mono text-slate-400 font-bold">
-              <span>Topic: {topicTitle}</span>
-              <span>{wordCount} words</span>
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 flex-wrap gap-2">
+              <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 font-bold">
+                <span>Topic: {topicTitle}</span>
+                <span>•</span>
+                <span>{wordCount} words</span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handlePrintToPdf}
+                title="Print story as a paperback book chapter PDF"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer shadow-2xs group"
+              >
+                <Printer className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-600 transition-colors" />
+                <span>Print to PDF</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1299,6 +1831,208 @@ export default function StoryEditorPanel({
           </div>
         )}
       </AnimatePresence>
+      {/* --- CUSTOM TOPIC SELECTION MODAL --- */}
+      <AnimatePresence>
+        {showCustomTopicModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div className="absolute inset-0 cursor-default" onClick={() => setShowCustomTopicModal(false)} />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-slate-100 rounded-3xl shadow-2xl max-w-md w-full z-10 p-6 flex flex-col gap-4 relative overflow-hidden"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center shrink-0">
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-slate-850">
+                      Select Custom Topic
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Choose which custom topic this story belongs to.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomTopicModal(false)}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {loadingCustomTopics ? (
+                <div className="py-8 flex flex-col items-center justify-center gap-2 text-slate-400">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  <span className="text-xs">Loading custom topics...</span>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {customTopics.length > 0 ? (
+                    <div className="max-h-56 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                      {customTopics.map((ct) => {
+                        const ctId = ct.topicCustomId || ct.mbrCustomTopicId || '';
+                        const ctName = ct.topicCustomName || ct.mbrCustomTopicName || 'Untitled Topic';
+                        const ctDesc = ct.topicCustomTopicDesc || ct.mbrCustomTopicDesc || '';
+                        const isSelected = (selectedCustomTopic?.topicCustomId || selectedCustomTopic?.mbrCustomTopicId) === ctId;
+                        return (
+                          <div
+                            key={ctId}
+                            onClick={() => setSelectedCustomTopic(ct)}
+                            className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
+                              isSelected
+                                ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/20 shadow-xs'
+                                : 'bg-[#FAF9F7] hover:bg-slate-50 border-slate-200/80 text-slate-700'
+                            }`}
+                          >
+                            <div className="space-y-0.5 min-w-0">
+                              <h4 className="text-xs font-serif font-bold text-slate-850 truncate">
+                                {ctName}
+                              </h4>
+                              {ctDesc && (
+                                <p className="text-[11px] text-slate-500 leading-snug line-clamp-2">
+                                  {ctDesc}
+                                </p>
+                              )}
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                              isSelected
+                                ? 'bg-amber-500 border-amber-500 text-white'
+                                : 'border-slate-300 bg-white'
+                            }`}>
+                              {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center text-xs text-slate-400 italic">
+                      No custom topics found. Create a new custom topic below to get started.
+                    </div>
+                  )}
+
+                  {/* Inline New Topic Creator */}
+                  {showInlineNewTopic ? (
+                    <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                      <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider block">
+                        New Topic Title
+                      </label>
+                      <input
+                        type="text"
+                        value={newCustomTopicName}
+                        onChange={(e) => setNewCustomTopicName(e.target.value)}
+                        placeholder="e.g. Scuba Diving Adventures..."
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-500"
+                        autoFocus
+                      />
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setShowInlineNewTopic(false)}
+                          className="px-2.5 py-1 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCreateCustomTopicInline}
+                          disabled={!newCustomTopicName.trim() || creatingCustomTopic}
+                          className="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer shadow-xs"
+                        >
+                          {creatingCustomTopic ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                          <span>Add Topic & Start Story</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setShowInlineNewTopic(true)}
+                      className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-bold p-1 self-start cursor-pointer hover:underline"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Create New Custom Topic</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 w-full pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomTopicModal(false)}
+                  className="flex-1 py-2.5 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleConfirmCustomTopicSelection()}
+                  disabled={!selectedCustomTopic || loadingCustomTopics}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 transition-all cursor-pointer border border-blue-600 disabled:opacity-50"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Start Story</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Reusable Photo Gallery Modal Dialog for Story */}
+      <MbrPhotoGalleryPanel
+        isOpen={showPhotoGalleryModal}
+        onClose={() => {
+          setShowPhotoGalleryModal(false);
+          loadStoryPhotoCounts();
+          window.dispatchEvent(new CustomEvent('update-story-editor-content', { detail: { storyId: activeStoryId } }));
+        }}
+        mbrId={resolvedMbrId}
+        categoryCd={resolvedCategoryCd}
+        categoryTitle={title ? `Photos: ${title}` : `${topicTitle} Story Photos`}
+        subordinateId={activeStoryId || undefined}
+        isSandbox={isSandbox}
+        maxPhotos={15}
+        readOnly={readOnly}
+      />
+
+      {/* AI Voice Narration Modal Dialog for Published Stories */}
+      <AiVoiceModal
+        isOpen={showAiVoiceModal}
+        onClose={() => {
+          setShowAiVoiceModal(false);
+          loadStoryPhotoCounts();
+        }}
+        storyId={activeStoryId || ''}
+        storyTitle={title}
+        storyContent={content}
+        mbrId={resolvedMbrId}
+        categoryCd={resolvedCategoryCd}
+        isSandbox={isSandbox}
+      />
+
+      {/* Story Print to PDF Customization & Page Size Modal */}
+      <StoryPdfPrintModal
+        isOpen={showPdfModal}
+        onClose={() => setShowPdfModal(false)}
+        storyTitle={title || stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryTitle || 'Untitled Story'}
+        storyContent={content || stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryText || ''}
+        topicTitle={stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryTopicName || topicTitle || 'Story'}
+        authorName={authorName}
+        authorLocation={authorLocation}
+        publishedDate={stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryPublishedDate || stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryCreatedAt}
+        status={status}
+        onSuccess={(msg) => setSuccessMsg(msg)}
+        onError={(err) => setError(err)}
+      />
+
       <AdminComponentTag name="StoryEditorPanel" />
     </div>
   );

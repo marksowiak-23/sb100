@@ -84,10 +84,135 @@ export interface Topic {
   topicId: string;
   topicName: string;
   topicFullName?: string;
+  topicComponent?: string | null;
   topicSortOrder?: number | null;
   chIntentId?: string | null;
   topicCreatedAt?: string;
   topicUpdatedAt?: string;
+}
+
+export interface TopicSpark {
+  sparkId: string;
+  topicId: string;
+  sparkQuestion: string;
+  sparkCreatedAt?: string;
+  sparkUpdatedAt?: string;
+}
+
+export const DEFAULT_TOPIC_LOOKUP: Record<string, { topicId: string; topicName: string; topicFullName: string; chIntentId: string }> = {
+  profile: {
+    topicId: 'b54e7b10-8725-494b-902e-4b9fff8f3c23',
+    topicName: 'Profile',
+    topicFullName: 'Profile',
+    chIntentId: '0bf92240-a979-4c20-9d6e-4e7060539cae'
+  },
+  family: {
+    topicId: 'a01cfe18-ad54-495b-9636-4b0d5c0aa3c2',
+    topicName: 'Family',
+    topicFullName: 'Family',
+    chIntentId: '1e9238af-c28a-4420-a88a-09b6f3e831ac'
+  },
+  residencies: {
+    topicId: '0c56cf6a-64d7-4174-abb0-0a049a40dcd5',
+    topicName: 'Residencies',
+    topicFullName: 'Residencies',
+    chIntentId: '4a5a9260-4627-4bf9-864d-e2f0bb39532f'
+  },
+  achievements: {
+    topicId: '95af15b6-ccd4-4487-8151-aef0ad82b6e8',
+    topicName: 'Achievements',
+    topicFullName: 'Achievements',
+    chIntentId: '050d8d52-eeef-43a9-9fa8-b0da188cb219'
+  },
+  education: {
+    topicId: '196bc8c6-2b8b-4d80-9cc6-1498d37b67a6',
+    topicName: 'Education',
+    topicFullName: 'Education and Training',
+    chIntentId: '9c479e0f-3daa-4f83-af22-08195f9091d3'
+  },
+  employment: {
+    topicId: '272a39fd-9b43-4fee-9c26-dccf1d8edd1e',
+    topicName: 'Employment',
+    topicFullName: 'Employment and Career',
+    chIntentId: 'ecf317b0-c693-44eb-b23b-afe0a7336c13'
+  },
+  activities: {
+    topicId: 'df0744af-1f72-4c4a-b141-05cfdbd2863d',
+    topicName: 'Activities',
+    topicFullName: 'Activities and Hobbies',
+    chIntentId: '3283efe2-a2c7-45fb-b635-0905420999c0'
+  },
+  activity: {
+    topicId: 'df0744af-1f72-4c4a-b141-05cfdbd2863d',
+    topicName: 'Activities',
+    topicFullName: 'Activities and Hobbies',
+    chIntentId: '3283efe2-a2c7-45fb-b635-0905420999c0'
+  },
+  hobbies: {
+    topicId: 'df0744af-1f72-4c4a-b141-05cfdbd2863d',
+    topicName: 'Activities',
+    topicFullName: 'Activities and Hobbies',
+    chIntentId: '3283efe2-a2c7-45fb-b635-0905420999c0'
+  },
+  hobby: {
+    topicId: 'df0744af-1f72-4c4a-b141-05cfdbd2863d',
+    topicName: 'Activities',
+    topicFullName: 'Activities and Hobbies',
+    chIntentId: '3283efe2-a2c7-45fb-b635-0905420999c0'
+  },
+  'activities and hobbies': {
+    topicId: 'df0744af-1f72-4c4a-b141-05cfdbd2863d',
+    topicName: 'Activities',
+    topicFullName: 'Activities and Hobbies',
+    chIntentId: '3283efe2-a2c7-45fb-b635-0905420999c0'
+  },
+  'activities & hobbies': {
+    topicId: 'df0744af-1f72-4c4a-b141-05cfdbd2863d',
+    topicName: 'Activities',
+    topicFullName: 'Activities and Hobbies',
+    chIntentId: '3283efe2-a2c7-45fb-b635-0905420999c0'
+  },
+  other: {
+    topicId: 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e',
+    topicName: 'Other',
+    topicFullName: 'Other',
+    chIntentId: '3a435df1-392c-433d-adf3-7fb9c3e5051a'
+  },
+  custom: {
+    topicId: 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e',
+    topicName: 'Other',
+    topicFullName: 'Other',
+    chIntentId: '3a435df1-392c-433d-adf3-7fb9c3e5051a'
+  }
+};
+
+export function matchTopicByName(name?: string | null, topicList?: Topic[]): Topic | undefined {
+  if (!name || typeof name !== 'string') return undefined;
+  const n = name.trim().toLowerCase();
+  if (topicList && topicList.length > 0) {
+    const found = topicList.find(t => 
+      t.topicName?.toLowerCase() === n ||
+      t.topicFullName?.toLowerCase() === n ||
+      (n === 'hobbies' && t.topicName?.toLowerCase() === 'activities') ||
+      (n === 'activities' && t.topicName?.toLowerCase() === 'activities') ||
+      (n === 'custom' && t.topicName?.toLowerCase() === 'other') ||
+      (n === 'other' && t.topicName?.toLowerCase() === 'other') ||
+      (n === 'education and training' && t.topicName?.toLowerCase() === 'education') ||
+      (n === 'employment and career' && t.topicName?.toLowerCase() === 'employment') ||
+      (n === 'activities and hobbies' && (t.topicName?.toLowerCase() === 'activities' || t.topicName?.toLowerCase() === 'hobbies'))
+    );
+    if (found) return found;
+  }
+  const fallback = DEFAULT_TOPIC_LOOKUP[n];
+  if (fallback) {
+    return {
+      topicId: fallback.topicId,
+      topicName: fallback.topicName,
+      topicFullName: fallback.topicFullName,
+      chIntentId: fallback.chIntentId
+    };
+  }
+  return undefined;
 }
 
 export interface GroupGlobal {
@@ -118,14 +243,46 @@ export interface MbrTopicGroupPrivs {
   privUpdatedAt?: string;
 }
 
-export interface MbrTopicCustom {
-  mbrCustomTopicId: string;
+export interface MbrStoryLikes {
+  mbrStoryLikesId: string;
+  mbrStoryId: string;
+  mbrStoryLikesCd: string;
+  mbrLikesMbrId: string;
+  mbrLikesMbrName?: string;
+  mbrStoryLikesCreatedAt?: string;
+  mbrStoryLikesUpdatedAt?: string;
+}
+
+export interface MbrStoryComments {
+  mbrCommentsId: string;
+  mbrStoryId: string;
+  mbrCommentsContent: string;
+  mbrCommentsMbrId?: string | null;
+  mbrCommentsMbrName?: string;
+  mbrCommentsPostDt?: string;
+  mbrCommentsParentId?: string | null;
+  mbrCommentsCreatedAt?: string;
+  mbrCommentsUpdatedAt?: string;
+}
+
+export interface TopicCustom {
+  topicCustomId: string;
   mbrId: string;
-  mbrCustomTopicName: string;
+  topicCustomName: string;
+  topicCustomTopicDesc?: string;
+  topicCustomSortOrder?: number;
+  chIntentId?: string;
+  topicCustomTopicCreatedAt?: string;
+  topicCustomUpdatedAt?: string;
+  // Aliases for backward compatibility
+  mbrCustomTopicId?: string;
+  mbrCustomTopicName?: string;
   mbrCustomTopicDesc?: string;
   mbrCustomTopicCreatedAt?: string;
   mbrCustomTopicUpdatedAt?: string;
 }
+
+export type MbrTopicCustom = TopicCustom;
 
 export interface MbrConnection {
   mbrConnectionId: string;
@@ -891,8 +1048,8 @@ export const taskApi = {
   /**
    * Fetch all custom topics for a given member.
    */
-  async getCustomTopics(mbrId: string): Promise<MbrTopicCustom[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/member/${mbrId}?t=${Date.now()}`, {
+  async getCustomTopics(mbrId: string): Promise<TopicCustom[]> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs/member/${mbrId}?t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -901,27 +1058,27 @@ export const taskApi = {
       },
       cache: 'no-cache'
     });
-    return handleResponse<MbrTopicCustom[]>(response);
+    return handleResponse<TopicCustom[]>(response);
   },
 
   /**
    * Fetch a single custom topic by ID.
    */
-  async getCustomTopic(mbrCustomTopicId: string): Promise<MbrTopicCustom> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}?t=${Date.now()}`, {
+  async getCustomTopic(topicCustomId: string): Promise<TopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs/${topicCustomId}?t=${Date.now()}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
       }
     });
-    return handleResponse<MbrTopicCustom>(response);
+    return handleResponse<TopicCustom>(response);
   },
 
   /**
    * Create a new custom topic record.
    */
-  async createCustomTopic(customTopic: Partial<MbrTopicCustom>): Promise<MbrTopicCustom> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs`, {
+  async createCustomTopic(customTopic: Partial<TopicCustom>): Promise<TopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -929,14 +1086,14 @@ export const taskApi = {
       },
       body: JSON.stringify(customTopic),
     });
-    return handleResponse<MbrTopicCustom>(response);
+    return handleResponse<TopicCustom>(response);
   },
 
   /**
    * Update an existing custom topic record.
    */
-  async updateCustomTopic(mbrCustomTopicId: string, customTopic: Partial<MbrTopicCustom>): Promise<MbrTopicCustom> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}`, {
+  async updateCustomTopic(topicCustomId: string, customTopic: Partial<TopicCustom>): Promise<TopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs/${topicCustomId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -944,14 +1101,14 @@ export const taskApi = {
       },
       body: JSON.stringify(customTopic),
     });
-    return handleResponse<MbrTopicCustom>(response);
+    return handleResponse<TopicCustom>(response);
   },
 
   /**
    * Delete a custom topic record.
    */
-  async deleteCustomTopic(mbrCustomTopicId: string): Promise<any> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}`, {
+  async deleteCustomTopic(topicCustomId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs/${topicCustomId}`, {
       method: 'DELETE',
       headers: {
         'Accept': 'application/json',
@@ -1554,7 +1711,189 @@ export const taskApi = {
       }
     });
     return handleResponse<MbrContact>(response);
+  },
+
+  /**
+   * Fetch member story likes and reactions.
+   */
+  async getMemberStoryLikes(params?: { mbrStoryId?: string; mbrLikesMbrId?: string; skip?: number; limit?: number }): Promise<MbrStoryLikes[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrStoryId) searchParams.append('mbr_story_id', params.mbrStoryId);
+    if (params?.mbrLikesMbrId) searchParams.append('mbr_likes_mbr_id', params.mbrLikesMbrId);
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-story-likes${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryLikes[]>(response);
+  },
+
+  /**
+   * Fetch a single member story like by ID.
+   */
+  async getMemberStoryLike(likeId: string): Promise<MbrStoryLikes> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-likes/${likeId}`, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryLikes>(response);
+  },
+
+  /**
+   * Create a new story reaction / like.
+   */
+  async createMemberStoryLike(like: Partial<MbrStoryLikes>): Promise<MbrStoryLikes> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-likes`, {
+      method: 'POST',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(like)
+    });
+    return handleResponse<MbrStoryLikes>(response);
+  },
+
+  /**
+   * Update an existing story reaction / like.
+   */
+  async updateMemberStoryLike(likeId: string, like: Partial<MbrStoryLikes>): Promise<MbrStoryLikes> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-likes/${likeId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(like)
+    });
+    return handleResponse<MbrStoryLikes>(response);
+  },
+
+  /**
+   * Delete a story reaction / like record.
+   */
+  async deleteMemberStoryLike(likeId: string): Promise<MbrStoryLikes> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-likes/${likeId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders({
+        'Accept': 'application/json'
+      })
+    });
+    return handleResponse<MbrStoryLikes>(response);
+  },
+
+  /**
+   * Fetch all story comments with optional story or parent filter.
+   */
+  async getStoryComments(params?: { mbrStoryId?: string; mbrCommentsParentId?: string; skip?: number; limit?: number }): Promise<MbrStoryComments[]> {
+    const query = new URLSearchParams();
+    if (params?.mbrStoryId) query.append('mbr_story_id', params.mbrStoryId);
+    if (params?.mbrCommentsParentId) query.append('mbr_comments_parent_id', params.mbrCommentsParentId);
+    if (params?.skip !== undefined) query.append('skip', String(params.skip));
+    if (params?.limit !== undefined) query.append('limit', String(params.limit));
+
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const response = await fetch(`${API_BASE_URL}/mbr-story-comments${qs}`, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryComments[]>(response);
+  },
+
+  /**
+   * Fetch a single member story comment by ID.
+   */
+  async getStoryComment(commentId: string): Promise<MbrStoryComments> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-comments/${commentId}`, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryComments>(response);
+  },
+
+  /**
+   * Create a new story comment or reply.
+   */
+  async createStoryComment(comment: Partial<MbrStoryComments>): Promise<MbrStoryComments> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-comments`, {
+      method: 'POST',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(comment)
+    });
+    return handleResponse<MbrStoryComments>(response);
+  },
+
+  /**
+   * Update an existing story comment.
+   */
+  async updateStoryComment(commentId: string, comment: Partial<MbrStoryComments>): Promise<MbrStoryComments> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-comments/${commentId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(comment)
+    });
+    return handleResponse<MbrStoryComments>(response);
+  },
+
+  /**
+   * Delete a story comment record.
+   */
+  async deleteStoryComment(commentId: string): Promise<MbrStoryComments> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-comments/${commentId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders({
+        'Accept': 'application/json'
+      })
+    });
+    return handleResponse<MbrStoryComments>(response);
   }
+};
+
+export const mbrStoryLikesApi = {
+  getMemberStoryLikes: (params?: { mbrStoryId?: string; mbrLikesMbrId?: string; skip?: number; limit?: number }) => taskApi.getMemberStoryLikes(params),
+  getMemberStoryLike: (likeId: string) => taskApi.getMemberStoryLike(likeId),
+  createMemberStoryLike: (like: Partial<MbrStoryLikes>) => taskApi.createMemberStoryLike(like),
+  updateMemberStoryLike: (likeId: string, like: Partial<MbrStoryLikes>) => taskApi.updateMemberStoryLike(likeId, like),
+  deleteMemberStoryLike: (likeId: string) => taskApi.deleteMemberStoryLike(likeId),
+};
+
+export const mbrStoryCommentsApi = {
+  getStoryComments: (params?: { mbrStoryId?: string; mbrCommentsParentId?: string; skip?: number; limit?: number }) => taskApi.getStoryComments(params),
+  getStoryComment: (commentId: string) => taskApi.getStoryComment(commentId),
+  createStoryComment: (comment: Partial<MbrStoryComments>) => taskApi.createStoryComment(comment),
+  updateStoryComment: (commentId: string, comment: Partial<MbrStoryComments>) => taskApi.updateStoryComment(commentId, comment),
+  deleteStoryComment: (commentId: string) => taskApi.deleteStoryComment(commentId),
 };
 
 export const mbrStoryActivityApi = {
@@ -1825,39 +2164,39 @@ export const mbrStoryStatApi = {
   }
 };
 
-export const mbrTopicCustomApi = {
-  async getCustomTopics(skip: number = 0, limit: number = 100): Promise<MbrTopicCustom[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs?skip=${skip}&limit=${limit}`, {
+export const topicCustomApi = {
+  async getCustomTopics(skip: number = 0, limit: number = 100): Promise<TopicCustom[]> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs?skip=${skip}&limit=${limit}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json'
       }
     });
-    return handleResponse<MbrTopicCustom[]>(response);
+    return handleResponse<TopicCustom[]>(response);
   },
 
-  async getCustomTopic(mbrCustomTopicId: string): Promise<MbrTopicCustom> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}`, {
+  async getCustomTopic(topicCustomId: string): Promise<TopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs/${topicCustomId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json'
       }
     });
-    return handleResponse<MbrTopicCustom>(response);
+    return handleResponse<TopicCustom>(response);
   },
 
-  async getCustomTopicsByMbrId(mbrId: string): Promise<MbrTopicCustom[]> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/member/${mbrId}`, {
+  async getCustomTopicsByMbrId(mbrId: string): Promise<TopicCustom[]> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs/member/${mbrId}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json'
       }
     });
-    return handleResponse<MbrTopicCustom[]>(response);
+    return handleResponse<TopicCustom[]>(response);
   },
 
-  async createCustomTopic(topic: Partial<MbrTopicCustom>): Promise<MbrTopicCustom> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs`, {
+  async createCustomTopic(topic: Partial<TopicCustom>): Promise<TopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1865,11 +2204,11 @@ export const mbrTopicCustomApi = {
       },
       body: JSON.stringify(topic)
     });
-    return handleResponse<MbrTopicCustom>(response);
+    return handleResponse<TopicCustom>(response);
   },
 
-  async updateCustomTopic(mbrCustomTopicId: string, topic: Partial<MbrTopicCustom>): Promise<MbrTopicCustom> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}`, {
+  async updateCustomTopic(topicCustomId: string, topic: Partial<TopicCustom>): Promise<TopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs/${topicCustomId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -1877,17 +2216,154 @@ export const mbrTopicCustomApi = {
       },
       body: JSON.stringify(topic)
     });
-    return handleResponse<MbrTopicCustom>(response);
+    return handleResponse<TopicCustom>(response);
   },
 
-  async deleteCustomTopic(mbrCustomTopicId: string): Promise<MbrTopicCustom> {
-    const response = await fetch(`${API_BASE_URL}/mbr-topic-customs/${mbrCustomTopicId}`, {
+  async deleteCustomTopic(topicCustomId: string): Promise<TopicCustom> {
+    const response = await fetch(`${API_BASE_URL}/topic-customs/${topicCustomId}`, {
       method: 'DELETE',
       headers: {
         'Accept': 'application/json'
       }
     });
-    return handleResponse<MbrTopicCustom>(response);
+    return handleResponse<TopicCustom>(response);
+  }
+};
+
+export const mbrTopicCustomApi = topicCustomApi;
+
+export const topicApi = {
+  async getTopics(query?: string): Promise<Topic[]> {
+    const searchParams = new URLSearchParams();
+    if (query) searchParams.append('query', query);
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/topics${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<Topic[]>(response);
+  },
+
+  async getTopic(topicId: string): Promise<Topic> {
+    const response = await fetch(`${API_BASE_URL}/topics/${topicId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<Topic>(response);
+  },
+
+  async createTopic(topic: Partial<Topic>): Promise<Topic> {
+    const response = await fetch(`${API_BASE_URL}/topics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(topic)
+    });
+    return handleResponse<Topic>(response);
+  },
+
+  async updateTopic(topicId: string, topic: Partial<Topic>): Promise<Topic> {
+    const response = await fetch(`${API_BASE_URL}/topics/${topicId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(topic)
+    });
+    return handleResponse<Topic>(response);
+  },
+
+  async deleteTopic(topicId: string): Promise<Topic> {
+    const response = await fetch(`${API_BASE_URL}/topics/${topicId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<Topic>(response);
+  }
+};
+
+export const topicSparkApi = {
+  async getTopicSparks(topicId?: string, query?: string): Promise<TopicSpark[]> {
+    const searchParams = new URLSearchParams();
+    if (topicId) searchParams.append('topic_id', topicId);
+    if (query) searchParams.append('query', query);
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/topic-sparks${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<TopicSpark[]>(response);
+  },
+
+  async getTopicSpark(sparkId: string): Promise<TopicSpark> {
+    const response = await fetch(`${API_BASE_URL}/topic-sparks/${sparkId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<TopicSpark>(response);
+  },
+
+  async getTopicSparksByTopic(topicId: string): Promise<TopicSpark[]> {
+    const response = await fetch(`${API_BASE_URL}/topic-sparks/topic/${topicId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<TopicSpark[]>(response);
+  },
+
+  async createTopicSpark(spark: Partial<TopicSpark>): Promise<TopicSpark> {
+    const response = await fetch(`${API_BASE_URL}/topic-sparks`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(spark)
+    });
+    return handleResponse<TopicSpark>(response);
+  },
+
+  async updateTopicSpark(sparkId: string, spark: Partial<TopicSpark>): Promise<TopicSpark> {
+    const response = await fetch(`${API_BASE_URL}/topic-sparks/${sparkId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(spark)
+    });
+    return handleResponse<TopicSpark>(response);
+  },
+
+  async deleteTopicSpark(sparkId: string): Promise<TopicSpark> {
+    const response = await fetch(`${API_BASE_URL}/topic-sparks/${sparkId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<TopicSpark>(response);
   }
 };
 
@@ -2650,9 +3126,43 @@ export const mbrRememberWhenApi = {
   },
 };
 
+// ==========================================
+// TEXT TO SPEECH (TTS) API
+// ==========================================
+export interface TTSSynthesizePayload {
+  text: string;
+  voice_name?: string;
+  speed?: number;
+  persona?: string;
+}
 
+export interface TTSSynthesizeResponse {
+  status: string;
+  text_length: number;
+  estimated_duration_seconds: number;
+  voice: string;
+  persona: string;
+  audio_format: string;
+  mime_type?: string;
+  audio_base64?: string | null;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  message: string;
+}
 
-
-
-
+export const textToSpeechApi = {
+  async synthesize(payload: TTSSynthesizePayload): Promise<TTSSynthesizeResponse> {
+    const AI_API_URL = import.meta.env.VITE_AI_API_URL || 'http://127.0.0.1:8002';
+    const response = await fetch(`${AI_API_URL}/tts/synthesize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+    return handleResponse<TTSSynthesizeResponse>(response);
+  }
+};
 

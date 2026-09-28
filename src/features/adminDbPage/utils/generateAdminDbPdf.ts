@@ -57,6 +57,8 @@ const TABLE_TITLE_MAP: Record<string, string> = {
   mbrStat: 'Member Platform Metrics & Counts (mbrStat)',
   mbrStory: 'Member Stories & Memoir Archives (mbrStory)',
   mbrStoryActivity: 'Story Interaction Logs (mbrStoryActivity)',
+  mbrStoryLikes: 'Story Likes & Reactions (mbrStoryLikes)',
+  mbrStoryComments: 'Story Comments & Replies (mbrStoryComments)',
   mbrStoryStat: 'Story Engagement & Metrics (mbrStoryStat)',
   mbrAiUsageLog: 'AI Model Token & Cost Audit Logs (mbrAiUsageLog)',
   mbrPersonalTrivia: 'Personal Trivia & Memory Snippets (mbrPersonalTrivia)',
@@ -368,19 +370,23 @@ export function generateAdminDbPdf({
       formatShortDate(row.mbrAchievementDate),
       String(row.mbrAchievementDescription || '-')
     ]);
-  } else if (table.id === 'mbrTopicCustom') {
-    headers = ['Custom Topic ID', 'Member ID', 'Custom Topic Name', 'Description & Theme Details'];
+  } else if (table.id === 'topicCustom' || table.id === 'mbrTopicCustom') {
+    headers = ['Topic Custom ID', 'Member ID', 'Custom Topic Name', 'Sort Order', 'Intent ID', 'Description'];
     columnStyles = {
-      0: { font: 'courier', cellWidth: 125 },
-      1: { font: 'courier', cellWidth: 125 },
-      2: { fontStyle: 'bold', cellWidth: 150 },
-      3: { cellWidth: 'auto' }
+      0: { font: 'courier', cellWidth: 100 },
+      1: { font: 'courier', cellWidth: 100 },
+      2: { fontStyle: 'bold', cellWidth: 120 },
+      3: { cellWidth: 40 },
+      4: { font: 'courier', cellWidth: 100 },
+      5: { cellWidth: 'auto' }
     };
     tableRows = data.map((row) => [
-      String(row.mbrCustomTopicId || '-'),
+      String(row.topicCustomId || row.mbrCustomTopicId || '-'),
       String(row.mbrId || '-'),
-      String(row.mbrCustomTopicName || '-'),
-      String(row.mbrCustomTopicDesc || '-')
+      String(row.topicCustomName || row.mbrCustomTopicName || '-'),
+      String(row.topicCustomSortOrder != null ? row.topicCustomSortOrder : '-'),
+      String(row.chIntentId || '-'),
+      String(row.topicCustomTopicDesc || row.mbrCustomTopicDesc || '-')
     ]);
   } else if (table.id === 'mbrMedia') {
     headers = ['Media ID', 'Member ID', 'Subordinate ID', 'Category', 'MIME Type', 'Cloud Media Path / URL', 'Caption / Description'];
@@ -477,6 +483,24 @@ export function generateAdminDbPdf({
       String(row.completionTokens ?? '0'),
       `$${Number(row.estimatedCostUsd || 0).toFixed(4)}`,
       `${row.totalLatencyMs || row.lastLatencyMs || 0}ms`
+    ]);
+  } else if (table.id === 'mbrStoryComments') {
+    headers = ['Comment ID', 'Story ID', 'Member Name', 'Parent Comment ID', 'Post Date / Time', 'Comment Content / Reply'];
+    columnStyles = {
+      0: { font: 'courier', cellWidth: 90 },
+      1: { font: 'courier', cellWidth: 90 },
+      2: { fontStyle: 'bold', cellWidth: 110 },
+      3: { font: 'courier', cellWidth: 90 },
+      4: { halign: 'center', cellWidth: 80 },
+      5: { cellWidth: 'auto' }
+    };
+    tableRows = data.map((row) => [
+      String(row.mbrCommentsId || '-'),
+      String(row.mbrStoryId || '-'),
+      String(row.mbrCommentsMbrName || '-'),
+      String(row.mbrCommentsParentId || '(Top-level)'),
+      formatShortDate(row.mbrCommentsPostDt || row.mbrCommentsCreatedAt),
+      String(row.mbrCommentsContent || '-')
     ]);
   } else if (table.id === 'cd') {
     headers = ['Code ID', 'Tag / Group', 'Value', 'Label', 'Sort Order', 'Description'];

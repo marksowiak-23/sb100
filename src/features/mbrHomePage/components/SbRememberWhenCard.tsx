@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Sparkles,
   RefreshCw,
@@ -17,23 +17,63 @@ import {
   Gamepad2,
   DollarSign,
   Calendar,
+  ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   X,
-  Flame
+  Flame,
+  Trophy,
+  Laptop,
+  Home
 } from 'lucide-react';
 import { userManager } from '@/src/services/userManager';
 import { taskApi, mbrRememberWhenApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-export type NostalgiaCategory = 'ALL' | 'POP_CULTURE' | 'BIG_NEWS' | 'MOVIES_TV' | 'FADS_TRENDS' | 'COST_OF_LIVING';
+export type NostalgiaCategory =
+  | 'ALL'
+  | 'POP_CULTURE'
+  | 'BIG_NEWS'
+  | 'MOVIES_TV'
+  | 'SPORTS'
+  | 'TECHNOLOGY'
+  | 'FAMILY_LIFE'
+  | 'FADS_TRENDS'
+  | 'COST_OF_LIVING';
 
-export type LifeStageKey = 'BORN' | 'CHILDHOOD' | 'TEEN' | 'TWENTIES' | 'THIRTIES' | 'FORTIES_PLUS';
+export interface TopicCategoryOption {
+  key: NostalgiaCategory;
+  label: string;
+  emoji: string;
+}
+
+export const TOPIC_CATEGORIES: TopicCategoryOption[] = [
+  { key: 'POP_CULTURE', label: 'Pop Culture & Music', emoji: '🎵' },
+  { key: 'BIG_NEWS', label: 'Big News of the Times', emoji: '📰' },
+  { key: 'MOVIES_TV', label: 'Movies & TV', emoji: '🎬' },
+  { key: 'SPORTS', label: 'Sports', emoji: '🏅' },
+  { key: 'TECHNOLOGY', label: 'Technology', emoji: '💻' },
+  { key: 'FAMILY_LIFE', label: 'Family Life', emoji: '🏠' },
+  { key: 'FADS_TRENDS', label: 'Fads & Trends', emoji: '🕹️' },
+  { key: 'COST_OF_LIVING', label: 'What Things Cost', emoji: '💰' },
+];
+
+export type LifeStageKey =
+  | 'BORN'
+  | 'CHILDHOOD'
+  | 'TEEN'
+  | 'TWENTIES'
+  | 'THIRTIES'
+  | 'FORTIES'
+  | 'FIFTIES'
+  | 'SIXTIES_PLUS';
 
 export interface NostalgiaItem {
   id: string;
   year: number;
   decade: number;
-  category: 'POP_CULTURE' | 'BIG_NEWS' | 'MOVIES_TV' | 'FADS_TRENDS' | 'COST_OF_LIVING';
+  category: 'POP_CULTURE' | 'BIG_NEWS' | 'MOVIES_TV' | 'SPORTS' | 'TECHNOLOGY' | 'FAMILY_LIFE' | 'FADS_TRENDS' | 'COST_OF_LIVING';
   headline: string;
   storyContent: string;
   promptSuggestion: string;
@@ -50,12 +90,14 @@ interface LifeStageDef {
 }
 
 const LIFE_STAGES: LifeStageDef[] = [
+  { key: 'BORN', label: 'Year Born', emoji: '👶', minAge: 0, maxAge: 0, description: 'The Year You Arrived' },
+  { key: 'CHILDHOOD', label: 'Childhood', emoji: '🎒', minAge: 6, maxAge: 12, description: 'Ages 6–12' },
   { key: 'TEEN', label: 'Teen Years', emoji: '🎸', minAge: 13, maxAge: 19, description: 'Ages 13–19' },
   { key: 'TWENTIES', label: 'In Your 20s', emoji: '🕶️', minAge: 20, maxAge: 29, description: 'Ages 20–29' },
-  { key: 'CHILDHOOD', label: 'Childhood', emoji: '🎒', minAge: 6, maxAge: 12, description: 'Ages 6–12' },
   { key: 'THIRTIES', label: 'In Your 30s', emoji: '💼', minAge: 30, maxAge: 39, description: 'Ages 30–39' },
-  { key: 'BORN', label: 'Year Born', emoji: '👶', minAge: 0, maxAge: 0, description: 'The Year You Arrived' },
-  { key: 'FORTIES_PLUS', label: 'In Your 40s+', emoji: '☕', minAge: 40, maxAge: 55, description: 'Ages 40+' },
+  { key: 'FORTIES', label: 'In Your 40s', emoji: '🏡', minAge: 40, maxAge: 49, description: 'Ages 40–49' },
+  { key: 'FIFTIES', label: 'In Your 50s', emoji: '☕', minAge: 50, maxAge: 59, description: 'Ages 50–59' },
+  { key: 'SIXTIES_PLUS', label: 'In Your 60s+', emoji: '🌅', minAge: 60, maxAge: 75, description: 'Ages 60+' },
 ];
 
 // Rich, authentic nostalgia almanac database across decades
@@ -206,6 +248,26 @@ const NOSTALGIA_DATABASE: NostalgiaItem[] = [
     badge: '1776–1976 Celebration'
   },
   {
+    id: 'n-1974-aaron',
+    year: 1974,
+    decade: 1970,
+    category: 'SPORTS',
+    headline: 'Remember When: Hank Aaron Broke Babe Ruth’s Home Run Record',
+    storyContent: 'On April 8, 1974, Hank Aaron hammered home run number 715 into the Atlanta bullpen on national television, breaking Babe Ruth’s legendary record in front of 53,000 cheering fans in one of baseball’s greatest moments.',
+    promptSuggestion: 'Did you collect baseball cards or listen to ball games on transistor radios during hot summer nights?',
+    badge: 'Historic 715th Home Run'
+  },
+  {
+    id: 'n-1977-apple2',
+    year: 1977,
+    decade: 1970,
+    category: 'TECHNOLOGY',
+    headline: 'Remember When: The First Home Computers Arrived',
+    storyContent: 'In 1977, personal computing was born with the introduction of the Apple II, Commodore PET, and TRS-80. For the first time, families could hook a computer up to their living room TV and load programs from audio cassette tapes.',
+    promptSuggestion: 'What was the very first computer or electronic gadget you ever operated or bought?',
+    badge: 'Birth of Personal Computing'
+  },
+  {
     id: 'n-1977-starwars',
     year: 1977,
     decade: 1970,
@@ -286,6 +348,36 @@ const NOSTALGIA_DATABASE: NostalgiaItem[] = [
     storyContent: 'In 1988, a gallon of regular unleaded gasoline cost 90 cents, a first-class postage stamp was 25 cents, and a movie ticket averaged $4.11. The Nintendo Entertainment System (NES) bundled with Super Mario Bros. was the hottest holiday gift at $149.',
     promptSuggestion: 'Did you or your children have a Nintendo or favorite video game console back in the 80s and 90s?',
     badge: 'Gas: 90¢ / gal · NES: $149'
+  },
+  {
+    id: 'n-1980-miracle',
+    year: 1980,
+    decade: 1980,
+    category: 'SPORTS',
+    headline: 'Big News: "Do You Believe in Miracles? Yes!"',
+    storyContent: 'On February 22, 1980, the underdog U.S. Men\'s Olympic ice hockey team defeated the four-time defending gold-medalist Soviet Union 4-3 in Lake Placid, sparking patriotic celebrations across the country.',
+    promptSuggestion: 'Where were you during the 1980 Winter Olympics or other iconic international sports moments?',
+    badge: '1980 Miracle on Ice'
+  },
+  {
+    id: 'n-1981-ibmpc',
+    year: 1981,
+    decade: 1980,
+    category: 'TECHNOLOGY',
+    headline: 'Remember When: IBM Introduced the Personal Computer',
+    storyContent: 'In August 1981, IBM launched the IBM 5150 PC, featuring green monochrome monitors, 5.25-inch floppy disks, and DOS. It quickly revolutionized school labs, corporate offices, and home studies across the nation.',
+    promptSuggestion: 'Do you remember floppy disks, dial-up sounds, or typing commands on green or amber computer screens?',
+    badge: 'IBM PC 5150 Debut'
+  },
+  {
+    id: 'n-1984-cartoons',
+    year: 1984,
+    decade: 1980,
+    category: 'FAMILY_LIFE',
+    headline: 'Remember When: Saturday Morning Cartoons & Big Bowls of Cereal',
+    storyContent: 'In 1984, Saturday mornings were sacred rituals. Kids woke up early before parents, grabbed a bowl of sugary cereal, and sat cross-legged on living room rugs to watch hours of cartoons from Transformers to Strawberry Shortcake.',
+    promptSuggestion: 'What were your favorite weekend childhood morning routines and breakfasts?',
+    badge: 'Saturday Morning Rituals'
   },
 
   // --- 1990s ---
@@ -725,7 +817,7 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
   const [activeMbrId, setActiveMbrId] = useState<string | null>(null);
   const [birthYear, setBirthYear] = useState<number>(1961);
   const [activeLifeStage, setActiveLifeStage] = useState<LifeStageKey>('TEEN');
-  const [activeCategory, setActiveCategory] = useState<NostalgiaCategory>('ALL');
+  const [activeCategory, setActiveCategory] = useState<NostalgiaCategory>('POP_CULTURE');
   const [currentItem, setCurrentItem] = useState<NostalgiaItem | null>(null);
   const [favorites, setFavorites] = useState<string[]>([]);
   const [historyItems, setHistoryItems] = useState<NostalgiaItem[]>([]);
@@ -733,6 +825,23 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
   const [showSettingsPopover, setShowSettingsPopover] = useState<boolean>(false);
   const [customYearInput, setCustomYearInput] = useState<string>('1961');
   const [isGeneratingAi, setIsGeneratingAi] = useState<boolean>(false);
+  const [isTopicDropdownOpen, setIsTopicDropdownOpen] = useState<boolean>(false);
+  const topicDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close topic dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (topicDropdownRef.current && !topicDropdownRef.current.contains(event.target as Node)) {
+        setIsTopicDropdownOpen(false);
+      }
+    };
+    if (isTopicDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isTopicDropdownOpen]);
 
   // Load member details & determine birth year
   useEffect(() => {
@@ -850,6 +959,33 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
   const currentStageRange = useMemo(() => {
     return lifeStageRanges.find((s) => s.key === activeLifeStage) || lifeStageRanges[0];
   }, [lifeStageRanges, activeLifeStage]);
+
+  const currentStageIndex = useMemo(() => {
+    const idx = lifeStageRanges.findIndex((s) => s.key === activeLifeStage);
+    return idx >= 0 ? idx : 0;
+  }, [lifeStageRanges, activeLifeStage]);
+
+  const handlePrevStage = () => {
+    const prevIndex = currentStageIndex <= 0 ? lifeStageRanges.length - 1 : currentStageIndex - 1;
+    setActiveLifeStage(lifeStageRanges[prevIndex].key);
+  };
+
+  const handleNextStage = () => {
+    const nextIndex = currentStageIndex >= lifeStageRanges.length - 1 ? 0 : currentStageIndex + 1;
+    setActiveLifeStage(lifeStageRanges[nextIndex].key);
+  };
+
+  const formatYearRange = (startYear: number, endYear: number, key: LifeStageKey) => {
+    if (key === 'BORN' || startYear === endYear) {
+      return `${startYear}`;
+    }
+    const startStr = String(startYear);
+    const endStr = String(endYear);
+    if (startStr.length === 4 && endStr.length === 4 && startStr.slice(0, 2) === endStr.slice(0, 2)) {
+      return `${startYear}–${endStr.slice(2)}`;
+    }
+    return `${startYear}–${endYear}`;
+  };
 
   // Filter items matching the current life stage era & category with accurate proximity matching
   const matchingItems = useMemo(() => {
@@ -1023,6 +1159,12 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
         return <Newspaper className="w-3.5 h-3.5 text-blue-500" />;
       case 'MOVIES_TV':
         return <Tv className="w-3.5 h-3.5 text-purple-500" />;
+      case 'SPORTS':
+        return <Trophy className="w-3.5 h-3.5 text-amber-500" />;
+      case 'TECHNOLOGY':
+        return <Laptop className="w-3.5 h-3.5 text-blue-500" />;
+      case 'FAMILY_LIFE':
+        return <Home className="w-3.5 h-3.5 text-emerald-500" />;
       case 'FADS_TRENDS':
         return <Gamepad2 className="w-3.5 h-3.5 text-emerald-500" />;
       case 'COST_OF_LIVING':
@@ -1040,6 +1182,12 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
         return 'Big News Headline';
       case 'MOVIES_TV':
         return 'Cinema & Television';
+      case 'SPORTS':
+        return 'Sports & Athletics';
+      case 'TECHNOLOGY':
+        return 'Technology & Inventions';
+      case 'FAMILY_LIFE':
+        return 'Family & Everyday Life';
       case 'FADS_TRENDS':
         return 'Fads & Everyday Life';
       case 'COST_OF_LIVING':
@@ -1052,159 +1200,203 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
   const isCurrentFavorite = currentItem ? favorites.includes(currentItem.id) : false;
 
   return (
-    <div className="relative bg-white rounded-2xl border border-slate-200/90 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-      {/* Top Accent Gradient Header Line (Warm Nostalgia Coral / Amber) */}
-      <div className="h-1.5 w-full bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500" />
+    <div className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+      {/* Top Accent Gradient Header Line (Warm Nostalgia Amber / Orange) */}
+      <div className="h-2 w-full bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500" />
+
+      {/* Top Folder Tab Title Header */}
+      <div className="bg-[#FFFDF7] dark:bg-slate-900/60 border-b border-amber-100/80 dark:border-slate-800 flex items-center justify-between gap-2 px-3.5 sm:px-5 py-2 flex-wrap">
+        {/* Left: Folder Tab Title */}
+        <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-950 dark:text-amber-200">
+          <Flame className="w-4 h-4 text-amber-600 shrink-0 animate-pulse" />
+          <span className="tracking-tight text-[13px] font-bold text-[#78350F] dark:text-amber-200">
+            Remember When?
+          </span>
+        </div>
+
+        {/* Right: Year Born, Favorites, Memories (History) */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Birth Year / Era Adjuster Button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSettingsPopover(!showSettingsPopover)}
+              title={`Born in ${birthYear} · Click to adjust era`}
+              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 text-xs cursor-pointer"
+            >
+              <Calendar className="w-3.5 h-3.5 text-slate-500" />
+              <span className="hidden sm:inline font-medium text-slate-600">Born {birthYear}</span>
+            </button>
+
+            {/* Adjust Birth Year Popover */}
+            {showSettingsPopover && (
+              <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-fade-in text-xs space-y-2">
+                <div className="flex items-center justify-between font-semibold text-slate-800">
+                  <span>Adjust Your Birth Year</span>
+                  <button
+                    onClick={() => setShowSettingsPopover(false)}
+                    className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-slate-500 text-[11px] leading-relaxed">
+                  Personalize the nostalgia timeline for when you were a teen, in your 20s, or growing up.
+                </p>
+                <form onSubmit={handleSaveCustomYear} className="flex items-center gap-1.5 pt-1">
+                  <input
+                    type="number"
+                    min="1910"
+                    max={new Date().getFullYear()}
+                    value={customYearInput}
+                    onChange={(e) => setCustomYearInput(e.target.value)}
+                    placeholder="e.g. 1961"
+                    className="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-rose-500 focus:outline-none"
+                  />
+                  <button
+                    type="submit"
+                    className="px-2.5 py-1 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors shrink-0 cursor-pointer"
+                  >
+                    Set
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+
+          {/* Favorite Button */}
+          {currentItem && (
+            <button
+              onClick={handleToggleFavorite}
+              title={isCurrentFavorite ? 'Remove from Saved Memories' : 'Save this Memory'}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                isCurrentFavorite
+                  ? 'text-rose-600 bg-rose-50 hover:bg-rose-100'
+                  : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {isCurrentFavorite ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
+            </button>
+          )}
+
+          {/* Memories (History) Button */}
+          <button
+            onClick={() => setShowHistoryModal(true)}
+            title="Past Memories & Almanac"
+            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 text-xs cursor-pointer"
+          >
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline font-medium">Memories</span>
+          </button>
+        </div>
+      </div>
 
       <div className="p-5 md:p-6 space-y-4">
-        {/* Header Section with Badges, Year Adjuster, and Quick Action Icons */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200/70 shadow-xs">
-              <Flame className="w-3.5 h-3.5 text-rose-600 animate-pulse" />
-              Remember When?
-            </span>
+        {/* Life Stage Carousel Selector (Childhood, Teen Years, etc.) */}
+        <div className="space-y-2">
+          <div className="bg-[#FAF6EE] border border-[#EFE8DC] rounded-2xl sm:rounded-3xl py-3 px-3 sm:px-4 flex items-center justify-between shadow-[0_1px_3px_rgba(0,0,0,0.02)]">
+            {/* Prev Button */}
+            <button
+              onClick={handlePrevStage}
+              aria-label="Previous life stage"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-sm border border-stone-200/80 flex items-center justify-center text-stone-600 hover:text-stone-900 hover:bg-stone-50 active:scale-95 transition-all shrink-0"
+            >
+              <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-stone-600" />
+            </button>
 
-            {currentItem && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                {getCategoryIcon(currentItem.category)}
-                {getCategoryLabel(currentItem.category)}
+            {/* Center Stage Title & Years */}
+            <div className="text-center flex flex-col items-center justify-center px-2 min-w-0">
+              <span className="font-serif font-bold text-base sm:text-lg text-stone-900 tracking-tight leading-snug">
+                {currentStageRange.label}
               </span>
-            )}
-
-            <span className="text-xs text-slate-500 font-medium truncate max-w-[200px]" title={`Era: ${currentStageRange.rangeLabel}`}>
-              · {currentStageRange.label} ({currentStageRange.rangeLabel})
-            </span>
-          </div>
-
-          {/* Top-Right Utility Actions: Birth Year Config, Favorite, History */}
-          <div className="flex items-center gap-1">
-            {/* Birth Year / Era Adjuster Button */}
-            <div className="relative">
-              <button
-                onClick={() => setShowSettingsPopover(!showSettingsPopover)}
-                title={`Born in ${birthYear} · Click to adjust era`}
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 text-xs"
-              >
-                <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                <span className="hidden sm:inline font-medium text-slate-600">Born {birthYear}</span>
-              </button>
-
-              {/* Adjust Birth Year Popover */}
-              {showSettingsPopover && (
-                <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-fade-in text-xs space-y-2">
-                  <div className="flex items-center justify-between font-semibold text-slate-800">
-                    <span>Adjust Your Birth Year</span>
-                    <button
-                      onClick={() => setShowSettingsPopover(false)}
-                      className="text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  <p className="text-slate-500 text-[11px] leading-relaxed">
-                    Personalize the nostalgia timeline for when you were a teen, in your 20s, or growing up.
-                  </p>
-                  <form onSubmit={handleSaveCustomYear} className="flex items-center gap-1.5 pt-1">
-                    <input
-                      type="number"
-                      min="1910"
-                      max={new Date().getFullYear()}
-                      value={customYearInput}
-                      onChange={(e) => setCustomYearInput(e.target.value)}
-                      placeholder="e.g. 1961"
-                      className="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-rose-500 focus:outline-none"
-                    />
-                    <button
-                      type="submit"
-                      className="px-2.5 py-1 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors shrink-0"
-                    >
-                      Set
-                    </button>
-                  </form>
-                </div>
-              )}
+              <span className="text-xs text-stone-500 font-medium tracking-wide leading-tight mt-0.5">
+                {formatYearRange(currentStageRange.startYear, currentStageRange.endYear, currentStageRange.key)}
+              </span>
             </div>
 
-            {/* Favorite Button */}
-            {currentItem && (
-              <button
-                onClick={handleToggleFavorite}
-                title={isCurrentFavorite ? 'Remove from Saved Memories' : 'Save this Memory'}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  isCurrentFavorite
-                    ? 'text-rose-600 bg-rose-50 hover:bg-rose-100'
-                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
-                }`}
-              >
-                {isCurrentFavorite ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
-              </button>
-            )}
-
-            {/* History Button */}
+            {/* Next Button */}
             <button
-              onClick={() => setShowHistoryModal(true)}
-              title="Past Memories & Almanac"
-              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 text-xs"
+              onClick={handleNextStage}
+              aria-label="Next life stage"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white shadow-sm border border-stone-200/80 flex items-center justify-center text-stone-600 hover:text-stone-900 hover:bg-stone-50 active:scale-95 transition-all shrink-0"
             >
-              <History className="w-4 h-4" />
-              <span className="hidden sm:inline font-medium">Memories</span>
+              <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-stone-600" />
             </button>
+          </div>
+
+          {/* Dot Indicators */}
+          <div className="flex items-center justify-center gap-1.5 pt-0.5">
+            {lifeStageRanges.map((stage) => {
+              const isActive = stage.key === activeLifeStage;
+              return (
+                <button
+                  key={stage.key}
+                  onClick={() => setActiveLifeStage(stage.key)}
+                  aria-label={`Select ${stage.label}`}
+                  className={`transition-all duration-300 ${
+                    isActive
+                      ? 'w-5 h-1.5 rounded-full bg-[#8A2538]'
+                      : 'w-1.5 h-1.5 rounded-full bg-[#E5DCD0] hover:bg-[#D5C9BA]'
+                  }`}
+                />
+              );
+            })}
           </div>
         </div>
 
-        {/* Life Stage Tabs Selector (When You Were a Teen, 20s, Childhood, etc.) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-slate-100">
-          {lifeStageRanges.map((stage) => {
-            const isActive = activeLifeStage === stage.key;
-            return (
-              <button
-                key={stage.key}
-                onClick={() => setActiveLifeStage(stage.key)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 shrink-0 ${
-                  isActive
-                    ? 'bg-rose-600 text-white shadow-sm ring-2 ring-rose-600/20'
-                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/60'
-                }`}
-              >
-                <span>{stage.emoji}</span>
-                <span>{stage.label}</span>
-                <span className={`text-[10px] ${isActive ? 'text-rose-100' : 'text-slate-400 font-normal'}`}>
-                  ({stage.rangeLabel})
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        {/* Topic Dropdown Navigation Menu */}
+        <div className="relative" ref={topicDropdownRef}>
+          {/* Dropdown Trigger */}
+          <button
+            type="button"
+            onClick={() => setIsTopicDropdownOpen((prev) => !prev)}
+            className="w-full bg-white border border-stone-200/90 rounded-xl px-3.5 py-2 sm:py-2.5 flex items-center justify-between text-left shadow-xs hover:border-stone-300 hover:bg-stone-50/40 transition-all focus:outline-none focus:ring-2 focus:ring-rose-500/20 cursor-pointer"
+            aria-expanded={isTopicDropdownOpen}
+            aria-haspopup="listbox"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-base leading-none select-none">
+                {TOPIC_CATEGORIES.find((c) => c.key === activeCategory)?.emoji || '🎵'}
+              </span>
+              <span className="text-xs text-stone-400 font-medium">Topic</span>
+              <span className="text-sm font-bold text-stone-900 truncate">
+                {TOPIC_CATEGORIES.find((c) => c.key === activeCategory)?.label || 'Pop Culture & Music'}
+              </span>
+            </div>
+            <div className="text-stone-400 ml-2 shrink-0">
+              {isTopicDropdownOpen ? (
+                <ChevronUp className="w-4 h-4 text-stone-600" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-stone-400" />
+              )}
+            </div>
+          </button>
 
-        {/* Category Filters (Pop Culture, Big News, Movies, Trends, Prices) */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
-          {(
-            [
-              { key: 'ALL', label: 'All Topics', icon: <Sparkles className="w-3 h-3" /> },
-              { key: 'POP_CULTURE', label: '🎵 Pop Culture & Music', icon: null },
-              { key: 'BIG_NEWS', label: '📰 Big News of the Times', icon: null },
-              { key: 'MOVIES_TV', label: '📺 Movies & TV', icon: null },
-              { key: 'FADS_TRENDS', label: '🕹️ Fads & Trends', icon: null },
-              { key: 'COST_OF_LIVING', label: '💰 What Things Cost', icon: null },
-            ] as const
-          ).map((cat) => {
-            const isCatActive = activeCategory === cat.key;
-            return (
-              <button
-                key={cat.key}
-                onClick={() => setActiveCategory(cat.key)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors flex items-center gap-1 shrink-0 ${
-                  isCatActive
-                    ? 'bg-slate-900 text-white font-semibold'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800'
-                }`}
-              >
-                {cat.icon}
-                <span>{cat.label}</span>
-              </button>
-            );
-          })}
+          {/* Dropdown Menu Popup */}
+          {isTopicDropdownOpen && (
+            <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-stone-200/90 rounded-2xl shadow-xl z-30 py-1.5 overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150 max-h-80 overflow-y-auto">
+              {TOPIC_CATEGORIES.map((cat) => {
+                const isSelected = activeCategory === cat.key;
+                return (
+                  <button
+                    key={cat.key}
+                    type="button"
+                    onClick={() => {
+                      setActiveCategory(cat.key);
+                      setIsTopicDropdownOpen(false);
+                    }}
+                    className={`w-full px-4 py-2.5 text-left flex items-center gap-3 transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#FDF2EC] text-[#8A2538] font-bold'
+                        : 'text-stone-700 hover:bg-stone-50 font-medium'
+                    }`}
+                  >
+                    <span className="text-base leading-none select-none shrink-0">{cat.emoji}</span>
+                    <span className="text-sm tracking-tight truncate">{cat.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Main Nostalgia Content Card */}

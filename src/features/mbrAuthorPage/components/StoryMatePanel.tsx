@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, X, HelpCircle, Check, Users } from 'lucide-react';
-import { chatApi, adminDbApi, taskApi, resolveMediaUrl, mbrAiUsageLogApi } from '@/src/services/api';
+import { chatApi, adminDbApi, taskApi, resolveMediaUrl, mbrAiUsageLogApi, DEFAULT_TOPIC_LOOKUP, matchTopicByName } from '@/src/services/api';
 import { AdminComponentTag, useShowComponentName } from '@/src/components/AdminComponentTag';
+import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
 
 
 interface Message {
@@ -11,6 +12,7 @@ interface Message {
 }
 
 interface StoryMatePanelProps {
+  key?: string;
   memberName?: string;
   componentName?: string;
   topicId?: string;
@@ -18,6 +20,10 @@ interface StoryMatePanelProps {
   storyContent?: string;
   mbrStoryThreadID?: string;
   chIntentId?: string;
+  topicCustomName?: string;
+  topicCustomTopicDesc?: string;
+  topicCustomId?: string;
+  subordinateId?: string;
   onClose?: () => void;
   onApplyStory?: (content: string) => void;
 }
@@ -31,66 +37,200 @@ const FALLBACK_PERSONAS = [
 ];
 
 const FALLBACK_INTENT_MAP: Record<string, { intentName: string; desc: string; inst: string; prompt: string }> = {
-  sbMbrStryFamly: {
+  sbmbrstryfamly: {
     intentName: 'Family Memories & Relationships',
     desc: 'Capture meaningful family memories, traditions, lineage, and emotional bonds.',
     inst: 'Ask sensory questions about family heritage, home atmosphere, parents, grandparents, and key family moments.',
     prompt: 'Can you share a cherished memory about a family member or a special moment you spent together?'
   },
-  sbMbrStryFamilyMember: {
+  sbmbrstryfamily: {
+    intentName: 'Family Memories & Relationships',
+    desc: 'Capture meaningful family memories, traditions, lineage, and emotional bonds.',
+    inst: 'Ask sensory questions about family heritage, home atmosphere, parents, grandparents, and key family moments.',
+    prompt: 'Can you share a cherished memory about a family member or a special moment you spent together?'
+  },
+  family: {
+    intentName: 'Family Memories & Relationships',
+    desc: 'Capture meaningful family memories, traditions, lineage, and emotional bonds.',
+    inst: 'Ask sensory questions about family heritage, home atmosphere, parents, grandparents, and key family moments.',
+    prompt: 'Can you share a cherished memory about a family member or a special moment you spent together?'
+  },
+  sbmbrstryfamilymember: {
     intentName: 'Family Member Story',
     desc: 'Capture personal stories, cherished memories, and milestones about a specific family member.',
     inst: 'Ask sensory and reflective questions focusing on the specific family member, their personality, shared experiences, and life legacy.',
     prompt: 'What special memory or story would you like to record about this family member?'
   },
-  sbMbrStryResidence: {
+  sbmbrstryresidence: {
     intentName: 'Residencies & Living Places',
     desc: 'Explore past homes, neighborhoods, sensory details of living spaces, and life transitions.',
     inst: 'Guide the storyteller through places lived, neighborhood sights and sounds, and how each home shaped them.',
     prompt: 'What is a home or neighborhood from your past that left a lasting impression on your life?'
   },
-  sbMbrStryActivity: {
+  residencies: {
+    intentName: 'Residencies & Living Places',
+    desc: 'Explore past homes, neighborhoods, sensory details of living spaces, and life transitions.',
+    inst: 'Guide the storyteller through places lived, neighborhood sights and sounds, and how each home shaped them.',
+    prompt: 'What is a home or neighborhood from your past that left a lasting impression on your life?'
+  },
+  residence: {
+    intentName: 'Residencies & Living Places',
+    desc: 'Explore past homes, neighborhoods, sensory details of living spaces, and life transitions.',
+    inst: 'Guide the storyteller through places lived, neighborhood sights and sounds, and how each home shaped them.',
+    prompt: 'What is a home or neighborhood from your past that left a lasting impression on your life?'
+  },
+  sbmbrstryactivity: {
     intentName: 'Activities & Hobbies',
     desc: 'Record favorite pastimes, sports, creative pursuits, and passions.',
     inst: 'Encourage reflection on hobbies, passions, creative endeavors, and how they brought joy or growth.',
     prompt: 'Tell me about a hobby, sport, or creative passion that brought you deep joy.'
   },
-  sbMbrStryAchievement: {
+  sbmbrstryactivities: {
+    intentName: 'Activities & Hobbies',
+    desc: 'Record favorite pastimes, sports, creative pursuits, and passions.',
+    inst: 'Encourage reflection on hobbies, passions, creative endeavors, and how they brought joy or growth.',
+    prompt: 'Tell me about a hobby, sport, or creative passion that brought you deep joy.'
+  },
+  activities: {
+    intentName: 'Activities & Hobbies',
+    desc: 'Record favorite pastimes, sports, creative pursuits, and passions.',
+    inst: 'Encourage reflection on hobbies, passions, creative endeavors, and how they brought joy or growth.',
+    prompt: 'Tell me about a hobby, sport, or creative passion that brought you deep joy.'
+  },
+  activity: {
+    intentName: 'Activities & Hobbies',
+    desc: 'Record favorite pastimes, sports, creative pursuits, and passions.',
+    inst: 'Encourage reflection on hobbies, passions, creative endeavors, and how they brought joy or growth.',
+    prompt: 'Tell me about a hobby, sport, or creative passion that brought you deep joy.'
+  },
+  hobbies: {
+    intentName: 'Activities & Hobbies',
+    desc: 'Record favorite pastimes, sports, creative pursuits, and passions.',
+    inst: 'Encourage reflection on hobbies, passions, creative endeavors, and how they brought joy or growth.',
+    prompt: 'Tell me about a hobby, sport, or creative passion that brought you deep joy.'
+  },
+  hobby: {
+    intentName: 'Activities & Hobbies',
+    desc: 'Record favorite pastimes, sports, creative pursuits, and passions.',
+    inst: 'Encourage reflection on hobbies, passions, creative endeavors, and how they brought joy or growth.',
+    prompt: 'Tell me about a hobby, sport, or creative passion that brought you deep joy.'
+  },
+  activitiesandhobbies: {
+    intentName: 'Activities & Hobbies',
+    desc: 'Record favorite pastimes, sports, creative pursuits, and passions.',
+    inst: 'Encourage reflection on hobbies, passions, creative endeavors, and how they brought joy or growth.',
+    prompt: 'Tell me about a hobby, sport, or creative passion that brought you deep joy.'
+  },
+  sbmbrstryachievement: {
     intentName: 'Achievements & Recognition',
     desc: 'Document major milestones, awards, accomplishments, and moments of pride.',
     inst: 'Focus on personal growth, overcoming obstacles, earned honors, and milestone accomplishments.',
     prompt: 'What achievement or proud moment would you like to record in this chapter of your life?'
   },
-  sbMbrStryEducation: {
+  achievements: {
+    intentName: 'Achievements & Recognition',
+    desc: 'Document major milestones, awards, accomplishments, and moments of pride.',
+    inst: 'Focus on personal growth, overcoming obstacles, earned honors, and milestone accomplishments.',
+    prompt: 'What achievement or proud moment would you like to record in this chapter of your life?'
+  },
+  achievement: {
+    intentName: 'Achievements & Recognition',
+    desc: 'Document major milestones, awards, accomplishments, and moments of pride.',
+    inst: 'Focus on personal growth, overcoming obstacles, earned honors, and milestone accomplishments.',
+    prompt: 'What achievement or proud moment would you like to record in this chapter of your life?'
+  },
+  sbmbrstryeducation: {
     intentName: 'Education & Academic History',
     desc: 'Uncover stories from school days, inspiring teachers, studies, and learning experiences.',
     inst: 'Ask about mentors, favorite subjects, school atmospheres, friendships, and formative academic lessons.',
     prompt: 'Share a memory from your school days or a teacher who inspired your path.'
   },
-  sbMbrStryEmployment: {
+  education: {
+    intentName: 'Education & Academic History',
+    desc: 'Uncover stories from school days, inspiring teachers, studies, and learning experiences.',
+    inst: 'Ask about mentors, favorite subjects, school atmospheres, friendships, and formative academic lessons.',
+    prompt: 'Share a memory from your school days or a teacher who inspired your path.'
+  },
+  sbmbrstryemployment: {
     intentName: 'Employment & Career',
     desc: 'Chronicling professional life, first jobs, career milestones, and workplace wisdom.',
     inst: 'Explore early work experiences, career pivots, teamwork, lessons learned, and professional growth.',
     prompt: 'What was your first job or a key career milestone you would like to describe in your story?'
   },
-  sbMbrStryCustom: {
+  employment: {
+    intentName: 'Employment & Career',
+    desc: 'Chronicling professional life, first jobs, career milestones, and workplace wisdom.',
+    inst: 'Explore early work experiences, career pivots, teamwork, lessons learned, and professional growth.',
+    prompt: 'What was your first job or a key career milestone you would like to describe in your story?'
+  },
+  career: {
+    intentName: 'Employment & Career',
+    desc: 'Chronicling professional life, first jobs, career milestones, and workplace wisdom.',
+    inst: 'Explore early work experiences, career pivots, teamwork, lessons learned, and professional growth.',
+    prompt: 'What was your first job or a key career milestone you would like to describe in your story?'
+  },
+  sbmbrstoryother: {
     intentName: 'Custom Topic Stories',
     desc: 'Capture unique memories, personal adventures, and specialized reflections tailored to your custom topics.',
     inst: 'Ask evocative sensory questions exploring the personal meaning, key moments, and reflections for this custom topic.',
     prompt: 'What memory or reflection would you like to explore for this custom topic?'
   },
-  SbMbrProfile: {
+  sbmbrstryother: {
+    intentName: 'Custom Topic Stories',
+    desc: 'Capture unique memories, personal adventures, and specialized reflections tailored to your custom topics.',
+    inst: 'Ask evocative sensory questions exploring the personal meaning, key moments, and reflections for this custom topic.',
+    prompt: 'What memory or reflection would you like to explore for this custom topic?'
+  },
+  sbmbrstrycustom: {
+    intentName: 'Custom Topic Stories',
+    desc: 'Capture unique memories, personal adventures, and specialized reflections tailored to your custom topics.',
+    inst: 'Ask evocative sensory questions exploring the personal meaning, key moments, and reflections for this custom topic.',
+    prompt: 'What memory or reflection would you like to explore for this custom topic?'
+  },
+  sbmbrstorycustom: {
+    intentName: 'Custom Topic Stories',
+    desc: 'Capture unique memories, personal adventures, and specialized reflections tailored to your custom topics.',
+    inst: 'Ask evocative sensory questions exploring the personal meaning, key moments, and reflections for this custom topic.',
+    prompt: 'What memory or reflection would you like to explore for this custom topic?'
+  },
+  custom: {
+    intentName: 'Custom Topic Stories',
+    desc: 'Capture unique memories, personal adventures, and specialized reflections tailored to your custom topics.',
+    inst: 'Ask evocative sensory questions exploring the personal meaning, key moments, and reflections for this custom topic.',
+    prompt: 'What memory or reflection would you like to explore for this custom topic?'
+  },
+  other: {
+    intentName: 'Custom Topic Stories',
+    desc: 'Capture unique memories, personal adventures, and specialized reflections tailored to your custom topics.',
+    inst: 'Ask evocative sensory questions exploring the personal meaning, key moments, and reflections for this custom topic.',
+    prompt: 'What memory or reflection would you like to explore for this custom topic?'
+  },
+  sbmbrprofile: {
     intentName: 'Member Profile & Introduction',
     desc: 'Craft a compelling biography narrative, background introduction, and personal profile context.',
     inst: 'Ask engaging questions about life highlights, background, values, personal philosophy, and what stories they want to share in their profile.',
     prompt: 'Personal stories bring profiles to life! To create a vivid and engaging paragraph for your personal profile, could you tell me a bit about yourself? Consider including details like your background, unique interests or hobbies, and any memorable experiences or traits that define you.'
   },
-  sbMbrProfile: {
+  profile: {
     intentName: 'Member Profile & Introduction',
     desc: 'Craft a compelling biography narrative, background introduction, and personal profile context.',
     inst: 'Ask engaging questions about life highlights, background, values, personal philosophy, and what stories they want to share in their profile.',
     prompt: 'Personal stories bring profiles to life! To create a vivid and engaging paragraph for your personal profile, could you tell me a bit about yourself? Consider including details like your background, unique interests or hobbies, and any memorable experiences or traits that define you.'
   }
+};
+
+const getFallbackIntent = (key?: string) => {
+  if (!key) return FALLBACK_INTENT_MAP.sbmbrstryfamly;
+  const k = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (k.includes('activ') || k.includes('hobb')) return FALLBACK_INTENT_MAP.sbmbrstryactivity;
+  if (k.includes('residen') || k.includes('home') || k.includes('house')) return FALLBACK_INTENT_MAP.sbmbrstryresidence;
+  if (k.includes('achiev')) return FALLBACK_INTENT_MAP.sbmbrstryachievement;
+  if (k.includes('edu') || k.includes('train') || k.includes('school')) return FALLBACK_INTENT_MAP.sbmbrstryeducation;
+  if (k.includes('employ') || k.includes('career') || k.includes('work') || k.includes('job')) return FALLBACK_INTENT_MAP.sbmbrstryemployment;
+  if (k.includes('fam')) return FALLBACK_INTENT_MAP.sbmbrstryfamly;
+  if (k.includes('cust') || k.includes('other')) return FALLBACK_INTENT_MAP.sbmbrstoryother;
+  if (k.includes('prof') || k.includes('bio')) return FALLBACK_INTENT_MAP.sbmbrprofile;
+  return FALLBACK_INTENT_MAP[k] || FALLBACK_INTENT_MAP.sbmbrstryfamly;
 };
 
 export default function StoryMatePanel({
@@ -101,6 +241,10 @@ export default function StoryMatePanel({
   storyContent,
   mbrStoryThreadID,
   chIntentId,
+  topicCustomName,
+  topicCustomTopicDesc,
+  topicCustomId,
+  subordinateId,
   onClose,
   onApplyStory
 }: StoryMatePanelProps) {
@@ -248,14 +392,31 @@ export default function StoryMatePanel({
 
 
   // Thread ID state (preserves saved thread ID for repeat visits)
-  const [threadId] = useState<string>(() => {
+  const [threadId, setThreadId] = useState<string>(() => {
     if (mbrStoryThreadID) return mbrStoryThreadID;
-    const saved = sessionStorage.getItem(`story_mate_thread_${componentName}`);
+    const threadKey = `story_mate_thread_${componentName || topicId || 'general'}`;
+    const saved = sessionStorage.getItem(threadKey);
     if (saved) return saved;
     const newId = 'thread_' + Math.random().toString(36).substring(2, 11);
-    sessionStorage.setItem(`story_mate_thread_${componentName}`, newId);
+    sessionStorage.setItem(threadKey, newId);
     return newId;
   });
+
+  useEffect(() => {
+    if (mbrStoryThreadID) {
+      setThreadId(mbrStoryThreadID);
+    } else {
+      const threadKey = `story_mate_thread_${componentName || topicId || 'general'}`;
+      const saved = sessionStorage.getItem(threadKey);
+      if (saved) {
+        setThreadId(saved);
+      } else {
+        const newId = 'thread_' + Math.random().toString(36).substring(2, 11);
+        sessionStorage.setItem(threadKey, newId);
+        setThreadId(newId);
+      }
+    }
+  }, [mbrStoryThreadID, componentName, topicId]);
 
   // Intent, Instruction, Prompt, and Writer Persona state
   const [intentRecord, setIntentRecord] = useState<any>(null);
@@ -265,14 +426,26 @@ export default function StoryMatePanel({
   const [instructionText, setInstructionText] = useState<string>('');
   const [promptText, setPromptText] = useState<string>('');
   const [writerPersona, setWriterPersona] = useState<any>(null);
+  const [resolvedTopicCustomName, setResolvedTopicCustomName] = useState<string | undefined>(topicCustomName);
+  const [resolvedTopicCustomDesc, setResolvedTopicCustomDesc] = useState<string | undefined>(topicCustomTopicDesc);
 
   const [messages, setMessages] = useState<Message[]>([]);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  // Auto-expand textarea height as user types
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = `${Math.min(Math.max(scrollHeight, 38), 180)}px`;
+    }
+  }, [chatInput]);
 
   const hasInitializedMessagesRef = useRef<boolean>(false);
   const storyContentRef = useRef<string | undefined>(storyContent);
@@ -293,19 +466,66 @@ export default function StoryMatePanel({
       let resolvedPromptName = '';
       let activeWriter: any = null;
 
+      const normalize = (s?: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
       try {
         // 1. Fetch intents
         const intents = await adminDbApi.getTableData('/chIntents');
         if (Array.isArray(intents) && intents.length > 0) {
+          // A. Direct match by chIntentId
           if (chIntentId) {
             resolvedIntent = intents.find((i: any) => i.chIntentId === chIntentId);
           }
-          if (!resolvedIntent && componentName) {
+
+          // B. Match by topicId from DEFAULT_TOPIC_LOOKUP
+          if (!resolvedIntent && topicId) {
+            const lookup = DEFAULT_TOPIC_LOOKUP[topicId.toLowerCase()];
+            if (lookup?.chIntentId) {
+              resolvedIntent = intents.find((i: any) => i.chIntentId === lookup.chIntentId);
+            }
+          }
+
+          // C. Match by normalized names/component/topic
+          if (!resolvedIntent && (componentName || topicId)) {
+            const targetKeys = [componentName, topicId].filter(Boolean).map(normalize);
+            resolvedIntent = intents.find((i: any) => {
+              const dbNorm = normalize(i.chIntentName);
+              const dbCore = dbNorm.replace(/^sbmbr(story|stry|)/, '');
+              return targetKeys.some(tk => {
+                const tkCore = tk.replace(/^sbmbr(story|stry|)/, '');
+                return (
+                  dbNorm === tk ||
+                  dbCore === tkCore ||
+                  (dbCore.startsWith('fam') && tkCore.startsWith('fam')) ||
+                  (dbCore.startsWith('residen') && tkCore.startsWith('residen')) ||
+                  ((dbCore.startsWith('activ') || dbCore.startsWith('hobb')) && (tkCore.startsWith('activ') || tkCore.startsWith('hobb'))) ||
+                  (dbCore.startsWith('achiev') && tkCore.startsWith('achiev')) ||
+                  (dbCore.startsWith('edu') && tkCore.startsWith('edu')) ||
+                  ((dbCore.startsWith('employ') || dbCore.startsWith('career')) && (tkCore.startsWith('employ') || tkCore.startsWith('career'))) ||
+                  ((dbCore.startsWith('cust') || dbCore.startsWith('other')) && (tkCore.startsWith('cust') || tkCore.startsWith('other'))) ||
+                  (dbCore.startsWith('prof') && tkCore.startsWith('prof'))
+                );
+              });
+            });
+          }
+
+          // D. matchTopicByName lookup
+          if (!resolvedIntent && (componentName || topicId)) {
+            const matched = matchTopicByName(componentName || topicId);
+            if (matched?.chIntentId) {
+              resolvedIntent = intents.find((i: any) => i.chIntentId === matched.chIntentId);
+            }
+          }
+
+          // E. If still not matched, use fallback map name lookup rather than blindly defaulting to intents[0]
+          if (!resolvedIntent) {
+            const fb = getFallbackIntent(componentName || topicId);
             resolvedIntent = intents.find((i: any) =>
-              i.chIntentName?.toLowerCase().includes(componentName.toLowerCase()) ||
-              componentName.toLowerCase().includes(i.chIntentName?.toLowerCase() || '')
+              i.chIntentName?.toLowerCase().includes(fb.intentName.toLowerCase()) ||
+              fb.intentName.toLowerCase().includes(i.chIntentName?.toLowerCase() || '')
             );
           }
+
           if (!resolvedIntent) {
             resolvedIntent = intents[0];
           }
@@ -318,9 +538,9 @@ export default function StoryMatePanel({
         resolvedIntentName = resolvedIntent.chIntentName || '';
       }
 
-      // Fallback intent lookup if backend not present
+      // Fallback intent lookup if backend not present or intent not matched
       if (!resolvedIntent) {
-        const fallback = FALLBACK_INTENT_MAP[componentName] || FALLBACK_INTENT_MAP.sbMbrStryFamly;
+        const fallback = getFallbackIntent(componentName || topicId);
         resolvedIntent = {
           chIntentId: chIntentId || '98fac10e-a61f-49ff-88ec-a6cbef6542a1',
           chIntentName: fallback.intentName,
@@ -401,8 +621,86 @@ export default function StoryMatePanel({
       if (!resolvedIntentName) resolvedIntentName = resolvedIntent?.chIntentName || componentName;
       if (!resolvedInstName) resolvedInstName = `${resolvedIntentName} Instructions`;
       if (!resolvedPromptName) resolvedPromptName = `${resolvedIntentName} Prompt`;
-      if (!resolvedInst) resolvedInst = (FALLBACK_INTENT_MAP[componentName] || FALLBACK_INTENT_MAP.sbMbrStryFamly).inst;
-      if (!resolvedPrompt) resolvedPrompt = (FALLBACK_INTENT_MAP[componentName] || FALLBACK_INTENT_MAP.sbMbrStryFamly).prompt;
+      if (!resolvedInst) resolvedInst = getFallbackIntent(componentName || topicId).inst;
+      if (!resolvedPrompt) resolvedPrompt = getFallbackIntent(componentName || topicId).prompt;
+
+      // 3.5. Threading Custom Topic name and description for "Other" or "Custom" / SbMbrStoryOther
+      const isOtherOrCustom =
+        normalize(componentName).includes('custom') ||
+        normalize(componentName).includes('other') ||
+        normalize(topicId).includes('custom') ||
+        normalize(topicId).includes('other') ||
+        chIntentId === '3a435df1-392c-433d-adf3-7fb9c3e5051a' ||
+        chIntentId === DEFAULT_TOPIC_LOOKUP.other?.chIntentId ||
+        normalize(resolvedIntentName).includes('other') ||
+        normalize(resolvedIntentName).includes('custom') ||
+        normalize(resolvedIntentName).includes('sbmbrstoryother') ||
+        normalize(resolvedIntentName).includes('sbmbrstryother') ||
+        Boolean(topicCustomName || topicCustomTopicDesc || topicCustomId);
+
+      let customName = topicCustomName;
+      let customDesc = topicCustomTopicDesc;
+
+      if (isOtherOrCustom && (!customName || !customDesc)) {
+        try {
+          let customList: any[] = [];
+          const saved = sessionStorage.getItem('sandbox_custom_topics');
+          if (saved) {
+            try { customList = JSON.parse(saved); } catch {}
+          }
+          if (!customList || customList.length === 0) {
+            let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
+            const storedMbr = sessionStorage.getItem('mbr');
+            if (storedMbr) {
+              try {
+                const parsed = JSON.parse(storedMbr);
+                if (parsed.mbrId) currentMbrId = parsed.mbrId;
+              } catch {}
+            }
+            try {
+              const dbCustom = await taskApi.getCustomTopics(currentMbrId);
+              if (Array.isArray(dbCustom) && dbCustom.length > 0) {
+                customList = dbCustom;
+              }
+            } catch {}
+          }
+
+          if (Array.isArray(customList) && customList.length > 0) {
+            const targetId = topicCustomId || subordinateId;
+            const matchedTopic = customList.find((t: any) =>
+              (targetId && ((t.topicCustomId && t.topicCustomId === targetId) || (t.mbrCustomTopicId && t.mbrCustomTopicId === targetId))) ||
+              (customName && ((t.topicCustomName && t.topicCustomName === customName) || (t.mbrCustomTopicName && t.mbrCustomTopicName === customName))) ||
+              (storyTitle && ((t.topicCustomName && storyTitle.includes(t.topicCustomName)) || (t.mbrCustomTopicName && storyTitle.includes(t.mbrCustomTopicName))))
+            ) || (targetId ? null : customList[0]);
+
+            if (matchedTopic) {
+              if (!customName) customName = matchedTopic.topicCustomName || matchedTopic.mbrCustomTopicName;
+              if (!customDesc) customDesc = matchedTopic.topicCustomTopicDesc || matchedTopic.mbrCustomTopicDesc || (matchedTopic as any).topicCustomTipicDesc;
+            }
+          }
+        } catch (err) {
+          console.warn("Could not load custom topic metadata for StoryMate:", err);
+        }
+      }
+
+      if (!customName && storyTitle && (isOtherOrCustom || normalize(componentName).includes('custom'))) {
+        customName = storyTitle.replace(/^Story of\s+/i, '').trim();
+      }
+
+      if (isOtherOrCustom && customName) {
+        const descClause = customDesc ? `: "${customDesc}"` : '';
+        const customInstFocus = `\n\n[Custom Topic Focus: "${customName}"${descClause}]\nYou are assisting the user with their custom topic "${customName}". Guide and assist them in authoring and shaping their story around this specific topic. Ask evocative sensory questions, capture key memories, and weave their personal recollections into their memoir around "${customName}".`;
+        
+        resolvedInst = resolvedInst ? `${resolvedInst}${customInstFocus}` : `Guide and assist the user in authoring and shaping their story around "${customName}"${descClause}.${customInstFocus}`;
+        resolvedInstName = `${customName} Instructions`;
+
+        const customPromptQuestion = customDesc
+          ? `What memory, experience, or reflection would you like to share about "${customName}"? (${customDesc})`
+          : `What memory, experience, or story would you like to explore for "${customName}"?`;
+        
+        resolvedPrompt = customPromptQuestion;
+        resolvedPromptName = `${customName} Prompt`;
+      }
 
       // 4. Lookup Member Preference & selected chWriter persona instructions
       try {
@@ -471,6 +769,8 @@ export default function StoryMatePanel({
       }
 
       if (isMounted) {
+        setResolvedTopicCustomName(customName);
+        setResolvedTopicCustomDesc(customDesc);
         setIntentRecord(resolvedIntent);
         setIntentName(resolvedIntentName);
         setInstructionName(resolvedInstName);
@@ -508,7 +808,7 @@ export default function StoryMatePanel({
 
     loadAIContext();
     return () => { isMounted = false; };
-  }, [componentName, chIntentId, memberName, displayFirstName]);
+  }, [componentName, chIntentId, topicId, memberName, displayFirstName, topicCustomName, topicCustomTopicDesc, topicCustomId, subordinateId, storyTitle]);
 
   const personaName = writerPersona?.chWriterName || 'StoryMate';
 
@@ -747,6 +1047,8 @@ ${conversationSummary}`;
           aiReply = `Growing up with those experiences is such a sensory memory, ${displayFirstName}. Applying our ${intentRecord?.chIntentName || 'intent'} focus${personaStyleNotice}: what specific smells, sights, or feelings do you remember most clearly?`;
         } else if (lowercaseUser.includes('family') || lowercaseUser.includes('parent') || lowercaseUser.includes('grandparent')) {
           aiReply = `That family connection sounds like an anchor in your story${personaStyleNotice}. What was a specific moment or tradition you shared that stands out most?`;
+        } else if (resolvedTopicCustomName) {
+          aiReply = `That is a wonderful reflection about ${resolvedTopicCustomName}${personaStyleNotice}. What specific moments, feelings, or details from this chapter stand out most in your memory? Say 'generate story' or 'write story' anytime you would like me to draft your story!`;
         } else {
           aiReply = `That is a wonderful detail to include. Building on your current text${personaStyleNotice}: how would you like us to phrase this in your updated narrative? Say 'write story' or 'revise' anytime you would like me to compile our draft!`;
         }
@@ -792,8 +1094,8 @@ ${conversationSummary}`;
               <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
             </h3>
             <p className="text-[8.5px] sm:text-[9px] font-mono text-slate-400 font-semibold uppercase tracking-wider truncate">
-              <span className="hidden sm:inline">Assisting {displayFirstName} • Style: {personaName}{writerPersona?.chWriterDesc ? ` (${writerPersona.chWriterDesc})` : ''}</span>
-              <span className="sm:hidden">Assisting {displayFirstName} • {personaName}</span>
+              <span className="hidden sm:inline">Assisting {displayFirstName} • Style: {personaName}{writerPersona?.chWriterDesc ? ` (${writerPersona.chWriterDesc})` : ''}{resolvedTopicCustomName ? ` • Topic: ${resolvedTopicCustomName}` : ''}</span>
+              <span className="sm:hidden">Assisting {displayFirstName} • {personaName}{resolvedTopicCustomName ? ` • ${resolvedTopicCustomName}` : ''}</span>
             </p>
           </div>
         </div>
@@ -880,10 +1182,19 @@ ${conversationSummary}`;
                     : 'bg-blue-600 border border-blue-600 text-white rounded-2xl rounded-tr-none'
                 }`}
               >
-                <div className={`flex items-center justify-between gap-2 font-sans text-[8.5px] font-bold uppercase tracking-wider ${
+                <div className={`flex items-center justify-between gap-3 font-sans text-[8.5px] font-bold uppercase tracking-wider ${
                   isAi ? 'text-slate-400 dark:text-slate-400' : 'text-blue-100'
                 }`}>
                   <span>{isAi ? `${personaName} (StoryMate)` : displayFirstName}</span>
+                  {isAi && (
+                    <StoryAudioPlayer
+                      text={msg.text}
+                      storyId={`storymate-msg-${idx}`}
+                      title={`${personaName}'s Message`}
+                      variant="inline-button"
+                      className="py-0.5 px-2 text-[10px] scale-90 -mr-1"
+                    />
+                  )}
                 </div>
                 <p className={`leading-relaxed whitespace-pre-line text-xs ${isAi ? 'text-slate-800 dark:text-slate-200 font-serif' : 'text-white font-sans'}`}>{msg.text}</p>
               </div>
@@ -969,13 +1280,14 @@ ${conversationSummary}`;
         </div>
 
         {/* Input Bar Form */}
-        <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); handleSendMessage(e); }} className="flex gap-2">
-          <input
-            type="text"
+        <form onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); handleSendMessage(e); }} className="flex items-end gap-2">
+          <textarea
+            ref={textareaRef}
+            rows={1}
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 e.stopPropagation();
                 handleSendMessage(e);
@@ -983,7 +1295,7 @@ ${conversationSummary}`;
             }}
             disabled={loading}
             placeholder={loading ? `${personaName} is crafting response...` : `Tell ${personaName} about your story...`}
-            className="flex-1 bg-white dark:bg-slate-900 border border-[#D9DDE2] dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-750 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors font-serif shadow-inner disabled:opacity-50"
+            className="flex-1 bg-white dark:bg-slate-900 border border-[#D9DDE2] dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-750 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors font-serif shadow-inner disabled:opacity-50 resize-none min-h-[38px] max-h-[180px] overflow-y-auto leading-relaxed"
           />
           <button
             type="button"
@@ -993,7 +1305,8 @@ ${conversationSummary}`;
               handleSendMessage(e);
             }}
             disabled={loading || !chatInput.trim()}
-            className="bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-xl px-3.5 py-2.5 cursor-pointer disabled:cursor-not-allowed transition-colors shadow-xs flex items-center justify-center shrink-0"
+            className="bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white rounded-xl px-3.5 h-[38px] cursor-pointer disabled:cursor-not-allowed transition-colors shadow-xs flex items-center justify-center shrink-0 self-end"
+            title="Send message"
           >
             <Send className="w-3.5 h-3.5" />
           </button>

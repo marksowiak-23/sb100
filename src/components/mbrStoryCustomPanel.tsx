@@ -25,7 +25,7 @@ import {
   MoreVertical,
   Layers
 } from 'lucide-react';
-import { taskApi, MbrMedia, MbrTopicCustom } from '@/src/services/api';
+import { taskApi, MbrMedia, TopicCustom, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -34,26 +34,38 @@ export interface MbrStoryCustomPanelProps {
   isSandbox?: boolean;
   memberId?: string;
   readOnly?: boolean;
+  topicId?: string;
+  chIntentId?: string;
 }
 
 export type SbMbrStryCustomProps = MbrStoryCustomPanelProps;
 
-const SANDBOX_CUSTOM_TOPICS: MbrTopicCustom[] = [
+const SANDBOX_CUSTOM_TOPICS: TopicCustom[] = [
   {
-    mbrCustomTopicId: 'ct_1',
+    topicCustomId: 'ct_1',
     mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    topicCustomName: 'Pacific Road Trips',
+    topicCustomTopicDesc: 'Memories, coastal drives, and roadside diner stops along the scenic Pacific Coast Highway.',
+    topicCustomSortOrder: 1,
+    chIntentId: '3a435df1-392c-433d-adf3-7fb9c3e5051a',
+    topicCustomTopicCreatedAt: '2024-06-15T10:30:00Z',
+    topicCustomUpdatedAt: '2024-06-15T10:30:00Z',
+    mbrCustomTopicId: 'ct_1',
     mbrCustomTopicName: 'Pacific Road Trips',
-    mbrCustomTopicDesc: 'Memories, coastal drives, and roadside diner stops along the scenic Pacific Coast Highway.',
-    mbrCustomTopicCreatedAt: '2024-06-15T10:30:00Z',
-    mbrCustomTopicUpdatedAt: '2024-06-15T10:30:00Z'
+    mbrCustomTopicDesc: 'Memories, coastal drives, and roadside diner stops along the scenic Pacific Coast Highway.'
   },
   {
-    mbrCustomTopicId: 'ct_2',
+    topicCustomId: 'ct_2',
     mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    topicCustomName: 'Vintage Book Collecting',
+    topicCustomTopicDesc: 'Hunting for rare first editions and signed memoirs in dusty coastal antiquarian bookshops.',
+    topicCustomSortOrder: 2,
+    chIntentId: '3a435df1-392c-433d-adf3-7fb9c3e5051a',
+    topicCustomTopicCreatedAt: '2024-08-20T14:15:00Z',
+    topicCustomUpdatedAt: '2024-08-20T14:15:00Z',
+    mbrCustomTopicId: 'ct_2',
     mbrCustomTopicName: 'Vintage Book Collecting',
-    mbrCustomTopicDesc: 'Hunting for rare first editions and signed memoirs in dusty coastal antiquarian bookshops.',
-    mbrCustomTopicCreatedAt: '2024-08-20T14:15:00Z',
-    mbrCustomTopicUpdatedAt: '2024-08-20T14:15:00Z'
+    mbrCustomTopicDesc: 'Hunting for rare first editions and signed memoirs in dusty coastal antiquarian bookshops.'
   }
 ];
 
@@ -75,8 +87,13 @@ const formatDate = (dateStr?: string | null): string => {
 export default function MbrStoryCustomPanel({
   isSandbox = false,
   memberId,
-  readOnly = false
+  readOnly = false,
+  topicId,
+  chIntentId
 }: MbrStoryCustomPanelProps) {
+  const resolvedTopicId = topicId || DEFAULT_TOPIC_LOOKUP['other'].topicId;
+  const resolvedChIntentId = chIntentId || DEFAULT_TOPIC_LOOKUP['other'].chIntentId;
+
   // --- STATE VARIABLES ---
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -85,7 +102,7 @@ export default function MbrStoryCustomPanel({
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
-  const [topicList, setTopicList] = useState<MbrTopicCustom[]>([]);
+  const [topicList, setTopicList] = useState<TopicCustom[]>([]);
 
   // Sorting state (default: name ascending)
   const [sortColumn, setSortColumn] = useState<'name' | 'date'>('name');
@@ -110,7 +127,7 @@ export default function MbrStoryCustomPanel({
   const [showModalDiscardConfirm, setShowModalDiscardConfirm] = useState(false);
 
   // Delete Confirmation Modal State
-  const [deleteTargetTopic, setDeleteTargetTopic] = useState<MbrTopicCustom | null>(null);
+  const [deleteTargetTopic, setDeleteTargetTopic] = useState<TopicCustom | null>(null);
 
   // Topic Privacy Settings Modal State
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -148,7 +165,7 @@ export default function MbrStoryCustomPanel({
   }, [formName, formDescription, initialFormName, initialFormDescription]);
 
   // Load Subordinate Story and Photo Counts for each custom topic and header
-  const loadSubordinateCounts = async (targetMbrId: string, currentTopics: MbrTopicCustom[]) => {
+  const loadSubordinateCounts = async (targetMbrId: string, currentTopics: TopicCustom[]) => {
     try {
       const photoCounts: Record<string, number> = {};
       const storyCounts: Record<string, number> = {};
@@ -184,12 +201,13 @@ export default function MbrStoryCustomPanel({
         }
 
         currentTopics.forEach((t) => {
-          const key = `sandbox_stories_sbMbrStryCustom_${t.mbrCustomTopicId}`;
+          const tId = t.topicCustomId || t.mbrCustomTopicId || '';
+          const key = `sandbox_stories_sbMbrStryCustom_${tId}`;
           const item = sessionStorage.getItem(key);
           if (item) {
             try {
               const list = JSON.parse(item);
-              if (Array.isArray(list)) storyCounts[t.mbrCustomTopicId] = list.length;
+              if (Array.isArray(list)) storyCounts[tId] = list.length;
             } catch {}
           }
         });
@@ -304,7 +322,7 @@ export default function MbrStoryCustomPanel({
       const currentMbrId = await resolveEffectiveMbrId();
       setMbrId(currentMbrId);
 
-      let loadedTopics: MbrTopicCustom[] = [];
+      let loadedTopics: TopicCustom[] = [];
       if (isSandbox) {
         const saved = sessionStorage.getItem('sandbox_custom_topics');
         if (saved) {
@@ -350,10 +368,11 @@ export default function MbrStoryCustomPanel({
     setShowModal(true);
   };
 
-  const handleOpenEditModal = (topic: MbrTopicCustom) => {
-    setEditingTopicId(topic.mbrCustomTopicId);
-    const n = topic.mbrCustomTopicName || '';
-    const d = topic.mbrCustomTopicDesc || '';
+  const handleOpenEditModal = (topic: TopicCustom) => {
+    const tId = topic.topicCustomId || topic.mbrCustomTopicId || null;
+    setEditingTopicId(tId);
+    const n = topic.topicCustomName || topic.mbrCustomTopicName || '';
+    const d = topic.topicCustomTopicDesc || topic.mbrCustomTopicDesc || '';
     setFormName(n);
     setFormDescription(d);
     setInitialFormName(n);
@@ -396,11 +415,11 @@ export default function MbrStoryCustomPanel({
     }
 
     // Check duplicate name for this member
-    const isDuplicate = topicList.some(
-      (t) =>
-        t.mbrCustomTopicName.trim().toLowerCase() === trimmedName.toLowerCase() &&
-        t.mbrCustomTopicId !== editingTopicId
-    );
+    const isDuplicate = topicList.some((t) => {
+      const existingName = (t.topicCustomName || t.mbrCustomTopicName || '').trim().toLowerCase();
+      const existingId = t.topicCustomId || t.mbrCustomTopicId;
+      return existingName === trimmedName.toLowerCase() && existingId !== editingTopicId;
+    });
     if (isDuplicate) {
       setModalError(`A custom topic named "${trimmedName}" already exists.`);
       return;
@@ -416,26 +435,34 @@ export default function MbrStoryCustomPanel({
       setMbrId(targetMbrId);
 
       if (isSandbox) {
-        let updatedList: MbrTopicCustom[];
+        let updatedList: TopicCustom[];
         if (editingTopicId) {
-          updatedList = topicList.map((t) =>
-            t.mbrCustomTopicId === editingTopicId
+          updatedList = topicList.map((t) => {
+            const currentId = t.topicCustomId || t.mbrCustomTopicId;
+            return currentId === editingTopicId
               ? {
                   ...t,
+                  topicCustomName: trimmedName,
+                  topicCustomTopicDesc: formDescription.trim() || undefined,
+                  topicCustomUpdatedAt: new Date().toISOString(),
                   mbrCustomTopicName: trimmedName,
                   mbrCustomTopicDesc: formDescription.trim() || undefined,
                   mbrCustomTopicUpdatedAt: new Date().toISOString()
                 }
-              : t
-          );
+              : t;
+          });
         } else {
-          const newRecord: MbrTopicCustom = {
-            mbrCustomTopicId: `ct_${Date.now()}`,
+          const newRecord: TopicCustom = {
+            topicCustomId: `ct_${Date.now()}`,
             mbrId: targetMbrId,
+            topicCustomName: trimmedName,
+            topicCustomTopicDesc: formDescription.trim() || undefined,
+            chIntentId: resolvedChIntentId,
+            topicCustomTopicCreatedAt: new Date().toISOString(),
+            topicCustomUpdatedAt: new Date().toISOString(),
+            mbrCustomTopicId: `ct_${Date.now()}`,
             mbrCustomTopicName: trimmedName,
-            mbrCustomTopicDesc: formDescription.trim() || undefined,
-            mbrCustomTopicCreatedAt: new Date().toISOString(),
-            mbrCustomTopicUpdatedAt: new Date().toISOString()
+            mbrCustomTopicDesc: formDescription.trim() || undefined
           };
           updatedList = [...topicList, newRecord];
         }
@@ -446,14 +473,15 @@ export default function MbrStoryCustomPanel({
         if (editingTopicId) {
           await taskApi.updateCustomTopic(editingTopicId, {
             mbrId: targetMbrId,
-            mbrCustomTopicName: trimmedName,
-            mbrCustomTopicDesc: formDescription.trim() || undefined
+            topicCustomName: trimmedName,
+            topicCustomTopicDesc: formDescription.trim() || undefined
           });
         } else {
           await taskApi.createCustomTopic({
             mbrId: targetMbrId,
-            mbrCustomTopicName: trimmedName,
-            mbrCustomTopicDesc: formDescription.trim() || undefined
+            topicCustomName: trimmedName,
+            topicCustomTopicDesc: formDescription.trim() || undefined,
+            chIntentId: resolvedChIntentId
           });
         }
 
@@ -474,7 +502,7 @@ export default function MbrStoryCustomPanel({
   };
 
   // --- DELETE CONFIRMATION HANDLERS ---
-  const handleOpenDeleteConfirm = (topic: MbrTopicCustom) => {
+  const handleOpenDeleteConfirm = (topic: TopicCustom) => {
     setDeleteTargetTopic(topic);
   };
 
@@ -486,9 +514,9 @@ export default function MbrStoryCustomPanel({
 
     try {
       const targetMbrId = await resolveEffectiveMbrId();
-      const topicIdToDelete = deleteTargetTopic.mbrCustomTopicId;
+      const topicIdToDelete = deleteTargetTopic.topicCustomId || deleteTargetTopic.mbrCustomTopicId || '';
       if (isSandbox) {
-        const updatedList = topicList.filter((t) => t.mbrCustomTopicId !== topicIdToDelete);
+        const updatedList = topicList.filter((t) => (t.topicCustomId || t.mbrCustomTopicId) !== topicIdToDelete);
         setTopicList(updatedList);
         sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(updatedList));
         await loadSubordinateCounts(targetMbrId, updatedList);
@@ -499,7 +527,8 @@ export default function MbrStoryCustomPanel({
         await loadSubordinateCounts(targetMbrId, refreshed);
       }
 
-      setSuccessMsg(`Custom topic "${deleteTargetTopic.mbrCustomTopicName}" deleted.`);
+      const deletedName = deleteTargetTopic.topicCustomName || deleteTargetTopic.mbrCustomTopicName;
+      setSuccessMsg(`Custom topic "${deletedName}" deleted.`);
       setDeleteTargetTopic(null);
       window.dispatchEvent(new CustomEvent('stats-updated'));
     } catch (err: any) {
@@ -510,16 +539,24 @@ export default function MbrStoryCustomPanel({
   };
 
   // --- ACTION HANDLERS ---
-  const handleWriteStory = (topic: MbrTopicCustom) => {
+  const handleWriteStory = (topic: TopicCustom) => {
+    const tId = topic.topicCustomId || topic.mbrCustomTopicId || '';
+    const tName = topic.topicCustomName || topic.mbrCustomTopicName || '';
+    const tDesc = topic.topicCustomTopicDesc || topic.mbrCustomTopicDesc || (topic as any).topicCustomTipicDesc || '';
     window.dispatchEvent(
       new CustomEvent('open-story-editor', {
         detail: {
-          subordinateId: topic.mbrCustomTopicId,
-          subordinateName: topic.mbrCustomTopicName,
-          topicId: 'other',
-          topicTitle: topic.mbrCustomTopicName,
+          subordinateId: tId,
+          subordinateName: tName,
+          topicId: resolvedTopicId,
+          chIntentId: topic.chIntentId || resolvedChIntentId,
+          topicTitle: tName,
           componentName: 'sbMbrStryCustom',
-          mbrStoryTopicName: topic.mbrCustomTopicName
+          mbrStoryTopicName: tName,
+          mbrCustomTopicId: tId,
+          topicCustomId: tId,
+          topicCustomName: tName,
+          topicCustomTopicDesc: tDesc
         }
       })
     );
@@ -529,19 +566,17 @@ export default function MbrStoryCustomPanel({
     setActiveGallerySubordinateId(subordinateId);
     setActiveGalleryTitle(galleryTitle);
     setShowGalleryModal(true);
-  };
-
-  // Sorting
+  };  // Sorting
   const sortedTopics = useMemo(() => {
     const list = [...topicList];
     return list.sort((a, b) => {
       if (sortColumn === 'name') {
-        const nameA = (a.mbrCustomTopicName || '').toLowerCase();
-        const nameB = (b.mbrCustomTopicName || '').toLowerCase();
+        const nameA = (a.topicCustomName || a.mbrCustomTopicName || '').toLowerCase();
+        const nameB = (b.topicCustomName || b.mbrCustomTopicName || '').toLowerCase();
         return sortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
       } else {
-        const dateA = a.mbrCustomTopicCreatedAt || '';
-        const dateB = b.mbrCustomTopicCreatedAt || '';
+        const dateA = a.topicCustomTopicCreatedAt || a.mbrCustomTopicCreatedAt || '';
+        const dateB = b.topicCustomTopicCreatedAt || b.mbrCustomTopicCreatedAt || '';
         return sortDirection === 'asc' ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
       }
     });
@@ -562,12 +597,12 @@ export default function MbrStoryCustomPanel({
       <div className="h-1 bg-gradient-to-r from-amber-400 via-rose-400 to-indigo-500 w-full" />
 
       {/* Header Section */}
-      <div className="p-5 md:p-6 border-b border-[#EFECE7] flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-xs">
-            <Sparkles className="w-5 h-5" />
-          </div>
-          <div>
+      <div className="p-4 sm:p-5 md:p-6 border-b border-[#EFECE7] flex flex-col gap-2.5">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 shadow-xs shrink-0">
+              <Sparkles className="w-5 h-5" />
+            </div>
             <div className="flex items-center gap-2">
               <h2 className="font-serif text-lg md:text-xl font-bold text-slate-800 tracking-tight">
                 Custom Topics
@@ -576,94 +611,36 @@ export default function MbrStoryCustomPanel({
                 {topicList.length}
               </span>
             </div>
-            <p className="text-xs text-slate-500 font-serif">
-              Define custom topics and draft unique chapters for your StoryBook.
-            </p>
           </div>
-        </div>
 
-        {/* Desktop Actions */}
-        <div className="hidden sm:flex items-center gap-2">
-          {!readOnly && (
-            <button
-              type="button"
-              onClick={handleOpenAddModal}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-serif font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Custom Topic</span>
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => handleOpenGallery(null, 'Custom Topics Photo Gallery')}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-serif font-semibold bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
-          >
-            <Images className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Photos</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowPrivacyModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-serif font-semibold bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
-          >
-            <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-            <span>Privacy</span>
-          </button>
-        </div>
-
-        {/* Mobile Header Menu */}
-        <div className="sm:hidden flex items-center justify-between pt-2 border-t border-slate-100 custom-header-menu-container relative">
-          {!readOnly && (
-            <button
-              type="button"
-              onClick={handleOpenAddModal}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-serif font-bold bg-indigo-600 text-white shadow-xs"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Add Topic</span>
-            </button>
-          )}
-
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowHeaderMenu(!showHeaderMenu)}
-              className="p-1.5 rounded-lg border border-[#EFECE7] bg-white text-slate-600 hover:bg-slate-50"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-
-            {showHeaderMenu && (
-              <div className="absolute right-0 mt-1 w-44 bg-white border border-[#EFECE7] rounded-xl shadow-lg z-20 py-1 font-serif text-xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowHeaderMenu(false);
-                    handleOpenGallery(null, 'Custom Topics Photo Gallery');
-                  }}
-                  className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-slate-50 text-slate-700"
-                >
-                  <Images className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>Photo Gallery</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowHeaderMenu(false);
-                    setShowPrivacyModal(true);
-                  }}
-                  className="w-full text-left px-3 py-2 flex items-center gap-2 hover:bg-slate-50 text-slate-700"
-                >
-                  <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Privacy Settings</span>
-                </button>
-              </div>
+          {/* Header Action Buttons */}
+          <div className="flex items-center gap-2">
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={handleOpenAddModal}
+                className="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-serif font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Add Topic</span>
+              </button>
             )}
+
+            <button
+              type="button"
+              onClick={() => setShowPrivacyModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs font-serif font-semibold bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
+              title="Privacy Settings"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
+              <span>Privacy</span>
+            </button>
           </div>
         </div>
+
+        <p className="text-xs text-slate-500 font-serif w-full">
+          Define custom topics and draft unique chapters for your StoryBook.
+        </p>
       </div>
 
       {/* Messages */}
@@ -707,7 +684,7 @@ export default function MbrStoryCustomPanel({
                 className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-serif font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Create Custom Topic</span>
+                <span>Add Topic</span>
               </button>
             )}
           </div>
@@ -743,15 +720,21 @@ export default function MbrStoryCustomPanel({
                 </button>
                 <span className="text-right">Actions</span>
               </div>
-            </div>            {/* Custom Topics Rows */}
+            </div>
+
+            {/* Custom Topics Rows */}
             <div className="divide-y divide-slate-100">
               {sortedTopics.map((topic) => {
-                const photoCount = topicPhotosMap[topic.mbrCustomTopicId] || 0;
-                const storyCount = topicStoriesMap[topic.mbrCustomTopicId] || 0;
+                const topicId = topic.topicCustomId || topic.mbrCustomTopicId || '';
+                const topicName = topic.topicCustomName || topic.mbrCustomTopicName || '';
+                const topicDesc = topic.topicCustomTopicDesc || topic.mbrCustomTopicDesc || '';
+                const topicCreatedAt = topic.topicCustomTopicCreatedAt || topic.mbrCustomTopicCreatedAt;
+                const photoCount = topicPhotosMap[topicId] || 0;
+                const storyCount = topicStoriesMap[topicId] || 0;
 
                 return (
                   <div
-                    key={topic.mbrCustomTopicId}
+                    key={topicId}
                     className="p-2.5 sm:p-3.5 hover:bg-indigo-50/20 rounded-2xl transition-colors group/row flex items-start gap-2.5"
                   >
                     {/* Custom Topic Icon */}
@@ -766,7 +749,7 @@ export default function MbrStoryCustomPanel({
                         {/* Topic Name & Badges */}
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <span className="font-serif font-bold text-slate-800 text-xs sm:text-[13px] leading-tight truncate">
-                            {topic.mbrCustomTopicName}
+                            {topicName}
                           </span>
                           {storyCount > 0 && (
                             <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-serif font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
@@ -779,7 +762,7 @@ export default function MbrStoryCustomPanel({
                         {/* Right: Date & Action Icons on the same line */}
                         <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-auto">
                           <span className="hidden md:inline-block text-xs text-slate-400 font-serif">
-                            {formatDate(topic.mbrCustomTopicCreatedAt)}
+                            {formatDate(topicCreatedAt)}
                           </span>
 
                           {/* Desktop Action Buttons */}
@@ -796,7 +779,7 @@ export default function MbrStoryCustomPanel({
 
                             <button
                               type="button"
-                              onClick={() => handleOpenGallery(topic.mbrCustomTopicId, `${topic.mbrCustomTopicName} Photos`)}
+                              onClick={() => handleOpenGallery(topicId, `${topicName} Photos`)}
                               className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors cursor-pointer"
                               title="View Topic Photo Gallery"
                             >
@@ -832,7 +815,7 @@ export default function MbrStoryCustomPanel({
                               type="button"
                               onClick={() =>
                                 setActiveActionMenuId(
-                                  activeActionMenuId === topic.mbrCustomTopicId ? null : topic.mbrCustomTopicId
+                                  activeActionMenuId === topicId ? null : topicId
                                 )
                               }
                               className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -840,7 +823,7 @@ export default function MbrStoryCustomPanel({
                               <MoreVertical className="w-3.5 h-3.5" />
                             </button>
 
-                            {activeActionMenuId === topic.mbrCustomTopicId && (
+                            {activeActionMenuId === topicId && (
                               <div className="absolute right-0 mt-1 w-36 bg-white border border-[#EFECE7] rounded-xl shadow-lg z-20 py-1 font-serif text-xs">
                                 <button
                                   type="button"
@@ -857,11 +840,11 @@ export default function MbrStoryCustomPanel({
                                   type="button"
                                   onClick={() => {
                                     setActiveActionMenuId(null);
-                                    handleOpenGallery(topic.mbrCustomTopicId, `${topic.mbrCustomTopicName} Photos`);
+                                    handleOpenGallery(topicId, `${topicName} Photos`);
                                   }}
                                   className="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-slate-50 text-slate-700"
                                 >
-                                  <Images className="w-3 h-3 text-indigo-500" />
+                                  <Images className="w-3.5 h-3.5 text-indigo-500" />
                                   <span>Photos ({photoCount})</span>
                                 </button>
                                 {!readOnly && (
@@ -874,7 +857,7 @@ export default function MbrStoryCustomPanel({
                                       }}
                                       className="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-slate-50 text-slate-700"
                                     >
-                                      <Edit3 className="w-3 h-3 text-blue-500" />
+                                      <Edit3 className="w-3.5 h-3.5 text-blue-500" />
                                       <span>Edit</span>
                                     </button>
                                     <button
@@ -885,7 +868,7 @@ export default function MbrStoryCustomPanel({
                                       }}
                                       className="w-full text-left px-3 py-1.5 flex items-center gap-2 hover:bg-red-50 text-red-600 font-semibold"
                                     >
-                                      <Trash2 className="w-3 h-3" />
+                                      <Trash2 className="w-3.5 h-3.5" />
                                       <span>Delete</span>
                                     </button>
                                   </>
@@ -897,13 +880,13 @@ export default function MbrStoryCustomPanel({
                       </div>
 
                       {/* Line 2: Description underneath */}
-                      {topic.mbrCustomTopicDesc && (
+                      {topicDesc && (
                         <p className="text-xs text-slate-600 font-serif mt-0.5 leading-relaxed">
-                          {topic.mbrCustomTopicDesc}
+                          {topicDesc}
                         </p>
                       )}
                       <div className="text-[11px] text-slate-400 font-serif sm:hidden">
-                        Added: {formatDate(topic.mbrCustomTopicCreatedAt)}
+                        Added: {formatDate(topicCreatedAt)}
                       </div>
                     </div>
                   </div>
