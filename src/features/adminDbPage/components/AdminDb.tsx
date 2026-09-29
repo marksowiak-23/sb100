@@ -549,6 +549,7 @@ const TABLES: TableDefinition[] = [
       { name: 'topicName', label: 'Topic Name', type: 'string', required: true, placeholder: 'e.g. topicFamily' },
       { name: 'topicFullName', label: 'Topic Full Name', type: 'string', required: false, placeholder: 'e.g. Family & Heritage Stories' },
       { name: 'topicComponent', label: 'Topic Component', type: 'string', required: false, placeholder: 'e.g. sbMbrStryFamly' },
+      { name: 'topicCategoryCd', label: 'Topic Category Code', type: 'string', required: false, placeholder: 'e.g. STANDARD, CUSTOM' },
       { name: 'topicSortOrder', label: 'Topic Sort Order', type: 'number', required: false, placeholder: 'e.g. 10' },
       { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false, placeholder: 'Intent UUID (optional)' }
     ]
@@ -813,8 +814,8 @@ const getInitialMockData = (tableId: string): any[] => {
       ];
     case 'topic':
       return [
-        { topicId: 't1-topic-fam', topicName: 'topicFamily', topicFullName: 'Family & Heritage Stories', topicComponent: 'sbMbrStryFamly', topicSortOrder: 10, chIntentId: null, topicCreatedAt: now, topicUpdatedAt: now },
-        { topicId: 't2-topic-res', topicName: 'topicResidence', topicFullName: 'Residences & Places Lived', topicComponent: 'sbMbrStryResidence', topicSortOrder: 20, chIntentId: null, topicCreatedAt: now, topicUpdatedAt: now }
+        { topicId: 't1-topic-fam', topicName: 'topicFamily', topicFullName: 'Family & Heritage Stories', topicComponent: 'sbMbrStryFamly', topicCategoryCd: 'STANDARD', topicSortOrder: 10, chIntentId: null, topicCreatedAt: now, topicUpdatedAt: now },
+        { topicId: 't2-topic-res', topicName: 'topicResidence', topicFullName: 'Residences & Places Lived', topicComponent: 'sbMbrStryResidence', topicCategoryCd: 'STANDARD', topicSortOrder: 20, chIntentId: null, topicCreatedAt: now, topicUpdatedAt: now }
       ];
     case 'topicSpark':
       return [

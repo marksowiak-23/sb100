@@ -621,17 +621,19 @@ export function generateAdminDbPdf({
       String(row.chWriterPrompt || '-')
     ]);
   } else if (table.id === 'topic') {
-    headers = ['Topic ID', 'Topic Name', 'Full Descriptive Name', 'Sort Order', 'Chatbot Intent ID (UUID)'];
+    headers = ['Topic ID', 'Topic Name', 'Category Code', 'Full Descriptive Name', 'Sort Order', 'Chatbot Intent ID (UUID)'];
     columnStyles = {
-      0: { font: 'courier', cellWidth: 120 },
-      1: { fontStyle: 'bold', cellWidth: 140 },
-      2: { cellWidth: 190 },
-      3: { halign: 'center', cellWidth: 70 },
-      4: { font: 'courier', cellWidth: 'auto' }
+      0: { font: 'courier', cellWidth: 110 },
+      1: { fontStyle: 'bold', cellWidth: 120 },
+      2: { cellWidth: 80 },
+      3: { cellWidth: 160 },
+      4: { halign: 'center', cellWidth: 60 },
+      5: { font: 'courier', cellWidth: 'auto' }
     };
     tableRows = data.map((row) => [
       String(row.topicId || '-'),
       String(row.topicName || '-'),
+      String(row.topicCategoryCd || '-'),
       String(row.topicFullName || '-'),
       String(row.topicSortOrder ?? '-'),
       String(row.chIntentId || '-')

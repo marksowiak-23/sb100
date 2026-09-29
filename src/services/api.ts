@@ -85,6 +85,7 @@ export interface Topic {
   topicName: string;
   topicFullName?: string;
   topicComponent?: string | null;
+  topicCategoryCd?: string | null;
   topicSortOrder?: number | null;
   chIntentId?: string | null;
   topicCreatedAt?: string;
