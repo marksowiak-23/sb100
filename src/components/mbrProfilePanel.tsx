@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save, Users, UserCheck, UserPlus, Clock, User } from 'lucide-react';
+import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save, Users, UserCheck, UserPlus, Clock, User, ShieldAlert } from 'lucide-react';
 import { taskApi, mbrStatApi, mbrSettingsApi, resolveMediaUrl, MbrMedia, MbrStat, MbrSettings } from '@/src/services/api';
 import { MEMBER_STORIES } from '@/src/features/publicPage/constants/memberData';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrConnectPanel from '@/src/components/mbrConnectPanel';
+import MbrProfilePrivacyModal from '@/src/components/mbrProfilePrivacyModal';
 
 export interface MbrProfilePanelProps {
   key?: React.Key;
@@ -60,6 +61,7 @@ export default function MbrProfilePanel({
   const [mbrStat, setMbrStat] = useState<MbrStat | null>(null);
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
 
@@ -159,6 +161,123 @@ export default function MbrProfilePanel({
 
     fetchDirectConnection();
   }, [profile?.mbrId, memberId, resolvedViewerId, propConnectionGrpName, propIsConnected]);
+
+  const loggedInUserId = useMemo(() => {
+    try {
+      const userStr = sessionStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        return u.user_id || null;
+      }
+    } catch {}
+    return null;
+  }, []);
+
+  const isSelf = useMemo(() => {
+    // If no memberId or propProfile was provided, this panel loaded the author's own profile
+    if (!memberId && !propProfile) return true;
+    if (resolvedViewerId && profile?.mbrId && resolvedViewerId === profile.mbrId) return true;
+    if (loggedInUserId && profile?.userId && loggedInUserId === profile.userId) return true;
+    return false;
+  }, [memberId, propProfile, resolvedViewerId, profile?.mbrId, profile?.userId, loggedInUserId]);
+
+  // Profile group privileges state (governs whether viewer can view this profile)
+  const [profileGroupPrivsAllowed, setProfileGroupPrivsAllowed] = useState<boolean>(true);
+
+  // Evaluate mbrProfileGroupPrivs for viewer
+  useEffect(() => {
+    const targetMbrId = profile?.mbrId || memberId;
+    if (!targetMbrId || isSelf) {
+      setProfileGroupPrivsAllowed(true);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const checkProfilePrivileges = async () => {
+      try {
+        let authorPrivs: any[] = [];
+        if (!isSandbox && !targetMbrId.startsWith('sandbox-')) {
+          authorPrivs = await taskApi.getMemberProfileGroupPrivs({ mbrId: targetMbrId }).catch(() => []);
+        } else {
+          const saved = sessionStorage.getItem(`sandbox_profile_privs_${targetMbrId}`);
+          if (saved) {
+            try { authorPrivs = JSON.parse(saved); } catch {}
+          }
+        }
+
+        if (!authorPrivs || authorPrivs.length === 0) {
+          if (!isCancelled) setProfileGroupPrivsAllowed(false);
+          return;
+        }
+
+        let publicGrpId: string | null = null;
+        try {
+          const globals = await taskApi.getGroupsGlobal().catch(() => []);
+          const pub = globals.find(g => g.grpName?.toLowerCase() === 'public');
+          if (pub) publicGrpId = pub.grpId;
+        } catch {}
+        if (!publicGrpId) publicGrpId = '13efcbad-d840-44ad-9b50-d6d2218e5cac';
+
+        let assignedGrpId: string | null = null;
+        if (resolvedViewerId && targetMbrId) {
+          try {
+            const authorConns = await taskApi.getMemberConnections({
+              mbrId: targetMbrId,
+              connectedMbrId: resolvedViewerId
+            }).catch(() => []);
+
+            if (authorConns && authorConns.length > 0) {
+              const authorConnGrps = await taskApi.getMemberConnectionGrps({
+                connectionId: authorConns[0].mbrConnectionId
+              }).catch(() => []);
+              if (authorConnGrps && authorConnGrps.length > 0) {
+                assignedGrpId = authorConnGrps[0].grpId;
+              }
+            }
+          } catch {}
+        }
+
+        let hasAccess = false;
+        let hasDenial = false;
+
+        if (assignedGrpId) {
+          const assignedPriv = authorPrivs.find(p => p.grpId === assignedGrpId);
+          if (assignedPriv) {
+            const val = (assignedPriv.privValueCd || '').toUpperCase();
+            if (val === 'READ' || val === 'WRITE' || val === 'VIEW' || val.includes('VIEW') || val.includes('COMMENT')) {
+              hasAccess = true;
+            } else if (val === 'NONE' || val === 'HIDE') {
+              hasDenial = true;
+            }
+          }
+        }
+
+        if (!hasAccess && !hasDenial && publicGrpId) {
+          const pubPriv = authorPrivs.find(p => p.grpId === publicGrpId);
+          if (pubPriv) {
+            const val = (pubPriv.privValueCd || '').toUpperCase();
+            if (val === 'READ' || val === 'WRITE' || val === 'VIEW' || val.includes('VIEW') || val.includes('COMMENT')) {
+              hasAccess = true;
+            }
+          }
+        }
+
+        if (!isCancelled) {
+          setProfileGroupPrivsAllowed(hasAccess);
+        }
+      } catch (err) {
+        console.warn("Error evaluating profile group privileges in MbrProfilePanel:", err);
+        if (!isCancelled) setProfileGroupPrivsAllowed(false);
+      }
+    };
+
+    checkProfilePrivileges();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [profile?.mbrId, memberId, resolvedViewerId, isSelf, isSandbox]);
 
   // --- PHOTO DESCRIPTION EDIT STATE ---
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -527,25 +646,6 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isGalleryModalOpen, activeGalleryItems.length]);
 
-  const loggedInUserId = useMemo(() => {
-    try {
-      const userStr = sessionStorage.getItem('user');
-      if (userStr) {
-        const u = JSON.parse(userStr);
-        return u.user_id || null;
-      }
-    } catch {}
-    return null;
-  }, []);
-
-  const isSelf = useMemo(() => {
-    // If no memberId or propProfile was provided, this panel loaded the author's own profile
-    if (!memberId && !propProfile) return true;
-    if (resolvedViewerId && profile?.mbrId && resolvedViewerId === profile.mbrId) return true;
-    if (loggedInUserId && profile?.userId && loggedInUserId === profile.userId) return true;
-    return false;
-  }, [memberId, propProfile, resolvedViewerId, profile?.mbrId, profile?.userId, loggedInUserId]);
-
   if (loading) {
     return (
       <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex items-center justify-center min-h-[120px]">
@@ -631,6 +731,10 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
   if (!isSelf && settingsLoaded && (!settings || settings.mbrSettingsAllowPublicFlag === false)) {
     return null;
   }
+  // Check profile group privileges in mbrProfileGroupPrivs (must have view or view & comment privs)
+  if (!isSelf && !profileGroupPrivsAllowed) {
+    return null;
+  }
 
   // Settings visibility flags (if setting is FALSE, do not display label & value)
   const showBirthYr = settings ? settings.mbrSettingsShowBirthYr !== false : true;
@@ -671,21 +775,37 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
               {fullName}
             </h2>
 
-            {/* Photo Gallery Icon Button */}
-            {showPhotoGallery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentGalleryIndex(0);
-                  setIsGalleryModalOpen(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 rounded-xl text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-xs shrink-0"
-                title="Open Photo Gallery"
-              >
-                <Images className="w-3.5 h-3.5 text-blue-600" />
-                <span className="hidden sm:inline font-sans text-xs">Photo Gallery</span>
-              </button>
-            )}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Privacy Shield Icon Button (Only visible for profile author) */}
+              {isSelf && (
+                <button
+                  type="button"
+                  onClick={() => setIsPrivacyModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 rounded-xl text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-xs shrink-0"
+                  title="Profile Privacy Settings"
+                  aria-label="Profile Privacy Settings"
+                >
+                  <ShieldAlert className="w-3.5 h-3.5 text-indigo-600" />
+                  <span className="hidden sm:inline font-sans text-xs">Privacy</span>
+                </button>
+              )}
+
+              {/* Photo Gallery Icon Button */}
+              {showPhotoGallery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentGalleryIndex(0);
+                    setIsGalleryModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 rounded-xl text-xs font-semibold cursor-pointer transition-all hover:scale-105 active:scale-95 shadow-xs shrink-0"
+                  title="Open Photo Gallery"
+                >
+                  <Images className="w-3.5 h-3.5 text-blue-600" />
+                  <span className="hidden sm:inline font-sans text-xs">Photo Gallery</span>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Metadata Rows */}
@@ -892,6 +1012,17 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
               onConnectSuccess();
             }
           }}
+        />
+      )}
+
+      {/* Profile Group Privacy Settings Modal Dialog */}
+      {profile?.mbrId && (
+        <MbrProfilePrivacyModal
+          isOpen={isPrivacyModalOpen}
+          onClose={() => setIsPrivacyModalOpen(false)}
+          mbrId={profile.mbrId}
+          memberName={fullName}
+          isSandbox={isSandbox}
         />
       )}
 

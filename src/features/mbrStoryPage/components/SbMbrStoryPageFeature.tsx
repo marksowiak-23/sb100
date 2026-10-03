@@ -225,93 +225,104 @@ export default function SbMbrStoryPageFeature({
           }
         }
 
-        if (isCancelled) return;
-        setIsConnected(isUserConnected);
-        setConnectionGrpName(userConnectionGrpName);
-
-        // 6. Find 'Public' group ID
-        let publicGrpId: string | null = null;
+        // 6. Fetch topic privacy permissions (mbrTopicGroupPrivs) and evaluate locked topics
+        const lockedIds: string[] = [];
         try {
-          const globals = await taskApi.getGroupsGlobal();
-          const pub = globals.find(g => g.grpName.toLowerCase() === 'public');
-          if (pub) publicGrpId = pub.grpId;
-        } catch {}
-        if (!publicGrpId) publicGrpId = '13efcbad-d840-44ad-9b50-d6d2218e5cac';
+          const authorTopicPrivs = await taskApi.getMemberTopicGroupPrivs({ mbrId: storyAuthorMbrId }).catch(() => []);
+          const globalGroups = await taskApi.getGroupsGlobal().catch(() => []);
+          const pubGroup = globalGroups.find(g => g.grpName?.toLowerCase() === 'public');
+          const publicGrpId = pubGroup?.grpId || '13efcbad-d840-44ad-9b50-d6d2218e5cac';
 
-        // 7. Fetch author's member topic group privileges
-        let authorPrivs: any[] = [];
-        try {
-          authorPrivs = await taskApi.getMemberTopicGroupPrivs({ mbrId: storyAuthorMbrId });
-        } catch (e) {
-          console.warn("Could not fetch member topic group privileges:", e);
-        }
+          const isPrivAllow = (val?: string) => {
+            if (!val) return false;
+            const upper = val.toUpperCase().trim();
+            return upper === 'READ' || upper === 'WRITE' || upper === 'VIEW' || upper.includes('VIEW') || upper.includes('COMMENT') || upper === 'ALLOW';
+          };
 
-        if (isCancelled) return;
+          if (authorTopicPrivs && authorTopicPrivs.length > 0) {
+            const standardTopicKeys = ['family', 'residencies', 'achievements', 'education', 'employment', 'hobbies', 'activities', 'other', 'custom'];
 
-        // 8. Evaluate privilege per topic (Default-Deny Model):
-        // - Viewer has access if their assigned group has 'READ' or 'WRITE' privilege.
-        // - Or if the Public group has 'READ' or 'WRITE' privilege (and assigned group does not explicitly deny with NONE/HIDE).
-        // - If neither grants access, the topic is locked (access restricted).
-        const locked: string[] = [];
-        for (const topic of topicsList) {
-          const topicPrivs = (authorPrivs || []).filter(
-            p => p.topicId === topic.topicId || p.topicId?.toLowerCase() === topic.topicName.toLowerCase()
-          );
+            for (const key of standardTopicKeys) {
+              const matched = matchTopicByName(key, topicsList as any);
+              const targetTopicId = matched?.topicId || DEFAULT_TOPIC_LOOKUP[key]?.topicId;
 
-          // Check viewer's assigned connection group privilege
-          let hasAssignedAccess = false;
-          let hasAssignedDenial = false;
-          if (assignedGrpId) {
-            const assignedPriv = topicPrivs.find(p => p.grpId === assignedGrpId);
-            if (assignedPriv) {
-              const assignedVal = assignedPriv.privValueCd?.toUpperCase();
-              if (assignedVal === 'READ' || assignedVal === 'WRITE') {
-                hasAssignedAccess = true;
-              } else if (assignedVal === 'NONE' || assignedVal === 'HIDE') {
-                hasAssignedDenial = true;
+              if (targetTopicId) {
+                const privsForTopic = authorTopicPrivs.filter(p => p.topicId === targetTopicId);
+                if (privsForTopic.length > 0) {
+                  let allowed = false;
+                  let denied = false;
+
+                  if (assignedGrpId) {
+                    const assignedPriv = privsForTopic.find(p => p.grpId === assignedGrpId);
+                    if (assignedPriv) {
+                      if (isPrivAllow(assignedPriv.privValueCd)) {
+                        allowed = true;
+                      } else {
+                        denied = true;
+                      }
+                    }
+                  }
+
+                  if (!allowed && !denied && publicGrpId) {
+                    const pubPriv = privsForTopic.find(p => p.grpId === publicGrpId);
+                    if (pubPriv && isPrivAllow(pubPriv.privValueCd)) {
+                      allowed = true;
+                    }
+                  }
+
+                  if (!allowed) {
+                    lockedIds.push(key);
+                    lockedIds.push(targetTopicId);
+                    if (matched?.topicName) lockedIds.push(matched.topicName);
+                    if (matched?.topicFullName) lockedIds.push(matched.topicFullName);
+                  }
+                }
+              }
+            }
+
+            for (const top of topicsList) {
+              if (top.topicId) {
+                const privsForTopic = authorTopicPrivs.filter(p => p.topicId === top.topicId);
+                if (privsForTopic.length > 0) {
+                  let allowed = false;
+                  let denied = false;
+
+                  if (assignedGrpId) {
+                    const assignedPriv = privsForTopic.find(p => p.grpId === assignedGrpId);
+                    if (assignedPriv) {
+                      if (isPrivAllow(assignedPriv.privValueCd)) {
+                        allowed = true;
+                      } else {
+                        denied = true;
+                      }
+                    }
+                  }
+
+                  if (!allowed && !denied && publicGrpId) {
+                    const pubPriv = privsForTopic.find(p => p.grpId === publicGrpId);
+                    if (pubPriv && isPrivAllow(pubPriv.privValueCd)) {
+                      allowed = true;
+                    }
+                  }
+
+                  if (!allowed) {
+                    if (!lockedIds.includes(top.topicId)) lockedIds.push(top.topicId);
+                    if (top.topicName && !lockedIds.includes(top.topicName)) lockedIds.push(top.topicName);
+                  }
+                }
               }
             }
           }
-
-          // Check Public group privilege
-          const publicPriv = topicPrivs.find(p => p.grpId === publicGrpId);
-          let hasPublicAccess = false;
-          if (publicPriv) {
-            const publicVal = publicPriv.privValueCd?.toUpperCase();
-            hasPublicAccess = publicVal === 'READ' || publicVal === 'WRITE';
-          }
-
-          // Evaluate access:
-          // 1. If assigned group explicitly grants access ('READ'/'WRITE') -> UNLOCKED
-          // 2. If public group grants access ('READ'/'WRITE') and assigned group doesn't deny -> UNLOCKED
-          // 3. Otherwise (no privileges configured, NONE, or not granted) -> LOCKED
-          if (hasAssignedAccess) {
-            // Access granted via assigned connection group
-          } else if (hasPublicAccess && !hasAssignedDenial) {
-            // Access granted via public permissions
-          } else {
-            // Locked by default
-            locked.push(topic.topicName);
-            locked.push(topic.topicId);
-            locked.push(topic.topicName.toLowerCase());
-            locked.push(topic.topicId.toLowerCase());
-          }
+        } catch (privErr) {
+          console.warn("Could not evaluate mbrTopicGroupPrivs:", privErr);
         }
 
         if (isCancelled) return;
-        setLockedTopicIds(locked);
-
-        // If currently active section is locked, switch to first unlocked section if available
-        const activeSecKey = (activeSection || '').toLowerCase();
-        if (locked && Array.isArray(locked) && locked.some(id => typeof id === 'string' && id.toLowerCase() === activeSecKey)) {
-          const firstUnlocked = (topicsList || []).find(t => !locked.some(lid => typeof lid === 'string' && lid.toLowerCase() === (t.topicName || '').toLowerCase()));
-          if (firstUnlocked?.topicName) {
-            setActiveSection(firstUnlocked.topicName);
-          }
-        }
-
+        setIsConnected(isUserConnected);
+        setConnectionGrpName(userConnectionGrpName);
+        setLockedTopicIds(lockedIds);
       } catch (err) {
-        console.warn("Error resolving topic permissions:", err);
+        console.warn("Error resolving member details:", err);
       }
     };
 

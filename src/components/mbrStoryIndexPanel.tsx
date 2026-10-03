@@ -6,25 +6,37 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, 
-  Lock, 
+  ChevronDown, 
+  User, 
   Users, 
+  HeartHandshake, 
   Home, 
-  Trophy, 
+  Plane, 
   GraduationCap, 
   Briefcase, 
-  Palette,
-  FileText,
-  User,
-  Sparkles
+  Medal, 
+  Trophy, 
+  Palette, 
+  HeartPulse, 
+  Sparkles, 
+  Film, 
+  Music, 
+  Newspaper, 
+  Laptop, 
+  PartyPopper,
+  Compass
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import { taskApi, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
+import { taskApi, Topic, Cd } from '@/src/services/api';
 
 export interface StoryTopic {
   id: string;
   label: string;
   topicId?: string;
   chIntentId?: string | null;
+  topicCategoryCd?: string | null;
+  topicSortOrder?: number | null;
   isLocked?: boolean;
 }
 
@@ -47,44 +59,96 @@ export interface MbrStoryIndexPanelProps {
 export type SbStoryIndexPanelProps = MbrStoryIndexPanelProps;
 export type mbrStoryIndexPanelProps = MbrStoryIndexPanelProps;
 
-const DEFAULT_TOPICS: StoryTopic[] = [
-  { id: 'Profile', label: 'Profile', topicId: DEFAULT_TOPIC_LOOKUP.profile.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.profile.chIntentId },
-  { id: 'Family', label: 'Family', topicId: DEFAULT_TOPIC_LOOKUP.family.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.family.chIntentId },
-  { id: 'Residencies', label: 'Residencies', topicId: DEFAULT_TOPIC_LOOKUP.residencies.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.residencies.chIntentId },
-  { id: 'Achievements', label: 'Achievements', topicId: DEFAULT_TOPIC_LOOKUP.achievements.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.achievements.chIntentId },
-  { id: 'Education', label: 'Education and Training', topicId: DEFAULT_TOPIC_LOOKUP.education.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.education.chIntentId },
-  { id: 'Employment', label: 'Employment and Career', topicId: DEFAULT_TOPIC_LOOKUP.employment.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.employment.chIntentId },
-  { id: 'Hobbies', label: 'Activities and Hobbies', topicId: DEFAULT_TOPIC_LOOKUP.activities.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.activities.chIntentId },
-  { id: 'Other', label: 'Other', topicId: DEFAULT_TOPIC_LOOKUP.other.topicId, chIntentId: DEFAULT_TOPIC_LOOKUP.other.chIntentId }
+const DEFAULT_CATEGORIES: Partial<Cd>[] = [
+  { cdTag: 'topicCategoryCd', cdValue: 'PPL', cdLabel: 'People and Relationships', cdSortOrder: 1 },
+  { cdTag: 'topicCategoryCd', cdValue: 'PP', cdLabel: 'Places, Path, & Journeys', cdSortOrder: 2 },
+  { cdTag: 'topicCategoryCd', cdValue: 'MB', cdLabel: 'Milestones & Beliefs', cdSortOrder: 3 },
+  { cdTag: 'topicCategoryCd', cdValue: 'CAR', cdLabel: 'Growth, Career & Education', cdSortOrder: 4 },
+  { cdTag: 'topicCategoryCd', cdValue: 'EL', cdLabel: 'Daily Life & Leisure', cdSortOrder: 5 },
+  { cdTag: 'topicCategoryCd', cdValue: 'CME', cdLabel: 'Culture, Media & the Era', cdSortOrder: 6 },
+  { cdTag: 'topicCategoryCd', cdValue: 'LSM', cdLabel: 'Life Stages & Milestones', cdSortOrder: 7 },
+  { cdTag: 'topicCategoryCd', cdValue: 'OTHER', cdLabel: 'Other', cdSortOrder: 8 }
 ];
 
-function getTopicIcon(id: string, label: string = '') {
-  const normalized = (id + ' ' + label).toLowerCase();
-  if (normalized.includes('biograph') || normalized.includes('bio') || normalized.includes('profile')) {
-    return User;
+const DEFAULT_TOPICS_LIST: Topic[] = [
+  { topicId: 'b54e7b10-8725-494b-902e-4b9fff8f3c23', topicName: 'Profile', topicFullName: 'Profile', topicCategoryCd: 'PPL', topicSortOrder: 1 },
+  { topicId: 'a01cfe18-ad54-495b-9636-4b0d5c0aa3c2', topicName: 'Family', topicFullName: 'Family', topicCategoryCd: 'PPL', topicSortOrder: 2 },
+  { topicId: '172dc3fc-ce2d-463b-ad9f-976f893cce5e', topicName: 'Relationships', topicFullName: 'Relationships', topicCategoryCd: 'PPL', topicSortOrder: 3 },
+  { topicId: '0c56cf6a-64d7-4174-abb0-0a049a40dcd5', topicName: 'Residencies', topicFullName: 'Residencies', topicCategoryCd: 'PP', topicSortOrder: 1 },
+  { topicId: '5cd2052b-28fc-434f-9ce4-4358ff944576', topicName: 'Trips and Vacations', topicFullName: 'Trips and Vacations', topicCategoryCd: 'PP', topicSortOrder: 2 },
+  { topicId: '196bc8c6-2b8b-4d80-9cc6-1498d37b67a6', topicName: 'Education', topicFullName: 'Education and Training', topicCategoryCd: 'CAR', topicSortOrder: 1 },
+  { topicId: '272a39fd-9b43-4fee-9c26-dccf1d8edd1e', topicName: 'Employment', topicFullName: 'Employment and Career', topicCategoryCd: 'CAR', topicSortOrder: 2 },
+  { topicId: 'df0744af-1f72-4c4a-b141-05cfdbd2863d', topicName: 'Activities', topicFullName: 'Activities and Hobbies', topicCategoryCd: 'EL', topicSortOrder: 1 },
+  { topicId: '273184ab-e09d-49ef-b416-3fc3ba0a8161', topicName: 'Health', topicFullName: 'Health', topicCategoryCd: 'EL', topicSortOrder: 2 },
+  { topicId: '95af15b6-ccd4-4487-8151-aef0ad82b6e8', topicName: 'Achievements', topicFullName: 'Achievements', topicCategoryCd: 'LSM', topicSortOrder: 1 },
+  { topicId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28', topicName: 'Childhood', topicFullName: 'Childhood', topicCategoryCd: 'LSM', topicSortOrder: 2 },
+  { topicId: '4cd7ccff-0617-445c-ae72-173daa059500', topicName: 'Life Reflections', topicFullName: 'Life Reflections', topicCategoryCd: 'LSM', topicSortOrder: 3 },
+  { topicId: '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff', topicName: 'Special Events', topicFullName: 'Special Events', topicCategoryCd: 'LSM', topicSortOrder: 4 },
+  { topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e', topicName: 'Movies and TV', topicFullName: 'Movies and TV', topicCategoryCd: 'CME', topicSortOrder: 1 },
+  { topicId: 'b24de4f6-9029-4665-94bf-f42630baee61', topicName: 'Music', topicFullName: 'Music', topicCategoryCd: 'CME', topicSortOrder: 2 },
+  { topicId: 'eeecb988-25d8-45d4-9304-e040aa14a326', topicName: 'Sports', topicFullName: 'Sports', topicCategoryCd: 'CME', topicSortOrder: 3 },
+  { topicId: '74e60a94-dd9e-4148-a084-86d41ed9998a', topicName: 'Technology', topicFullName: 'Technology', topicCategoryCd: 'CME', topicSortOrder: 4 },
+  { topicId: '40b046fa-cfae-4821-b3b8-17fda934a61a', topicName: 'Pop Culture', topicFullName: 'Pop Culture', topicCategoryCd: 'CME', topicSortOrder: 5 },
+  { topicId: '6635482f-24c8-4fdd-83d0-c5f86e22442f', topicName: 'Fads and Trends', topicFullName: 'Fads and Trends', topicCategoryCd: 'CME', topicSortOrder: 6 },
+  { topicId: '99e16767-c945-47f9-8e5e-21c309cceac3', topicName: 'News of the Times', topicFullName: 'News of the Times', topicCategoryCd: 'CME', topicSortOrder: 7 },
+  { topicId: 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e', topicName: 'Other', topicFullName: 'Other', topicCategoryCd: 'OTHER', topicSortOrder: 99 }
+];
+
+function getTopicIconDetails(name: string = '', fullName: string = '') {
+  const norm = `${name} ${fullName}`.toLowerCase();
+  
+  if (norm.includes('profile') || norm.includes('bio') || norm.includes('about')) {
+    return { icon: User, colorClass: 'text-purple-600 dark:text-purple-400' };
   }
-  if (normalized.includes('family') || normalized.includes('famly')) {
-    return Users;
+  if (norm.includes('family') || norm.includes('famly')) {
+    return { icon: Users, colorClass: 'text-indigo-600 dark:text-indigo-400' };
   }
-  if (normalized.includes('residen') || normalized.includes('home') || normalized.includes('house')) {
-    return Home;
+  if (norm.includes('friend') || norm.includes('relation') || norm.includes('marri') || norm.includes('parent')) {
+    return { icon: HeartHandshake, colorClass: 'text-rose-500 dark:text-rose-400' };
   }
-  if (normalized.includes('achieve') || normalized.includes('award') || normalized.includes('trophy')) {
-    return Trophy;
+  if (norm.includes('residen') || norm.includes('home') || norm.includes('house') || norm.includes('living')) {
+    return { icon: Home, colorClass: 'text-amber-600 dark:text-amber-500' };
   }
-  if (normalized.includes('educat') || normalized.includes('train') || normalized.includes('school') || normalized.includes('college')) {
-    return GraduationCap;
+  if (norm.includes('trip') || norm.includes('vacation') || norm.includes('travel') || norm.includes('adventure')) {
+    return { icon: Plane, colorClass: 'text-sky-500 dark:text-sky-400' };
   }
-  if (normalized.includes('employ') || normalized.includes('career') || normalized.includes('work') || normalized.includes('job')) {
-    return Briefcase;
+  if (norm.includes('educat') || norm.includes('train') || norm.includes('school') || norm.includes('college')) {
+    return { icon: GraduationCap, colorClass: 'text-slate-700 dark:text-slate-300' };
   }
-  if (normalized.includes('activ') || normalized.includes('hobbi') || normalized.includes('hobby') || normalized.includes('interest')) {
-    return Palette;
+  if (norm.includes('employ') || norm.includes('career') || norm.includes('work') || norm.includes('job')) {
+    return { icon: Briefcase, colorClass: 'text-amber-800 dark:text-amber-600' };
   }
-  if (normalized.includes('stori') || normalized.includes('story')) {
-    return FileText;
+  if (norm.includes('militar') || norm.includes('service') || norm.includes('veteran')) {
+    return { icon: Medal, colorClass: 'text-orange-600 dark:text-orange-400' };
   }
-  return Sparkles;
+  if (norm.includes('achieve') || norm.includes('award') || norm.includes('trophy') || norm.includes('honor')) {
+    return { icon: Trophy, colorClass: 'text-amber-500 dark:text-amber-400' };
+  }
+  if (norm.includes('activ') || norm.includes('hobbi') || norm.includes('hobby') || norm.includes('craft')) {
+    return { icon: Palette, colorClass: 'text-emerald-600 dark:text-emerald-400' };
+  }
+  if (norm.includes('health') || norm.includes('wellness') || norm.includes('medical')) {
+    return { icon: HeartPulse, colorClass: 'text-rose-500 dark:text-rose-400' };
+  }
+  if (norm.includes('event') || norm.includes('celebrat') || norm.includes('party') || norm.includes('holiday')) {
+    return { icon: PartyPopper, colorClass: 'text-fuchsia-500 dark:text-fuchsia-400' };
+  }
+  if (norm.includes('movie') || norm.includes('film') || norm.includes('tv') || norm.includes('show')) {
+    return { icon: Film, colorClass: 'text-red-500 dark:text-red-400' };
+  }
+  if (norm.includes('music') || norm.includes('song') || norm.includes('concert')) {
+    return { icon: Music, colorClass: 'text-rose-500 dark:text-rose-400' };
+  }
+  if (norm.includes('news') || norm.includes('era') || norm.includes('history')) {
+    return { icon: Newspaper, colorClass: 'text-slate-600 dark:text-slate-400' };
+  }
+  if (norm.includes('tech') || norm.includes('computer') || norm.includes('digital')) {
+    return { icon: Laptop, colorClass: 'text-cyan-600 dark:text-cyan-400' };
+  }
+  if (norm.includes('reflect') || norm.includes('philosoph') || norm.includes('belief') || norm.includes('spiritual')) {
+    return { icon: Compass, colorClass: 'text-violet-600 dark:text-violet-400' };
+  }
+  return { icon: Sparkles, colorClass: 'text-amber-500 dark:text-amber-400' };
 }
 
 export default function MbrStoryIndexPanel({
@@ -92,103 +156,206 @@ export default function MbrStoryIndexPanel({
   activeTopic,
   setActiveSection,
   setActiveTopic,
-  onSelectTopic,
-  topics,
-  sections,
-  lockedTopicIds = [],
-  onEditStories,
-  onEditBiography,
-  showEditControls = true
+  onSelectTopic
 }: MbrStoryIndexPanelProps) {
-  const [dbTopics, setDbTopics] = useState<Topic[]>([]);
+  const [dbTopics, setDbTopics] = useState<Topic[]>(DEFAULT_TOPICS_LIST);
+  const [categories, setCategories] = useState<Partial<Cd>[]>(DEFAULT_CATEGORIES);
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let isMounted = true;
-    const fetchTopics = async () => {
+    const fetchTopicsAndCategories = async () => {
       try {
-        const fetched = await taskApi.getTopics();
-        if (Array.isArray(fetched) && fetched.length > 0 && isMounted) {
-          setDbTopics(fetched);
+        const [fetchedTopics, fetchedCds] = await Promise.all([
+          taskApi.getTopics().catch(() => []),
+          taskApi.getCds('topicCategoryCd').catch(() => [])
+        ]);
+
+        if (isMounted) {
+          const finalTopics = Array.isArray(fetchedTopics) && fetchedTopics.length > 0 
+            ? fetchedTopics 
+            : DEFAULT_TOPICS_LIST;
+          setDbTopics(finalTopics);
+
+          const finalCds = Array.isArray(fetchedCds) && fetchedCds.length > 0 
+            ? fetchedCds 
+            : DEFAULT_CATEGORIES;
+          setCategories(finalCds);
+
+          // Initially open all categories that have topics
+          const initialOpen: Record<string, boolean> = {};
+          finalCds.forEach(c => {
+            if (c.cdValue) initialOpen[c.cdValue] = true;
+          });
+          initialOpen['OTHER'] = true;
+          setOpenCategories(initialOpen);
         }
       } catch (err) {
-        console.warn("Could not read topic table in MbrStoryIndexPanel:", err);
+        console.warn("Could not load topics or categories in MbrStoryIndexPanel:", err);
       }
     };
-    fetchTopics();
+    fetchTopicsAndCategories();
     return () => { isMounted = false; };
   }, []);
 
-  const currentActive = activeTopic || activeSection || 'Profile';
-  const rawList = topics || sections || DEFAULT_TOPICS;
+  const currentActive = (activeTopic || activeSection || 'Profile').toLowerCase();
 
-  // Match topic names to DB topics and enrich with topicId and chIntentId
-  const list: StoryTopic[] = rawList.map((item) => {
-    const matched = matchTopicByName(item.id || item.label, dbTopics);
-    return {
-      ...item,
-      label: item.label || matched?.topicFullName || matched?.topicName || item.id,
-      topicId: item.topicId || matched?.topicId,
-      chIntentId: item.chIntentId !== undefined ? item.chIntentId : (matched?.chIntentId ?? null)
-    };
+  // Sort categories according to cdSortOrder
+  const sortedCategories = [...categories].sort((a, b) => {
+    const orderA = a.cdSortOrder ?? 999;
+    const orderB = b.cdSortOrder ?? 999;
+    if (orderA !== orderB) return orderA - orderB;
+    return (a.cdLabel || a.cdValue || '').localeCompare(b.cdLabel || b.cdValue || '');
   });
 
-  const handleSelect = (item: StoryTopic) => {
-    const rawMatched = matchTopicByName(item.id, dbTopics);
-    if (setActiveTopic) setActiveTopic(item.id);
-    if (setActiveSection) setActiveSection(item.id);
-    if (onSelectTopic) onSelectTopic(item, rawMatched);
+  // Group topics by category
+  const topicsByCategory = new Map<string, Topic[]>();
+  const knownCatCodes = new Set(sortedCategories.map(c => (c.cdValue || '').toUpperCase()));
+
+  dbTopics.forEach(topic => {
+    const catCode = (topic.topicCategoryCd || 'OTHER').toUpperCase();
+    const targetKey = knownCatCodes.has(catCode) ? catCode : 'OTHER';
+    const list = topicsByCategory.get(targetKey) || [];
+    list.push(topic);
+    topicsByCategory.set(targetKey, list);
+  });
+
+  // Sort topics within each category
+  topicsByCategory.forEach((list) => {
+    list.sort((a, b) => {
+      const ordA = a.topicSortOrder ?? 999;
+      const ordB = b.topicSortOrder ?? 999;
+      if (ordA !== ordB) return ordA - ordB;
+      return (a.topicFullName || a.topicName || '').localeCompare(b.topicFullName || b.topicName || '');
+    });
+  });
+
+  // Auto-expand category containing current active section if closed
+  useEffect(() => {
+    if (!currentActive) return;
+    for (const [catCode, topicList] of topicsByCategory.entries()) {
+      const match = topicList.some(t => 
+        (t.topicName && t.topicName.toLowerCase() === currentActive) ||
+        (t.topicFullName && t.topicFullName.toLowerCase() === currentActive) ||
+        (t.topicId && t.topicId.toLowerCase() === currentActive)
+      );
+      if (match && !openCategories[catCode]) {
+        setOpenCategories(prev => ({ ...prev, [catCode]: true }));
+      }
+    }
+  }, [currentActive]);
+
+  const toggleCategory = (catCode: string) => {
+    setOpenCategories(prev => ({
+      ...prev,
+      [catCode]: !prev[catCode]
+    }));
+  };
+
+  const handleSelectTopic = (rawTopic: Topic) => {
+    const topicKey = rawTopic.topicName || rawTopic.topicFullName || rawTopic.topicId;
+    const storyTopicItem: StoryTopic = {
+      id: topicKey,
+      label: rawTopic.topicFullName || rawTopic.topicName || topicKey,
+      topicId: rawTopic.topicId,
+      chIntentId: rawTopic.chIntentId,
+      topicCategoryCd: rawTopic.topicCategoryCd,
+      topicSortOrder: rawTopic.topicSortOrder
+    };
+
+    if (setActiveTopic) setActiveTopic(topicKey);
+    if (setActiveSection) setActiveSection(topicKey);
+    if (onSelectTopic) onSelectTopic(storyTopicItem, rawTopic);
   };
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 relative">
-      <div className="flex items-center gap-2 pb-1 border-b border-[#EFECE7]">
-        <BookOpen className="w-4 h-4 text-slate-650 shrink-0" />
-        <h3 className="font-serif text-sm font-bold text-slate-800">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-4 sm:p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-3 relative select-none">
+      {/* --- PANEL HEADER --- */}
+      <div className="flex items-center gap-2 pb-2.5 border-b border-[#EFECE7]">
+        <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+        <h3 className="font-serif text-sm font-bold text-slate-800 tracking-tight">
           Story Index
         </h3>
       </div>
 
-      {/* Topic List */}
-      <nav className="flex flex-col gap-1">
-        {list.map((item) => {
-          const isActive = currentActive?.toLowerCase() === item.id.toLowerCase();
-          const isItemLocked = !!(
-            item.isLocked ||
-            (lockedTopicIds && lockedTopicIds.some(lid => lid.toLowerCase() === item.id.toLowerCase()))
-          );
-          const IconComponent = getTopicIcon(item.id, item.label);
+      {/* --- CATEGORY ACCORDIONS --- */}
+      <div className="flex flex-col gap-1">
+        {sortedCategories.map((cat) => {
+          const catCode = (cat.cdValue || '').toUpperCase();
+          const topicsInCat = topicsByCategory.get(catCode) || [];
+          if (topicsInCat.length === 0) return null;
+
+          const isOpen = openCategories[catCode] ?? true;
+          const categoryLabel = cat.cdLabel || cat.cdValue || 'Topics';
 
           return (
-            <button
-              key={item.id}
-              type="button"
-              disabled={isItemLocked}
-              onClick={() => !isItemLocked && handleSelect(item)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs font-serif transition-all duration-150 ${
-                isItemLocked
-                  ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed opacity-60 bg-slate-50/50'
-                  : isActive
-                  ? 'text-slate-900 font-bold bg-slate-100/90 cursor-pointer shadow-xs'
-                  : 'text-slate-650 hover:text-slate-850 hover:bg-slate-50/80 cursor-pointer'
-              }`}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <IconComponent className={`w-3.5 h-3.5 shrink-0 ${
-                  isItemLocked 
-                    ? 'text-slate-400' 
-                    : isActive 
-                    ? 'text-slate-800' 
-                    : 'text-slate-400'
-                }`} />
-                <span className="truncate">{item.label}</span>
-              </div>
-              {isItemLocked && (
-                <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 shrink-0 ml-2" />
-              )}
-            </button>
+            <div key={catCode} className="flex flex-col">
+              {/* Category Accordion Header */}
+              <button
+                type="button"
+                onClick={() => toggleCategory(catCode)}
+                className="w-full flex items-center justify-between py-1.5 px-2 rounded-xl text-left hover:bg-slate-100/70 transition-colors group cursor-pointer"
+                aria-expanded={isOpen}
+              >
+                <span className="font-serif font-bold text-xs text-slate-800 group-hover:text-slate-950 transition-colors">
+                  {categoryLabel}
+                </span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ${
+                    isOpen ? 'rotate-180' : 'rotate-0'
+                  }`}
+                />
+              </button>
+
+              {/* Collapsible Topics List */}
+              <AnimatePresence initial={false}>
+                {isOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.18, ease: 'easeInOut' }}
+                    className="overflow-hidden pl-1 pr-0.5 space-y-0.5 mt-0.5 mb-1.5"
+                  >
+                    {topicsInCat.map((topic) => {
+                      const topicName = topic.topicName || '';
+                      const topicFullName = topic.topicFullName || topicName;
+                      const isActive = 
+                        currentActive === topicName.toLowerCase() ||
+                        currentActive === topicFullName.toLowerCase() ||
+                        (topic.topicId && currentActive === topic.topicId.toLowerCase()) ||
+                        (currentActive === 'profile' && topicName.toLowerCase() === 'profile') ||
+                        (currentActive === 'family' && topicName.toLowerCase() === 'family') ||
+                        (currentActive === 'residencies' && topicName.toLowerCase() === 'residencies') ||
+                        ((currentActive === 'hobbies' || currentActive === 'activities') && topicName.toLowerCase() === 'activities');
+
+                      const { icon: IconComponent, colorClass } = getTopicIconDetails(topicName, topicFullName);
+
+                      return (
+                        <button
+                          key={topic.topicId || topicName}
+                          type="button"
+                          onClick={() => handleSelectTopic(topic)}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-left text-xs font-serif transition-all duration-150 cursor-pointer ${
+                            isActive
+                              ? 'text-slate-900 font-bold bg-slate-100/90 shadow-2xs'
+                              : 'text-slate-650 hover:text-slate-850 hover:bg-slate-50/80'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <IconComponent className={`w-3.5 h-3.5 shrink-0 ${colorClass}`} />
+                            <span className="truncate">{topicFullName}</span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           );
         })}
-      </nav>
+      </div>
 
       <AdminComponentTag name="mbrStoryIndexPanel" />
     </div>
@@ -196,5 +363,6 @@ export default function MbrStoryIndexPanel({
 }
 
 export { MbrStoryIndexPanel, MbrStoryIndexPanel as mbrStoryIndexPanel, MbrStoryIndexPanel as SbStoryIndexPanel };
+
 
 

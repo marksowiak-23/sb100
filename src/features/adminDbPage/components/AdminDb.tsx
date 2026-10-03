@@ -297,6 +297,28 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrTopicRelationships',
+    name: 'mbrTopicRelationships',
+    endpoint: '/mbr-relationships',
+    primaryKey: 'mbrRelationshipId',
+    searchField: 'mbrRelationshipFirstNm',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrRelationshipTypeCd', label: 'Relationship Type Code', type: 'string', required: true, placeholder: 'e.g. BEST_FRIEND, CLOSE_FRIEND' },
+      { name: 'mbrRelationshipFirstNm', label: 'First Name', type: 'string', required: true },
+      { name: 'mbrRelationshipMiddleNm', label: 'Middle Name', type: 'string', required: false },
+      { name: 'mbrRelationshipLastNm', label: 'Last Name', type: 'string', required: false },
+      { name: 'mbrRelationshipNickname', label: 'Nickname', type: 'string', required: false },
+      { name: 'mbrRelationshipMaidenNm', label: 'Maiden Name', type: 'string', required: false },
+      { name: 'mbrRelationshipLocation', label: 'Location / City', type: 'string', required: false },
+      { name: 'mbrRelationshipStartDate', label: 'Start Date', type: 'date', required: false },
+      { name: 'mbrRelationshipEndDate', label: 'End Date', type: 'date', required: false },
+      { name: 'mbrRelationshipCurrentInd', label: 'Current Relationship', type: 'boolean', required: true },
+      { name: 'mbrRelationshipHowWeMet', label: 'How We Met', type: 'textarea', required: false },
+      { name: 'mbrRelationshipDescription', label: 'Description / Notes', type: 'textarea', required: false }
+    ]
+  },
+  {
     id: 'mbrMedia',
     name: 'mbrMedia',
     endpoint: '/mbr-media',
@@ -519,6 +541,30 @@ const TABLES: TableDefinition[] = [
     fields: [
       { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
       { name: 'topicId', label: 'Topic ID (UUID)', type: 'uuid', required: true },
+      { name: 'grpId', label: 'Group ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrStoryGroupPrivs',
+    name: 'mbrStoryGroupPrivs',
+    endpoint: '/mbr-story-group-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrStoryId', label: 'Story ID (UUID)', type: 'uuid', required: true },
+      { name: 'grpId', label: 'Group ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrProfileGroupPrivs',
+    name: 'mbrProfileGroupPrivs',
+    endpoint: '/mbr-profile-group-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
       { name: 'grpId', label: 'Group ID (UUID)', type: 'uuid', required: true },
       { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
     ]
@@ -834,6 +880,14 @@ const getInitialMockData = (tableId: string): any[] => {
     case 'mbrTopicGroupPrivs':
       return [
         { privId: 'priv-1', mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', topicId: 't1-topic-fam', grpId: 'gg-1', privValueCd: 'READ', privCreatedAt: now, privUpdatedAt: now }
+      ];
+    case 'mbrStoryGroupPrivs':
+      return [
+        { privId: 'priv-story-1', mbrStoryId: '0aae45b5-822e-4301-acad-482d5c78ef10', grpId: 'gg-1', privValueCd: 'READ', privCreatedAt: now, privUpdatedAt: now }
+      ];
+    case 'mbrProfileGroupPrivs':
+      return [
+        { privId: 'priv-profile-1', mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', grpId: 'gg-1', privValueCd: 'READ', privCreatedAt: now, privUpdatedAt: now }
       ];
     case 'mbrConnection':
       return [
@@ -1323,7 +1377,7 @@ export default function AdminDb({ isSandbox }: AdminDbProps) {
                 {paginatedData.map((row, idx) => {
                   const rowId = row[selectedTable.primaryKey];
                   return (
-                    <tr key={rowId || idx} className="hover:bg-slate-50/50 transition-colors">
+                    <tr key={`${rowId ?? 'row'}-${startIndex + idx}`} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-5 py-4 font-mono text-[10px] text-slate-450 select-all truncate max-w-40" title={rowId}>
                         {rowId}
                       </td>

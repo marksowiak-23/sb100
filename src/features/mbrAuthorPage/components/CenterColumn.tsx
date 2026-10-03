@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import StoryMatePanel from './StoryMatePanel';
 import StoryEditorPanel from './StoryEditorPanel';
 import MbrProfilePanel from '@/src/components/mbrProfilePanel';
-import MbrBookEditorPanel from '@/src/components/mbrBookEditorPanel';
 import MbrStoryFamilyPanel from '@/src/components/mbrStoryFamilyPanel';
 import MbrStoryResidencePanel from '@/src/components/mbrStoryResidencePanel';
 import MbrStoryActivityPanel from '@/src/components/mbrStoryActivityPanel';
@@ -10,15 +9,16 @@ import MbrStoryAchievementPanel from '@/src/components/mbrStoryAchievementPanel'
 import MbrStoryEducationPanel from '@/src/components/mbrStoryEducationPanel';
 import MbrStoryEmploymentPanel from '@/src/components/mbrStoryEmploymentPanel';
 import MbrStoryCustomPanel from '@/src/components/mbrStoryCustomPanel';
+import MbrStoryRelationshipsPanel from '@/src/components/mbrStoryRelationshipsPanel';
 import ProfileHeaderPanel from './ProfileHeaderPanel';
 import FamilyHeaderPanel from './FamilyHeaderPanel';
+import RelationshipsHeaderPanel from './RelationshipsHeaderPanel';
 import ResidenciesHeaderPanel from './ResidenciesHeaderPanel';
 import AchievementsHeaderPanel from './AchievementsHeaderPanel';
 import EducationHeaderPanel from './EducationHeaderPanel';
 import EmploymentHeaderPanel from './EmploymentHeaderPanel';
 import ActivitiesHeaderPanel from './ActivitiesHeaderPanel';
 import OtherHeaderPanel from './OtherHeaderPanel';
-import TopicHeaderPanel from './TopicHeaderPanel';
 import AuthorHowToCard from './AuthorHowToCard';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { taskApi, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
@@ -34,6 +34,8 @@ interface CenterColumnProps {
 
 const TOPIC_DETAILS: Record<string, { topicId: string; topicTitle: string; componentName: string; chIntentId?: string }> = {
   family: { topicId: DEFAULT_TOPIC_LOOKUP.family.topicId, topicTitle: 'Family', componentName: 'sbMbrStryFamly', chIntentId: DEFAULT_TOPIC_LOOKUP.family.chIntentId },
+  relationships: { topicId: DEFAULT_TOPIC_LOOKUP.relationships.topicId, topicTitle: 'Relationships', componentName: 'sbMbrStryRelationships', chIntentId: DEFAULT_TOPIC_LOOKUP.relationships.chIntentId },
+  relationship: { topicId: DEFAULT_TOPIC_LOOKUP.relationships.topicId, topicTitle: 'Relationships', componentName: 'sbMbrStryRelationships', chIntentId: DEFAULT_TOPIC_LOOKUP.relationships.chIntentId },
   residencies: { topicId: DEFAULT_TOPIC_LOOKUP.residencies.topicId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence', chIntentId: DEFAULT_TOPIC_LOOKUP.residencies.chIntentId },
   residence: { topicId: DEFAULT_TOPIC_LOOKUP.residencies.topicId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence', chIntentId: DEFAULT_TOPIC_LOOKUP.residencies.chIntentId },
   hobbies: { topicId: DEFAULT_TOPIC_LOOKUP.activities.topicId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity', chIntentId: DEFAULT_TOPIC_LOOKUP.activities.chIntentId },
@@ -104,7 +106,7 @@ export default function CenterColumn({
 
   const sec = (activeSection || 'Profile').toLowerCase();
   const matchedTopic = matchTopicByName(activeSection, dbTopics);
-  const isStandardTopic = ['family', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'other', 'custom'].includes(sec);
+  const isStandardTopic = ['family', 'relationships', 'relationship', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'other', 'custom'].includes(sec);
 
   const fallbackInfo = TOPIC_DETAILS[sec] || {
     topicId: sec,
@@ -214,6 +216,17 @@ export default function CenterColumn({
         </>
       )}
 
+      {(sec === 'relationships' || sec === 'relationship') && (
+        <>
+          <RelationshipsHeaderPanel />
+          <MbrStoryRelationshipsPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
+        </>
+      )}
+
       {sec === 'residencies' && (
         <>
           <ResidenciesHeaderPanel />
@@ -269,7 +282,7 @@ export default function CenterColumn({
         </>
       )}
 
-      {(sec === 'other' || sec === 'custom') && (
+      {(sec === 'other' || sec === 'custom' || !['profile', 'family', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'relationships', 'relationship'].includes(sec)) && (
         <>
           <OtherHeaderPanel />
           <MbrStoryCustomPanel
@@ -277,13 +290,6 @@ export default function CenterColumn({
             chIntentId={currentChIntentId}
             isSandbox={isSandbox}
           />
-        </>
-      )}
-
-      {!['profile', 'family', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'other', 'custom'].includes(sec) && (
-        <>
-          <TopicHeaderPanel title={activeSection} />
-          <MbrBookEditorPanel sectionTitle={activeSection} content={activeContent} />
         </>
       )}
 

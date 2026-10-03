@@ -74,9 +74,10 @@ export function useShowComponentName(): boolean {
 
 /**
  * AdminComponentTag
- * Displays the React code component name in the lower right-hand corner of a panel
- * in relatively small font, controlled dynamically via the SHOW_COMPONENT_NAME
- * system configuration property (defaulting to TRUE).
+ * Displays the React code component name at the bottom-right of each component
+ * in an in-flow container so wrapping/nested components naturally stack without
+ * overlapping or colliding on the same spot.
+ * Controlled dynamically via the SHOW_COMPONENT_NAME system configuration property.
  */
 export function AdminComponentTag({ name, className = '' }: AdminComponentTagProps) {
   const isEnabled = useShowComponentName();
@@ -85,10 +86,12 @@ export function AdminComponentTag({ name, className = '' }: AdminComponentTagPro
 
   return (
     <div
-      className={`absolute bottom-2.5 right-3.5 text-[10px] font-mono font-medium text-slate-400/80 bg-slate-100/60 px-1.5 py-0.5 rounded border border-slate-200/50 pointer-events-none select-none z-10 ${className}`}
+      className={`w-full flex justify-end items-center px-1 py-0 mt-0.5 pointer-events-none select-none z-10 ${className}`}
       title={`React Component: ${name}`}
     >
-      {name}
+      <span className="text-[9px] font-mono font-medium leading-none text-slate-400 dark:text-slate-500 bg-slate-100/90 dark:bg-slate-800/90 px-1.5 py-0.5 rounded border border-slate-200/70 dark:border-slate-700/80 shadow-2xs">
+        {name}
+      </span>
     </div>
   );
 }

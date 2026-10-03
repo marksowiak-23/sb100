@@ -5,23 +5,23 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldAlert, X, CheckCircle2, Save, Loader2, Users, UserCheck, Briefcase, Globe, Shield, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, X, CheckCircle2, Save, Loader2, Users, UserCheck, Briefcase, Globe, Shield, AlertTriangle, BookOpen } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { CdSelect } from '@/src/components/CdSelect';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-export interface MbrTopicPrivacyModalProps {
+export interface MbrStoryPrivacyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  mbrId: string;
-  topicId?: string;
-  topicName: string;
+  storyId?: string;
+  storyTitle?: string;
+  mbrId?: string;
   isSandbox?: boolean;
   onSaved?: () => void;
 }
 
-export type SbTopicPrivacyModalProps = MbrTopicPrivacyModalProps;
-export type mbrTopicPrivacyModalProps = MbrTopicPrivacyModalProps;
+export type SbStoryPrivacyModalProps = MbrStoryPrivacyModalProps;
+export type mbrStoryPrivacyModalProps = MbrStoryPrivacyModalProps;
 
 interface UnifiedGroup {
   grpId: string;
@@ -34,25 +34,25 @@ interface UnifiedGroup {
 interface PrivilegeState {
   privId?: string;
   grpId: string;
-  topicId: string;
+  mbrStoryId: string;
   privValueCd: string;
   originalPrivValueCd: string;
 }
 
-export default function MbrTopicPrivacyModal({
+export default function MbrStoryPrivacyModal({
   isOpen,
   onClose,
+  storyId: propStoryId,
+  storyTitle = 'Story',
   mbrId: propMbrId,
-  topicId: propTopicId,
-  topicName,
   isSandbox = false,
   onSaved
-}: MbrTopicPrivacyModalProps) {
+}: MbrStoryPrivacyModalProps) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [resolvedTopicId, setResolvedTopicId] = useState<string>(propTopicId || '');
+  const [resolvedStoryId, setResolvedStoryId] = useState<string>(propStoryId || '');
   const [resolvedMbrId, setResolvedMbrId] = useState<string>(propMbrId || '');
   const [groups, setGroups] = useState<UnifiedGroup[]>([]);
   const [matrix, setMatrix] = useState<Record<string, PrivilegeState>>({});
@@ -100,41 +100,15 @@ export default function MbrTopicPrivacyModal({
           }
         }
         if (!currentMbrId) {
-          currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
+          currentMbrId = 'e20986fa-0fb9-4081-ae5d-35bc8f504df0';
         }
       }
       setResolvedMbrId(currentMbrId);
 
-      // 2. Resolve Topic ID by prop or name matching against database topics
-      let currentTopicId = propTopicId || '';
-      try {
-        const topics = await taskApi.getTopics();
-        if (topics && topics.length > 0) {
-          const match = topics.find(
-            (t) =>
-              (t.topicId && propTopicId && t.topicId.toLowerCase() === propTopicId.toLowerCase()) ||
-              (t.topicName && t.topicName.toLowerCase() === topicName.toLowerCase()) ||
-              (t.topicFullName && t.topicFullName.toLowerCase() === topicName.toLowerCase()) ||
-              (t.topicName && t.topicName.toLowerCase().includes(topicName.toLowerCase())) ||
-              (t.topicFullName && t.topicFullName.toLowerCase().includes(topicName.toLowerCase())) ||
-              (topicName.toLowerCase().includes((t.topicName || '').toLowerCase()))
-          );
-          if (match) {
-            currentTopicId = match.topicId;
-          } else if (!currentTopicId) {
-            currentTopicId = topics[0].topicId;
-          }
-        }
-      } catch (e) {
-        console.warn('Could not fetch topics list for privacy modal:', e);
-      }
+      const effectiveStoryId = propStoryId || '';
+      setResolvedStoryId(effectiveStoryId);
 
-      if (!currentTopicId) {
-        currentTopicId = propTopicId || 't1';
-      }
-      setResolvedTopicId(currentTopicId);
-
-      // 3. Fetch Groups (Global and Custom)
+      // 2. Fetch Groups (Global and Custom)
       let fetchedGlobals: any[] = [];
       let fetchedCustoms: any[] = [];
       try {
@@ -174,7 +148,7 @@ export default function MbrTopicPrivacyModal({
         }))
       ];
 
-      // Deduplicate groups by grpId to guarantee uniqueness
+      // Deduplicate groups by grpId
       const seenGrpIds = new Set<string>();
       const unified: UnifiedGroup[] = [];
       for (const g of rawUnified) {
@@ -193,16 +167,16 @@ export default function MbrTopicPrivacyModal({
 
       setGroups(unified);
 
-      // 4. Fetch Privileges for this member
+      // 3. Fetch Privileges for this story
       let fetchedPrivs: any[] = [];
-      if (!isSandbox) {
+      if (!isSandbox && effectiveStoryId && !effectiveStoryId.startsWith('temp_')) {
         try {
-          fetchedPrivs = await taskApi.getMemberTopicGroupPrivs({ mbrId: currentMbrId });
+          fetchedPrivs = await taskApi.getMemberStoryGroupPrivs({ mbrStoryId: effectiveStoryId });
         } catch (e) {
-          console.warn('Error fetching member topic group privs:', e);
+          console.warn('Error fetching member story group privs:', e);
         }
       } else {
-        const saved = sessionStorage.getItem(`sandbox_mbr_privs_${currentMbrId}`);
+        const saved = sessionStorage.getItem(`sandbox_story_privs_${effectiveStoryId}`);
         if (saved) {
           try {
             fetchedPrivs = JSON.parse(saved);
@@ -213,7 +187,7 @@ export default function MbrTopicPrivacyModal({
       const matrixMap: Record<string, PrivilegeState> = {};
       const privLookup = new Map<string, any>();
       for (const p of fetchedPrivs) {
-        if (p.topicId === currentTopicId) {
+        if (p.mbrStoryId === effectiveStoryId) {
           privLookup.set(p.grpId, p);
         }
       }
@@ -224,7 +198,7 @@ export default function MbrTopicPrivacyModal({
         matrixMap[g.grpId] = {
           privId: existing?.privId,
           grpId: g.grpId,
-          topicId: currentTopicId,
+          mbrStoryId: effectiveStoryId,
           privValueCd: val,
           originalPrivValueCd: val
         };
@@ -232,12 +206,12 @@ export default function MbrTopicPrivacyModal({
 
       setMatrix(matrixMap);
     } catch (err: any) {
-      console.error('Failed to load privacy modal data:', err);
-      setError(err?.message || 'Failed to load privacy settings.');
+      console.error('Failed to load story privacy data:', err);
+      setError(err?.message || 'Failed to load story privacy settings.');
     } finally {
       setLoading(false);
     }
-  }, [isOpen, propMbrId, propTopicId, topicName, isSandbox]);
+  }, [isOpen, propMbrId, propStoryId, isSandbox]);
 
   useEffect(() => {
     if (isOpen) {
@@ -255,7 +229,6 @@ export default function MbrTopicPrivacyModal({
     }));
   };
 
-  // Close attempt handler - checks for unsaved edits
   const handleRequestClose = () => {
     if (hasUnsavedChanges && !saving) {
       setShowDiscardConfirm(true);
@@ -264,10 +237,8 @@ export default function MbrTopicPrivacyModal({
     }
   };
 
-  // Confirm discard unsaved changes
   const handleConfirmDiscard = () => {
     setShowDiscardConfirm(false);
-    // Reset matrix values to original
     setMatrix((prev) => {
       const reverted: Record<string, PrivilegeState> = {};
       for (const [k, v] of Object.entries(prev) as [string, PrivilegeState][]) {
@@ -278,7 +249,6 @@ export default function MbrTopicPrivacyModal({
     onClose();
   };
 
-  // Cancel discard dialog and return to editing
   const handleCancelDiscard = () => {
     setShowDiscardConfirm(false);
   };
@@ -289,26 +259,28 @@ export default function MbrTopicPrivacyModal({
     setSuccess(null);
     try {
       const savePromises: Promise<any>[] = [];
-      const effectiveMbrId = resolvedMbrId || propMbrId;
-      const effectiveTopicId = resolvedTopicId || propTopicId;
+      const effectiveStoryId = resolvedStoryId || propStoryId;
+
+      if (!effectiveStoryId) {
+        throw new Error('Please save the story draft first before configuring story-level group privacy.');
+      }
 
       for (const grpId of Object.keys(matrix)) {
         const cell = matrix[grpId];
         if (cell.privValueCd !== cell.originalPrivValueCd) {
           if (cell.privId) {
-            if (!isSandbox) {
+            if (!isSandbox && !effectiveStoryId.startsWith('temp_')) {
               savePromises.push(
-                taskApi.updateMemberTopicGroupPriv(cell.privId, {
+                taskApi.updateMemberStoryGroupPriv(cell.privId, {
                   privValueCd: cell.privValueCd
                 })
               );
             }
           } else {
-            if (!isSandbox) {
+            if (!isSandbox && !effectiveStoryId.startsWith('temp_')) {
               savePromises.push(
-                taskApi.createMemberTopicGroupPriv({
-                  mbrId: effectiveMbrId,
-                  topicId: cell.topicId || effectiveTopicId,
+                taskApi.createMemberStoryGroupPriv({
+                  mbrStoryId: effectiveStoryId,
                   grpId: cell.grpId,
                   privValueCd: cell.privValueCd
                 }).then((created) => {
@@ -320,19 +292,10 @@ export default function MbrTopicPrivacyModal({
         }
       }
 
-      if (!isSandbox) {
+      if (!isSandbox && !effectiveStoryId.startsWith('temp_')) {
         await Promise.all(savePromises);
       } else {
-        const currentPrivsStr = sessionStorage.getItem(`sandbox_mbr_privs_${effectiveMbrId}`);
-        let allPrivs: any[] = [];
-        if (currentPrivsStr) {
-          try {
-            allPrivs = JSON.parse(currentPrivsStr);
-          } catch {}
-        }
-        const filtered = allPrivs.filter((p) => p.topicId !== effectiveTopicId);
-        const updated = [...filtered, ...Object.values(matrix)];
-        sessionStorage.setItem(`sandbox_mbr_privs_${effectiveMbrId}`, JSON.stringify(updated));
+        sessionStorage.setItem(`sandbox_story_privs_${effectiveStoryId}`, JSON.stringify(Object.values(matrix)));
       }
 
       setMatrix((prev) => {
@@ -343,44 +306,33 @@ export default function MbrTopicPrivacyModal({
         return updated;
       });
 
-      setSuccess(`Privacy settings for ${topicName} saved successfully.`);
+      setSuccess(`Story privacy settings saved successfully.`);
       if (onSaved) onSaved();
       setTimeout(() => {
         onClose();
       }, 800);
     } catch (err: any) {
-      console.error('Failed to save privacy settings:', err);
-      // Fallback to session storage if network issue occurs so changes are not lost
+      console.error('Failed to save story privacy settings:', err);
       if (err?.message?.includes('Failed to fetch') || err?.name === 'TypeError') {
-        const effectiveMbrId = resolvedMbrId || propMbrId;
-        const effectiveTopicId = resolvedTopicId || propTopicId;
-        const currentPrivsStr = sessionStorage.getItem(`sandbox_mbr_privs_${effectiveMbrId}`);
-        let allPrivs: any[] = [];
-        if (currentPrivsStr) {
-          try {
-            allPrivs = JSON.parse(currentPrivsStr);
-          } catch {}
+        const effectiveStoryId = resolvedStoryId || propStoryId;
+        if (effectiveStoryId) {
+          sessionStorage.setItem(`sandbox_story_privs_${effectiveStoryId}`, JSON.stringify(Object.values(matrix)));
+          setMatrix((prev) => {
+            const updatedState = { ...prev };
+            for (const k of Object.keys(updatedState)) {
+              updatedState[k] = { ...updatedState[k], originalPrivValueCd: updatedState[k].privValueCd };
+            }
+            return updatedState;
+          });
+          setSuccess(`Story privacy settings saved (offline cached).`);
+          if (onSaved) onSaved();
+          setTimeout(() => {
+            onClose();
+          }, 800);
+          return;
         }
-        const filtered = allPrivs.filter((p) => p.topicId !== effectiveTopicId);
-        const updated = [...filtered, ...Object.values(matrix)];
-        sessionStorage.setItem(`sandbox_mbr_privs_${effectiveMbrId}`, JSON.stringify(updated));
-
-        setMatrix((prev) => {
-          const updatedState = { ...prev };
-          for (const k of Object.keys(updatedState)) {
-            updatedState[k] = { ...updatedState[k], originalPrivValueCd: updatedState[k].privValueCd };
-          }
-          return updatedState;
-        });
-
-        setSuccess(`Privacy settings saved (offline cached).`);
-        if (onSaved) onSaved();
-        setTimeout(() => {
-          onClose();
-        }, 800);
-        return;
       }
-      setError(err?.message || 'Failed to save privacy settings.');
+      setError(err?.message || 'Failed to save story privacy settings.');
     } finally {
       setSaving(false);
     }
@@ -400,7 +352,7 @@ export default function MbrTopicPrivacyModal({
       <AnimatePresence>
         {isOpen && (
           <div 
-            key="topic-privacy-backdrop"
+            key="story-privacy-backdrop"
             className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
@@ -409,7 +361,7 @@ export default function MbrTopicPrivacyModal({
             }}
           >
             <motion.div
-              key="topic-privacy-dialog"
+              key="story-privacy-dialog"
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
@@ -418,16 +370,16 @@ export default function MbrTopicPrivacyModal({
               {/* Modal Header */}
               <div className="flex items-start justify-between pb-3.5 border-b border-[#EFECE7] shrink-0">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-blue-50 text-blue-700 border border-blue-100/80 rounded-2xl shrink-0">
+                  <div className="p-2.5 bg-indigo-50 text-indigo-700 border border-indigo-100/80 rounded-2xl shrink-0">
                     <ShieldAlert className="w-5 h-5" />
                   </div>
                   <div>
                     <h3 className="font-serif text-base sm:text-lg font-bold text-slate-850 leading-tight">
-                      Privacy Settings
+                      Story Group Privacy Settings
                     </h3>
                     <p className="text-xs text-slate-500 font-serif mt-1 flex items-center gap-1.5">
-                      <span className="font-semibold text-slate-400">Topic:</span>
-                      <span className="font-bold text-amber-500">{topicName}</span>
+                      <span className="font-semibold text-slate-400">Story:</span>
+                      <span className="font-bold text-indigo-600 truncate max-w-[220px]">{storyTitle}</span>
                       {hasUnsavedChanges && (
                         <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] font-bold bg-amber-100 text-amber-800">
                           Unsaved edits
@@ -465,18 +417,23 @@ export default function MbrTopicPrivacyModal({
                 </div>
               )}
 
+              {/* Helper Description */}
+              <div className="mt-3 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[11.5px] text-slate-600 font-serif">
+                Select the access privilege for each group. Privileges are stored in <span className="font-mono text-indigo-600 font-bold">mbrStoryGroupPrivs</span>.
+              </div>
+
               {/* Modal Body / Groups List */}
               <div className="flex-1 overflow-y-auto py-3 space-y-2.5 pr-1 min-h-[160px]">
                 {loading ? (
                   <div className="py-12 flex flex-col items-center justify-center gap-2 text-slate-400">
-                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                    <span className="text-xs font-serif">Loading privacy settings...</span>
+                    <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
+                    <span className="text-xs font-serif">Loading group privileges...</span>
                   </div>
                 ) : (
                   groups.map((grp, index) => {
                     const currentVal = matrix[grp.grpId]?.privValueCd || 'NONE';
                     const isModified = matrix[grp.grpId]?.privValueCd !== matrix[grp.grpId]?.originalPrivValueCd;
-                    const groupKey = `privacy-group-${grp.isCustom ? 'custom' : 'global'}-${grp.grpId || index}`;
+                    const groupKey = `story-privacy-group-${grp.isCustom ? 'custom' : 'global'}-${grp.grpId || index}`;
 
                     return (
                       <div
@@ -540,7 +497,7 @@ export default function MbrTopicPrivacyModal({
                   type="button"
                   onClick={handleSave}
                   disabled={loading || saving}
-                  className="flex items-center gap-1.5 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/10 transition-all cursor-pointer disabled:opacity-50 border border-blue-600 font-sans"
+                  className="flex items-center gap-1.5 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-500/10 transition-all cursor-pointer disabled:opacity-50 border border-indigo-600 font-sans"
                 >
                   {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                   <span>Save Privacy Settings</span>
@@ -550,9 +507,9 @@ export default function MbrTopicPrivacyModal({
               {/* Discard Changes Prompt Overlay */}
               <AnimatePresence>
                 {showDiscardConfirm && (
-                  <div key="discard-confirm-overlay" className="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-xs rounded-3xl flex items-center justify-center p-4">
+                  <div key="story-discard-confirm-overlay" className="absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-xs rounded-3xl flex items-center justify-center p-4">
                     <motion.div
-                      key="discard-confirm-dialog"
+                      key="story-discard-confirm-dialog"
                       initial={{ opacity: 0, scale: 0.92, y: 8 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.92, y: 8 }}
@@ -563,7 +520,7 @@ export default function MbrTopicPrivacyModal({
                       </div>
                       <h4 className="font-serif font-bold text-base text-slate-800">Discard Unsaved Changes?</h4>
                       <p className="text-xs text-slate-500 font-serif mt-1.5 mb-5 leading-relaxed">
-                        You have unsaved changes to your privacy settings for <span className="font-bold text-amber-600">{topicName}</span>. If you leave now, these changes will be discarded.
+                        You have unsaved changes to your story privacy settings. If you leave now, these changes will be discarded.
                       </p>
                       <div className="flex items-center gap-2.5 w-full">
                         <button
@@ -589,9 +546,9 @@ export default function MbrTopicPrivacyModal({
           </div>
         )}
       </AnimatePresence>
-      <AdminComponentTag name="mbrTopicPrivacyModal" />
+      <AdminComponentTag name="mbrStoryPrivacyModal" />
     </>
   );
 }
 
-export { MbrTopicPrivacyModal, MbrTopicPrivacyModal as mbrTopicPrivacyModal, MbrTopicPrivacyModal as SbTopicPrivacyModal };
+export { MbrStoryPrivacyModal, MbrStoryPrivacyModal as mbrStoryPrivacyModal, MbrStoryPrivacyModal as SbStoryPrivacyModal };

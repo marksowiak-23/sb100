@@ -3,7 +3,6 @@ import { ArrowLeft, Lock } from 'lucide-react';
 import { MemberStory } from '@/src/features/publicPage/constants/memberData';
 import MbrProfilePanel from '@/src/components/mbrProfilePanel';
 import MbrProfileBriefPanel from '@/src/components/mbrProfileBriefPanel';
-import MbrBookEditorPanel from '@/src/components/mbrBookEditorPanel';
 import MbrStoryFamilyPanel from '@/src/components/mbrStoryFamilyPanel';
 import MbrStoryResidencePanel from '@/src/components/mbrStoryResidencePanel';
 import MbrStoryActivityPanel from '@/src/components/mbrStoryActivityPanel';
@@ -11,6 +10,7 @@ import MbrStoryAchievementPanel from '@/src/components/mbrStoryAchievementPanel'
 import MbrStoryEducationPanel from '@/src/components/mbrStoryEducationPanel';
 import MbrStoryEmploymentPanel from '@/src/components/mbrStoryEmploymentPanel';
 import MbrStoryCustomPanel from '@/src/components/mbrStoryCustomPanel';
+import MbrStoryRelationshipsPanel from '@/src/components/mbrStoryRelationshipsPanel';
 import StoryEditorPanel from '@/src/features/mbrAuthorPage/components/StoryEditorPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { taskApi, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
@@ -30,6 +30,8 @@ interface CenterColumnProps {
 
 const componentNameMap: Record<string, string> = {
   family: 'sbMbrStryFamly',
+  relationships: 'sbMbrStryRelationships',
+  relationship: 'sbMbrStryRelationships',
   residencies: 'sbMbrStryResidence',
   hobbies: 'sbMbrStryActivity',
   activities: 'sbMbrStryActivity',
@@ -73,13 +75,9 @@ export default function CenterColumn({
     return () => { isMounted = false; };
   }, []);
 
-  // Normalize topic name for security lock comparison
+  // Normalize topic name
   const safeActiveSection = typeof activeSection === 'string' ? activeSection : 'Profile';
   const topicId = safeActiveSection.toLowerCase();
-  const safeLocked = Array.isArray(lockedTopicIds) ? lockedTopicIds : [];
-  const isSectionLocked = safeLocked.some(
-    (id) => typeof id === 'string' && id.toLowerCase() === topicId
-  );
 
   const matchedTopic = matchTopicByName(safeActiveSection, dbTopics);
   const currentTopicId = matchedTopic?.topicId || DEFAULT_TOPIC_LOOKUP[topicId]?.topicId || topicId;
@@ -130,7 +128,19 @@ export default function CenterColumn({
   const isOwner = !viewerMbrId || (Boolean(effectiveMemberId) && viewerMbrId === effectiveMemberId);
   const isReadOnly = !isOwner;
 
-  const isStandardTopic = ['family', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'other', 'custom'].includes(topicId);
+  const isTopicLocked = isReadOnly && (
+    lockedTopicIds.some((lid) => 
+      typeof lid === 'string' && (
+        lid.toLowerCase() === topicId ||
+        lid.toLowerCase() === currentTopicId.toLowerCase() ||
+        lid.toLowerCase() === safeActiveSection.toLowerCase() ||
+        (matchedTopic?.topicName && lid.toLowerCase() === matchedTopic.topicName.toLowerCase()) ||
+        (matchedTopic?.topicFullName && lid.toLowerCase() === matchedTopic.topicFullName.toLowerCase())
+      )
+    )
+  );
+
+  const isStandardTopic = ['family', 'relationships', 'relationship', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'other', 'custom'].includes(topicId);
 
   const isFromConnections = previousTab === 'mbrConnectionPage' || previousTab === 'mbrConnections';
   const isFromStoriesFeed = previousTab === 'mbrStoryFeedPage' || previousTab === 'sbStoryFeed';
@@ -187,24 +197,37 @@ export default function CenterColumn({
         />
       )}
 
-      {/* --- LOCKED SECTION RESTRICTION NOTICE --- */}
-      {isSectionLocked ? (
-        <div className="p-8 rounded-3xl bg-[#FDFCFB] border border-[#EFECE7] shadow-sm text-center flex flex-col items-center justify-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
-            <Lock className="w-6 h-6" />
+      {/* --- TOPIC DIRECTORY PANEL (When permitted) --- */}
+      {isTopicLocked ? (
+        <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 sm:p-8 text-center flex flex-col items-center justify-center gap-3 shadow-xs">
+          <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center">
+            <Lock className="w-5 h-5" />
           </div>
-          <h3 className="font-serif font-bold text-base text-slate-800">
-            Access Restricted
-          </h3>
-          <p className="text-xs text-slate-500 font-serif max-w-md leading-relaxed">
-            The author has set the <strong>{safeActiveSection}</strong> chapter to private and has not granted viewing privileges for your member connection group.
-          </p>
+          <div className="space-y-1">
+            <h3 className="font-serif text-base sm:text-lg font-bold text-slate-800">
+              {currentTopicTitle} Privacy Restricted
+            </h3>
+            <p className="text-xs font-serif text-slate-500 max-w-sm mx-auto leading-relaxed">
+              The author has configured privacy restrictions for this topic. You do not have permission to view the {currentTopicTitle.toLowerCase()} directory entries.
+            </p>
+          </div>
         </div>
       ) : (
         <>
           {/* --- FAMILY DIRECTORY PANEL --- */}
           {(topicId === 'family') && (
             <MbrStoryFamilyPanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
+          )}
+
+          {/* --- RELATIONSHIPS PANEL --- */}
+          {(topicId === 'relationships' || topicId === 'relationship') && (
+            <MbrStoryRelationshipsPanel
               memberId={effectiveMemberId}
               topicId={currentTopicId}
               chIntentId={currentChIntentId}
@@ -269,7 +292,7 @@ export default function CenterColumn({
           )}
 
           {/* --- CUSTOM TOPICS PANEL --- */}
-          {(topicId === 'other' || topicId === 'custom') && (
+          {(topicId === 'other' || topicId === 'custom' || (!isStandardTopic && topicId !== 'profile')) && (
             <MbrStoryCustomPanel
               memberId={effectiveMemberId}
               topicId={currentTopicId}
@@ -278,11 +301,8 @@ export default function CenterColumn({
               readOnly={isReadOnly}
             />
           )}
-
-          {/* --- ACTIVE SECTION CONTENT AREA (for custom text sections) --- */}
-          {!isStandardTopic && topicId !== 'profile' && (
-            <MbrBookEditorPanel sectionTitle={safeActiveSection} content={activeContent || []} readOnly={isReadOnly} />
-          )}
+        </>
+      )}
 
           {/* --- MEMBER STORIES VIEW PANEL (Displayed for standard topics) --- */}
           {isStandardTopic && (
@@ -304,8 +324,6 @@ export default function CenterColumn({
               />
             </div>
           )}
-        </>
-      )}
 
       <AdminComponentTag name="CenterColumn" />
     </div>

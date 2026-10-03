@@ -201,18 +201,20 @@ export default function SbStoryPageFeature({
           viewerConns,
           connectionGrps,
           topicsList,
-          authorPrivs,
+          storyPrivsList,
           groupsGlobal,
-          groupsCustom
+          authorCustomGrps,
+          viewerCustomGrps
         ] = await Promise.all([
           taskApi.getMemberById(resolvedAuthorId).catch(() => null),
           taskApi.getMemberConnections({ mbrId: resolvedAuthorId, connectedMbrId: resolvedViewerId }).catch(() => []),
           taskApi.getMemberConnections({ mbrId: resolvedViewerId, connectedMbrId: resolvedAuthorId }).catch(() => []),
           taskApi.getMemberConnectionGrps().catch(() => []),
           taskApi.getTopics().catch(() => []),
-          taskApi.getMemberTopicGroupPrivs({ mbrId: resolvedAuthorId }).catch(() => []),
+          taskApi.getMemberStoryGroupPrivs({ mbrStoryId: loadedStory.mbrStoryId || storyId || undefined }).catch(() => []),
           taskApi.getGroupsGlobal().catch(() => []),
-          taskApi.getGroupsCustom(resolvedViewerId).catch(() => [])
+          resolvedAuthorId ? taskApi.getGroupsCustom(resolvedAuthorId).catch(() => []) : Promise.resolve([]),
+          resolvedViewerId ? taskApi.getGroupsCustom(resolvedViewerId).catch(() => []) : Promise.resolve([])
         ]);
 
         if (isCancelled) return;
@@ -220,7 +222,8 @@ export default function SbStoryPageFeature({
         // 4. Resolve Connection Badging & Assigned Group ID
         const allGroups = [
           ...(groupsGlobal || []),
-          ...(groupsCustom || []),
+          ...(authorCustomGrps || []),
+          ...(viewerCustomGrps || []),
           { grpId: 'g1', grpName: 'Family' },
           { grpId: 'g2', grpName: 'Friends' },
           { grpId: 'g3', grpName: 'Colleagues' },
@@ -248,53 +251,43 @@ export default function SbStoryPageFeature({
 
         let publicGrpId = groupsGlobal?.find(g => g.grpName?.toLowerCase() === 'public')?.grpId || '13efcbad-d840-44ad-9b50-d6d2218e5cac';
 
-        // 5. Evaluate Privacy for this Story
+        // 5. Evaluate Privacy for this Story based on mbrStoryGroupPrivs
         // Self-author bypass
-        const isSelf = resolvedAuthorId === resolvedViewerId;
+        const isSelf = Boolean(resolvedAuthorId && resolvedViewerId && resolvedAuthorId === resolvedViewerId);
         let hasAccess = isSelf;
-        let hasDenial = false;
 
-        const normalizeTopicKey = (typeCd?: string): string => {
-          if (!typeCd) return '';
-          const clean = typeCd.toLowerCase().replace('sbmbrstry', '').replace('mbrstry', '');
-          if (clean === 'famly' || clean === 'family') return 'family';
-          if (clean === 'residence' || clean === 'residencies') return 'residencies';
-          if (clean === 'achievement' || clean === 'achievements') return 'achievements';
-          if (clean === 'education') return 'education';
-          if (clean === 'employment' || clean === 'career') return 'employment';
-          if (clean === 'activity' || clean === 'activities' || clean === 'hobbies') return 'hobbies';
-          return clean;
+        const isPrivAllow = (val?: string) => {
+          if (!val) return false;
+          const upper = val.toUpperCase().trim();
+          return upper === 'READ' || upper === 'WRITE' || upper === 'VIEW' || upper.includes('VIEW') || upper.includes('COMMENT') || upper === 'ALLOW';
         };
 
-        const normStoryTopic = normalizeTopicKey(loadedStory.mbrStoryTypeCd);
+        const storyPrivs = storyPrivsList || [];
+        if (!hasAccess) {
+          // Check assigned group privilege
+          if (assignedGrpId) {
+            const assignedPriv = storyPrivs.find((p: any) => p.grpId === assignedGrpId);
+            if (assignedPriv && isPrivAllow(assignedPriv.privValueCd)) {
+              hasAccess = true;
+            }
+          }
+
+          // Check Public group privilege
+          if (!hasAccess && publicGrpId) {
+            const pubPriv = storyPrivs.find((p: any) => 
+              p.grpId === publicGrpId || 
+              (groupNameById.get(p.grpId)?.toLowerCase() === 'public')
+            );
+            if (pubPriv && isPrivAllow(pubPriv.privValueCd)) {
+              hasAccess = true;
+            }
+          }
+        }
+
         const matchedTopic = (topicsList || []).find(t => 
           t.topicId === loadedStory?.mbrStoryTypeCd || 
-          normalizeTopicKey(t.topicName) === normStoryTopic
+          t.topicName?.toLowerCase() === loadedStory?.mbrStoryTypeCd?.toLowerCase()
         );
-        const matchedTopicId = matchedTopic?.topicId;
-
-        const topicPrivs = (authorPrivs || []).filter((p: any) => 
-          (matchedTopicId && p.topicId === matchedTopicId) ||
-          normalizeTopicKey(p.topicId) === normStoryTopic ||
-          (matchedTopic?.topicName && p.topicId?.toLowerCase() === matchedTopic.topicName.toLowerCase())
-        );
-
-        if (!hasAccess && assignedGrpId) {
-          const assignedPriv = topicPrivs.find((p: any) => p.grpId === assignedGrpId);
-          if (assignedPriv) {
-            const val = assignedPriv.privValueCd?.toUpperCase();
-            if (val === 'READ' || val === 'WRITE') hasAccess = true;
-            else if (val === 'NONE' || val === 'HIDE') hasDenial = true;
-          }
-        }
-
-        if (!hasAccess && !hasDenial && publicGrpId) {
-          const pubPriv = topicPrivs.find((p: any) => p.grpId === publicGrpId);
-          if (pubPriv) {
-            const val = pubPriv.privValueCd?.toUpperCase();
-            if (val === 'READ' || val === 'WRITE') hasAccess = true;
-          }
-        }
 
         if (!isCancelled) {
           if (!hasAccess) {
@@ -353,6 +346,7 @@ export default function SbStoryPageFeature({
         {/* Center Column */}
         <div className="lg:col-span-6 p-1 lg:p-0 rounded-3xl">
           <CenterColumn
+            storyId={story?.mbrStoryId || storyId}
             storyTitle={story?.mbrStoryTitle}
             storyContent={story?.mbrStoryContent}
             storyTopic={story?.mbrStoryTypeCd}

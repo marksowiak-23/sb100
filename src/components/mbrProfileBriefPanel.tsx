@@ -146,6 +146,112 @@ export default function MbrProfileBriefPanel({
     fetchDirectConnection();
   }, [profile?.mbrId, memberId, resolvedViewerId, propConnectionGrpName, propIsConnected]);
 
+  const isSelf = Boolean(
+    resolvedViewerId && (
+      (profile?.mbrId && profile.mbrId === resolvedViewerId) ||
+      (profile?.id && profile.id === resolvedViewerId) ||
+      (memberId && memberId === resolvedViewerId)
+    )
+  );
+
+  // Profile group privileges state (governs whether viewer can view this profile brief)
+  const [profileGroupPrivsAllowed, setProfileGroupPrivsAllowed] = useState<boolean>(true);
+
+  // Evaluate mbrProfileGroupPrivs for viewer
+  useEffect(() => {
+    const targetMbrId = profile?.mbrId || memberId;
+    if (!targetMbrId || isSelf) {
+      setProfileGroupPrivsAllowed(true);
+      return;
+    }
+
+    let isCancelled = false;
+
+    const checkProfilePrivileges = async () => {
+      try {
+        let authorPrivs: any[] = [];
+        if (!isSandbox && !targetMbrId.startsWith('sandbox-')) {
+          authorPrivs = await taskApi.getMemberProfileGroupPrivs({ mbrId: targetMbrId }).catch(() => []);
+        } else {
+          const saved = sessionStorage.getItem(`sandbox_profile_privs_${targetMbrId}`);
+          if (saved) {
+            try { authorPrivs = JSON.parse(saved); } catch {}
+          }
+        }
+
+        if (!authorPrivs || authorPrivs.length === 0) {
+          if (!isCancelled) setProfileGroupPrivsAllowed(false);
+          return;
+        }
+
+        let publicGrpId: string | null = null;
+        try {
+          const globals = await taskApi.getGroupsGlobal().catch(() => []);
+          const pub = globals.find(g => g.grpName?.toLowerCase() === 'public');
+          if (pub) publicGrpId = pub.grpId;
+        } catch {}
+        if (!publicGrpId) publicGrpId = '13efcbad-d840-44ad-9b50-d6d2218e5cac';
+
+        let assignedGrpId: string | null = null;
+        if (resolvedViewerId && targetMbrId) {
+          try {
+            const authorConns = await taskApi.getMemberConnections({
+              mbrId: targetMbrId,
+              connectedMbrId: resolvedViewerId
+            }).catch(() => []);
+
+            if (authorConns && authorConns.length > 0) {
+              const authorConnGrps = await taskApi.getMemberConnectionGrps({
+                connectionId: authorConns[0].mbrConnectionId
+              }).catch(() => []);
+              if (authorConnGrps && authorConnGrps.length > 0) {
+                assignedGrpId = authorConnGrps[0].grpId;
+              }
+            }
+          } catch {}
+        }
+
+        let hasAccess = false;
+        let hasDenial = false;
+
+        if (assignedGrpId) {
+          const assignedPriv = authorPrivs.find(p => p.grpId === assignedGrpId);
+          if (assignedPriv) {
+            const val = (assignedPriv.privValueCd || '').toUpperCase();
+            if (val === 'READ' || val === 'WRITE' || val === 'VIEW' || val.includes('VIEW') || val.includes('COMMENT')) {
+              hasAccess = true;
+            } else if (val === 'NONE' || val === 'HIDE') {
+              hasDenial = true;
+            }
+          }
+        }
+
+        if (!hasAccess && !hasDenial && publicGrpId) {
+          const pubPriv = authorPrivs.find(p => p.grpId === publicGrpId);
+          if (pubPriv) {
+            const val = (pubPriv.privValueCd || '').toUpperCase();
+            if (val === 'READ' || val === 'WRITE' || val === 'VIEW' || val.includes('VIEW') || val.includes('COMMENT')) {
+              hasAccess = true;
+            }
+          }
+        }
+
+        if (!isCancelled) {
+          setProfileGroupPrivsAllowed(hasAccess);
+        }
+      } catch (err) {
+        console.warn("Error evaluating profile group privileges in MbrProfileBriefPanel:", err);
+        if (!isCancelled) setProfileGroupPrivsAllowed(false);
+      }
+    };
+
+    checkProfilePrivileges();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [profile?.mbrId, memberId, resolvedViewerId, isSelf, isSandbox]);
+
   // Sync prop changes into state
   useEffect(() => {
     if (propProfile) {
@@ -257,7 +363,6 @@ export default function MbrProfileBriefPanel({
 
   const fullName = profile.name || `${profile.mbrFirstName || ''} ${profile.mbrLastName || ''}`.trim() || 'Member';
   const initials = profile.avatarInitials || (fullName ? fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'MB');
-  const isSelf = resolvedViewerId && (profile.mbrId === resolvedViewerId || profile.id === resolvedViewerId);
 
   const livesIn = profile.mbrLivesCityState || profile.location || (isSandbox ? 'Portland, OR' : null);
   const fromLocation = profile.mbrFromCityState || (isSandbox ? 'Coos Bay, OR' : null);
@@ -292,6 +397,10 @@ export default function MbrProfileBriefPanel({
     return null;
   }
   if (!isSelf && settingsLoaded && settings && settings.mbrSettingsAllowPublicFlag === false) {
+    return null;
+  }
+  // Check profile group privileges in mbrProfileGroupPrivs (must have view or view & comment privs)
+  if (!isSelf && !profileGroupPrivsAllowed) {
     return null;
   }
 

@@ -486,12 +486,12 @@ export default function AdminUserAIUsageFeature({ isSandbox }: { isSandbox?: boo
                 </div>
 
                 {/* Member Results */}
-                {filteredMembers.map(m => {
+                {filteredMembers.map((m, idx) => {
                   const isSelected = selectedMember?.mbrId === m.mbrId;
                   const profileUrl = m.mbrProfilePic ? resolveMediaUrl(m.mbrProfilePic) : null;
                   return (
                     <div
-                      key={m.mbrId}
+                      key={`${m.mbrId}-${idx}`}
                       onClick={() => {
                         setSelectedMember(m);
                         setSearchQuery(`${m.mbrFirstName} ${m.mbrLastName}`);

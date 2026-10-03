@@ -113,6 +113,18 @@ export const DEFAULT_TOPIC_LOOKUP: Record<string, { topicId: string; topicName: 
     topicFullName: 'Family',
     chIntentId: '1e9238af-c28a-4420-a88a-09b6f3e831ac'
   },
+  relationships: {
+    topicId: '172dc3fc-ce2d-463b-ad9f-976f893cce5e',
+    topicName: 'Relationships',
+    topicFullName: 'Relationships',
+    chIntentId: '1e9238af-c28a-4420-a88a-09b6f3e831ac'
+  },
+  relationship: {
+    topicId: '172dc3fc-ce2d-463b-ad9f-976f893cce5e',
+    topicName: 'Relationships',
+    topicFullName: 'Relationships',
+    chIntentId: '1e9238af-c28a-4420-a88a-09b6f3e831ac'
+  },
   residencies: {
     topicId: '0c56cf6a-64d7-4174-abb0-0a049a40dcd5',
     topicName: 'Residencies',
@@ -244,6 +256,24 @@ export interface MbrTopicGroupPrivs {
   privUpdatedAt?: string;
 }
 
+export interface MbrStoryGroupPrivs {
+  privId: string;
+  mbrStoryId: string;
+  grpId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrProfileGroupPrivs {
+  privId: string;
+  mbrId: string;
+  grpId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
 export interface MbrStoryLikes {
   mbrStoryLikesId: string;
   mbrStoryId: string;
@@ -285,7 +315,29 @@ export interface TopicCustom {
 
 export type MbrTopicCustom = TopicCustom;
 
+export interface MbrTopicRelationship {
+  mbrRelationshipId: string;
+  mbrId: string;
+  mbrRelationshipTypeCd: string;
+  mbrRelationshipFirstNm: string;
+  mbrRelationshipMiddleNm?: string | null;
+  mbrRelationshipLastNm?: string | null;
+  mbrRelationshipNickname?: string | null;
+  mbrRelationshipMaidenNm?: string | null;
+  mbrRelationshipLocation?: string | null;
+  mbrRelationshipStartDate?: string | null;
+  mbrRelationshipEndDate?: string | null;
+  mbrRelationshipCurrentInd: boolean;
+  mbrRelationshipHowWeMet?: string | null;
+  mbrRelationshipDescription?: string | null;
+  mbrRelationshipCreatedAt?: string;
+  mbrRelationshipUpdatedAt?: string;
+}
+
+export type MbrTopicRelationships = MbrTopicRelationship;
+
 export interface MbrConnection {
+
   mbrConnectionId: string;
   mbrId: string;
   mbrConnectionMbrId: string;
@@ -868,6 +920,66 @@ export const taskApi = {
     });
     return handleResponse<any>(response);
   },
+
+  /**
+   * Fetch all relationships for a given member.
+   */
+  async getRelationships(mbrId: string): Promise<MbrTopicRelationship[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-relationships/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicRelationship[]>(response);
+  },
+
+  /**
+   * Create a new relationship record.
+   */
+  async createRelationship(relationship: Partial<MbrTopicRelationship>): Promise<MbrTopicRelationship> {
+    const response = await fetch(`${API_BASE_URL}/mbr-relationships`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(relationship),
+    });
+    return handleResponse<MbrTopicRelationship>(response);
+  },
+
+  /**
+   * Update an existing relationship record.
+   */
+  async updateRelationship(mbrRelationshipId: string, relationship: Partial<MbrTopicRelationship>): Promise<MbrTopicRelationship> {
+    const response = await fetch(`${API_BASE_URL}/mbr-relationships/${mbrRelationshipId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(relationship),
+    });
+    return handleResponse<MbrTopicRelationship>(response);
+  },
+
+  /**
+   * Delete a relationship record.
+   */
+  async deleteRelationship(mbrRelationshipId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-relationships/${mbrRelationshipId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
 
   /**
    * Fetch all achievements for a given member.
@@ -1493,6 +1605,142 @@ export const taskApi = {
       },
     });
     return handleResponse<MbrTopicGroupPrivs>(response);
+  },
+
+  /**
+   * Fetch member story group privilege records.
+   */
+  async getMemberStoryGroupPrivs(params?: { mbrStoryId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrStoryGroupPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrStoryId) searchParams.append('mbr_story_id', params.mbrStoryId);
+    if (params?.grpId) searchParams.append('grp_id', params.grpId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-story-group-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryGroupPrivs[]>(response);
+  },
+
+  /**
+   * Create a single member story group privilege record.
+   */
+  async createMemberStoryGroupPriv(priv: Partial<MbrStoryGroupPrivs>): Promise<MbrStoryGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-group-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrStoryGroupPrivs>(response);
+  },
+
+  /**
+   * Update a member story group privilege record.
+   */
+  async updateMemberStoryGroupPriv(privId: string, priv: Partial<MbrStoryGroupPrivs>): Promise<MbrStoryGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-group-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrStoryGroupPrivs>(response);
+  },
+
+  /**
+   * Delete a member story group privilege record.
+   */
+  async deleteMemberStoryGroupPriv(privId: string): Promise<MbrStoryGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-group-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrStoryGroupPrivs>(response);
+  },
+
+  /**
+   * Fetch member profile group privileges with optional filtering.
+   */
+  async getMemberProfileGroupPrivs(params?: { mbrId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrProfileGroupPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.grpId) searchParams.append('grp_id', params.grpId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-profile-group-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrProfileGroupPrivs[]>(response);
+  },
+
+  /**
+   * Create a single member profile group privilege record.
+   */
+  async createMemberProfileGroupPriv(priv: Partial<MbrProfileGroupPrivs>): Promise<MbrProfileGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-profile-group-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrProfileGroupPrivs>(response);
+  },
+
+  /**
+   * Update a member profile group privilege record.
+   */
+  async updateMemberProfileGroupPriv(privId: string, priv: Partial<MbrProfileGroupPrivs>): Promise<MbrProfileGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-profile-group-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrProfileGroupPrivs>(response);
+  },
+
+  /**
+   * Delete a member profile group privilege record.
+   */
+  async deleteMemberProfileGroupPriv(privId: string): Promise<MbrProfileGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-profile-group-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrProfileGroupPrivs>(response);
   },
 
   /**
@@ -2365,6 +2613,36 @@ export const topicSparkApi = {
       }
     });
     return handleResponse<TopicSpark>(response);
+  }
+};
+
+export const mbrStoryGroupPrivsApi = {
+  async getStoryGroupPrivs(params?: { mbrStoryId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrStoryGroupPrivs[]> {
+    return taskApi.getMemberStoryGroupPrivs(params);
+  },
+  async createStoryGroupPriv(priv: Partial<MbrStoryGroupPrivs>): Promise<MbrStoryGroupPrivs> {
+    return taskApi.createMemberStoryGroupPriv(priv);
+  },
+  async updateStoryGroupPriv(privId: string, priv: Partial<MbrStoryGroupPrivs>): Promise<MbrStoryGroupPrivs> {
+    return taskApi.updateMemberStoryGroupPriv(privId, priv);
+  },
+  async deleteStoryGroupPriv(privId: string): Promise<MbrStoryGroupPrivs> {
+    return taskApi.deleteMemberStoryGroupPriv(privId);
+  }
+};
+
+export const mbrProfileGroupPrivsApi = {
+  async getProfileGroupPrivs(params?: { mbrId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrProfileGroupPrivs[]> {
+    return taskApi.getMemberProfileGroupPrivs(params);
+  },
+  async createProfileGroupPriv(priv: Partial<MbrProfileGroupPrivs>): Promise<MbrProfileGroupPrivs> {
+    return taskApi.createMemberProfileGroupPriv(priv);
+  },
+  async updateProfileGroupPriv(privId: string, priv: Partial<MbrProfileGroupPrivs>): Promise<MbrProfileGroupPrivs> {
+    return taskApi.updateMemberProfileGroupPriv(privId, priv);
+  },
+  async deleteProfileGroupPriv(privId: string): Promise<MbrProfileGroupPrivs> {
+    return taskApi.deleteMemberProfileGroupPriv(privId);
   }
 };
 

@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Camera, Lock } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import MbrStoryIndexPanel from '@/src/components/mbrStoryIndexPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 

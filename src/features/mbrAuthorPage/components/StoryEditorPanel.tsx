@@ -12,6 +12,7 @@ import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import AiVoiceModal from '@/src/components/AiVoiceModal';
 import StoryPdfPrintModal from './StoryPdfPrintModal';
+import MbrStoryPrivacyModal from '@/src/components/mbrStoryPrivacyModal';
 
 interface StoryEditorPanelProps {
   topicTitle?: string;
@@ -28,6 +29,8 @@ interface StoryEditorPanelProps {
 
 const componentNameMap: Record<string, string> = {
   family: 'sbMbrStryFamly',
+  relationships: 'sbMbrStryRelationships',
+  relationship: 'sbMbrStryRelationships',
   residencies: 'sbMbrStryResidence',
   residence: 'sbMbrStryResidence',
   hobbies: 'sbMbrStryActivity',
@@ -43,6 +46,22 @@ const componentNameMap: Record<string, string> = {
 };
 
 const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
+  relationships: [
+    {
+      mbrStoryId: 'st_rel_1',
+      mbrStoryTitle: 'Lifelong Friends and Cherished Mentors',
+      mbrStoryContent: 'Looking back across the decades, it is the bonds of friendship and guidance from wise mentors that truly shaped my journey. From late-night study sessions in university dorms to shared travels and quiet conversations, each connection brought laughter, wisdom, and strength.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  relationship: [
+    {
+      mbrStoryId: 'st_rel_1',
+      mbrStoryTitle: 'Lifelong Friends and Cherished Mentors',
+      mbrStoryContent: 'Looking back across the decades, it is the bonds of friendship and guidance from wise mentors that truly shaped my journey. From late-night study sessions in university dorms to shared travels and quiet conversations, each connection brought laughter, wisdom, and strength.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
   family: [
     {
       mbrStoryId: 'st_fam_1',
@@ -188,6 +207,7 @@ export default function StoryEditorPanel({
   const [showPhotoGalleryModal, setShowPhotoGalleryModal] = useState(false);
   const [showAiVoiceModal, setShowAiVoiceModal] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [showStoryPrivacyModal, setShowStoryPrivacyModal] = useState(false);
   const [storyPhotosCountMap, setStoryPhotosCountMap] = useState<Record<string, number>>({});
   const [resolvedMbrId, setResolvedMbrId] = useState<string>(() => {
     if (memberId && memberId !== 'm1') return memberId;
@@ -382,15 +402,22 @@ export default function StoryEditorPanel({
         loadStoryPhotoCounts(resolvedMbrId);
       } else {
         // DB load
-        let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1'; // fallback
-        if (currentMbrId === 'm1') {
-          currentMbrId = 'e20986fa-0fb9-4081-ae5d-35bc8f504df0';
-        } else if (!memberId) {
+        let currentMbrId = memberId;
+        if (!currentMbrId) {
+          const storedMbr = sessionStorage.getItem('sb_current_mbr');
+          if (storedMbr) {
+            try {
+              const parsed = JSON.parse(storedMbr);
+              if (parsed.mbrId) currentMbrId = parsed.mbrId;
+            } catch {}
+          }
+        }
+        if (!currentMbrId) {
           const userStr = sessionStorage.getItem('user');
           if (userStr) {
             try {
               const u = JSON.parse(userStr);
-              const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id || u.id);
               if (mbrProfile && mbrProfile.mbrId) {
                 currentMbrId = mbrProfile.mbrId;
               }
@@ -399,12 +426,19 @@ export default function StoryEditorPanel({
             }
           }
         }
+        if (!currentMbrId) {
+          currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
+        }
+        if (currentMbrId === 'm1') {
+          currentMbrId = 'e20986fa-0fb9-4081-ae5d-35bc8f504df0';
+        }
         setResolvedMbrId(currentMbrId);
         loadStoryPhotoCounts(currentMbrId);
 
         const dbStories = await taskApi.getStories(currentMbrId);
         const filtered = dbStories.filter((s) => {
-          const isFamilyType = (s.mbrStoryTypeCd === 'sbMbrStryFamly' || s.mbrStoryTypeCd === 'Family');
+          const isFamilyType = (s.mbrStoryTypeCd === 'sbMbrStryFamly' || s.mbrStoryTypeCd === 'Family' || s.mbrStoryTypeCd === 'sbMbrStryFamilyMember');
+          const isRelationshipType = (s.mbrStoryTypeCd === 'sbMbrStryRelationships' || s.mbrStoryTypeCd === 'sbMbrStryRelationship' || s.mbrStoryTypeCd === 'Relationships' || s.mbrStoryTypeCd === 'Relationship');
           const isResidencyType = (s.mbrStoryTypeCd === 'sbMbrStryResidence' || s.mbrStoryTypeCd === 'Residencies' || s.mbrStoryTypeCd === 'Residence');
           const isAchievementType = (s.mbrStoryTypeCd === 'sbMbrStryAchievement' || s.mbrStoryTypeCd === 'Achievements' || s.mbrStoryTypeCd === 'Achievement');
           const isEducationType = (s.mbrStoryTypeCd === 'sbMbrStryEducation' || s.mbrStoryTypeCd === 'Education');
@@ -422,6 +456,8 @@ export default function StoryEditorPanel({
             matchesType = true;
           } else if (topicId?.toLowerCase() === 'family' || finalStoryTypeCd === 'sbMbrStryFamly') {
             matchesType = isFamilyType;
+          } else if (topicId?.toLowerCase() === 'relationships' || topicId?.toLowerCase() === 'relationship' || finalStoryTypeCd === 'sbMbrStryRelationships') {
+            matchesType = isRelationshipType;
           } else if (topicId?.toLowerCase() === 'residencies' || finalStoryTypeCd === 'sbMbrStryResidence') {
             matchesType = isResidencyType;
           } else if (topicId?.toLowerCase() === 'achievements' || finalStoryTypeCd === 'sbMbrStryAchievement') {
@@ -439,15 +475,119 @@ export default function StoryEditorPanel({
 
           if (subordinateId) {
             return s.mbrStorySubordinateId === subordinateId || (subordinateName && s.mbrStoryTopicName === subordinateName);
-          } else if (topicId?.toLowerCase() === 'family') {
+          } else if (topicId?.toLowerCase() === 'family' || topicId?.toLowerCase() === 'relationships' || topicId?.toLowerCase() === 'relationship') {
             return !s.mbrStorySubordinateId;
           }
           return true;
         });
 
-        if (filtered.length > 0) {
+        let accessibleStories = filtered;
+        if (readOnly) {
+          // Viewer is reading stories authored by currentMbrId
+          let candidateList = filtered.filter(s => (s.mbrStoryPublishStatusCd || '').toLowerCase() === 'published');
+
+          try {
+            // Fetch viewer's assigned group and global Public group
+            let viewerMbrId: string | null = null;
+            const storedMbr = sessionStorage.getItem('sb_current_mbr');
+            if (storedMbr) {
+              try { viewerMbrId = JSON.parse(storedMbr).mbrId; } catch {}
+            }
+            if (!viewerMbrId) {
+              const userStr = sessionStorage.getItem('user');
+              if (userStr) {
+                try {
+                  const u = JSON.parse(userStr);
+                  const p = await taskApi.getMemberByUserId(u.user_id).catch(() => null);
+                  if (p?.mbrId) viewerMbrId = p.mbrId;
+                } catch {}
+              }
+            }
+
+            // Connection assigned group
+            let assignedGrpId: string | null = null;
+            if (viewerMbrId && currentMbrId) {
+              const authorConns = await taskApi.getMemberConnections({
+                mbrId: currentMbrId,
+                connectedMbrId: viewerMbrId
+              }).catch(() => []);
+              if (authorConns && authorConns.length > 0) {
+                const connGrps = await taskApi.getMemberConnectionGrps({
+                  connectionId: authorConns[0].mbrConnectionId
+                }).catch(() => []);
+                if (connGrps && connGrps.length > 0) {
+                  assignedGrpId = connGrps[0].grpId;
+                }
+              }
+            }
+
+            // Public group
+            let publicGrpId: string | null = null;
+            const globals = await taskApi.getGroupsGlobal().catch(() => []);
+            const pub = globals.find(g => g.grpName?.toLowerCase() === 'public');
+            if (pub) publicGrpId = pub.grpId;
+            if (!publicGrpId) publicGrpId = '13efcbad-d840-44ad-9b50-d6d2218e5cac';
+
+            // Fetch all story group privs
+            const allStoryPrivs = await taskApi.getMemberStoryGroupPrivs().catch(() => []);
+            const privsByStoryId = new Map<string, any[]>();
+            for (const sp of (allStoryPrivs || [])) {
+              if (sp.mbrStoryId) {
+                const list = privsByStoryId.get(sp.mbrStoryId) || [];
+                list.push(sp);
+                privsByStoryId.set(sp.mbrStoryId, list);
+              }
+            }
+
+            // Filter by story group privileges (user must be in a group with view or view & comment privs)
+            candidateList = candidateList.filter(story => {
+              const storyPrivs = story.mbrStoryId ? (privsByStoryId.get(story.mbrStoryId) || []) : [];
+              if (storyPrivs.length === 0) {
+                return true;
+              }
+
+              let hasAccess = false;
+              let hasDenial = false;
+
+              const isPrivAllow = (val?: string) => {
+                if (!val) return false;
+                const upper = val.toUpperCase().trim();
+                return upper === 'READ' || upper === 'WRITE' || upper === 'VIEW' || upper.includes('VIEW') || upper.includes('COMMENT') || upper === 'ALLOW';
+              };
+
+              if (assignedGrpId) {
+                const assignedPriv = storyPrivs.find(p => p.grpId === assignedGrpId);
+                if (assignedPriv) {
+                  const val = (assignedPriv.privValueCd || '').toUpperCase();
+                  if (isPrivAllow(val)) {
+                    hasAccess = true;
+                  } else if (val === 'NONE' || val === 'HIDE') {
+                    hasDenial = true;
+                  }
+                }
+              }
+
+              if (!hasAccess && !hasDenial && publicGrpId) {
+                const pubPriv = storyPrivs.find(p => p.grpId === publicGrpId);
+                if (pubPriv) {
+                  const val = (pubPriv.privValueCd || '').toUpperCase();
+                  if (isPrivAllow(val)) {
+                    hasAccess = true;
+                  }
+                }
+              }
+
+              return hasAccess;
+            });
+          } catch (e) {
+            console.warn("Error evaluating story group privileges in StoryEditorPanel:", e);
+          }
+          accessibleStories = candidateList;
+        }
+
+        if (accessibleStories.length > 0) {
           // Select max mbrStoryVersion if multiple stories exist
-          const sorted = [...filtered].sort((a, b) => (b.mbrStoryVersion || 0) - (a.mbrStoryVersion || 0));
+          const sorted = [...accessibleStories].sort((a, b) => (b.mbrStoryVersion || 0) - (a.mbrStoryVersion || 0));
           setStories(sorted);
 
           // Load story view stats for this member
@@ -753,18 +893,32 @@ export default function StoryEditorPanel({
 
     try {
       // Resolve logged-in member ID
-      let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1'; // fallback
-      const userStr = sessionStorage.getItem('user');
-      if (userStr) {
-        try {
-          const u = JSON.parse(userStr);
-          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-          if (mbrProfile && mbrProfile.mbrId) {
-            currentMbrId = mbrProfile.mbrId;
-          }
-        } catch (e) {
-          console.warn("Could not retrieve member profile ID from DB, falling back to default Eleanor Hartwell UUID:", e);
+      let currentMbrId = resolvedMbrId || memberId;
+      if (!currentMbrId) {
+        const storedMbr = sessionStorage.getItem('sb_current_mbr');
+        if (storedMbr) {
+          try {
+            const parsed = JSON.parse(storedMbr);
+            if (parsed.mbrId) currentMbrId = parsed.mbrId;
+          } catch {}
         }
+      }
+      if (!currentMbrId) {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+          try {
+            const u = JSON.parse(userStr);
+            const mbrProfile = await taskApi.getMemberByUserId(u.user_id || u.id);
+            if (mbrProfile && mbrProfile.mbrId) {
+              currentMbrId = mbrProfile.mbrId;
+            }
+          } catch (e) {
+            console.warn("Could not retrieve member profile ID from DB, falling back to default Eleanor Hartwell UUID:", e);
+          }
+        }
+      }
+      if (!currentMbrId) {
+        currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
       }
 
       const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
@@ -950,18 +1104,32 @@ export default function StoryEditorPanel({
     setError(null);
 
     try {
-      let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      const userStr = sessionStorage.getItem('user');
-      if (userStr) {
-        try {
-          const u = JSON.parse(userStr);
-          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-          if (mbrProfile && mbrProfile.mbrId) {
-            currentMbrId = mbrProfile.mbrId;
-          }
-        } catch (e) {
-          console.warn("Could not retrieve member profile ID from DB:", e);
+      let currentMbrId = resolvedMbrId || memberId;
+      if (!currentMbrId) {
+        const storedMbr = sessionStorage.getItem('sb_current_mbr');
+        if (storedMbr) {
+          try {
+            const parsed = JSON.parse(storedMbr);
+            if (parsed.mbrId) currentMbrId = parsed.mbrId;
+          } catch {}
         }
+      }
+      if (!currentMbrId) {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+          try {
+            const u = JSON.parse(userStr);
+            const mbrProfile = await taskApi.getMemberByUserId(u.user_id || u.id);
+            if (mbrProfile && mbrProfile.mbrId) {
+              currentMbrId = mbrProfile.mbrId;
+            }
+          } catch (e) {
+            console.warn("Could not retrieve member profile ID from DB:", e);
+          }
+        }
+      }
+      if (!currentMbrId) {
+        currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
       }
 
       const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
@@ -1084,18 +1252,32 @@ export default function StoryEditorPanel({
       setSuccessMsg(null);
 
       try {
-        let currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1'; // fallback
-        const userStr = sessionStorage.getItem('user');
-        if (userStr) {
-          try {
-            const u = JSON.parse(userStr);
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              currentMbrId = mbrProfile.mbrId;
-            }
-          } catch (e) {
-            console.warn("Could not retrieve member profile ID from DB:", e);
+        let currentMbrId = resolvedMbrId || memberId;
+        if (!currentMbrId) {
+          const storedMbr = sessionStorage.getItem('sb_current_mbr');
+          if (storedMbr) {
+            try {
+              const parsed = JSON.parse(storedMbr);
+              if (parsed.mbrId) currentMbrId = parsed.mbrId;
+            } catch {}
           }
+        }
+        if (!currentMbrId) {
+          const userStr = sessionStorage.getItem('user');
+          if (userStr) {
+            try {
+              const u = JSON.parse(userStr);
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id || u.id);
+              if (mbrProfile && mbrProfile.mbrId) {
+                currentMbrId = mbrProfile.mbrId;
+              }
+            } catch (e) {
+              console.warn("Could not retrieve member profile ID from DB:", e);
+            }
+          }
+        }
+        if (!currentMbrId) {
+          currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
         }
 
         const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
@@ -1152,7 +1334,11 @@ export default function StoryEditorPanel({
   };
 
   const handlePrivacyClick = () => {
-    setSuccessMsg('Privacy settings configured for this story.');
+    if (!activeStoryId) {
+      setError('Please select or create a story first before configuring group privacy.');
+      return;
+    }
+    setShowStoryPrivacyModal(true);
   };
 
   const wordCount = content.trim() ? content.trim().split(/\s+/).length : 0;
@@ -1302,7 +1488,9 @@ export default function StoryEditorPanel({
         /* NO STORIES FOUND STATE */
         <div className="bg-slate-50/50 border border-slate-100 border-dashed py-10 px-4 rounded-2xl text-center flex flex-col items-center justify-center gap-3">
           <FileText className="w-8 h-8 text-slate-350" />
-          <p className="text-xs font-serif text-slate-500 italic">No stories found for this section.</p>
+          <p className="text-xs font-serif text-slate-500 italic">
+            {readOnly ? 'No published stories are currently accessible in this section.' : 'No stories found for this section.'}
+          </p>
           {!readOnly && (
             <button
               onClick={handleAddNewStoryClick}
@@ -2031,6 +2219,19 @@ export default function StoryEditorPanel({
         status={status}
         onSuccess={(msg) => setSuccessMsg(msg)}
         onError={(err) => setError(err)}
+      />
+
+      {/* Story Group Privacy Settings Modal Dialog */}
+      <MbrStoryPrivacyModal
+        isOpen={showStoryPrivacyModal}
+        onClose={() => setShowStoryPrivacyModal(false)}
+        storyId={activeStoryId || ''}
+        storyTitle={title || stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryTitle || `${topicTitle} Story`}
+        mbrId={resolvedMbrId}
+        isSandbox={isSandbox}
+        onSaved={() => {
+          setSuccessMsg('Story group privacy settings updated successfully.');
+        }}
       />
 
       <AdminComponentTag name="StoryEditorPanel" />

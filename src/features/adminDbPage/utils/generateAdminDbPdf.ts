@@ -63,6 +63,8 @@ const TABLE_TITLE_MAP: Record<string, string> = {
   mbrAiUsageLog: 'AI Model Token & Cost Audit Logs (mbrAiUsageLog)',
   mbrPersonalTrivia: 'Personal Trivia & Memory Snippets (mbrPersonalTrivia)',
   mbrTopicGroupPrivs: 'Topic Group Access Privileges (mbrTopicGroupPrivs)',
+  mbrStoryGroupPrivs: 'Story Group Access Privileges (mbrStoryGroupPrivs)',
+  mbrProfileGroupPrivs: 'Profile Group Access Privileges (mbrProfileGroupPrivs)',
   sysConfig: 'System Global Configurations (sysConfig)',
   topic: 'Standard Story Topics Directory (topic)',
   user: 'User Authentication & Accounts (user)'

@@ -7,4 +7,5 @@ export { default as SbStoryPageFeature, StoryPageFeature } from './components/Sb
 export { default as StoryPageHeaderPanel, storyPageHeaderPanel } from './components/StoryPageHeaderPanel';
 export { default as LeftColumn, storyPageLeftColumn } from './components/LeftColumn';
 export { default as CenterColumn, storyPageCenterColumn } from './components/CenterColumn';
+export { default as StoryPageStoryPanel, storyPageStoryPanel } from './components/StoryPageStoryPanel';
 export { default as RightColumn, storyPageRightColumn } from './components/RightColumn';
