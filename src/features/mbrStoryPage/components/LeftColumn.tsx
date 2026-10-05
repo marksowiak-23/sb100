@@ -12,6 +12,7 @@ interface LeftColumnProps {
   activeSection: string;
   setActiveSection: (sec: string) => void;
   memberName: string;
+  memberId?: string;
   lockedTopicIds?: string[];
   onClickBack?: () => void;
 }
@@ -20,6 +21,7 @@ export default function LeftColumn({
   activeSection,
   setActiveSection,
   memberName,
+  memberId,
   lockedTopicIds = []
 }: LeftColumnProps) {
   return (
@@ -38,8 +40,10 @@ export default function LeftColumn({
       <MbrStoryIndexPanel
         activeSection={activeSection}
         setActiveSection={setActiveSection}
+        memberId={memberId}
         lockedTopicIds={lockedTopicIds}
         showEditControls={false}
+        isStoryPage={true}
       />
 
       {/* --- PHOTO BOOK CALLOUT --- */}

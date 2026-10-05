@@ -8,16 +8,30 @@ import MbrStoryActivityPanel from '@/src/components/mbrStoryActivityPanel';
 import MbrStoryAchievementPanel from '@/src/components/mbrStoryAchievementPanel';
 import MbrStoryEducationPanel from '@/src/components/mbrStoryEducationPanel';
 import MbrStoryEmploymentPanel from '@/src/components/mbrStoryEmploymentPanel';
-import MbrStoryCustomPanel from '@/src/components/mbrStoryCustomPanel';
 import MbrStoryRelationshipsPanel from '@/src/components/mbrStoryRelationshipsPanel';
+import MbrStoryTripsPanel from '@/src/components/mbrStoryTripsPanel';
+import MbrStoryHealthPanel from '@/src/components/mbrStoryHealthPanel';
+import MbrStorySpecialEventsPanel from '@/src/components/mbrStorySpecialEventsPanel';
 import ProfileHeaderPanel from './ProfileHeaderPanel';
 import FamilyHeaderPanel from './FamilyHeaderPanel';
 import RelationshipsHeaderPanel from './RelationshipsHeaderPanel';
 import ResidenciesHeaderPanel from './ResidenciesHeaderPanel';
+import TripsHeaderPanel from './TripsHeaderPanel';
+import HealthHeaderPanel from './HealthHeaderPanel';
+import SpecialEventsHeaderPanel from './SpecialEventsHeaderPanel';
 import AchievementsHeaderPanel from './AchievementsHeaderPanel';
 import EducationHeaderPanel from './EducationHeaderPanel';
 import EmploymentHeaderPanel from './EmploymentHeaderPanel';
 import ActivitiesHeaderPanel from './ActivitiesHeaderPanel';
+import FadsHeaderPanel from './FadsHeaderPanel';
+import MoviesTvHeaderPanel from './MoviesTvHeaderPanel';
+import MusicHeaderPanel from './MusicHeaderPanel';
+import NewsHeaderPanel from './NewsHeaderPanel';
+import PopCultureHeaderPanel from './PopCultureHeaderPanel';
+import SportsHeaderPanel from './SportsHeaderPanel';
+import TechnologyHeaderPanel from './TechnologyHeaderPanel';
+import ChildhoodHeaderPanel from './ChildhoodHeaderPanel';
+import LifeReflectionsHeaderPanel from './LifeReflectionsHeaderPanel';
 import OtherHeaderPanel from './OtherHeaderPanel';
 import AuthorHowToCard from './AuthorHowToCard';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -38,6 +52,20 @@ const TOPIC_DETAILS: Record<string, { topicId: string; topicTitle: string; compo
   relationship: { topicId: DEFAULT_TOPIC_LOOKUP.relationships.topicId, topicTitle: 'Relationships', componentName: 'sbMbrStryRelationships', chIntentId: DEFAULT_TOPIC_LOOKUP.relationships.chIntentId },
   residencies: { topicId: DEFAULT_TOPIC_LOOKUP.residencies.topicId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence', chIntentId: DEFAULT_TOPIC_LOOKUP.residencies.chIntentId },
   residence: { topicId: DEFAULT_TOPIC_LOOKUP.residencies.topicId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence', chIntentId: DEFAULT_TOPIC_LOOKUP.residencies.chIntentId },
+  trips: { topicId: DEFAULT_TOPIC_LOOKUP.trips.topicId, topicTitle: 'Trips and Vacations', componentName: 'sbMbrStryTrips', chIntentId: DEFAULT_TOPIC_LOOKUP.trips.chIntentId },
+  vacations: { topicId: DEFAULT_TOPIC_LOOKUP.vacations.topicId, topicTitle: 'Trips and Vacations', componentName: 'sbMbrStryTrips', chIntentId: DEFAULT_TOPIC_LOOKUP.vacations.chIntentId },
+  'trips and vacations': { topicId: DEFAULT_TOPIC_LOOKUP['trips and vacations'].topicId, topicTitle: 'Trips and Vacations', componentName: 'sbMbrStryTrips', chIntentId: DEFAULT_TOPIC_LOOKUP['trips and vacations'].chIntentId },
+  'trips & vacations': { topicId: DEFAULT_TOPIC_LOOKUP['trips & vacations'].topicId, topicTitle: 'Trips and Vacations', componentName: 'sbMbrStryTrips', chIntentId: DEFAULT_TOPIC_LOOKUP['trips & vacations'].chIntentId },
+  health: { topicId: DEFAULT_TOPIC_LOOKUP.health.topicId, topicTitle: 'Health', componentName: 'sbMbrStryHealth', chIntentId: DEFAULT_TOPIC_LOOKUP.health.chIntentId },
+  wellness: { topicId: DEFAULT_TOPIC_LOOKUP.wellness.topicId, topicTitle: 'Health', componentName: 'sbMbrStryHealth', chIntentId: DEFAULT_TOPIC_LOOKUP.wellness.chIntentId },
+  'health and wellness': { topicId: DEFAULT_TOPIC_LOOKUP['health and wellness'].topicId, topicTitle: 'Health', componentName: 'sbMbrStryHealth', chIntentId: DEFAULT_TOPIC_LOOKUP['health and wellness'].chIntentId },
+  'health & wellness': { topicId: DEFAULT_TOPIC_LOOKUP['health & wellness'].topicId, topicTitle: 'Health', componentName: 'sbMbrStryHealth', chIntentId: DEFAULT_TOPIC_LOOKUP['health & wellness'].chIntentId },
+  'special events': { topicId: DEFAULT_TOPIC_LOOKUP['special events'].topicId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents', chIntentId: DEFAULT_TOPIC_LOOKUP['special events'].chIntentId },
+  'special event': { topicId: DEFAULT_TOPIC_LOOKUP['special event'].topicId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents', chIntentId: DEFAULT_TOPIC_LOOKUP['special event'].chIntentId },
+  specialevents: { topicId: DEFAULT_TOPIC_LOOKUP.specialevents.topicId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents', chIntentId: DEFAULT_TOPIC_LOOKUP.specialevents.chIntentId },
+  'special-events': { topicId: DEFAULT_TOPIC_LOOKUP['special-events'].topicId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents', chIntentId: DEFAULT_TOPIC_LOOKUP['special-events'].chIntentId },
+  milestones: { topicId: DEFAULT_TOPIC_LOOKUP.milestones.topicId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents', chIntentId: DEFAULT_TOPIC_LOOKUP.milestones.chIntentId },
+  celebrations: { topicId: DEFAULT_TOPIC_LOOKUP.celebrations.topicId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents', chIntentId: DEFAULT_TOPIC_LOOKUP.celebrations.chIntentId },
   hobbies: { topicId: DEFAULT_TOPIC_LOOKUP.activities.topicId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity', chIntentId: DEFAULT_TOPIC_LOOKUP.activities.chIntentId },
   activities: { topicId: DEFAULT_TOPIC_LOOKUP.activities.topicId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity', chIntentId: DEFAULT_TOPIC_LOOKUP.activities.chIntentId },
   activity: { topicId: DEFAULT_TOPIC_LOOKUP.activities.topicId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity', chIntentId: DEFAULT_TOPIC_LOOKUP.activities.chIntentId },
@@ -45,6 +73,39 @@ const TOPIC_DETAILS: Record<string, { topicId: string; topicTitle: string; compo
   achievement: { topicId: DEFAULT_TOPIC_LOOKUP.achievements.topicId, topicTitle: 'Achievements', componentName: 'sbMbrStryAchievement', chIntentId: DEFAULT_TOPIC_LOOKUP.achievements.chIntentId },
   education: { topicId: DEFAULT_TOPIC_LOOKUP.education.topicId, topicTitle: 'Education and Training', componentName: 'sbMbrStryEducation', chIntentId: DEFAULT_TOPIC_LOOKUP.education.chIntentId },
   employment: { topicId: DEFAULT_TOPIC_LOOKUP.employment.topicId, topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment', chIntentId: DEFAULT_TOPIC_LOOKUP.employment.chIntentId },
+  'fads and trends': { topicId: '6635482f-24c8-4fdd-83d0-c5f86e22442f', topicTitle: 'Fads and Trends', componentName: 'sbMbrStryFadsAndTrends', chIntentId: DEFAULT_TOPIC_LOOKUP['fads and trends']?.chIntentId },
+  'fads & trends': { topicId: '6635482f-24c8-4fdd-83d0-c5f86e22442f', topicTitle: 'Fads and Trends', componentName: 'sbMbrStryFadsAndTrends', chIntentId: DEFAULT_TOPIC_LOOKUP['fads & trends']?.chIntentId },
+  fads: { topicId: '6635482f-24c8-4fdd-83d0-c5f86e22442f', topicTitle: 'Fads and Trends', componentName: 'sbMbrStryFadsAndTrends', chIntentId: DEFAULT_TOPIC_LOOKUP.fads?.chIntentId },
+  trends: { topicId: '6635482f-24c8-4fdd-83d0-c5f86e22442f', topicTitle: 'Fads and Trends', componentName: 'sbMbrStryFadsAndTrends', chIntentId: DEFAULT_TOPIC_LOOKUP.trends?.chIntentId },
+  'movies and tv': { topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e', topicTitle: 'Movies and TV', componentName: 'sbMbrStryMoviesAndTv', chIntentId: DEFAULT_TOPIC_LOOKUP['movies and tv']?.chIntentId },
+  'movies & tv': { topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e', topicTitle: 'Movies and TV', componentName: 'sbMbrStryMoviesAndTv', chIntentId: DEFAULT_TOPIC_LOOKUP['movies & tv']?.chIntentId },
+  movies: { topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e', topicTitle: 'Movies and TV', componentName: 'sbMbrStryMoviesAndTv', chIntentId: DEFAULT_TOPIC_LOOKUP.movies?.chIntentId },
+  tv: { topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e', topicTitle: 'Movies and TV', componentName: 'sbMbrStryMoviesAndTv', chIntentId: DEFAULT_TOPIC_LOOKUP.tv?.chIntentId },
+  television: { topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e', topicTitle: 'Movies and TV', componentName: 'sbMbrStryMoviesAndTv', chIntentId: DEFAULT_TOPIC_LOOKUP.television?.chIntentId },
+  'movies and television': { topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e', topicTitle: 'Movies and TV', componentName: 'sbMbrStryMoviesAndTv', chIntentId: DEFAULT_TOPIC_LOOKUP['movies and television']?.chIntentId },
+  music: { topicId: 'b24de4f6-9029-4665-94bf-f42630baee61', topicTitle: 'Music', componentName: 'sbMbrStryMusic', chIntentId: DEFAULT_TOPIC_LOOKUP.music?.chIntentId },
+  songs: { topicId: 'b24de4f6-9029-4665-94bf-f42630baee61', topicTitle: 'Music', componentName: 'sbMbrStryMusic', chIntentId: DEFAULT_TOPIC_LOOKUP.songs?.chIntentId },
+  'news of the times': { topicId: '99e16767-c945-47f9-8e5e-21c309cceac3', topicTitle: 'News of the Times', componentName: 'sbMbrStryNewsOfTheTimes', chIntentId: DEFAULT_TOPIC_LOOKUP['news of the times']?.chIntentId },
+  'news of times': { topicId: '99e16767-c945-47f9-8e5e-21c309cceac3', topicTitle: 'News of the Times', componentName: 'sbMbrStryNewsOfTheTimes', chIntentId: DEFAULT_TOPIC_LOOKUP['news of times']?.chIntentId },
+  news: { topicId: '99e16767-c945-47f9-8e5e-21c309cceac3', topicTitle: 'News of the Times', componentName: 'sbMbrStryNewsOfTheTimes', chIntentId: DEFAULT_TOPIC_LOOKUP.news?.chIntentId },
+  'pop culture': { topicId: '40b046fa-cfae-4821-b3b8-17fda934a61a', topicTitle: 'Pop Culture', componentName: 'sbMbrStryPopCulture', chIntentId: DEFAULT_TOPIC_LOOKUP['pop culture']?.chIntentId },
+  popculture: { topicId: '40b046fa-cfae-4821-b3b8-17fda934a61a', topicTitle: 'Pop Culture', componentName: 'sbMbrStryPopCulture', chIntentId: DEFAULT_TOPIC_LOOKUP.popculture?.chIntentId },
+  'pop-culture': { topicId: '40b046fa-cfae-4821-b3b8-17fda934a61a', topicTitle: 'Pop Culture', componentName: 'sbMbrStryPopCulture', chIntentId: DEFAULT_TOPIC_LOOKUP['pop culture']?.chIntentId },
+  sports: { topicId: 'eeecb988-25d8-45d4-9304-e040aa14a326', topicTitle: 'Sports', componentName: 'sbMbrStrySports', chIntentId: DEFAULT_TOPIC_LOOKUP.sports?.chIntentId },
+  sport: { topicId: 'eeecb988-25d8-45d4-9304-e040aa14a326', topicTitle: 'Sports', componentName: 'sbMbrStrySports', chIntentId: DEFAULT_TOPIC_LOOKUP.sport?.chIntentId },
+  athletics: { topicId: 'eeecb988-25d8-45d4-9304-e040aa14a326', topicTitle: 'Sports', componentName: 'sbMbrStrySports', chIntentId: DEFAULT_TOPIC_LOOKUP.athletics?.chIntentId },
+  technology: { topicId: '74e60a94-dd9e-4148-a084-86d41ed9998a', topicTitle: 'Technology', componentName: 'sbMbrStryTechnology', chIntentId: DEFAULT_TOPIC_LOOKUP.technology?.chIntentId },
+  tech: { topicId: '74e60a94-dd9e-4148-a084-86d41ed9998a', topicTitle: 'Technology', componentName: 'sbMbrStryTechnology', chIntentId: DEFAULT_TOPIC_LOOKUP.tech?.chIntentId },
+  computers: { topicId: '74e60a94-dd9e-4148-a084-86d41ed9998a', topicTitle: 'Technology', componentName: 'sbMbrStryTechnology', chIntentId: DEFAULT_TOPIC_LOOKUP.computers?.chIntentId },
+  inventions: { topicId: '74e60a94-dd9e-4148-a084-86d41ed9998a', topicTitle: 'Technology', componentName: 'sbMbrStryTechnology', chIntentId: DEFAULT_TOPIC_LOOKUP.inventions?.chIntentId },
+  childhood: { topicId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28', topicTitle: 'Childhood', componentName: 'sbMbrStryChildhood', chIntentId: DEFAULT_TOPIC_LOOKUP.childhood?.chIntentId },
+  childhoood: { topicId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28', topicTitle: 'Childhood', componentName: 'sbMbrStryChildhood', chIntentId: DEFAULT_TOPIC_LOOKUP.childhoood?.chIntentId },
+  youth: { topicId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28', topicTitle: 'Childhood', componentName: 'sbMbrStryChildhood', chIntentId: DEFAULT_TOPIC_LOOKUP.youth?.chIntentId },
+  'early years': { topicId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28', topicTitle: 'Childhood', componentName: 'sbMbrStryChildhood', chIntentId: DEFAULT_TOPIC_LOOKUP['early years']?.chIntentId },
+  'life reflections': { topicId: '4cd7ccff-0617-445c-ae72-173daa059500', topicTitle: 'Life Reflections', componentName: 'sbMbrStryLifeReflections', chIntentId: DEFAULT_TOPIC_LOOKUP['life reflections']?.chIntentId },
+  'life reflection': { topicId: '4cd7ccff-0617-445c-ae72-173daa059500', topicTitle: 'Life Reflections', componentName: 'sbMbrStryLifeReflections', chIntentId: DEFAULT_TOPIC_LOOKUP['life reflection']?.chIntentId },
+  reflections: { topicId: '4cd7ccff-0617-445c-ae72-173daa059500', topicTitle: 'Life Reflections', componentName: 'sbMbrStryLifeReflections', chIntentId: DEFAULT_TOPIC_LOOKUP.reflections?.chIntentId },
+  reflection: { topicId: '4cd7ccff-0617-445c-ae72-173daa059500', topicTitle: 'Life Reflections', componentName: 'sbMbrStryLifeReflections', chIntentId: DEFAULT_TOPIC_LOOKUP.reflection?.chIntentId },
   other: { topicId: DEFAULT_TOPIC_LOOKUP.other.topicId, topicTitle: 'Other', componentName: 'sbMbrStryCustom', chIntentId: DEFAULT_TOPIC_LOOKUP.other.chIntentId },
   custom: { topicId: DEFAULT_TOPIC_LOOKUP.custom.topicId, topicTitle: 'Other', componentName: 'sbMbrStryCustom', chIntentId: DEFAULT_TOPIC_LOOKUP.custom.chIntentId },
   profile: { topicId: DEFAULT_TOPIC_LOOKUP.profile.topicId, topicTitle: 'Profile', componentName: 'SbMbrProfile', chIntentId: DEFAULT_TOPIC_LOOKUP.profile.chIntentId },
@@ -106,7 +167,6 @@ export default function CenterColumn({
 
   const sec = (activeSection || 'Profile').toLowerCase();
   const matchedTopic = matchTopicByName(activeSection, dbTopics);
-  const isStandardTopic = ['family', 'relationships', 'relationship', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'other', 'custom'].includes(sec);
 
   const fallbackInfo = TOPIC_DETAILS[sec] || {
     topicId: sec,
@@ -119,6 +179,24 @@ export default function CenterColumn({
   const currentChIntentId = matchedTopic?.chIntentId || fallbackInfo.chIntentId;
   const currentTopicTitle = matchedTopic?.topicFullName || matchedTopic?.topicName || fallbackInfo.topicTitle;
   const currentComponentName = fallbackInfo.componentName;
+
+  const isStandardTopic = [
+    'family', 'relationships', 'relationship', 'residencies',
+    'trips', 'vacations', 'trips and vacations', 'trips & vacations',
+    'health', 'wellness', 'health and wellness', 'health & wellness',
+    'special events', 'special event', 'specialevents', 'special-events', 'milestones', 'celebrations',
+    'hobbies', 'activities', 'achievements', 'education', 'employment',
+    'fads and trends', 'fads & trends', 'fads', 'trends',
+    'movies and tv', 'movies & tv', 'movies', 'tv', 'television', 'movies and television',
+    'music', 'songs',
+    'news of the times', 'news of times', 'news',
+    'pop culture', 'popculture', 'pop-culture',
+    'sports', 'sport', 'athletics',
+    'technology', 'tech', 'computers', 'inventions',
+    'childhood', 'childhoood', 'youth', 'early years',
+    'life reflections', 'life reflection', 'reflections', 'reflection',
+    'other', 'custom'
+  ].includes(sec) || currentTopicId === '5cd2052b-28fc-434f-9ce4-4358ff944576' || currentTopicId === '273184ab-e09d-49ef-b416-3fc3ba0a8161' || currentTopicId === '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff' || currentTopicId === '6635482f-24c8-4fdd-83d0-c5f86e22442f' || currentTopicId === '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e' || currentTopicId === 'b24de4f6-9029-4665-94bf-f42630baee61' || currentTopicId === '99e16767-c945-47f9-8e5e-21c309cceac3' || currentTopicId === '40b046fa-cfae-4821-b3b8-17fda934a61a' || currentTopicId === 'eeecb988-25d8-45d4-9304-e040aa14a326' || currentTopicId === '74e60a94-dd9e-4148-a084-86d41ed9998a' || currentTopicId === 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28' || currentTopicId === '4cd7ccff-0617-445c-ae72-173daa059500';
 
   useEffect(() => {
     const handleOpen = (e: any) => {
@@ -238,6 +316,39 @@ export default function CenterColumn({
         </>
       )}
 
+      {(sec === 'trips' || sec === 'vacations' || sec === 'trips and vacations' || sec === 'trips & vacations' || currentTopicId === '5cd2052b-28fc-434f-9ce4-4358ff944576') && (
+        <>
+          <TripsHeaderPanel />
+          <MbrStoryTripsPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
+        </>
+      )}
+
+      {(sec === 'health' || sec === 'wellness' || sec === 'health and wellness' || sec === 'health & wellness' || currentTopicId === '273184ab-e09d-49ef-b416-3fc3ba0a8161') && (
+        <>
+          <HealthHeaderPanel />
+          <MbrStoryHealthPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
+        </>
+      )}
+
+      {(sec === 'special events' || sec === 'special event' || sec === 'specialevents' || sec === 'special-events' || sec === 'milestones' || sec === 'celebrations' || currentTopicId === '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff') && (
+        <>
+          <SpecialEventsHeaderPanel />
+          <MbrStorySpecialEventsPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            isSandbox={isSandbox}
+          />
+        </>
+      )}
+
       {(sec === 'hobbies' || sec === 'activities') && (
         <>
           <ActivitiesHeaderPanel />
@@ -282,15 +393,44 @@ export default function CenterColumn({
         </>
       )}
 
-      {(sec === 'other' || sec === 'custom' || !['profile', 'family', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'relationships', 'relationship'].includes(sec)) && (
-        <>
-          <OtherHeaderPanel />
-          <MbrStoryCustomPanel
-            topicId={currentTopicId}
-            chIntentId={currentChIntentId}
-            isSandbox={isSandbox}
-          />
-        </>
+      {(sec === 'fads and trends' || sec === 'fads & trends' || sec === 'fads' || sec === 'trends' || currentTopicId === '6635482f-24c8-4fdd-83d0-c5f86e22442f') && (
+        <FadsHeaderPanel />
+      )}
+
+      {(sec === 'movies and tv' || sec === 'movies & tv' || sec === 'movies' || sec === 'tv' || sec === 'television' || sec === 'movies and television' || currentTopicId === '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e') && (
+        <MoviesTvHeaderPanel />
+      )}
+
+      {(sec === 'music' || sec === 'songs' || currentTopicId === 'b24de4f6-9029-4665-94bf-f42630baee61') && (
+        <MusicHeaderPanel />
+      )}
+
+      {(sec === 'news of the times' || sec === 'news of times' || sec === 'news' || currentTopicId === '99e16767-c945-47f9-8e5e-21c309cceac3') && (
+        <NewsHeaderPanel />
+      )}
+
+      {(sec === 'pop culture' || sec === 'popculture' || sec === 'pop-culture' || currentTopicId === '40b046fa-cfae-4821-b3b8-17fda934a61a') && (
+        <PopCultureHeaderPanel />
+      )}
+
+      {(sec === 'sports' || sec === 'sport' || sec === 'athletics' || currentTopicId === 'eeecb988-25d8-45d4-9304-e040aa14a326') && (
+        <SportsHeaderPanel />
+      )}
+
+      {(sec === 'technology' || sec === 'tech' || sec === 'computers' || sec === 'inventions' || currentTopicId === '74e60a94-dd9e-4148-a084-86d41ed9998a') && (
+        <TechnologyHeaderPanel />
+      )}
+
+      {(sec === 'childhood' || sec === 'childhoood' || sec === 'youth' || sec === 'early years' || currentTopicId === 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28') && (
+        <ChildhoodHeaderPanel />
+      )}
+
+      {(sec === 'life reflections' || sec === 'life reflection' || sec === 'reflections' || sec === 'reflection' || currentTopicId === '4cd7ccff-0617-445c-ae72-173daa059500') && (
+        <LifeReflectionsHeaderPanel />
+      )}
+
+      {(sec === 'other' || sec === 'custom' || (!['profile', 'family', 'residencies', 'trips', 'vacations', 'trips and vacations', 'trips & vacations', 'health', 'wellness', 'health and wellness', 'health & wellness', 'special events', 'special event', 'specialevents', 'special-events', 'milestones', 'celebrations', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'relationships', 'relationship', 'fads and trends', 'fads & trends', 'fads', 'trends', 'movies and tv', 'movies & tv', 'movies', 'tv', 'television', 'movies and television', 'music', 'songs', 'news of the times', 'news of times', 'news', 'pop culture', 'popculture', 'pop-culture', 'sports', 'sport', 'athletics', 'technology', 'tech', 'computers', 'inventions', 'childhood', 'childhoood', 'youth', 'early years', 'life reflections', 'life reflection', 'reflections', 'reflection'].includes(sec) && currentTopicId !== '5cd2052b-28fc-434f-9ce4-4358ff944576' && currentTopicId !== '273184ab-e09d-49ef-b416-3fc3ba0a8161' && currentTopicId !== '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff' && currentTopicId !== '6635482f-24c8-4fdd-83d0-c5f86e22442f' && currentTopicId !== '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e' && currentTopicId !== 'b24de4f6-9029-4665-94bf-f42630baee61' && currentTopicId !== '99e16767-c945-47f9-8e5e-21c309cceac3' && currentTopicId !== '40b046fa-cfae-4821-b3b8-17fda934a61a' && currentTopicId !== 'eeecb988-25d8-45d4-9304-e040aa14a326' && currentTopicId !== '74e60a94-dd9e-4148-a084-86d41ed9998a' && currentTopicId !== 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28' && currentTopicId !== '4cd7ccff-0617-445c-ae72-173daa059500')) && (
+        <OtherHeaderPanel />
       )}
 
       {/* --- STORY EDITOR PANEL (Automatically shown for topic) --- */}

@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer } from 'lucide-react';
-import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia } from '@/src/services/api';
+import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi } from '@/src/services/api';
+import { FALLBACK_PERSONAS, WriterPersona } from '@/src/features/mbrPreferencesPage/types';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
@@ -33,6 +34,20 @@ const componentNameMap: Record<string, string> = {
   relationship: 'sbMbrStryRelationships',
   residencies: 'sbMbrStryResidence',
   residence: 'sbMbrStryResidence',
+  trips: 'sbMbrStryTrips',
+  vacations: 'sbMbrStryTrips',
+  'trips and vacations': 'sbMbrStryTrips',
+  'trips & vacations': 'sbMbrStryTrips',
+  health: 'sbMbrStryHealth',
+  wellness: 'sbMbrStryHealth',
+  'health and wellness': 'sbMbrStryHealth',
+  'health & wellness': 'sbMbrStryHealth',
+  'special events': 'sbMbrStrySpecialEvents',
+  'special event': 'sbMbrStrySpecialEvents',
+  specialevents: 'sbMbrStrySpecialEvents',
+  'special-events': 'sbMbrStrySpecialEvents',
+  milestones: 'sbMbrStrySpecialEvents',
+  celebrations: 'sbMbrStrySpecialEvents',
   hobbies: 'sbMbrStryActivity',
   activities: 'sbMbrStryActivity',
   activity: 'sbMbrStryActivity',
@@ -40,12 +55,61 @@ const componentNameMap: Record<string, string> = {
   achievement: 'sbMbrStryAchievement',
   education: 'sbMbrStryEducation',
   employment: 'sbMbrStryEmployment',
+  'fads and trends': 'sbMbrStryFadsAndTrends',
+  'fads & trends': 'sbMbrStryFadsAndTrends',
+  fads: 'sbMbrStryFadsAndTrends',
+  trends: 'sbMbrStryFadsAndTrends',
+  'movies and tv': 'sbMbrStryMoviesAndTv',
+  'movies & tv': 'sbMbrStryMoviesAndTv',
+  movies: 'sbMbrStryMoviesAndTv',
+  tv: 'sbMbrStryMoviesAndTv',
+  television: 'sbMbrStryMoviesAndTv',
+  'movies and television': 'sbMbrStryMoviesAndTv',
+  music: 'sbMbrStryMusic',
+  songs: 'sbMbrStryMusic',
+  'news of the times': 'sbMbrStryNewsOfTheTimes',
+  'news of times': 'sbMbrStryNewsOfTheTimes',
+  news: 'sbMbrStryNewsOfTheTimes',
+  'pop culture': 'sbMbrStryPopCulture',
+  popculture: 'sbMbrStryPopCulture',
+  'pop-culture': 'sbMbrStryPopCulture',
+  sports: 'sbMbrStrySports',
+  sport: 'sbMbrStrySports',
+  athletics: 'sbMbrStrySports',
+  technology: 'sbMbrStryTechnology',
+  tech: 'sbMbrStryTechnology',
+  computers: 'sbMbrStryTechnology',
+  inventions: 'sbMbrStryTechnology',
+  childhood: 'sbMbrStryChildhood',
+  childhoood: 'sbMbrStryChildhood',
+  youth: 'sbMbrStryChildhood',
+  'early years': 'sbMbrStryChildhood',
+  'life reflections': 'sbMbrStryLifeReflections',
+  'life reflection': 'sbMbrStryLifeReflections',
+  reflections: 'sbMbrStryLifeReflections',
+  reflection: 'sbMbrStryLifeReflections',
   other: 'sbMbrStryCustom',
   custom: 'sbMbrStryCustom',
   profile: 'SbMbrProfile',
 };
 
 const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
+  'special events': [
+    {
+      mbrStoryId: 'st_event_1',
+      mbrStoryTitle: 'A Night to Remember: Celebrating 50 Golden Years',
+      mbrStoryContent: 'Looking out across the ballroom filled with our children, grandchildren, and friends who traveled hundreds of miles to celebrate our golden anniversary with us, I was overwhelmed with gratitude. Five decades of shared laughter, quiet morning coffee, and weathered storms culminating in an unforgettable night of love and celebration.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  'special event': [
+    {
+      mbrStoryId: 'st_event_1',
+      mbrStoryTitle: 'A Night to Remember: Celebrating 50 Golden Years',
+      mbrStoryContent: 'Looking out across the ballroom filled with our children, grandchildren, and friends who traveled hundreds of miles to celebrate our golden anniversary with us, I was overwhelmed with gratitude. Five decades of shared laughter, quiet morning coffee, and weathered storms culminating in an unforgettable night of love and celebration.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
   relationships: [
     {
       mbrStoryId: 'st_rel_1',
@@ -126,6 +190,222 @@ const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
       mbrStoryPublishStatusCd: 'Draft'
     }
   ],
+  'fads and trends': [
+    {
+      mbrStoryId: 'st_fad_1',
+      mbrStoryTitle: 'Bell Bottoms, Roller Discos, and Pet Rocks',
+      mbrStoryContent: 'Every generation has its unforgettable crazes. I will never forget the weekend everyone on our block got obsessed with pet rocks, or the neon roller skating nights under mirror balls that defined that unforgettable summer.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  fads: [
+    {
+      mbrStoryId: 'st_fad_1',
+      mbrStoryTitle: 'Bell Bottoms, Roller Discos, and Pet Rocks',
+      mbrStoryContent: 'Every generation has its unforgettable crazes. I will never forget the weekend everyone on our block got obsessed with pet rocks, or the neon roller skating nights under mirror balls that defined that unforgettable summer.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  'movies and tv': [
+    {
+      mbrStoryId: 'st_mov_1',
+      mbrStoryTitle: 'Friday Nights at the Sellwood Cinema',
+      mbrStoryContent: 'Growing up, nothing matched the excitement of walking to the neighborhood theater with a bag of hot buttered popcorn. The stories projected onto the silver screen transported us to distant galaxies and timeless adventures.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  movies: [
+    {
+      mbrStoryId: 'st_mov_1',
+      mbrStoryTitle: 'Friday Nights at the Sellwood Cinema',
+      mbrStoryContent: 'Growing up, nothing matched the excitement of walking to the neighborhood theater with a bag of hot buttered popcorn. The stories projected onto the silver screen transported us to distant galaxies and timeless adventures.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  music: [
+    {
+      mbrStoryId: 'st_mus_1',
+      mbrStoryTitle: 'Acoustic Guitar by the Campfire',
+      mbrStoryContent: 'Music was always the heartbeat of our family gatherings. Learning to play my first chords on an old mahogany acoustic guitar opened a doorway to writing songs that captured the seasons and spirits of the Pacific Northwest.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  songs: [
+    {
+      mbrStoryId: 'st_mus_1',
+      mbrStoryTitle: 'Acoustic Guitar by the Campfire',
+      mbrStoryContent: 'Music was always the heartbeat of our family gatherings. Learning to play my first chords on an old mahogany acoustic guitar opened a doorway to writing songs that captured the seasons and spirits of the Pacific Northwest.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  'news of the times': [
+    {
+      mbrStoryId: 'st_nws_1',
+      mbrStoryTitle: 'Watching the Moon Landing on a Black-and-White Zenith',
+      mbrStoryContent: 'On July 20, 1969, the entire neighborhood gathered in our living room around our grainy black-and-white Zenith television. When Neil Armstrong stepped onto the lunar surface, the entire room erupted in cheers and tears of wonder.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  'news of times': [
+    {
+      mbrStoryId: 'st_nws_1',
+      mbrStoryTitle: 'Watching the Moon Landing on a Black-and-White Zenith',
+      mbrStoryContent: 'On July 20, 1969, the entire neighborhood gathered in our living room around our grainy black-and-white Zenith television. When Neil Armstrong stepped onto the lunar surface, the entire room erupted in cheers and tears of wonder.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  news: [
+    {
+      mbrStoryId: 'st_nws_1',
+      mbrStoryTitle: 'Watching the Moon Landing on a Black-and-White Zenith',
+      mbrStoryContent: 'On July 20, 1969, the entire neighborhood gathered in our living room around our grainy black-and-white Zenith television. When Neil Armstrong stepped onto the lunar surface, the entire room erupted in cheers and tears of wonder.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  'pop culture': [
+    {
+      mbrStoryId: 'st_pop_1',
+      mbrStoryTitle: 'Saturday Morning Cartoons and Cereal Boxes',
+      mbrStoryContent: 'Waking up at dawn on Saturdays in our pajamas, pouring a giant bowl of sugary cereal, and watching classic animated shows on our console TV was a sacred childhood ritual that defined an entire era.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  popculture: [
+    {
+      mbrStoryId: 'st_pop_1',
+      mbrStoryTitle: 'Saturday Morning Cartoons and Cereal Boxes',
+      mbrStoryContent: 'Waking up at dawn on Saturdays in our pajamas, pouring a giant bowl of sugary cereal, and watching classic animated shows on our console TV was a sacred childhood ritual that defined an entire era.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  'pop-culture': [
+    {
+      mbrStoryId: 'st_pop_1',
+      mbrStoryTitle: 'Saturday Morning Cartoons and Cereal Boxes',
+      mbrStoryContent: 'Waking up at dawn on Saturdays in our pajamas, pouring a giant bowl of sugary cereal, and watching classic animated shows on our console TV was a sacred childhood ritual that defined an entire era.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  sports: [
+    {
+      mbrStoryId: 'st_spt_1',
+      mbrStoryTitle: 'Under the Friday Night Lights',
+      mbrStoryContent: 'The crisp autumn air, the roar of the hometown crowd, and the blinding glow of stadium lights created memories etched permanently in my mind. Playing alongside teammates taught me unity, resilience, and true sportsmanship.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  sport: [
+    {
+      mbrStoryId: 'st_spt_1',
+      mbrStoryTitle: 'Under the Friday Night Lights',
+      mbrStoryContent: 'The crisp autumn air, the roar of the hometown crowd, and the blinding glow of stadium lights created memories etched permanently in my mind. Playing alongside teammates taught me unity, resilience, and true sportsmanship.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  athletics: [
+    {
+      mbrStoryId: 'st_spt_1',
+      mbrStoryTitle: 'Under the Friday Night Lights',
+      mbrStoryContent: 'The crisp autumn air, the roar of the hometown crowd, and the blinding glow of stadium lights created memories etched permanently in my mind. Playing alongside teammates taught me unity, resilience, and true sportsmanship.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  technology: [
+    {
+      mbrStoryId: 'st_tch_1',
+      mbrStoryTitle: 'The Hum of the First Dial-Up Modem',
+      mbrStoryContent: 'I will never forget the screech and whistle of our first 56k dial-up modem connecting to the World Wide Web. Watching lines of text and low-res photos slowly load line-by-line felt like opening a magical window into the future.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  tech: [
+    {
+      mbrStoryId: 'st_tch_1',
+      mbrStoryTitle: 'The Hum of the First Dial-Up Modem',
+      mbrStoryContent: 'I will never forget the screech and whistle of our first 56k dial-up modem connecting to the World Wide Web. Watching lines of text and low-res photos slowly load line-by-line felt like opening a magical window into the future.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  computers: [
+    {
+      mbrStoryId: 'st_tch_1',
+      mbrStoryTitle: 'The Hum of the First Dial-Up Modem',
+      mbrStoryContent: 'I will never forget the screech and whistle of our first 56k dial-up modem connecting to the World Wide Web. Watching lines of text and low-res photos slowly load line-by-line felt like opening a magical window into the future.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  inventions: [
+    {
+      mbrStoryId: 'st_tch_1',
+      mbrStoryTitle: 'The Hum of the First Dial-Up Modem',
+      mbrStoryContent: 'I will never forget the screech and whistle of our first 56k dial-up modem connecting to the World Wide Web. Watching lines of text and low-res photos slowly load line-by-line felt like opening a magical window into the future.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  childhood: [
+    {
+      mbrStoryId: 'st_chd_1',
+      mbrStoryTitle: 'Tree Forts and Endless Summer Evenings',
+      mbrStoryContent: 'We spent whole summers building forts out of driftwood and salvage boards behind the neighborhood orchard. When the streetlights finally flickered on, we would race our bicycles home with windblown hair and scraped knees.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  childhoood: [
+    {
+      mbrStoryId: 'st_chd_1',
+      mbrStoryTitle: 'Tree Forts and Endless Summer Evenings',
+      mbrStoryContent: 'We spent whole summers building forts out of driftwood and salvage boards behind the neighborhood orchard. When the streetlights finally flickered on, we would race our bicycles home with windblown hair and scraped knees.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  youth: [
+    {
+      mbrStoryId: 'st_chd_1',
+      mbrStoryTitle: 'Tree Forts and Endless Summer Evenings',
+      mbrStoryContent: 'We spent whole summers building forts out of driftwood and salvage boards behind the neighborhood orchard. When the streetlights finally flickered on, we would race our bicycles home with windblown hair and scraped knees.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  'early years': [
+    {
+      mbrStoryId: 'st_chd_1',
+      mbrStoryTitle: 'Tree Forts and Endless Summer Evenings',
+      mbrStoryContent: 'We spent whole summers building forts out of driftwood and salvage boards behind the neighborhood orchard. When the streetlights finally flickered on, we would race our bicycles home with windblown hair and scraped knees.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  'life reflections': [
+    {
+      mbrStoryId: 'st_ref_1',
+      mbrStoryTitle: 'Gleaning Wisdom from the Quiet Seasons',
+      mbrStoryContent: 'Looking back across life’s winding road, the most profound milestones were rarely the loud victories, but the quiet moments of patience, perseverance, and forgiveness that anchored my soul through changing seasons.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  'life reflection': [
+    {
+      mbrStoryId: 'st_ref_1',
+      mbrStoryTitle: 'Gleaning Wisdom from the Quiet Seasons',
+      mbrStoryContent: 'Looking back across life’s winding road, the most profound milestones were rarely the loud victories, but the quiet moments of patience, perseverance, and forgiveness that anchored my soul through changing seasons.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  reflections: [
+    {
+      mbrStoryId: 'st_ref_1',
+      mbrStoryTitle: 'Gleaning Wisdom from the Quiet Seasons',
+      mbrStoryContent: 'Looking back across life’s winding road, the most profound milestones were rarely the loud victories, but the quiet moments of patience, perseverance, and forgiveness that anchored my soul through changing seasons.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  reflection: [
+    {
+      mbrStoryId: 'st_ref_1',
+      mbrStoryTitle: 'Gleaning Wisdom from the Quiet Seasons',
+      mbrStoryContent: 'Looking back across life’s winding road, the most profound milestones were rarely the loud victories, but the quiet moments of patience, perseverance, and forgiveness that anchored my soul through changing seasons.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
   other: [
     {
       mbrStoryId: 'st_cst_1',
@@ -134,6 +414,89 @@ const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
       mbrStoryPublishStatusCd: 'Draft'
     }
   ]
+};
+
+const DEFAULT_CUSTOM_TOPICS: TopicCustom[] = [
+  {
+    topicCustomId: 'ct_remember_when',
+    mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    topicCustomName: 'Remember When',
+    topicCustomTopicDesc: 'Reflections on pop culture, news of the times, and defining generational moments.',
+    chIntentId: 'c75f4efc-8a83-4084-89a4-e3ab49798d60',
+    mbrCustomTopicId: 'ct_remember_when',
+    mbrCustomTopicName: 'Remember When',
+    mbrCustomTopicDesc: 'Reflections on pop culture, news of the times, and defining generational moments.'
+  },
+  {
+    topicCustomId: 'ct_flashback',
+    mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    topicCustomName: 'Flashback',
+    topicCustomTopicDesc: 'Personal trivia sparks, historical snapshots, and memories from days gone by.',
+    chIntentId: 'c75f4efc-8a83-4084-89a4-e3ab49798d60',
+    mbrCustomTopicId: 'ct_flashback',
+    mbrCustomTopicName: 'Flashback',
+    mbrCustomTopicDesc: 'Personal trivia sparks, historical snapshots, and memories from days gone by.'
+  },
+  {
+    topicCustomId: 'ct_1',
+    mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    topicCustomName: 'Pacific Road Trips',
+    topicCustomTopicDesc: 'Memories, coastal drives, and roadside diner stops along the scenic Pacific Coast Highway.',
+    chIntentId: 'c75f4efc-8a83-4084-89a4-e3ab49798d60',
+    mbrCustomTopicId: 'ct_1',
+    mbrCustomTopicName: 'Pacific Road Trips',
+    mbrCustomTopicDesc: 'Memories, coastal drives, and roadside diner stops along the scenic Pacific Coast Highway.'
+  },
+  {
+    topicCustomId: 'ct_2',
+    mbrId: '9edb4311-a4bc-428a-8317-833f0f08fea1',
+    topicCustomName: 'Vintage Book Collecting',
+    topicCustomTopicDesc: 'Hunting for rare first editions and signed memoirs in dusty coastal antiquarian bookshops.',
+    chIntentId: 'c75f4efc-8a83-4084-89a4-e3ab49798d60',
+    mbrCustomTopicId: 'ct_2',
+    mbrCustomTopicName: 'Vintage Book Collecting',
+    mbrCustomTopicDesc: 'Hunting for rare first editions and signed memoirs in dusty coastal antiquarian bookshops.'
+  }
+];
+
+const ensureDefaultCustomTopics = (list: TopicCustom[], mbrId: string): TopicCustom[] => {
+  const result = [...list];
+  const otherIntent = DEFAULT_TOPIC_LOOKUP['other']?.chIntentId || 'c75f4efc-8a83-4084-89a4-e3ab49798d60';
+  
+  const hasRememberWhen = result.some(
+    (t) => (t.topicCustomName || t.mbrCustomTopicName || '').trim().toLowerCase() === 'remember when'
+  );
+  if (!hasRememberWhen) {
+    result.unshift({
+      topicCustomId: 'ct_remember_when',
+      mbrId: mbrId,
+      topicCustomName: 'Remember When',
+      topicCustomTopicDesc: 'Reflections on pop culture, news of the times, and defining generational moments.',
+      chIntentId: otherIntent,
+      mbrCustomTopicId: 'ct_remember_when',
+      mbrCustomTopicName: 'Remember When',
+      mbrCustomTopicDesc: 'Reflections on pop culture, news of the times, and defining generational moments.'
+    });
+  }
+
+  const hasFlashback = result.some(
+    (t) => (t.topicCustomName || t.mbrCustomTopicName || '').trim().toLowerCase() === 'flashback'
+  );
+  if (!hasFlashback) {
+    const rwIndex = result.findIndex(t => (t.topicCustomName || t.mbrCustomTopicName || '').trim().toLowerCase() === 'remember when');
+    const insertPos = rwIndex >= 0 ? rwIndex + 1 : 0;
+    result.splice(insertPos, 0, {
+      topicCustomId: 'ct_flashback',
+      mbrId: mbrId,
+      topicCustomName: 'Flashback',
+      topicCustomTopicDesc: 'Personal trivia sparks, historical snapshots, and memories from days gone by.',
+      chIntentId: otherIntent,
+      mbrCustomTopicId: 'ct_flashback',
+      mbrCustomTopicName: 'Flashback',
+      mbrCustomTopicDesc: 'Personal trivia sparks, historical snapshots, and memories from days gone by.'
+    });
+  }
+  return result;
 };
 
 const formatPublishedDate = (dateStr?: string | null) => {
@@ -162,6 +525,133 @@ const formatPublishedDate = (dateStr?: string | null) => {
   return dateStr;
 };
 
+const isUuid = (val?: string | null): boolean => {
+  if (!val || typeof val !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+};
+
+export function convertTriviaToFirstPerson(rawText: string): string {
+  if (!rawText || typeof rawText !== 'string') return '';
+
+  let text = rawText
+    // Remove typical "Did you know?" / trivia intros
+    .replace(/^Did you know(?:\s+that|\s+about)?\s*[:?,-]?\s*/i, '')
+    .replace(/^(?:Personal Trivia|Story Spark|Fact|Memory Snapshot):\s*/i, '')
+    .trim();
+
+  // Sentence starters / conjunction clauses
+  text = text
+    .replace(/\bWhen you were\b/gi, 'When I was')
+    .replace(/\bAs you were\b/gi, 'As I was')
+    .replace(/\bIf you were\b/gi, 'If I was')
+    .replace(/\bSince you were\b/gi, 'Since I was')
+    .replace(/\bWhile you were\b/gi, 'While I was')
+    .replace(/\bWhen you had\b/gi, 'When I had')
+    .replace(/\bWhen you did\b/gi, 'When I did')
+    .replace(/\bWhen you lived\b/gi, 'When I lived')
+    .replace(/\bWhen you worked\b/gi, 'When I worked')
+    .replace(/\bWhen you visited\b/gi, 'When I visited')
+    .replace(/\bWhen you traveled\b/gi, 'When I traveled')
+    .replace(/\bWhen you joined\b/gi, 'When I joined');
+
+  // Pronoun conversions with boundary handling
+  text = text
+    .replace(/\bYou were\b/g, 'I was')
+    .replace(/\byou were\b/g, 'I was')
+    .replace(/\bYou are\b/g, 'I am')
+    .replace(/\byou are\b/g, 'I am')
+    .replace(/\bYou're\b/g, "I'm")
+    .replace(/\byou're\b/g, "I'm")
+    .replace(/\bYou have\b/g, 'I have')
+    .replace(/\byou have\b/g, 'I have')
+    .replace(/\bYou've\b/g, "I've")
+    .replace(/\byou've\b/g, "I've")
+    .replace(/\bYou had\b/g, 'I had')
+    .replace(/\byou had\b/g, 'I had')
+    .replace(/\bYou will\b/g, 'I will')
+    .replace(/\byou will\b/g, 'I will')
+    .replace(/\bYou'll\b/g, "I'll")
+    .replace(/\byou'll\b/g, "I'll")
+    .replace(/\bYou would\b/g, 'I would')
+    .replace(/\byou would\b/g, 'I would')
+    .replace(/\bYou'd\b/g, "I'd")
+    .replace(/\byou'd\b/g, "I'd");
+
+  // Possessives
+  text = text
+    .replace(/\bYour\b/g, 'My')
+    .replace(/\byour\b/g, 'my')
+    .replace(/\bYours\b/g, 'Mine')
+    .replace(/\byours\b/g, 'mine')
+    .replace(/\bYourself\b/g, 'Myself')
+    .replace(/\byourself\b/g, 'myself');
+
+  // Prepositions / verbs followed by objective "you": "with you", "for you", "to you", etc. -> "with me", "for me", "to me"
+  text = text
+    .replace(/\b(to|with|for|about|at|by|from|in|into|on|upon|around|near|beside|behind|between|among|reminded|taught|gave|inspired|connected|brought|welcomed|guided|awarded|offered|joined|helped|allowed|led|shaped)\s+you\b/gi, '$1 me');
+
+  // Subject "You" at start of sentence, clauses, conjunctions
+  text = text
+    .replace(/(^|[.!?]\s+)You\b/g, '$1I')
+    .replace(/\b([,;]\s+)you\b/g, '$1I')
+    .replace(/\b(and|but|or|so|although|though|while|where|because|after|before|that|since|if)\s+you\b/gi, '$1 I');
+
+  // General remaining "You" / "you" in subject positions
+  text = text
+    .replace(/\bYou\b/g, 'I')
+    .replace(/\byou\b/g, 'I');
+
+  // Fix capitalization after punctuation
+  text = text.replace(/([.!?]\s+)([a-z])/g, (_, p1, p2) => p1 + p2.toUpperCase());
+
+  return text;
+}
+
+const resolveCurrentMbrId = async (
+  propMemberId?: string,
+  stateResolvedMbrId?: string
+): Promise<string> => {
+  if (propMemberId && propMemberId !== 'm1' && isUuid(propMemberId)) return propMemberId;
+
+  const storedMbr = sessionStorage.getItem('sb_current_mbr');
+  if (storedMbr) {
+    try {
+      const parsed = JSON.parse(storedMbr);
+      if (parsed.mbrId && isUuid(parsed.mbrId)) return parsed.mbrId;
+    } catch {}
+  }
+
+  const legacyMbr = sessionStorage.getItem('mbr');
+  if (legacyMbr) {
+    try {
+      const parsed = JSON.parse(legacyMbr);
+      if (parsed.mbrId && isUuid(parsed.mbrId)) return parsed.mbrId;
+    } catch {}
+  }
+
+  const userStr = sessionStorage.getItem('user');
+  if (userStr) {
+    try {
+      const u = JSON.parse(userStr);
+      const uid = u.user_id || u.id;
+      if (uid) {
+        const mbrProfile = await taskApi.getMemberByUserId(uid);
+        if (mbrProfile && mbrProfile.mbrId && isUuid(mbrProfile.mbrId)) {
+          return mbrProfile.mbrId;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not retrieve member profile ID from user session:", e);
+    }
+  }
+
+  if (stateResolvedMbrId && stateResolvedMbrId !== 'm1' && isUuid(stateResolvedMbrId)) {
+    return stateResolvedMbrId;
+  }
+
+  return '9edb4311-a4bc-428a-8317-833f0f08fea1';
+};
+
 export default function StoryEditorPanel({
   topicTitle = 'Section',
   topicId = 'general',
@@ -174,12 +664,31 @@ export default function StoryEditorPanel({
   isSandbox = true,
   onClose
 }: StoryEditorPanelProps) {
-  // Resolve topicId (UUID) and chIntentId (UUID)
-  const matchedTopic = matchTopicByName(topicTitle || topicId);
+  const [dbTopics, setDbTopics] = useState<Topic[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTopics = async () => {
+      try {
+        const fetched = await taskApi.getTopics();
+        if (Array.isArray(fetched) && fetched.length > 0 && isMounted) {
+          setDbTopics(fetched);
+        }
+      } catch (err) {
+        console.warn("Could not load topics in StoryEditorPanel:", err);
+      }
+    };
+    fetchTopics();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Resolve topicId (UUID) and chIntentId (UUID) from topic table / lookups
+  const matchedTopic = matchTopicByName(topicTitle || topicId, dbTopics);
+  const matchedOther = matchTopicByName('Other', dbTopics) || DEFAULT_TOPIC_LOOKUP['other'];
   const resolvedTopicId = (topicId && topicId.includes('-') && topicId.length >= 30)
     ? topicId
-    : (matchedTopic?.topicId || DEFAULT_TOPIC_LOOKUP[topicId?.toLowerCase()]?.topicId);
-  const resolvedChIntentId = chIntentId || matchedTopic?.chIntentId || DEFAULT_TOPIC_LOOKUP[topicId?.toLowerCase()]?.chIntentId;
+    : (matchedTopic?.topicId || DEFAULT_TOPIC_LOOKUP[topicId?.toLowerCase()]?.topicId || matchedOther?.topicId);
+  const resolvedChIntentId = chIntentId || matchedTopic?.chIntentId || DEFAULT_TOPIC_LOOKUP[topicId?.toLowerCase()]?.chIntentId || matchedOther?.chIntentId;
 
   const [stories, setStories] = useState<Partial<MbrStory>[]>([]);
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
@@ -203,6 +712,58 @@ export default function StoryEditorPanel({
   const [storyStatsMap, setStoryStatsMap] = useState<Record<string, number>>({});
   const [showActionMenu, setShowActionMenu] = useState(false);
 
+  // Column header sorting state for story list grid (default: newest Date first)
+  const [sortColumn, setSortColumn] = useState<'topic' | 'story' | 'views' | 'date' | 'published'>('date');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+
+  const handleSort = (column: 'topic' | 'story' | 'views' | 'date' | 'published') => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection(column === 'views' || column === 'date' || column === 'published' ? 'desc' : 'asc');
+    }
+  };
+
+  // Computed sorted stories list
+  const sortedStories = useMemo(() => {
+    if (!Array.isArray(stories)) return [];
+    return [...stories].sort((a, b) => {
+      if (sortColumn === 'topic') {
+        const topicA = (a.mbrStoryTopicName || topicTitle || '').toLowerCase();
+        const topicB = (b.mbrStoryTopicName || topicTitle || '').toLowerCase();
+        const cmp = topicA.localeCompare(topicB);
+        return sortDirection === 'asc' ? cmp : -cmp;
+      } else if (sortColumn === 'story') {
+        const titleA = (a.mbrStoryTitle || 'Untitled Story').toLowerCase();
+        const titleB = (b.mbrStoryTitle || 'Untitled Story').toLowerCase();
+        const cmp = titleA.localeCompare(titleB);
+        return sortDirection === 'asc' ? cmp : -cmp;
+      } else if (sortColumn === 'views') {
+        const viewsA = (a.mbrStoryId && storyStatsMap[a.mbrStoryId] !== undefined) ? storyStatsMap[a.mbrStoryId] : 0;
+        const viewsB = (b.mbrStoryId && storyStatsMap[b.mbrStoryId] !== undefined) ? storyStatsMap[b.mbrStoryId] : 0;
+        const cmp = viewsA - viewsB;
+        return sortDirection === 'asc' ? cmp : -cmp;
+      } else if (sortColumn === 'date') {
+        const getTime = (d?: string | null) => {
+          if (!d) return 0;
+          const t = new Date(d).getTime();
+          return isNaN(t) ? 0 : t;
+        };
+        const dateA = getTime(a.mbrStoryPublishedDate || a.mbrStoryUpdatedAt || a.mbrStoryCreatedAt);
+        const dateB = getTime(b.mbrStoryPublishedDate || b.mbrStoryUpdatedAt || b.mbrStoryCreatedAt);
+        const cmp = dateA - dateB;
+        return sortDirection === 'asc' ? cmp : -cmp;
+      } else if (sortColumn === 'published') {
+        const isPubA = (a.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published' ? 1 : 0;
+        const isPubB = (b.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published' ? 1 : 0;
+        const cmp = isPubA - isPubB;
+        return sortDirection === 'asc' ? cmp : -cmp;
+      }
+      return 0;
+    });
+  }, [stories, sortColumn, sortDirection, topicTitle, storyStatsMap]);
+
   // Photo Gallery & Media Modal State for Stories
   const [showPhotoGalleryModal, setShowPhotoGalleryModal] = useState(false);
   const [showAiVoiceModal, setShowAiVoiceModal] = useState(false);
@@ -210,22 +771,29 @@ export default function StoryEditorPanel({
   const [showStoryPrivacyModal, setShowStoryPrivacyModal] = useState(false);
   const [storyPhotosCountMap, setStoryPhotosCountMap] = useState<Record<string, number>>({});
   const [resolvedMbrId, setResolvedMbrId] = useState<string>(() => {
-    if (memberId && memberId !== 'm1') return memberId;
+    if (memberId && memberId !== 'm1' && isUuid(memberId)) return memberId;
+    const currentMbr = sessionStorage.getItem('sb_current_mbr');
+    if (currentMbr) {
+      try {
+        const m = JSON.parse(currentMbr);
+        if (m.mbrId && isUuid(m.mbrId)) return m.mbrId;
+      } catch {}
+    }
     const storedMbr = sessionStorage.getItem('mbr');
     if (storedMbr) {
       try {
         const m = JSON.parse(storedMbr);
-        if (m.mbrId) return m.mbrId;
+        if (m.mbrId && isUuid(m.mbrId)) return m.mbrId;
       } catch {}
     }
     const savedMbr = sessionStorage.getItem('sandbox_mbr');
     if (savedMbr) {
       try {
         const m = JSON.parse(savedMbr);
-        if (m.mbrId) return m.mbrId;
+        if (m.mbrId && isUuid(m.mbrId)) return m.mbrId;
       } catch {}
     }
-    return 'e20986fa-0fb9-4081-ae5d-35bc8f504df0';
+    return '9edb4311-a4bc-428a-8317-833f0f08fea1';
   });
 
   const resolvedCategoryCd = useMemo(() => {
@@ -330,8 +898,15 @@ export default function StoryEditorPanel({
   const [selectedCustomTopic, setSelectedCustomTopic] = useState<TopicCustom | null>(null);
   const [loadingCustomTopics, setLoadingCustomTopics] = useState(false);
   const [newCustomTopicName, setNewCustomTopicName] = useState('');
+  const [newCustomTopicDesc, setNewCustomTopicDesc] = useState('');
   const [showInlineNewTopic, setShowInlineNewTopic] = useState(false);
   const [creatingCustomTopic, setCreatingCustomTopic] = useState(false);
+  const [editingTopicId, setEditingTopicId] = useState<string | null>(null);
+  const [editTopicName, setEditTopicName] = useState('');
+  const [editTopicDesc, setEditTopicDesc] = useState('');
+  const [savingTopicEdit, setSavingTopicEdit] = useState(false);
+  const [deletingTopicId, setDeletingTopicId] = useState<string | null>(null);
+  const [topicModalError, setTopicModalError] = useState<string | null>(null);
 
   // Close mobile action menu when clicking outside
   useEffect(() => {
@@ -361,6 +936,215 @@ export default function StoryEditorPanel({
     return () => window.removeEventListener('update-story-editor-content', handleContentUpdate);
   }, []);
 
+  const checkIsOtherOrCustom = () => {
+    const tId = (topicId || '').toLowerCase();
+    const tTitle = (topicTitle || '').toLowerCase();
+    const cName = (componentName || '').toLowerCase();
+    return (
+      tId === 'other' ||
+      tId === 'custom' ||
+      tTitle === 'other' ||
+      tTitle === 'custom' ||
+      tTitle.includes('other') ||
+      tTitle.includes('custom') ||
+      cName === 'sbmbrstrycustom' ||
+      cName === 'sbmbrstryother' ||
+      resolvedTopicId === 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e' ||
+      resolvedTopicId === DEFAULT_TOPIC_LOOKUP['other']?.topicId
+    );
+  };
+
+  const pendingTriviaRef = useRef<any>(null);
+
+  const refineStoryFromTriviaWithPersona = async (
+    targetStoryId: string,
+    rawTriviaContent: string,
+    storyTitle: string,
+    intentId: string
+  ) => {
+    if (!rawTriviaContent || !rawTriviaContent.trim()) return;
+
+    try {
+      // 1. Resolve member's active StoryMate Persona
+      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+      let prefRecord: any = null;
+      const savedPref = sessionStorage.getItem('sandbox_mbr_preferences') || sessionStorage.getItem('mbrPreferences');
+      if (savedPref) {
+        try { prefRecord = JSON.parse(savedPref); } catch {}
+      }
+      if (!prefRecord) {
+        try {
+          prefRecord = await taskApi.getMemberPreferences(currentMbrId);
+        } catch {}
+      }
+
+      let activePersona: WriterPersona = FALLBACK_PERSONAS[0];
+      try {
+        const writers = await taskApi.getChWriters();
+        if (Array.isArray(writers) && writers.length > 0) {
+          const match = writers.find((w: any) => w.chWriterId === prefRecord?.chWriterId);
+          if (match) activePersona = match;
+        } else if (prefRecord?.chWriterId) {
+          const match = FALLBACK_PERSONAS.find((w) => w.chWriterId === prefRecord.chWriterId);
+          if (match) activePersona = match;
+        }
+      } catch {
+        if (prefRecord?.chWriterId) {
+          const match = FALLBACK_PERSONAS.find((w) => w.chWriterId === prefRecord.chWriterId);
+          if (match) activePersona = match;
+        }
+      }
+
+      const prompt = `[Task: Convert the following personal trivia spark into a rich, engaging memoir story draft in the FIRST-PERSON perspective ('I', 'my', 'we').
+Writing Persona Style: ${activePersona.chWriterName} (${activePersona.chWriterDesc}).
+Persona Voice Instruction: ${activePersona.chWriterPrompt}
+Story Title: "${storyTitle}".
+
+Source Trivia Spark:
+"${rawTriviaContent}"
+
+Output Rules:
+- Write in authentic first-person narrative from the author's own memory ("I", "my", "we").
+- Adopt the signature style, tone, and pacing of ${activePersona.chWriterName}.
+- Output ONLY the polished story draft text.
+- Do NOT wrap in quotation marks, do NOT include markdown code fences, and do NOT add conversational filler or intros.]`;
+
+      const startTime = performance.now();
+      const res = await chatApi.sendMessage(prompt, undefined, authorName || 'Author');
+      if (res && res.response) {
+        let polished = res.response
+          .replace(/^Here is (your|a) (story|draft|narrative|memoir|revised draft)[^:\n]*:\s*/i, '')
+          .replace(/^"(.*)"$/s, '$1')
+          .trim();
+
+        if (polished) {
+          setStories((prev) =>
+            prev.map((s) =>
+              s.mbrStoryId === targetStoryId ? { ...s, mbrStoryContent: polished } : s
+            )
+          );
+          setContent((curr) => {
+            return polished;
+          });
+          setSuccessMsg(`Drafted story in first person using ${activePersona.chWriterName} persona!`);
+
+          // Record telemetry if available
+          try {
+            const addedTokens = res.tokens_used || Math.ceil((prompt.length + polished.length) / 4);
+            const durationMs = Math.round(performance.now() - startTime);
+            if (!isSandbox) {
+              await mbrAiUsageLogApi.createLog({
+                mbrId: currentMbrId,
+                chIntentId: intentId,
+                tokensUsed: addedTokens,
+                promptTokens: Math.ceil(prompt.length / 4),
+                completionTokens: Math.ceil(polished.length / 4),
+                latencyMs: durationMs,
+                aiModel: 'gemini-1.5-flash',
+                callerComponent: 'StoryEditorPanel:applyTriviaStory'
+              });
+            }
+          } catch (telemErr) {
+            console.warn("Could not log AI usage telemetry:", telemErr);
+          }
+        }
+      }
+    } catch (aiErr) {
+      console.warn("Could not refine trivia draft with AI persona:", aiErr);
+    }
+  };
+
+  const applyTriviaStory = (pendingTrivia: any, baseStories: Partial<MbrStory>[] = stories) => {
+    const matchedOtherTopic = matchTopicByName('Other', dbTopics) || DEFAULT_TOPIC_LOOKUP['other'];
+    const otherTopicId = isUuid(matchedOtherTopic?.topicId) ? matchedOtherTopic!.topicId : (DEFAULT_TOPIC_LOOKUP['other']?.topicId || 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e');
+    const otherIntentId = isUuid(matchedOtherTopic?.chIntentId) ? matchedOtherTopic!.chIntentId : (DEFAULT_TOPIC_LOOKUP['other']?.chIntentId || 'c75f4efc-8a83-4084-89a4-e3ab49798d60');
+
+    const derivedTopicName = (pendingTrivia.derivedTopicName || pendingTrivia.storyTitle || 'Personal Trivia').slice(0, 40);
+    const derivedStoryTitle = (pendingTrivia.storyTitle || derivedTopicName).slice(0, 240);
+    const rawContent = pendingTrivia.storyContent || pendingTrivia.promptSuggestion || '';
+    
+    // Immediate deterministic first-person conversion
+    const immediateFirstPerson = convertTriviaToFirstPerson(rawContent);
+    const newId = `temp_${Date.now()}`;
+    const finalStoryTypeCd = 'sbMbrStryCustom';
+
+    const newStory: Partial<MbrStory> = {
+      mbrStoryId: newId,
+      mbrStoryTitle: derivedStoryTitle,
+      mbrStoryContent: immediateFirstPerson,
+      mbrStoryPublishStatusCd: 'Draft',
+      mbrStoryTypeCd: finalStoryTypeCd,
+      mbrStorySubordinateId: undefined,
+      mbrStoryTopicName: derivedTopicName,
+      topicId: otherTopicId,
+      chIntentId: otherIntentId,
+      mbrCustomTopicId: undefined
+    };
+
+    const nextStories = [newStory, ...baseStories.filter((s) => s.mbrStoryId !== newId)];
+    setStories(nextStories);
+    setActiveStoryId(newId);
+    setTitle(derivedStoryTitle);
+    setContent(immediateFirstPerson);
+    setStatus('Draft');
+    setActiveIntentId(otherIntentId);
+    setIsEditing(true);
+    setError(null);
+    setSuccessMsg(`Initiated new story draft from Trivia: "${derivedTopicName}"`);
+
+    try {
+      sessionStorage.removeItem('sb_pending_new_story');
+    } catch {}
+    pendingTriviaRef.current = null;
+
+    setTimeout(() => {
+      const el = document.getElementById('story-editor-panel');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+
+    // Asynchronously rewrite into full StoryMate persona first-person voice
+    refineStoryFromTriviaWithPersona(newId, rawContent, derivedStoryTitle, otherIntentId);
+  };
+
+  useEffect(() => {
+    const handleInitiateTriviaStory = (e?: any) => {
+      let pendingData: any = null;
+      if (e?.detail && (e.detail.derivedTopicName || e.detail.storyTitle || e.detail.storyContent)) {
+        pendingData = e.detail;
+      } else {
+        try {
+          const raw = sessionStorage.getItem('sb_pending_new_story');
+          if (raw) pendingData = JSON.parse(raw);
+        } catch {}
+      }
+
+      if (!pendingData) return;
+
+      const isOtherOrCustom = checkIsOtherOrCustom();
+      if (!isOtherOrCustom) {
+        pendingTriviaRef.current = pendingData;
+        return;
+      }
+
+      if (loading) {
+        pendingTriviaRef.current = pendingData;
+      } else {
+        applyTriviaStory(pendingData);
+      }
+    };
+
+    window.addEventListener('initiate-trivia-story', handleInitiateTriviaStory);
+
+    try {
+      const raw = sessionStorage.getItem('sb_pending_new_story');
+      if (raw) {
+        pendingTriviaRef.current = JSON.parse(raw);
+      }
+    } catch {}
+
+    return () => window.removeEventListener('initiate-trivia-story', handleInitiateTriviaStory);
+  }, [topicId, topicTitle, componentName, resolvedTopicId, resolvedChIntentId, loading, stories]);
+
   useEffect(() => {
     loadStories();
   }, [topicId, isSandbox, componentName, subordinateId, memberId]);
@@ -370,6 +1154,17 @@ export default function StoryEditorPanel({
     setError(null);
     try {
       const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
+
+      const isOtherOrCustom = checkIsOtherOrCustom();
+      let pendingTrivia: any = pendingTriviaRef.current;
+      if (!pendingTrivia) {
+        try {
+          const pendingRaw = sessionStorage.getItem('sb_pending_new_story');
+          if (pendingRaw) {
+            pendingTrivia = JSON.parse(pendingRaw);
+          }
+        } catch {}
+      }
 
       if (isSandbox) {
         const key = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
@@ -395,9 +1190,14 @@ export default function StoryEditorPanel({
           }));
           sessionStorage.setItem(key, JSON.stringify(list));
         }
-        setStories(list);
-        if (list.length > 0) {
-          selectStory(list[0]);
+
+        if (isOtherOrCustom && pendingTrivia) {
+          applyTriviaStory(pendingTrivia, list);
+        } else {
+          setStories(list);
+          if (list.length > 0) {
+            selectStory(list[0]);
+          }
         }
         loadStoryPhotoCounts(resolvedMbrId);
       } else {
@@ -585,7 +1385,9 @@ export default function StoryEditorPanel({
           accessibleStories = candidateList;
         }
 
-        if (accessibleStories.length > 0) {
+        if (isOtherOrCustom && pendingTrivia) {
+          applyTriviaStory(pendingTrivia, accessibleStories);
+        } else if (accessibleStories.length > 0) {
           // Select max mbrStoryVersion if multiple stories exist
           const sorted = [...accessibleStories].sort((a, b) => (b.mbrStoryVersion || 0) - (a.mbrStoryVersion || 0));
           setStories(sorted);
@@ -611,6 +1413,9 @@ export default function StoryEditorPanel({
         } else {
           setStories([]);
           setActiveStoryId(null);
+          setTitle('');
+          setContent('');
+          setStatus('Draft');
           setStoryStatsMap({});
         }
       }
@@ -686,6 +1491,7 @@ export default function StoryEditorPanel({
 
   const loadCustomTopics = async () => {
     setLoadingCustomTopics(true);
+    setTopicModalError(null);
     try {
       let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
       const userStr = sessionStorage.getItem('user');
@@ -700,43 +1506,36 @@ export default function StoryEditorPanel({
       if (isSandbox) {
         const saved = sessionStorage.getItem('sandbox_custom_topics');
         if (saved) {
-          list = JSON.parse(saved);
+          try {
+            list = ensureDefaultCustomTopics(JSON.parse(saved), currentMbrId);
+          } catch {
+            list = ensureDefaultCustomTopics(DEFAULT_CUSTOM_TOPICS, currentMbrId);
+          }
         } else {
-          list = [
-            {
-              topicCustomId: 'ct_1',
-              mbrId: currentMbrId,
-              topicCustomName: 'Pacific Road Trips',
-              topicCustomTopicDesc: 'Memories, coastal drives, and roadside diner stops along the scenic Pacific Coast Highway.',
-              chIntentId: DEFAULT_TOPIC_LOOKUP['other'].chIntentId,
-              mbrCustomTopicId: 'ct_1',
-              mbrCustomTopicName: 'Pacific Road Trips',
-            },
-            {
-              topicCustomId: 'ct_2',
-              mbrId: currentMbrId,
-              topicCustomName: 'Vintage Book Collecting',
-              topicCustomTopicDesc: 'Hunting for rare first editions and signed memoirs in dusty coastal antiquarian bookshops.',
-              chIntentId: DEFAULT_TOPIC_LOOKUP['other'].chIntentId,
-              mbrCustomTopicId: 'ct_2',
-              mbrCustomTopicName: 'Vintage Book Collecting',
-            }
-          ];
+          list = ensureDefaultCustomTopics(DEFAULT_CUSTOM_TOPICS, currentMbrId);
           sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(list));
         }
       } else {
         try {
           const dbTopics = await taskApi.getCustomTopics(currentMbrId);
           if (Array.isArray(dbTopics) && dbTopics.length > 0) {
-            list = dbTopics;
+            list = ensureDefaultCustomTopics(dbTopics, currentMbrId);
           } else {
             const saved = sessionStorage.getItem('sandbox_custom_topics');
-            if (saved) list = JSON.parse(saved);
+            if (saved) {
+              list = ensureDefaultCustomTopics(JSON.parse(saved), currentMbrId);
+            } else {
+              list = ensureDefaultCustomTopics(DEFAULT_CUSTOM_TOPICS, currentMbrId);
+            }
           }
         } catch (err) {
           console.warn("Could not load custom topics from DB, checking sandbox:", err);
           const saved = sessionStorage.getItem('sandbox_custom_topics');
-          if (saved) list = JSON.parse(saved);
+          if (saved) {
+            list = ensureDefaultCustomTopics(JSON.parse(saved), currentMbrId);
+          } else {
+            list = ensureDefaultCustomTopics(DEFAULT_CUSTOM_TOPICS, currentMbrId);
+          }
         }
       }
       setCustomTopics(list);
@@ -744,7 +1543,7 @@ export default function StoryEditorPanel({
         if (subordinateId) {
           const match = list.find((t) => (t.topicCustomId || t.mbrCustomTopicId) === subordinateId);
           setSelectedCustomTopic(match || list[0]);
-        } else {
+        } else if (!selectedCustomTopic || !list.some(t => (t.topicCustomId || t.mbrCustomTopicId) === (selectedCustomTopic.topicCustomId || selectedCustomTopic.mbrCustomTopicId))) {
           setSelectedCustomTopic(list[0]);
         }
       }
@@ -764,6 +1563,9 @@ export default function StoryEditorPanel({
       const list = await loadCustomTopics();
       setShowInlineNewTopic(false);
       setNewCustomTopicName('');
+      setNewCustomTopicDesc('');
+      setEditingTopicId(null);
+      setTopicModalError(null);
       setShowCustomTopicModal(true);
     } else {
       handleCreateNew();
@@ -804,8 +1606,14 @@ export default function StoryEditorPanel({
   };
 
   const handleCreateCustomTopicInline = async () => {
-    if (!newCustomTopicName.trim()) return;
+    const trimmedName = newCustomTopicName.trim();
+    if (!trimmedName) return;
+    if (trimmedName.length > 22) {
+      setTopicModalError('Topic name cannot exceed 22 characters.');
+      return;
+    }
     setCreatingCustomTopic(true);
+    setTopicModalError(null);
     try {
       let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
       const userStr = sessionStorage.getItem('user');
@@ -819,32 +1627,175 @@ export default function StoryEditorPanel({
       const newCustomTopic: TopicCustom = {
         topicCustomId: `ct_${Date.now()}`,
         mbrId: currentMbrId,
-        topicCustomName: newCustomTopicName.trim(),
-        topicCustomTopicDesc: `Memories and reflections for ${newCustomTopicName.trim()}.`,
+        topicCustomName: trimmedName,
+        topicCustomTopicDesc: newCustomTopicDesc.trim() || `Memories and reflections for ${trimmedName}.`,
         chIntentId: DEFAULT_TOPIC_LOOKUP['other'].chIntentId,
         mbrCustomTopicId: `ct_${Date.now()}`,
-        mbrCustomTopicName: newCustomTopicName.trim(),
-        mbrCustomTopicDesc: `Memories and reflections for ${newCustomTopicName.trim()}.`
+        mbrCustomTopicName: trimmedName,
+        mbrCustomTopicDesc: newCustomTopicDesc.trim() || `Memories and reflections for ${trimmedName}.`
       };
       if (isSandbox) {
         const nextList = [...customTopics, newCustomTopic];
         setCustomTopics(nextList);
         sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(nextList));
+        setNewCustomTopicName('');
+        setNewCustomTopicDesc('');
+        setShowInlineNewTopic(false);
         handleConfirmCustomTopicSelection(newCustomTopic);
       } else {
         try {
           const created = await taskApi.createCustomTopic(newCustomTopic);
           setCustomTopics((prev) => [...prev, created]);
+          setNewCustomTopicName('');
+          setNewCustomTopicDesc('');
+          setShowInlineNewTopic(false);
           handleConfirmCustomTopicSelection(created);
         } catch (e) {
           const nextList = [...customTopics, newCustomTopic];
           setCustomTopics(nextList);
           sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(nextList));
+          setNewCustomTopicName('');
+          setNewCustomTopicDesc('');
+          setShowInlineNewTopic(false);
           handleConfirmCustomTopicSelection(newCustomTopic);
         }
       }
+    } catch (err: any) {
+      setTopicModalError(`Failed to create custom topic: ${err.message || err}`);
     } finally {
       setCreatingCustomTopic(false);
+    }
+  };
+
+  const handleStartEditCustomTopic = (e: React.MouseEvent, ct: TopicCustom) => {
+    e.stopPropagation();
+    const id = ct.topicCustomId || ct.mbrCustomTopicId || '';
+    setEditingTopicId(id);
+    setEditTopicName(ct.topicCustomName || ct.mbrCustomTopicName || '');
+    setEditTopicDesc(ct.topicCustomTopicDesc || ct.mbrCustomTopicDesc || (ct as any).topicCustomTipicDesc || '');
+    setTopicModalError(null);
+  };
+
+  const handleCancelEditCustomTopic = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingTopicId(null);
+    setEditTopicName('');
+    setEditTopicDesc('');
+    setTopicModalError(null);
+  };
+
+  const handleSaveCustomTopicEdit = async (e: React.MouseEvent, ct: TopicCustom) => {
+    e.stopPropagation();
+    const trimmed = editTopicName.trim();
+    if (!trimmed) {
+      setTopicModalError('Topic name cannot be empty.');
+      return;
+    }
+    if (trimmed.length > 22) {
+      setTopicModalError('Topic name cannot exceed 22 characters.');
+      return;
+    }
+    setSavingTopicEdit(true);
+    setTopicModalError(null);
+    try {
+      const id = ct.topicCustomId || ct.mbrCustomTopicId || '';
+      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+      const userStr = sessionStorage.getItem('user');
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+          if (mbrProfile && mbrProfile.mbrId) currentMbrId = mbrProfile.mbrId;
+        } catch {}
+      }
+
+      const updatedCt: TopicCustom = {
+        ...ct,
+        topicCustomName: trimmed,
+        topicCustomTopicDesc: editTopicDesc.trim() || undefined,
+        mbrCustomTopicName: trimmed,
+        mbrCustomTopicDesc: editTopicDesc.trim() || undefined
+      };
+
+      if (isSandbox || id.startsWith('ct_remember') || id.startsWith('ct_flash') || id.startsWith('ct_')) {
+        const nextList = customTopics.map((t) => (t.topicCustomId || t.mbrCustomTopicId) === id ? updatedCt : t);
+        setCustomTopics(nextList);
+        sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(nextList));
+      } else {
+        try {
+          await taskApi.updateCustomTopic(id, {
+            mbrId: currentMbrId,
+            topicCustomName: trimmed,
+            topicCustomTopicDesc: editTopicDesc.trim() || undefined
+          });
+          const refreshed = await taskApi.getCustomTopics(currentMbrId);
+          const withDefaults = ensureDefaultCustomTopics(refreshed, currentMbrId);
+          setCustomTopics(withDefaults);
+        } catch (err: any) {
+          console.warn("Could not update custom topic in DB, updating locally:", err);
+          const nextList = customTopics.map((t) => (t.topicCustomId || t.mbrCustomTopicId) === id ? updatedCt : t);
+          setCustomTopics(nextList);
+          sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(nextList));
+        }
+      }
+
+      if ((selectedCustomTopic?.topicCustomId || selectedCustomTopic?.mbrCustomTopicId) === id) {
+        setSelectedCustomTopic(updatedCt);
+      }
+      setEditingTopicId(null);
+    } catch (err: any) {
+      setTopicModalError(`Failed to save topic edit: ${err.message || err}`);
+    } finally {
+      setSavingTopicEdit(false);
+    }
+  };
+
+  const handleDeleteCustomTopic = async (e: React.MouseEvent, ct: TopicCustom) => {
+    e.stopPropagation();
+    const id = ct.topicCustomId || ct.mbrCustomTopicId || '';
+    setDeletingTopicId(id);
+    setTopicModalError(null);
+    try {
+      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+      const userStr = sessionStorage.getItem('user');
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+          if (mbrProfile && mbrProfile.mbrId) currentMbrId = mbrProfile.mbrId;
+        } catch {}
+      }
+
+      if (isSandbox || id.startsWith('ct_remember') || id.startsWith('ct_flash') || id.startsWith('ct_')) {
+        const nextList = customTopics.filter((t) => (t.topicCustomId || t.mbrCustomTopicId) !== id);
+        setCustomTopics(nextList);
+        sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(nextList));
+        if ((selectedCustomTopic?.topicCustomId || selectedCustomTopic?.mbrCustomTopicId) === id) {
+          setSelectedCustomTopic(nextList[0] || null);
+        }
+      } else {
+        try {
+          await taskApi.deleteCustomTopic(id);
+          const refreshed = await taskApi.getCustomTopics(currentMbrId);
+          const withDefaults = ensureDefaultCustomTopics(refreshed, currentMbrId);
+          setCustomTopics(withDefaults);
+          if ((selectedCustomTopic?.topicCustomId || selectedCustomTopic?.mbrCustomTopicId) === id) {
+            setSelectedCustomTopic(withDefaults[0] || null);
+          }
+        } catch (err: any) {
+          console.warn("Could not delete custom topic from DB, deleting locally:", err);
+          const nextList = customTopics.filter((t) => (t.topicCustomId || t.mbrCustomTopicId) !== id);
+          setCustomTopics(nextList);
+          sessionStorage.setItem('sandbox_custom_topics', JSON.stringify(nextList));
+          if ((selectedCustomTopic?.topicCustomId || selectedCustomTopic?.mbrCustomTopicId) === id) {
+            setSelectedCustomTopic(nextList[0] || null);
+          }
+        }
+      }
+    } catch (err: any) {
+      setTopicModalError(`Failed to delete topic: ${err.message || err}`);
+    } finally {
+      setDeletingTopicId(null);
     }
   };
 
@@ -892,63 +1843,49 @@ export default function StoryEditorPanel({
     setSuccessMsg(null);
 
     try {
-      // Resolve logged-in member ID
-      let currentMbrId = resolvedMbrId || memberId;
-      if (!currentMbrId) {
-        const storedMbr = sessionStorage.getItem('sb_current_mbr');
-        if (storedMbr) {
-          try {
-            const parsed = JSON.parse(storedMbr);
-            if (parsed.mbrId) currentMbrId = parsed.mbrId;
-          } catch {}
-        }
-      }
-      if (!currentMbrId) {
-        const userStr = sessionStorage.getItem('user');
-        if (userStr) {
-          try {
-            const u = JSON.parse(userStr);
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id || u.id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              currentMbrId = mbrProfile.mbrId;
-            }
-          } catch (e) {
-            console.warn("Could not retrieve member profile ID from DB, falling back to default Eleanor Hartwell UUID:", e);
-          }
-        }
-      }
-      if (!currentMbrId) {
-        currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      }
+      const currentMbrId = await resolveCurrentMbrId(memberId, resolvedMbrId);
+      setResolvedMbrId(currentMbrId);
 
-      const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
+      const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId?.toLowerCase()] || topicId || 'sbMbrStryCustom');
       const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
 
       // Find original version from active story
       const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
       const version = activeStory ? (activeStory.mbrStoryVersion || 1) : 1;
-
       const todayDateStr = new Date().toISOString().split('T')[0];
 
+      const rawSubordinateId = activeStory?.mbrStorySubordinateId || activeStory?.mbrCustomTopicId || subordinateId;
+      const validSubordinateId = isUuid(rawSubordinateId) ? rawSubordinateId : undefined;
+      const validCustomTopicId = isUuid(activeStory?.mbrCustomTopicId) ? activeStory?.mbrCustomTopicId : (isUuid(subordinateId) ? subordinateId : undefined);
+      const isOtherOrCustomStory = (topicId || '').toLowerCase() === 'other' || (topicId || '').toLowerCase() === 'custom' || finalStoryTypeCd === 'sbMbrStryCustom' || activeStory?.mbrStoryTypeCd === 'sbMbrStryCustom';
+      const fallbackTopicId = isOtherOrCustomStory ? 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e' : (DEFAULT_TOPIC_LOOKUP[topicId?.toLowerCase()]?.topicId || 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e');
+      const fallbackChIntentId = isOtherOrCustomStory ? 'c75f4efc-8a83-4084-89a4-e3ab49798d60' : (DEFAULT_TOPIC_LOOKUP[topicId?.toLowerCase()]?.chIntentId || 'c75f4efc-8a83-4084-89a4-e3ab49798d60');
+
+      const validTopicId = isUuid(activeStory?.topicId) ? activeStory?.topicId : (isUuid(resolvedTopicId) ? resolvedTopicId : fallbackTopicId);
+      const validChIntentId = isUuid(activeIntentId) ? activeIntentId : (isUuid(activeStory?.chIntentId) ? activeStory?.chIntentId : (isUuid(resolvedChIntentId) ? resolvedChIntentId : fallbackChIntentId));
+
+      const derivedTopicStr = activeStory?.mbrStoryTopicName || subordinateName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined) || 'Other';
+      const cleanTopicName = derivedTopicStr ? derivedTopicStr.slice(0, 40) : undefined;
+
       // Check if user is publishing a draft story that has an original published story reference
-      const isPublishingDraftWithOriginal = (status || '').toLowerCase() === 'published' && activeStory && activeStory.mbrStoryOriginalId;
+      const isPublishingDraftWithOriginal = (status || '').toLowerCase() === 'published' && activeStory && activeStory.mbrStoryOriginalId && isUuid(activeStory.mbrStoryOriginalId);
 
       if (isPublishingDraftWithOriginal) {
         const originalId = activeStory.mbrStoryOriginalId!;
         const updatedOriginalStory: Partial<MbrStory> = {
-          mbrStoryTitle: title.trim(),
+          mbrStoryTitle: title.trim().slice(0, 240),
           mbrStoryContent: content,
           mbrStoryPublishStatusCd: 'Published',
           mbrStoryPublishedDate: activeStory.mbrStoryPublishedDate || todayDateStr,
-          mbrStoryTypeCd: finalStoryTypeCd,
-          mbrStorySubordinateId: subordinateId || undefined,
-          mbrStoryTopicName: subordinateName || activeStory.mbrStoryTopicName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined),
+          mbrStoryTypeCd: finalStoryTypeCd.slice(0, 40),
+          mbrStorySubordinateId: validSubordinateId,
+          mbrStoryTopicName: cleanTopicName,
           mbrMbrId: currentMbrId,
           mbrStoryVersion: version,
-          mbrStoryThreadID: activeThreadId,
-          chIntentId: activeIntentId || activeStory.chIntentId || resolvedChIntentId,
-          topicId: activeStory.topicId || resolvedTopicId,
-          mbrCustomTopicId: (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom') ? (subordinateId || undefined) : activeStory.mbrCustomTopicId,
+          mbrStoryThreadID: activeThreadId ? activeThreadId.slice(0, 88) : undefined,
+          chIntentId: validChIntentId,
+          topicId: validTopicId,
+          mbrCustomTopicId: validCustomTopicId,
         };
 
         if (isSandbox) {
@@ -989,20 +1926,20 @@ export default function StoryEditorPanel({
 
       const updatedStory: Partial<MbrStory> = {
         mbrStoryId: (activeStoryId && !activeStoryId.startsWith('temp_')) ? activeStoryId : undefined,
-        mbrStoryTitle: title.trim(),
+        mbrStoryTitle: title.trim().slice(0, 240),
         mbrStoryContent: content,
         mbrStoryPublishStatusCd: status,
         mbrStoryPublishedDate: (status || '').toLowerCase() === 'published' ? (activeStory?.mbrStoryPublishedDate || todayDateStr) : activeStory?.mbrStoryPublishedDate,
-        mbrStoryTypeCd: finalStoryTypeCd,
-        mbrStorySubordinateId: activeStory?.mbrStorySubordinateId || activeStory?.mbrCustomTopicId || subordinateId || undefined,
-        mbrStoryTopicName: activeStory?.mbrStoryTopicName || subordinateName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined),
+        mbrStoryTypeCd: finalStoryTypeCd.slice(0, 40),
+        mbrStorySubordinateId: validSubordinateId,
+        mbrStoryTopicName: cleanTopicName,
         mbrMbrId: currentMbrId,
         mbrStoryVersion: version,
-        mbrStoryThreadID: activeThreadId,
-        chIntentId: activeIntentId || activeStory?.chIntentId || resolvedChIntentId,
-        topicId: activeStory?.topicId || resolvedTopicId,
-        mbrCustomTopicId: activeStory?.mbrCustomTopicId || ((topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom') ? (subordinateId || undefined) : undefined),
-        mbrStoryOriginalId: activeStory?.mbrStoryOriginalId,
+        mbrStoryThreadID: activeThreadId ? activeThreadId.slice(0, 88) : undefined,
+        chIntentId: validChIntentId,
+        topicId: validTopicId,
+        mbrCustomTopicId: validCustomTopicId,
+        mbrStoryOriginalId: isUuid(activeStory?.mbrStoryOriginalId) ? activeStory?.mbrStoryOriginalId : undefined,
       };
 
       if (isSandbox) {
@@ -1104,56 +2041,45 @@ export default function StoryEditorPanel({
     setError(null);
 
     try {
-      let currentMbrId = resolvedMbrId || memberId;
-      if (!currentMbrId) {
-        const storedMbr = sessionStorage.getItem('sb_current_mbr');
-        if (storedMbr) {
-          try {
-            const parsed = JSON.parse(storedMbr);
-            if (parsed.mbrId) currentMbrId = parsed.mbrId;
-          } catch {}
-        }
-      }
-      if (!currentMbrId) {
-        const userStr = sessionStorage.getItem('user');
-        if (userStr) {
-          try {
-            const u = JSON.parse(userStr);
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id || u.id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              currentMbrId = mbrProfile.mbrId;
-            }
-          } catch (e) {
-            console.warn("Could not retrieve member profile ID from DB:", e);
-          }
-        }
-      }
-      if (!currentMbrId) {
-        currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      }
+      const currentMbrId = await resolveCurrentMbrId(memberId, resolvedMbrId);
+      setResolvedMbrId(currentMbrId);
 
-      const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
+      const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId?.toLowerCase()] || topicId || 'sbMbrStryCustom');
       const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
       const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
 
       const todayDateStr = new Date().toISOString().split('T')[0];
 
+      const rawSubordinateId = activeStory?.mbrStorySubordinateId || activeStory?.mbrCustomTopicId || subordinateId;
+      const validSubordinateId = isUuid(rawSubordinateId) ? rawSubordinateId : undefined;
+      const validCustomTopicId = isUuid(activeStory?.mbrCustomTopicId) ? activeStory?.mbrCustomTopicId : (isUuid(subordinateId) ? subordinateId : undefined);
+      const isOtherOrCustomStory = (topicId || '').toLowerCase() === 'other' || (topicId || '').toLowerCase() === 'custom' || finalStoryTypeCd === 'sbMbrStryCustom' || activeStory?.mbrStoryTypeCd === 'sbMbrStryCustom';
+      const fallbackTopicId = isOtherOrCustomStory ? 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e' : (DEFAULT_TOPIC_LOOKUP[topicId?.toLowerCase()]?.topicId || 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e');
+      const fallbackChIntentId = isOtherOrCustomStory ? 'c75f4efc-8a83-4084-89a4-e3ab49798d60' : (DEFAULT_TOPIC_LOOKUP[topicId?.toLowerCase()]?.chIntentId || 'c75f4efc-8a83-4084-89a4-e3ab49798d60');
+
+      const validTopicId = isUuid(activeStory?.topicId) ? activeStory?.topicId : (isUuid(resolvedTopicId) ? resolvedTopicId : fallbackTopicId);
+      const validChIntentId = isUuid(activeIntentId) ? activeIntentId : (isUuid(activeStory?.chIntentId) ? activeStory?.chIntentId : (isUuid(resolvedChIntentId) ? resolvedChIntentId : fallbackChIntentId));
+
+      const derivedTopicStr = activeStory?.mbrStoryTopicName || subordinateName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined) || 'Other';
+      const cleanTopicName = derivedTopicStr ? derivedTopicStr.slice(0, 40) : undefined;
+
       // Check if publishing a draft story that references an original published story
-      if (activeStory && activeStory.mbrStoryOriginalId) {
+      if (activeStory && activeStory.mbrStoryOriginalId && isUuid(activeStory.mbrStoryOriginalId)) {
         const originalId = activeStory.mbrStoryOriginalId;
         const updatedOriginalStory: Partial<MbrStory> = {
-          mbrStoryTitle: title.trim() || 'Untitled Story',
+          mbrStoryTitle: (title.trim() || 'Untitled Story').slice(0, 240),
           mbrStoryContent: content,
           mbrStoryPublishStatusCd: 'Published',
           mbrStoryPublishedDate: todayDateStr,
-          mbrStoryTypeCd: finalStoryTypeCd,
-          mbrStorySubordinateId: subordinateId || undefined,
+          mbrStoryTypeCd: finalStoryTypeCd.slice(0, 40),
+          mbrStorySubordinateId: validSubordinateId,
+          mbrStoryTopicName: cleanTopicName,
           mbrMbrId: currentMbrId,
           mbrStoryVersion: activeStory.mbrStoryVersion || 1,
-          mbrStoryThreadID: activeThreadId,
-          chIntentId: activeIntentId || activeStory.chIntentId || resolvedChIntentId,
-          topicId: activeStory.topicId || resolvedTopicId,
-          mbrCustomTopicId: (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom') ? (subordinateId || undefined) : activeStory.mbrCustomTopicId,
+          mbrStoryThreadID: activeThreadId ? activeThreadId.slice(0, 88) : undefined,
+          chIntentId: validChIntentId,
+          topicId: validTopicId,
+          mbrCustomTopicId: validCustomTopicId,
         };
 
         if (isSandbox) {
@@ -1191,18 +2117,19 @@ export default function StoryEditorPanel({
       } else {
         const updatedStory: Partial<MbrStory> = {
           mbrStoryId: (!activeStoryId.startsWith('temp_')) ? activeStoryId : undefined,
-          mbrStoryTitle: title.trim() || 'Untitled Story',
+          mbrStoryTitle: (title.trim() || 'Untitled Story').slice(0, 240),
           mbrStoryContent: content,
           mbrStoryPublishStatusCd: 'Published',
           mbrStoryPublishedDate: todayDateStr,
-          mbrStoryTypeCd: finalStoryTypeCd,
-          mbrStorySubordinateId: subordinateId || undefined,
+          mbrStoryTypeCd: finalStoryTypeCd.slice(0, 40),
+          mbrStorySubordinateId: validSubordinateId,
+          mbrStoryTopicName: cleanTopicName,
           mbrMbrId: currentMbrId,
           mbrStoryVersion: activeStory ? (activeStory.mbrStoryVersion || 1) : 1,
-          mbrStoryThreadID: activeThreadId,
-          chIntentId: activeIntentId || activeStory?.chIntentId || resolvedChIntentId,
-          topicId: activeStory?.topicId || resolvedTopicId,
-          mbrCustomTopicId: (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom') ? (subordinateId || undefined) : activeStory?.mbrCustomTopicId,
+          mbrStoryThreadID: activeThreadId ? activeThreadId.slice(0, 88) : undefined,
+          chIntentId: validChIntentId,
+          topicId: validTopicId,
+          mbrCustomTopicId: validCustomTopicId,
         };
 
         if (isSandbox) {
@@ -1242,94 +2169,35 @@ export default function StoryEditorPanel({
     }
   };
 
-  const handleEditClick = async () => {
-    // Check if the current active story is Published
-    const isPublished = (status || '').toLowerCase() === 'published';
+  const handleEditClick = () => {
+    setError(null);
+    setSuccessMsg(null);
+    setIsEditing(true);
+  };
 
-    if (isPublished) {
-      setSaving(true);
-      setError(null);
-      setSuccessMsg(null);
+  const handleCancel = () => {
+    setIsEditing(false);
+    setError(null);
+    setSuccessMsg(null);
 
-      try {
-        let currentMbrId = resolvedMbrId || memberId;
-        if (!currentMbrId) {
-          const storedMbr = sessionStorage.getItem('sb_current_mbr');
-          if (storedMbr) {
-            try {
-              const parsed = JSON.parse(storedMbr);
-              if (parsed.mbrId) currentMbrId = parsed.mbrId;
-            } catch {}
-          }
-        }
-        if (!currentMbrId) {
-          const userStr = sessionStorage.getItem('user');
-          if (userStr) {
-            try {
-              const u = JSON.parse(userStr);
-              const mbrProfile = await taskApi.getMemberByUserId(u.user_id || u.id);
-              if (mbrProfile && mbrProfile.mbrId) {
-                currentMbrId = mbrProfile.mbrId;
-              }
-            } catch (e) {
-              console.warn("Could not retrieve member profile ID from DB:", e);
-            }
-          }
-        }
-        if (!currentMbrId) {
-          currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
-        }
-
-        const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId] || topicId);
-        const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
-        const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
-        const currentVersion = activeStory ? (activeStory.mbrStoryVersion || 1) : 1;
-        const originalId = activeStory?.mbrStoryOriginalId || (activeStoryId && !activeStoryId.startsWith('temp_') ? activeStoryId : undefined);
-
-        const newDraftStory: Partial<MbrStory> = {
-          mbrStoryTitle: title.trim() || `${topicTitle} Story`,
-          mbrStoryContent: content,
-          mbrStoryPublishStatusCd: 'Draft',
-          mbrStoryTypeCd: finalStoryTypeCd,
-          mbrStorySubordinateId: subordinateId || undefined,
-          mbrMbrId: currentMbrId,
-          mbrStoryVersion: currentVersion + 1,
-          mbrStoryThreadID: activeThreadId,
-          chIntentId: activeIntentId || activeStory?.chIntentId || resolvedChIntentId,
-          topicId: activeStory?.topicId || resolvedTopicId,
-          mbrCustomTopicId: (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom') ? (subordinateId || undefined) : activeStory?.mbrCustomTopicId,
-          mbrStoryOriginalId: originalId,
-        };
-
-        if (isSandbox) {
-          const newId = `st_draft_${Date.now()}`;
-          const sandboxStory = {
-            ...newDraftStory,
-            mbrStoryId: newId
-          };
-          const nextList = [sandboxStory, ...stories];
-          setStories(nextList);
-          sessionStorage.setItem(sandboxKey, JSON.stringify(nextList));
-          setActiveStoryId(newId);
-          setStatus('Draft');
-          setSuccessMsg('Created new draft story copied from published story.');
-        } else {
-          const savedResult = await taskApi.createStory(newDraftStory);
-          const nextList = [savedResult, ...stories];
-          setStories(nextList);
-          setActiveStoryId(savedResult.mbrStoryId);
-          setStatus('Draft');
-          setSuccessMsg('Created new draft story copied from published story.');
-        }
-
-        setIsEditing(true);
-      } catch (err: any) {
-        setError(`Failed to create new draft story: ${err.message}`);
-      } finally {
-        setSaving(false);
+    // If the active story was a new uncommitted temporary story, remove it
+    if (activeStoryId && activeStoryId.startsWith('temp_')) {
+      const remainingStories = stories.filter((s) => s.mbrStoryId !== activeStoryId);
+      setStories(remainingStories);
+      if (remainingStories.length > 0) {
+        selectStory(remainingStories[0]);
+      } else {
+        setActiveStoryId(null);
+        setTitle('');
+        setContent('');
+        setStatus('Draft');
       }
     } else {
-      setIsEditing(true);
+      // Revert the form inputs back to the saved active story's values
+      const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
+      if (activeStory) {
+        selectStory(activeStory);
+      }
     }
   };
 
@@ -1419,26 +2287,90 @@ export default function StoryEditorPanel({
               <thead className="sticky top-0 z-10">
                 <tr className="text-[10px] sm:text-[11px] font-serif font-bold text-slate-500 uppercase tracking-wider bg-[#FAF8F5]">
                   <th className="py-2.5 pl-3 sm:pl-4 pr-1 sm:pr-2 text-left w-24 sm:w-28 md:w-32 shrink-0 rounded-tl-2xl border-b border-[#EFECE7] align-bottom">
-                    Topic
+                    <button
+                      type="button"
+                      onClick={() => handleSort('topic')}
+                      className="group/btn inline-flex items-center gap-1 cursor-pointer select-none text-left font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider text-[10px] sm:text-[11px]"
+                    >
+                      <span>Topic</span>
+                      {sortColumn === 'topic' ? (
+                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" /> : <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
+                      )}
+                    </button>
                   </th>
                   <th className="py-2.5 px-1 sm:px-2 text-left w-auto border-b border-[#EFECE7] align-bottom">
-                    Story
+                    <button
+                      type="button"
+                      onClick={() => handleSort('story')}
+                      className="group/btn inline-flex items-center gap-1 cursor-pointer select-none text-left font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider text-[10px] sm:text-[11px]"
+                    >
+                      <span>Story</span>
+                      {sortColumn === 'story' ? (
+                        sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" /> : <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
+                      ) : (
+                        <ArrowUpDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
+                      )}
+                    </button>
                   </th>
-                  <th className="py-2.5 px-1 sm:px-2 text-right w-14 sm:w-16 shrink-0 border-b border-[#EFECE7] align-bottom">
-                    Views
+                  <th className="py-2.5 px-1 sm:px-2 text-right w-12 sm:w-14 shrink-0 border-b border-[#EFECE7] align-bottom">
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleSort('views')}
+                        className="group/btn inline-flex items-center gap-1 cursor-pointer select-none text-right font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider text-[10px] sm:text-[11px]"
+                      >
+                        <span>Views</span>
+                        {sortColumn === 'views' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" /> : <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
+                        )}
+                      </button>
+                    </div>
                   </th>
-                  <th className="py-2.5 pr-2.5 sm:pr-3.5 pl-1 text-right w-[88px] sm:w-28 min-w-[88px] shrink-0 rounded-tr-2xl border-b border-[#EFECE7] align-bottom">
-                    Date
+                  <th className="py-2.5 px-1 sm:px-1.5 text-right w-[72px] sm:w-[86px] min-w-[72px] shrink-0 border-b border-[#EFECE7] align-bottom">
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => handleSort('date')}
+                        className="group/btn inline-flex items-center gap-1 cursor-pointer select-none text-right font-serif font-bold text-slate-500 hover:text-slate-800 transition-colors uppercase tracking-wider text-[10px] sm:text-[11px]"
+                      >
+                        <span>Date</span>
+                        {sortColumn === 'date' ? (
+                          sortDirection === 'asc' ? <ArrowUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" /> : <ArrowDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-600 shrink-0" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 group-hover/btn:text-slate-600 opacity-60 group-hover/btn:opacity-100 shrink-0" />
+                        )}
+                      </button>
+                    </div>
+                  </th>
+                  <th className="py-2.5 pr-2.5 sm:pr-3.5 pl-1 text-center w-8 sm:w-9 min-w-[32px] shrink-0 rounded-tr-2xl border-b border-[#EFECE7] align-bottom">
+                    <div className="flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => handleSort('published')}
+                        title="Sort by Published Status"
+                        className="group/btn inline-flex items-center justify-center cursor-pointer select-none text-slate-400 hover:text-slate-700 transition-colors"
+                      >
+                        <Globe className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        {sortColumn === 'published' && (
+                          sortDirection === 'asc' ? <ArrowUp className="w-2.5 h-2.5 text-blue-600 ml-0.5 shrink-0" /> : <ArrowDown className="w-2.5 h-2.5 text-blue-600 ml-0.5 shrink-0" />
+                        )}
+                      </button>
+                    </div>
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {stories.map((s, idx) => {
+                {sortedStories.map((s, idx) => {
                   const isActive = activeStoryId === s.mbrStoryId;
-                  const formattedDate = formatPublishedDate(s.mbrStoryPublishedDate);
+                  const formattedDate = formatPublishedDate(s.mbrStoryPublishedDate || s.mbrStoryUpdatedAt || s.mbrStoryCreatedAt);
                   const viewCount = (s.mbrStoryId && storyStatsMap[s.mbrStoryId] !== undefined) ? storyStatsMap[s.mbrStoryId] : 0;
-                  const isLastRow = idx === stories.length - 1;
+                  const isLastRow = idx === sortedStories.length - 1;
                   const displayTopicName = s.mbrStoryTopicName || topicTitle || '—';
+                  const isPublished = (s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published';
                   return (
                     <tr
                       key={s.mbrStoryId}
@@ -1449,30 +2381,36 @@ export default function StoryEditorPanel({
                           : 'hover:bg-slate-50/80 text-slate-700'
                       }`}
                     >
-                      <td className={`py-2.5 pl-2.5 sm:pl-3 pr-1 sm:pr-2 font-serif text-left border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
-                        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-                          <div className={`w-1 sm:w-1.5 h-4 rounded-full shrink-0 ${isActive ? 'bg-blue-600' : 'bg-transparent'}`} />
+                      <td className={`py-2.5 pl-2.5 sm:pl-3 pr-1 sm:pr-2 font-serif text-left align-top border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
+                        <div className="flex items-start gap-1.5 sm:gap-2 min-w-0 pt-0.5">
+                          <div className={`w-1 sm:w-1.5 h-4 rounded-full shrink-0 mt-0.5 ${isActive ? 'bg-blue-600' : 'bg-transparent'}`} />
                           <span className="text-left font-serif text-slate-800 truncate" title={displayTopicName}>
                             {displayTopicName}
                           </span>
                         </div>
                       </td>
-                      <td className={`py-2.5 px-1 sm:px-2 font-serif text-left border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
-                        <span className="text-left whitespace-normal break-words leading-snug">
+                      <td className={`py-2.5 px-1 sm:px-2 font-serif text-left align-top border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
+                        <span className="text-left whitespace-normal break-words leading-snug block">
                           {s.mbrStoryTitle || 'Untitled Story'}
                         </span>
                       </td>
-                      <td className={`py-2.5 px-1 sm:px-2 text-right font-mono text-[10.5px] sm:text-[11px] text-slate-600 align-top pt-2.5 border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
+                      <td className={`py-2.5 px-1 sm:px-2 text-right font-mono text-[10.5px] sm:text-[11px] text-slate-600 align-top border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
                         {viewCount.toLocaleString()}
                       </td>
-                      <td className={`py-2.5 pr-2.5 sm:pr-3.5 pl-1 text-right font-mono text-[10.5px] sm:text-[11px] text-slate-500 whitespace-nowrap align-top pt-2.5 border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
+                      <td className={`py-2.5 px-1 sm:px-1.5 text-right font-mono text-[10.5px] sm:text-[11px] text-slate-500 whitespace-nowrap align-top border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
                         {formattedDate}
+                      </td>
+                      <td className={`py-2.5 pr-2.5 sm:pr-3.5 pl-1 text-center align-top border-b border-[#EFECE7] ${isLastRow ? 'border-b-0' : ''}`}>
+                        {isPublished && (
+                          <div className="flex items-center justify-center pt-0.5" title="Published">
+                            <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600" />
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
-
             </table>
           </div>
         </div>
@@ -1585,45 +2523,12 @@ export default function StoryEditorPanel({
                 <span>StoryMate AI</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setShowPhotoGalleryModal(true)}
-                disabled={!activeStoryId}
-                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 text-indigo-800 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs disabled:opacity-50"
-                title={`Story Photo Gallery${activePhotoCount > 0 ? ` (${activePhotoCount} photos)` : ''}`}
-              >
-                <Images className="w-3.5 h-3.5 text-indigo-600" />
-                <span>Photos</span>
-                {activePhotoCount > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-600 text-white leading-none">
-                    {activePhotoCount}
-                  </span>
-                )}
-              </button>
-
-              {content && (
-                <StoryAudioPlayer
-                  text={`${title}. ${content}`}
-                  storyId={activeStoryId || 'editor-draft'}
-                  title={title || 'Draft Story'}
-                  variant="inline-button"
-                />
-              )}
-
-              <button
-                type="button"
-                onClick={handlePrintToPdf}
-                title="Preview & Print story as a paperback chapter PDF"
-                className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-slate-50 hover:bg-amber-50 text-slate-700 hover:text-amber-800 border border-slate-200 hover:border-amber-300 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer shadow-2xs group"
-              >
-                <Printer className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-600 transition-colors" />
-                <span className="hidden sm:inline">Print PDF</span>
-              </button>
+              {/* Photo gallery, narration player, and print PDF hidden during edit mode */}
             </div>
 
             <div className="flex items-center gap-2.5 sm:gap-3">
               <button
-                onClick={() => setIsEditing(false)}
+                onClick={handleCancel}
                 disabled={saving}
                 className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer disabled:opacity-50"
               >
@@ -1632,10 +2537,10 @@ export default function StoryEditorPanel({
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 transition-all duration-150 cursor-pointer disabled:opacity-50 border border-blue-600"
+                className="flex items-center justify-center gap-1.5 px-4 sm:px-5 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/10 transition-all duration-150 cursor-pointer disabled:opacity-50 border border-blue-600"
               >
-                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                <span>Save Story</span>
+                {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{saving ? 'Saving...' : 'Save'}</span>
               </button>
             </div>
           </div>
@@ -1660,122 +2565,138 @@ export default function StoryEditorPanel({
               {!readOnly && (() => {
                 const isStoryPublished = (status || '').toLowerCase() === 'published';
                 return (
-                  <>
-                    {/* Desktop Expanded Action Icons */}
-                    <div className="hidden sm:flex items-center gap-2 shrink-0">
-                      {/* Photo Gallery Icon Button with Count Badge */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {/* Photo Gallery Quick Button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowPhotoGalleryModal(true)}
+                      disabled={!activeStoryId}
+                      title={`Story Photos${activePhotoCount > 0 ? ` (${activePhotoCount} photos)` : ''}`}
+                      className="relative p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-150 rounded-xl cursor-pointer transition-colors"
+                    >
+                      <Images className="w-4 h-4 text-indigo-600" />
+                      {activePhotoCount > 0 && (
+                        <span className="absolute -top-1.5 -right-1.5 px-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] font-bold bg-indigo-600 text-white rounded-full leading-none shadow-xs">
+                          {activePhotoCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {/* AI Voice Narration (Published state) */}
+                    {isStoryPublished && (
                       <button
                         type="button"
-                        onClick={() => setShowPhotoGalleryModal(true)}
+                        onClick={() => setShowAiVoiceModal(true)}
                         disabled={!activeStoryId}
-                        title={`Story Photos${activePhotoCount > 0 ? ` (${activePhotoCount} photos)` : ''}`}
-                        className="relative p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-150 rounded-xl cursor-pointer transition-colors"
+                        title="Generate AI Voice Narration (MP3)"
+                        className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 rounded-xl cursor-pointer transition-colors"
                       >
-                        <Images className="w-4 h-4 text-indigo-600" />
-                        {activePhotoCount > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 px-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] font-bold bg-indigo-600 text-white rounded-full leading-none shadow-xs">
-                            {activePhotoCount}
-                          </span>
-                        )}
+                        <Mic className="w-4 h-4 text-purple-600" />
                       </button>
+                    )}
 
-                      {/* AI Voice Narration Icon Button (Published state only) */}
-                      {isStoryPublished && (
-                        <button
-                          type="button"
-                          onClick={() => setShowAiVoiceModal(true)}
-                          disabled={!activeStoryId}
-                          title="Generate AI Voice Narration (MP3)"
-                          className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 rounded-xl cursor-pointer transition-colors"
-                        >
-                          <Mic className="w-4 h-4 text-purple-600" />
-                        </button>
-                      )}
+                    {/* Inline Story Audio Player if story has text */}
+                    {content && (
+                      <StoryAudioPlayer
+                        text={`${title}. ${content}`}
+                        storyId={activeStoryId || 'editor-story'}
+                        title={title}
+                        variant="icon-button"
+                        showLabel={false}
+                      />
+                    )}
 
-                      {content && (
-                        <StoryAudioPlayer
-                          text={`${title}. ${content}`}
-                          storyId={activeStoryId || 'editor-story'}
-                          title={title}
-                          variant="inline-button"
-                        />
-                      )}
-                      <button
-                        type="button"
-                        onClick={handlePrintToPdf}
-                        title="Print story as a paperback chapter PDF"
-                        className="p-2 text-slate-400 hover:text-amber-700 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 rounded-xl cursor-pointer transition-colors"
-                      >
-                        <Printer className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={confirmDelete}
-                        title="Delete Story"
-                        className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 hover:border-rose-150 rounded-xl cursor-pointer transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={confirmPublish}
-                        disabled={isStoryPublished}
-                        title={isStoryPublished ? 'Story is already Published' : 'Publish Story'}
-                        className={`p-2 border rounded-xl transition-colors ${
-                          isStoryPublished
-                            ? 'text-slate-300 bg-slate-50 border-slate-200 opacity-50 cursor-not-allowed pointer-events-none'
-                            : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 border-slate-200 hover:border-emerald-150 cursor-pointer'
-                        }`}
-                      >
-                        <Globe className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={handlePrivacyClick}
-                        title="Privacy Settings"
-                        className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-                      >
-                        <ShieldAlert className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={handleEditClick}
-                        disabled={saving}
-                        title={isStoryPublished ? 'Edit Published Story (Creates a new Draft copy)' : 'Edit Story'}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-slate-200 hover:border-blue-150 rounded-xl cursor-pointer transition-colors flex items-center gap-1"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* Mobile Vertical Ellipsis Dropdown Menu */}
-                    <div className="sm:hidden relative inline-flex items-center story-action-menu-container shrink-0">
+                    {/* 3-Dotted Vertical Action Menu Dropdown */}
+                    <div className="relative inline-flex items-center story-action-menu-container">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowActionMenu(!showActionMenu);
                         }}
-                        className={`p-1.5 rounded-xl border transition-colors cursor-pointer ${
+                        className={`p-2 rounded-xl border transition-colors cursor-pointer ${
                           showActionMenu
                             ? 'bg-blue-50 text-blue-700 border-blue-200'
-                            : 'text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border-slate-200'
+                            : 'text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 border border-slate-200'
                         }`}
-                        title="Story actions"
-                        aria-label="Story actions"
+                        title="Story Actions"
+                        aria-label="Story Actions"
                       >
                         <MoreVertical className="w-4 h-4" />
-                        {activePhotoCount > 0 && (
-                          <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-indigo-600 ring-2 ring-white" />
-                        )}
                       </button>
 
                       <AnimatePresence>
                         {showActionMenu && (
                           <motion.div
-                            initial={{ opacity: 0, scale: 0.92, y: -6 }}
+                            initial={{ opacity: 0, scale: 0.95, y: -6 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.92 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.12 }}
-                            className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-xl shadow-xl py-1 min-w-[160px] text-left divide-y divide-slate-100"
+                            className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-2xl shadow-xl py-1.5 min-w-[175px] text-left divide-y divide-slate-100 font-sans"
                           >
-                            <div className="py-0.5">
+                            <div className="py-1">
+                              {/* Edit Story */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowActionMenu(false);
+                                  handleEditClick();
+                                }}
+                                disabled={saving}
+                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
+                              >
+                                <Edit3 className="w-4 h-4 text-blue-600 shrink-0" />
+                                <span>Edit Story</span>
+                              </button>
+
+                              {/* Publish Story */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isStoryPublished) return;
+                                  setShowActionMenu(false);
+                                  confirmPublish();
+                                }}
+                                disabled={isStoryPublished}
+                                className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors text-left ${
+                                  isStoryPublished
+                                    ? 'text-slate-300 opacity-50 cursor-not-allowed pointer-events-none'
+                                    : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer'
+                                }`}
+                              >
+                                <Globe className={`w-4 h-4 shrink-0 ${isStoryPublished ? 'text-slate-300' : 'text-emerald-600'}`} />
+                                <span>{isStoryPublished ? 'Published' : 'Publish Story'}</span>
+                              </button>
+
+                              {/* Privacy Settings */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowActionMenu(false);
+                                  handlePrivacyClick();
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer text-left"
+                              >
+                                <ShieldAlert className="w-4 h-4 text-slate-500 shrink-0" />
+                                <span>Privacy Settings</span>
+                              </button>
+
+                              {/* Print to PDF */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowActionMenu(false);
+                                  handlePrintToPdf();
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 transition-colors cursor-pointer text-left"
+                              >
+                                <Printer className="w-4 h-4 text-amber-600 shrink-0" />
+                                <span>Print to PDF</span>
+                              </button>
+                            </div>
+
+                            {/* Additional Actions */}
+                            <div className="py-1">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1783,7 +2704,7 @@ export default function StoryEditorPanel({
                                   setShowPhotoGalleryModal(true);
                                 }}
                                 disabled={!activeStoryId}
-                                className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-pointer text-left"
+                                className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-pointer text-left"
                               >
                                 <div className="flex items-center gap-2.5">
                                   <Images className="w-4 h-4 text-indigo-600 shrink-0" />
@@ -1804,77 +2725,23 @@ export default function StoryEditorPanel({
                                     setShowAiVoiceModal(true);
                                   }}
                                   disabled={!activeStoryId}
-                                  className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer text-left"
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer text-left"
                                 >
                                   <Mic className="w-4 h-4 text-purple-600 shrink-0" />
                                   <span>AI Voice Narration</span>
                                 </button>
                               )}
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowActionMenu(false);
-                                  handlePrintToPdf();
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 transition-colors cursor-pointer text-left"
-                              >
-                                <Printer className="w-4 h-4 text-amber-600 shrink-0" />
-                                <span>Print to PDF</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowActionMenu(false);
-                                  handleEditClick();
-                                }}
-                                disabled={saving}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
-                              >
-                                <Edit3 className="w-4 h-4 text-blue-600 shrink-0" />
-                                <span>Edit Story</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (isStoryPublished) return;
-                                  setShowActionMenu(false);
-                                  confirmPublish();
-                                }}
-                                disabled={isStoryPublished}
-                                className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold transition-colors text-left ${
-                                  isStoryPublished
-                                    ? 'text-slate-300 opacity-50 cursor-not-allowed pointer-events-none'
-                                    : 'text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 cursor-pointer'
-                                }`}
-                              >
-                                <Globe className={`w-4 h-4 shrink-0 ${isStoryPublished ? 'text-slate-300' : 'text-emerald-600'}`} />
-                                <span>{isStoryPublished ? 'Published' : 'Publish Story'}</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowActionMenu(false);
-                                  handlePrivacyClick();
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer text-left"
-                              >
-                                <ShieldAlert className="w-4 h-4 text-slate-500 shrink-0" />
-                                <span>Privacy Settings</span>
-                              </button>
                             </div>
 
-                            <div className="py-0.5">
+                            {/* Delete Story */}
+                            <div className="py-1">
                               <button
                                 type="button"
                                 onClick={() => {
                                   setShowActionMenu(false);
                                   confirmDelete();
                                 }}
-                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
+                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer text-left"
                               >
                                 <Trash2 className="w-4 h-4 text-rose-500 shrink-0" />
                                 <span>Delete Story</span>
@@ -1884,7 +2751,7 @@ export default function StoryEditorPanel({
                         )}
                       </AnimatePresence>
                     </div>
-                  </>
+                  </div>
                 );
               })()}
             </div>
@@ -2029,7 +2896,7 @@ export default function StoryEditorPanel({
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white border border-slate-100 rounded-3xl shadow-2xl max-w-md w-full z-10 p-6 flex flex-col gap-4 relative overflow-hidden"
+              className="bg-white border border-slate-100 rounded-3xl shadow-2xl max-w-lg w-full z-10 p-5 sm:p-6 flex flex-col gap-4 relative overflow-hidden"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
@@ -2038,10 +2905,10 @@ export default function StoryEditorPanel({
                   </div>
                   <div>
                     <h3 className="font-serif text-lg font-bold text-slate-850">
-                      Select Custom Topic
+                      Select Topic
                     </h3>
                     <p className="text-xs text-slate-500 font-medium">
-                      Choose which custom topic this story belongs to.
+                      Choose, edit, or create topics to write stories for.
                     </p>
                   </div>
                 </div>
@@ -2054,31 +2921,101 @@ export default function StoryEditorPanel({
                 </button>
               </div>
 
+              {topicModalError && (
+                <div className="p-2.5 bg-rose-50 border border-rose-100 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span className="flex-1">{topicModalError}</span>
+                  <button type="button" onClick={() => setTopicModalError(null)} className="cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
               {loadingCustomTopics ? (
                 <div className="py-8 flex flex-col items-center justify-center gap-2 text-slate-400">
                   <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                  <span className="text-xs">Loading custom topics...</span>
+                  <span className="text-xs">Loading topics...</span>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
                   {customTopics.length > 0 ? (
-                    <div className="max-h-56 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
+                    <div className="max-h-64 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
                       {customTopics.map((ct) => {
                         const ctId = ct.topicCustomId || ct.mbrCustomTopicId || '';
                         const ctName = ct.topicCustomName || ct.mbrCustomTopicName || 'Untitled Topic';
-                        const ctDesc = ct.topicCustomTopicDesc || ct.mbrCustomTopicDesc || '';
+                        const ctDesc = ct.topicCustomTopicDesc || ct.mbrCustomTopicDesc || (ct as any).topicCustomTipicDesc || '';
                         const isSelected = (selectedCustomTopic?.topicCustomId || selectedCustomTopic?.mbrCustomTopicId) === ctId;
+                        const isEditingThis = editingTopicId === ctId;
+                        const normalizedName = ctName.trim().toLowerCase();
+                        const isSystemTopic = normalizedName === 'remember when' || normalizedName === 'flashback' || ctId === 'ct_remember_when' || ctId === 'ct_flashback';
+
+                        if (isEditingThis) {
+                          return (
+                            <div
+                              key={ctId}
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-3 rounded-2xl border border-blue-300 bg-blue-50/40 space-y-2"
+                            >
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider block">
+                                  Edit Topic Title
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editTopicName}
+                                  onChange={(e) => setEditTopicName(e.target.value)}
+                                  maxLength={22}
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-500 font-semibold"
+                                  autoFocus
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider block">
+                                  Description (Optional)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editTopicDesc}
+                                  onChange={(e) => setEditTopicDesc(e.target.value)}
+                                  maxLength={240}
+                                  placeholder="Brief theme description..."
+                                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-500"
+                                />
+                              </div>
+                              <div className="flex items-center justify-end gap-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={handleCancelEditCustomTopic}
+                                  disabled={savingTopicEdit}
+                                  className="px-2.5 py-1 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleSaveCustomTopicEdit(e, ct)}
+                                  disabled={!editTopicName.trim() || savingTopicEdit}
+                                  className="flex items-center gap-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold disabled:opacity-50 cursor-pointer shadow-xs"
+                                >
+                                  {savingTopicEdit ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                                  <span>Save</span>
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        }
+
                         return (
                           <div
                             key={ctId}
                             onClick={() => setSelectedCustomTopic(ct)}
-                            className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 ${
+                            className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-start justify-between gap-3 group/topicitem ${
                               isSelected
                                 ? 'bg-amber-50/70 border-amber-300 ring-2 ring-amber-400/20 shadow-xs'
                                 : 'bg-[#FAF9F7] hover:bg-slate-50 border-slate-200/80 text-slate-700'
                             }`}
                           >
-                            <div className="space-y-0.5 min-w-0">
+                            <div className="space-y-0.5 min-w-0 flex-1">
                               <h4 className="text-xs font-serif font-bold text-slate-850 truncate">
                                 {ctName}
                               </h4>
@@ -2088,12 +3025,43 @@ export default function StoryEditorPanel({
                                 </p>
                               )}
                             </div>
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                              isSelected
-                                ? 'bg-amber-500 border-amber-500 text-white'
-                                : 'border-slate-300 bg-white'
-                            }`}>
-                              {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                            <div className="flex items-center gap-1 shrink-0 mt-0.5">
+                              {!isSystemTopic && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleStartEditCustomTopic(e, ct)}
+                                    title="Edit topic"
+                                    className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      if (window.confirm(`Are you sure you want to delete custom topic "${ctName}"?`)) {
+                                        handleDeleteCustomTopic(e, ct);
+                                      }
+                                    }}
+                                    disabled={deletingTopicId === ctId}
+                                    title="Delete topic"
+                                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                                  >
+                                    {deletingTopicId === ctId ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-500" />
+                                    ) : (
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+                                </>
+                              )}
+                              <div className={`w-5 h-5 rounded-full border flex items-center justify-center ml-1 shrink-0 ${
+                                isSelected
+                                  ? 'bg-amber-500 border-amber-500 text-white'
+                                  : 'border-slate-300 bg-white'
+                              }`}>
+                                {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                              </div>
                             </div>
                           </div>
                         );
@@ -2115,14 +3083,30 @@ export default function StoryEditorPanel({
                         type="text"
                         value={newCustomTopicName}
                         onChange={(e) => setNewCustomTopicName(e.target.value)}
-                        placeholder="e.g. Scuba Diving Adventures..."
+                        maxLength={22}
+                        placeholder="e.g. Scuba Adventures..."
                         className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 outline-none focus:border-blue-500"
                         autoFocus
+                      />
+                      <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider block">
+                        Description (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={newCustomTopicDesc}
+                        onChange={(e) => setNewCustomTopicDesc(e.target.value)}
+                        maxLength={240}
+                        placeholder="e.g. Diving trips across coral reefs..."
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700 outline-none focus:border-blue-500"
                       />
                       <div className="flex items-center justify-end gap-2 pt-1">
                         <button
                           type="button"
-                          onClick={() => setShowInlineNewTopic(false)}
+                          onClick={() => {
+                            setShowInlineNewTopic(false);
+                            setNewCustomTopicName('');
+                            setNewCustomTopicDesc('');
+                          }}
                           className="px-2.5 py-1 text-xs text-slate-500 hover:text-slate-800 cursor-pointer"
                         >
                           Cancel
@@ -2141,7 +3125,11 @@ export default function StoryEditorPanel({
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setShowInlineNewTopic(true)}
+                      onClick={() => {
+                        setShowInlineNewTopic(true);
+                        setNewCustomTopicName('');
+                        setNewCustomTopicDesc('');
+                      }}
                       className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 font-bold p-1 self-start cursor-pointer hover:underline"
                     >
                       <Plus className="w-3.5 h-3.5" />

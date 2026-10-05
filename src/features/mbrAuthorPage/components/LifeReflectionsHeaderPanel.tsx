@@ -4,31 +4,31 @@
  */
 
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-interface OtherHeaderPanelProps {
+interface LifeReflectionsHeaderPanelProps {
   onClickBack?: () => void;
   title?: string;
   description?: string;
   className?: string;
 }
 
-export default function OtherHeaderPanel({
-  title = 'My Other Topics',
-  description = 'Create custom topics, organize personal themes, and write dedicated stories in the Story Editor.',
+export default function LifeReflectionsHeaderPanel({
+  title = 'Life Reflections',
+  description = 'Share hard-won wisdom, guiding philosophies, defining turning points, spiritual insights, and the enduring life lessons you wish to pass on to future generations.',
   className = ''
-}: OtherHeaderPanelProps) {
+}: LifeReflectionsHeaderPanelProps) {
   return (
     <div className={`relative mb-6 pb-6 border-b border-slate-200 dark:border-slate-800 ${className}`}>
-      <AdminComponentTag name="OtherHeaderPanel.tsx" />
+      <AdminComponentTag name="LifeReflectionsHeaderPanel.tsx" />
 
       {/* Top Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-sky-600 flex items-center justify-center shadow-md shadow-indigo-500/20 text-white shrink-0">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-700 flex items-center justify-center shadow-md shadow-violet-600/20 text-white shrink-0">
+              <Compass className="w-5 h-5" />
             </div>
             <div>
               <h1 className="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">
@@ -45,4 +45,4 @@ export default function OtherHeaderPanel({
   );
 }
 
-export { OtherHeaderPanel, OtherHeaderPanel as otherHeaderPanel };
+export { LifeReflectionsHeaderPanel, LifeReflectionsHeaderPanel as lifeReflectionsHeaderPanel };

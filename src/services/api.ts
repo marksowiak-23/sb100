@@ -185,17 +185,293 @@ export const DEFAULT_TOPIC_LOOKUP: Record<string, { topicId: string; topicName: 
     topicFullName: 'Activities and Hobbies',
     chIntentId: '3283efe2-a2c7-45fb-b635-0905420999c0'
   },
+  trips: {
+    topicId: '5cd2052b-28fc-434f-9ce4-4358ff944576',
+    topicName: 'Trips and Vacations',
+    topicFullName: 'Trips and Vacations',
+    chIntentId: '4a5a9260-4627-4bf9-864d-e2f0bb39532f'
+  },
+  vacations: {
+    topicId: '5cd2052b-28fc-434f-9ce4-4358ff944576',
+    topicName: 'Trips and Vacations',
+    topicFullName: 'Trips and Vacations',
+    chIntentId: '4a5a9260-4627-4bf9-864d-e2f0bb39532f'
+  },
+  'trips and vacations': {
+    topicId: '5cd2052b-28fc-434f-9ce4-4358ff944576',
+    topicName: 'Trips and Vacations',
+    topicFullName: 'Trips and Vacations',
+    chIntentId: '4a5a9260-4627-4bf9-864d-e2f0bb39532f'
+  },
+  'trips & vacations': {
+    topicId: '5cd2052b-28fc-434f-9ce4-4358ff944576',
+    topicName: 'Trips and Vacations',
+    topicFullName: 'Trips and Vacations',
+    chIntentId: '4a5a9260-4627-4bf9-864d-e2f0bb39532f'
+  },
+  health: {
+    topicId: '273184ab-e09d-49ef-b416-3fc3ba0a8161',
+    topicName: 'Health',
+    topicFullName: 'Health',
+    chIntentId: 'b33d14cf-0891-4e1c-802b-05b3e2299c3b'
+  },
+  wellness: {
+    topicId: '273184ab-e09d-49ef-b416-3fc3ba0a8161',
+    topicName: 'Health',
+    topicFullName: 'Health',
+    chIntentId: 'b33d14cf-0891-4e1c-802b-05b3e2299c3b'
+  },
+  'health and wellness': {
+    topicId: '273184ab-e09d-49ef-b416-3fc3ba0a8161',
+    topicName: 'Health',
+    topicFullName: 'Health',
+    chIntentId: 'b33d14cf-0891-4e1c-802b-05b3e2299c3b'
+  },
+  'health & wellness': {
+    topicId: '273184ab-e09d-49ef-b416-3fc3ba0a8161',
+    topicName: 'Health',
+    topicFullName: 'Health',
+    chIntentId: 'b33d14cf-0891-4e1c-802b-05b3e2299c3b'
+  },
+  'special events': {
+    topicId: '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff',
+    topicName: 'Special Events',
+    topicFullName: 'Special Events',
+    chIntentId: '6b5b064c-844e-48b8-a04f-a7f1c3c632ae'
+  },
+  'special event': {
+    topicId: '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff',
+    topicName: 'Special Events',
+    topicFullName: 'Special Events',
+    chIntentId: '6b5b064c-844e-48b8-a04f-a7f1c3c632ae'
+  },
+  specialevents: {
+    topicId: '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff',
+    topicName: 'Special Events',
+    topicFullName: 'Special Events',
+    chIntentId: '6b5b064c-844e-48b8-a04f-a7f1c3c632ae'
+  },
+  'special-events': {
+    topicId: '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff',
+    topicName: 'Special Events',
+    topicFullName: 'Special Events',
+    chIntentId: '6b5b064c-844e-48b8-a04f-a7f1c3c632ae'
+  },
+  milestones: {
+    topicId: '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff',
+    topicName: 'Special Events',
+    topicFullName: 'Special Events',
+    chIntentId: '6b5b064c-844e-48b8-a04f-a7f1c3c632ae'
+  },
+  celebrations: {
+    topicId: '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff',
+    topicName: 'Special Events',
+    topicFullName: 'Special Events',
+    chIntentId: '6b5b064c-844e-48b8-a04f-a7f1c3c632ae'
+  },
+  'fads and trends': {
+    topicId: '6635482f-24c8-4fdd-83d0-c5f86e22442f',
+    topicName: 'Fads and Trends',
+    topicFullName: 'Fads and Trends',
+    chIntentId: '6635482f-24c8-4fdd-83d0-c5f86e22442f'
+  },
+  'fads & trends': {
+    topicId: '6635482f-24c8-4fdd-83d0-c5f86e22442f',
+    topicName: 'Fads and Trends',
+    topicFullName: 'Fads and Trends',
+    chIntentId: '6635482f-24c8-4fdd-83d0-c5f86e22442f'
+  },
+  fads: {
+    topicId: '6635482f-24c8-4fdd-83d0-c5f86e22442f',
+    topicName: 'Fads and Trends',
+    topicFullName: 'Fads and Trends',
+    chIntentId: '6635482f-24c8-4fdd-83d0-c5f86e22442f'
+  },
+  trends: {
+    topicId: '6635482f-24c8-4fdd-83d0-c5f86e22442f',
+    topicName: 'Fads and Trends',
+    topicFullName: 'Fads and Trends',
+    chIntentId: '6635482f-24c8-4fdd-83d0-c5f86e22442f'
+  },
+  'movies and tv': {
+    topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e',
+    topicName: 'Movies and TV',
+    topicFullName: 'Movies and TV',
+    chIntentId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e'
+  },
+  'movies & tv': {
+    topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e',
+    topicName: 'Movies and TV',
+    topicFullName: 'Movies and TV',
+    chIntentId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e'
+  },
+  movies: {
+    topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e',
+    topicName: 'Movies and TV',
+    topicFullName: 'Movies and TV',
+    chIntentId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e'
+  },
+  tv: {
+    topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e',
+    topicName: 'Movies and TV',
+    topicFullName: 'Movies and TV',
+    chIntentId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e'
+  },
+  television: {
+    topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e',
+    topicName: 'Movies and TV',
+    topicFullName: 'Movies and TV',
+    chIntentId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e'
+  },
+  'movies and television': {
+    topicId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e',
+    topicName: 'Movies and TV',
+    topicFullName: 'Movies and TV',
+    chIntentId: '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e'
+  },
+  music: {
+    topicId: 'b24de4f6-9029-4665-94bf-f42630baee61',
+    topicName: 'Music',
+    topicFullName: 'Music',
+    chIntentId: 'b24de4f6-9029-4665-94bf-f42630baee61'
+  },
+  songs: {
+    topicId: 'b24de4f6-9029-4665-94bf-f42630baee61',
+    topicName: 'Music',
+    topicFullName: 'Music',
+    chIntentId: 'b24de4f6-9029-4665-94bf-f42630baee61'
+  },
+  'news of the times': {
+    topicId: '99e16767-c945-47f9-8e5e-21c309cceac3',
+    topicName: 'News of the Times',
+    topicFullName: 'News of the Times',
+    chIntentId: '99e16767-c945-47f9-8e5e-21c309cceac3'
+  },
+  'news of times': {
+    topicId: '99e16767-c945-47f9-8e5e-21c309cceac3',
+    topicName: 'News of the Times',
+    topicFullName: 'News of the Times',
+    chIntentId: '99e16767-c945-47f9-8e5e-21c309cceac3'
+  },
+  news: {
+    topicId: '99e16767-c945-47f9-8e5e-21c309cceac3',
+    topicName: 'News of the Times',
+    topicFullName: 'News of the Times',
+    chIntentId: '99e16767-c945-47f9-8e5e-21c309cceac3'
+  },
+  'pop culture': {
+    topicId: '40b046fa-cfae-4821-b3b8-17fda934a61a',
+    topicName: 'Pop Culture',
+    topicFullName: 'Pop Culture',
+    chIntentId: '40b046fa-cfae-4821-b3b8-17fda934a61a'
+  },
+  popculture: {
+    topicId: '40b046fa-cfae-4821-b3b8-17fda934a61a',
+    topicName: 'Pop Culture',
+    topicFullName: 'Pop Culture',
+    chIntentId: '40b046fa-cfae-4821-b3b8-17fda934a61a'
+  },
+  sports: {
+    topicId: 'eeecb988-25d8-45d4-9304-e040aa14a326',
+    topicName: 'Sports',
+    topicFullName: 'Sports',
+    chIntentId: 'eeecb988-25d8-45d4-9304-e040aa14a326'
+  },
+  sport: {
+    topicId: 'eeecb988-25d8-45d4-9304-e040aa14a326',
+    topicName: 'Sports',
+    topicFullName: 'Sports',
+    chIntentId: 'eeecb988-25d8-45d4-9304-e040aa14a326'
+  },
+  athletics: {
+    topicId: 'eeecb988-25d8-45d4-9304-e040aa14a326',
+    topicName: 'Sports',
+    topicFullName: 'Sports',
+    chIntentId: 'eeecb988-25d8-45d4-9304-e040aa14a326'
+  },
+  technology: {
+    topicId: '74e60a94-dd9e-4148-a084-86d41ed9998a',
+    topicName: 'Technology',
+    topicFullName: 'Technology',
+    chIntentId: '74e60a94-dd9e-4148-a084-86d41ed9998a'
+  },
+  tech: {
+    topicId: '74e60a94-dd9e-4148-a084-86d41ed9998a',
+    topicName: 'Technology',
+    topicFullName: 'Technology',
+    chIntentId: '74e60a94-dd9e-4148-a084-86d41ed9998a'
+  },
+  computers: {
+    topicId: '74e60a94-dd9e-4148-a084-86d41ed9998a',
+    topicName: 'Technology',
+    topicFullName: 'Technology',
+    chIntentId: '74e60a94-dd9e-4148-a084-86d41ed9998a'
+  },
+  inventions: {
+    topicId: '74e60a94-dd9e-4148-a084-86d41ed9998a',
+    topicName: 'Technology',
+    topicFullName: 'Technology',
+    chIntentId: '74e60a94-dd9e-4148-a084-86d41ed9998a'
+  },
+  childhood: {
+    topicId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28',
+    topicName: 'Childhood',
+    topicFullName: 'Childhood',
+    chIntentId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28'
+  },
+  childhoood: {
+    topicId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28',
+    topicName: 'Childhood',
+    topicFullName: 'Childhood',
+    chIntentId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28'
+  },
+  youth: {
+    topicId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28',
+    topicName: 'Childhood',
+    topicFullName: 'Childhood',
+    chIntentId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28'
+  },
+  'early years': {
+    topicId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28',
+    topicName: 'Childhood',
+    topicFullName: 'Childhood',
+    chIntentId: 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28'
+  },
+  'life reflections': {
+    topicId: '4cd7ccff-0617-445c-ae72-173daa059500',
+    topicName: 'Life Reflections',
+    topicFullName: 'Life Reflections',
+    chIntentId: '4cd7ccff-0617-445c-ae72-173daa059500'
+  },
+  'life reflection': {
+    topicId: '4cd7ccff-0617-445c-ae72-173daa059500',
+    topicName: 'Life Reflections',
+    topicFullName: 'Life Reflections',
+    chIntentId: '4cd7ccff-0617-445c-ae72-173daa059500'
+  },
+  reflections: {
+    topicId: '4cd7ccff-0617-445c-ae72-173daa059500',
+    topicName: 'Life Reflections',
+    topicFullName: 'Life Reflections',
+    chIntentId: '4cd7ccff-0617-445c-ae72-173daa059500'
+  },
+  reflection: {
+    topicId: '4cd7ccff-0617-445c-ae72-173daa059500',
+    topicName: 'Life Reflections',
+    topicFullName: 'Life Reflections',
+    chIntentId: '4cd7ccff-0617-445c-ae72-173daa059500'
+  },
   other: {
     topicId: 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e',
     topicName: 'Other',
     topicFullName: 'Other',
-    chIntentId: '3a435df1-392c-433d-adf3-7fb9c3e5051a'
+    chIntentId: 'c75f4efc-8a83-4084-89a4-e3ab49798d60'
   },
   custom: {
     topicId: 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e',
     topicName: 'Other',
     topicFullName: 'Other',
-    chIntentId: '3a435df1-392c-433d-adf3-7fb9c3e5051a'
+    chIntentId: 'c75f4efc-8a83-4084-89a4-e3ab49798d60'
   }
 };
 
@@ -212,7 +488,17 @@ export function matchTopicByName(name?: string | null, topicList?: Topic[]): Top
       (n === 'other' && t.topicName?.toLowerCase() === 'other') ||
       (n === 'education and training' && t.topicName?.toLowerCase() === 'education') ||
       (n === 'employment and career' && t.topicName?.toLowerCase() === 'employment') ||
-      (n === 'activities and hobbies' && (t.topicName?.toLowerCase() === 'activities' || t.topicName?.toLowerCase() === 'hobbies'))
+      (n === 'activities and hobbies' && (t.topicName?.toLowerCase() === 'activities' || t.topicName?.toLowerCase() === 'hobbies')) ||
+      ((n === 'trips' || n === 'vacations' || n === 'trips and vacations' || n === 'trips & vacations') && (t.topicName?.toLowerCase() === 'trips and vacations' || t.topicName?.toLowerCase() === 'trips')) ||
+      ((n === 'fads' || n === 'trends' || n === 'fads and trends' || n === 'fads & trends') && (t.topicName?.toLowerCase() === 'fads and trends' || t.topicFullName?.toLowerCase() === 'fads and trends')) ||
+      ((n === 'movies' || n === 'tv' || n === 'television' || n === 'movies and tv' || n === 'movies & tv' || n === 'movies and television') && (t.topicName?.toLowerCase() === 'movies and tv' || t.topicFullName?.toLowerCase() === 'movies and tv')) ||
+      ((n === 'music' || n === 'songs') && (t.topicName?.toLowerCase() === 'music' || t.topicFullName?.toLowerCase() === 'music')) ||
+      ((n === 'news' || n === 'news of the times' || n === 'news of times' || n === 'news of the time') && (t.topicName?.toLowerCase() === 'news of the times' || t.topicFullName?.toLowerCase() === 'news of the times')) ||
+      ((n === 'pop culture' || n === 'popculture' || n === 'pop-culture') && (t.topicName?.toLowerCase() === 'pop culture' || t.topicFullName?.toLowerCase() === 'pop culture')) ||
+      ((n === 'sports' || n === 'sport' || n === 'athletics') && (t.topicName?.toLowerCase() === 'sports' || t.topicFullName?.toLowerCase() === 'sports')) ||
+      ((n === 'technology' || n === 'tech' || n === 'computers' || n === 'inventions' || n === 'technology and inventions' || n === 'technology & inventions') && (t.topicName?.toLowerCase() === 'technology' || t.topicFullName?.toLowerCase() === 'technology')) ||
+      ((n === 'childhood' || n === 'childhoood' || n === 'youth' || n === 'early years') && (t.topicName?.toLowerCase() === 'childhood' || t.topicFullName?.toLowerCase() === 'childhood')) ||
+      ((n === 'life reflections' || n === 'life reflection' || n === 'reflections' || n === 'reflection') && (t.topicName?.toLowerCase() === 'life reflections' || t.topicFullName?.toLowerCase() === 'life reflections'))
     );
     if (found) return found;
   }
@@ -335,6 +621,70 @@ export interface MbrTopicRelationship {
 }
 
 export type MbrTopicRelationships = MbrTopicRelationship;
+
+export interface MbrTopicTrip {
+  mbrTripId: string;
+  mbrId: string;
+  mbrTripTitle: string;
+  mbrTripTypeCd: string;
+  mbrTripDestination: string;
+  mbrTripLocation?: string | null;
+  mbrTripStartDate?: string | null;
+  mbrTripEndDate?: string | null;
+  mbrTripYear?: number | null;
+  mbrTripDurationDays?: number | null;
+  mbrTripCompanions?: string | null;
+  mbrTripModeOfTravelCd?: string | null;
+  mbrTripHighlights?: string | null;
+  mbrTripDescription?: string | null;
+  mbrTripCreatedAt?: string;
+  mbrTripUpdatedAt?: string;
+}
+
+export type MbrTopicTrips = MbrTopicTrip;
+export type MbrTrip = MbrTopicTrip;
+
+export interface MbrTopicHealth {
+  mbrHealthId: string;
+  mbrId: string;
+  mbrHealthTitle: string;
+  mbrHealthTypeCd: string;
+  mbrHealthStatusCd?: string | null;
+  mbrHealthStartDate?: string | null;
+  mbrHealthEndDate?: string | null;
+  mbrHealthYear?: number | null;
+  mbrHealthCurrentInd: boolean;
+  mbrHealthImpactTreatment?: string | null;
+  mbrHealthDescription?: string | null;
+  mbrHealthCreatedAt?: string;
+  mbrHealthUpdatedAt?: string;
+}
+
+export type MbrTopicHealths = MbrTopicHealth;
+export type MbrHealth = MbrTopicHealth;
+
+export interface MbrTopicSpecialEvent {
+  mbrSpecialEventId: string;
+  mbrId: string;
+  mbrSpecialEventTitle: string;
+  mbrSpecialEventTypeCd: string;
+  mbrSpecialEventRoleCd?: string | null;
+  mbrSpecialEventDate?: string | null;
+  mbrSpecialEventEndDate?: string | null;
+  mbrSpecialEventYear?: number | null;
+  mbrSpecialEventLocation?: string | null;
+  mbrSpecialEventKeyPeople?: string | null;
+  mbrSpecialEventHighlights?: string | null;
+  mbrSpecialEventDescription?: string | null;
+  mbrSpecialEventCreatedAt?: string;
+  mbrSpecialEventUpdatedAt?: string;
+}
+
+export type MbrTopicSpecialEvents = MbrTopicSpecialEvent;
+export type MbrSpecialEvent = MbrTopicSpecialEvent;
+
+
+
 
 export interface MbrConnection {
 
@@ -979,6 +1329,190 @@ export const taskApi = {
     });
     return handleResponse<any>(response);
   },
+
+  /**
+   * Fetch all trips for a given member.
+   */
+  async getMemberTrips(mbrId: string): Promise<MbrTopicTrip[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-trips/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicTrip[]>(response);
+  },
+
+  /**
+   * Create a new trip record.
+   */
+  async createTrip(trip: Partial<MbrTopicTrip>): Promise<MbrTopicTrip> {
+    const response = await fetch(`${API_BASE_URL}/mbr-trips`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(trip),
+    });
+    return handleResponse<MbrTopicTrip>(response);
+  },
+
+  /**
+   * Update an existing trip record.
+   */
+  async updateTrip(tripId: string, trip: Partial<MbrTopicTrip>): Promise<MbrTopicTrip> {
+    const response = await fetch(`${API_BASE_URL}/mbr-trips/${tripId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(trip),
+    });
+    return handleResponse<MbrTopicTrip>(response);
+  },
+
+  /**
+   * Delete a trip record.
+   */
+  async deleteTrip(tripId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-trips/${tripId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Fetch all health records for a given member.
+   */
+  async getMemberHealthRecords(mbrId: string): Promise<MbrTopicHealth[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-health/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicHealth[]>(response);
+  },
+
+  /**
+   * Create a new health record.
+   */
+  async createHealthRecord(health: Partial<MbrTopicHealth>): Promise<MbrTopicHealth> {
+    const response = await fetch(`${API_BASE_URL}/mbr-health`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(health),
+    });
+    return handleResponse<MbrTopicHealth>(response);
+  },
+
+  /**
+   * Update an existing health record.
+   */
+  async updateHealthRecord(mbrHealthId: string, health: Partial<MbrTopicHealth>): Promise<MbrTopicHealth> {
+    const response = await fetch(`${API_BASE_URL}/mbr-health/${mbrHealthId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(health),
+    });
+    return handleResponse<MbrTopicHealth>(response);
+  },
+
+  /**
+   * Delete a health record.
+   */
+  async deleteHealthRecord(mbrHealthId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-health/${mbrHealthId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
+  /**
+   * Fetch all special event records for a given member.
+   */
+  async getMemberSpecialEvents(mbrId: string): Promise<MbrTopicSpecialEvent[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-special-events/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicSpecialEvent[]>(response);
+  },
+
+  async getSpecialEvents(mbrId: string): Promise<MbrTopicSpecialEvent[]> {
+    return this.getMemberSpecialEvents(mbrId);
+  },
+
+  /**
+   * Create a new special event record.
+   */
+  async createSpecialEvent(event: Partial<MbrTopicSpecialEvent>): Promise<MbrTopicSpecialEvent> {
+    const response = await fetch(`${API_BASE_URL}/mbr-special-events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(event),
+    });
+    return handleResponse<MbrTopicSpecialEvent>(response);
+  },
+
+  /**
+   * Update an existing special event record.
+   */
+  async updateSpecialEvent(mbrSpecialEventId: string, event: Partial<MbrTopicSpecialEvent>): Promise<MbrTopicSpecialEvent> {
+    const response = await fetch(`${API_BASE_URL}/mbr-special-events/${mbrSpecialEventId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(event),
+    });
+    return handleResponse<MbrTopicSpecialEvent>(response);
+  },
+
+  /**
+   * Delete a special event record.
+   */
+  async deleteSpecialEvent(mbrSpecialEventId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/mbr-special-events/${mbrSpecialEventId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<any>(response);
+  },
+
+
+
 
 
   /**
@@ -3444,4 +3978,228 @@ export const textToSpeechApi = {
     return handleResponse<TTSSynthesizeResponse>(response);
   }
 };
+
+export const mbrTopicTripApi = {
+  /**
+   * Get all member trips with pagination.
+   */
+  async getTrips(skip: number = 0, limit: number = 100): Promise<MbrTopicTrip[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-trips?skip=${skip}&limit=${limit}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrTopicTrip[]>(response);
+  },
+
+  /**
+   * Get a single trip record by trip ID.
+   */
+  async getTrip(tripId: string): Promise<MbrTopicTrip> {
+    const response = await fetch(`${API_BASE_URL}/mbr-trips/${tripId}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrTopicTrip>(response);
+  },
+
+  /**
+   * Get all trips for a member.
+   */
+  async getMemberTrips(mbrId: string): Promise<MbrTopicTrip[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-trips/member/${mbrId}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrTopicTrip[]>(response);
+  },
+
+  /**
+   * Create a new trip record.
+   */
+  async createTrip(trip: Partial<MbrTopicTrip>): Promise<MbrTopicTrip> {
+    const response = await fetch(`${API_BASE_URL}/mbr-trips`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(trip)
+    });
+    return handleResponse<MbrTopicTrip>(response);
+  },
+
+  /**
+   * Update a trip record.
+   */
+  async updateTrip(tripId: string, trip: Partial<MbrTopicTrip>): Promise<MbrTopicTrip> {
+    const response = await fetch(`${API_BASE_URL}/mbr-trips/${tripId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(trip)
+    });
+    return handleResponse<MbrTopicTrip>(response);
+  },
+
+  /**
+   * Delete a trip record.
+   */
+  async deleteTrip(tripId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/mbr-trips/${tripId}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+  },
+
+  /**
+   * Fetch all health records with pagination.
+   */
+  async getHealthRecords(skip: number = 0, limit: number = 100): Promise<MbrTopicHealth[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-health?skip=${skip}&limit=${limit}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrTopicHealth[]>(response);
+  },
+
+  /**
+   * Get a single health record by ID.
+   */
+  async getHealthRecord(healthId: string): Promise<MbrTopicHealth> {
+    const response = await fetch(`${API_BASE_URL}/mbr-health/${healthId}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrTopicHealth>(response);
+  },
+
+  /**
+   * Get all health records for a member.
+   */
+  async getMemberHealthRecords(mbrId: string): Promise<MbrTopicHealth[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-health/member/${mbrId}?t=${Date.now()}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicHealth[]>(response);
+  },
+
+  /**
+   * Create a new health record.
+   */
+  async createHealthRecord(health: Partial<MbrTopicHealth>): Promise<MbrTopicHealth> {
+    const response = await fetch(`${API_BASE_URL}/mbr-health`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(health)
+    });
+    return handleResponse<MbrTopicHealth>(response);
+  },
+
+  /**
+   * Update an existing health record.
+   */
+  async updateHealthRecord(healthId: string, health: Partial<MbrTopicHealth>): Promise<MbrTopicHealth> {
+    const response = await fetch(`${API_BASE_URL}/mbr-health/${healthId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(health)
+    });
+    return handleResponse<MbrTopicHealth>(response);
+  },
+
+  /**
+   * Delete a health record.
+   */
+  async deleteHealthRecord(healthId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/mbr-health/${healthId}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+  },
+
+  /**
+   * Fetch special event records.
+   */
+  async getSpecialEvents(skip: number = 0, limit: number = 100): Promise<MbrTopicSpecialEvent[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-special-events?skip=${skip}&limit=${limit}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrTopicSpecialEvent[]>(response);
+  },
+
+  /**
+   * Fetch a single special event record by ID.
+   */
+  async getSpecialEvent(specialEventId: string): Promise<MbrTopicSpecialEvent> {
+    const response = await fetch(`${API_BASE_URL}/mbr-special-events/${specialEventId}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrTopicSpecialEvent>(response);
+  },
+
+  /**
+   * Fetch all special event records for a member.
+   */
+  async getMemberSpecialEvents(mbrId: string): Promise<MbrTopicSpecialEvent[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-special-events/member/${mbrId}?t=${Date.now()}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicSpecialEvent[]>(response);
+  },
+
+  /**
+   * Create a new special event record.
+   */
+  async createSpecialEvent(event: Partial<MbrTopicSpecialEvent>): Promise<MbrTopicSpecialEvent> {
+    const response = await fetch(`${API_BASE_URL}/mbr-special-events`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(event)
+    });
+    return handleResponse<MbrTopicSpecialEvent>(response);
+  },
+
+  /**
+   * Update an existing special event record.
+   */
+  async updateSpecialEvent(specialEventId: string, event: Partial<MbrTopicSpecialEvent>): Promise<MbrTopicSpecialEvent> {
+    const response = await fetch(`${API_BASE_URL}/mbr-special-events/${specialEventId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(event)
+    });
+    return handleResponse<MbrTopicSpecialEvent>(response);
+  },
+
+  /**
+   * Delete a special event record.
+   */
+  async deleteSpecialEvent(specialEventId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/mbr-special-events/${specialEventId}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+  }
+};
+
+
 

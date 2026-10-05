@@ -810,7 +810,7 @@ const NOSTALGIA_DATABASE: NostalgiaItem[] = [
 ];
 
 interface SbRememberWhenCardProps {
-  onClickAuthorPage?: (initialPrompt?: string) => void;
+  onClickAuthorPage?: (initialPrompt?: string, section?: string, trivia?: any) => void;
 }
 
 export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhenCardProps) {
@@ -1456,11 +1456,57 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
           <button
             onClick={() => {
+              const derivedTopicName = 'Remember When';
+              const derivedPrompt = currentItem?.promptSuggestion || currentItem?.storyContent || currentItem?.headline || '';
+              const derivedContent = currentItem?.storyContent || currentItem?.promptSuggestion || '';
+
+              const nostalgiaPayload = {
+                derivedTopicName: 'Remember When',
+                headline: currentItem?.headline || 'Remember When',
+                storyTitle: currentItem?.headline || 'Remember When',
+                storyContent: derivedContent,
+                promptSuggestion: derivedPrompt,
+                anchorTopic: 'Remember When',
+                anchorReference: currentItem?.year ? `${currentItem.year}` : (currentItem?.badge || '')
+              };
+
+              try {
+                sessionStorage.setItem('sb_author_active_section', 'Other');
+                sessionStorage.setItem('sb_pending_new_story', JSON.stringify({
+                  topic: 'Other',
+                  derivedTopicName: 'Remember When',
+                  storyTitle: currentItem?.headline || 'Remember When',
+                  storyContent: derivedContent,
+                  promptSuggestion: derivedPrompt,
+                  anchorTopic: 'Remember When',
+                  anchorReference: nostalgiaPayload.anchorReference
+                }));
+              } catch (e) {}
+
               if (onClickAuthorPage) {
-                onClickAuthorPage(currentItem?.promptSuggestion || currentItem?.headline);
+                onClickAuthorPage(derivedPrompt, 'Other', nostalgiaPayload);
               }
+
+              window.dispatchEvent(new CustomEvent('author-navigate-section', {
+                detail: {
+                  section: 'Other',
+                  prompt: derivedPrompt,
+                  trivia: nostalgiaPayload
+                }
+              }));
+
+              window.dispatchEvent(new CustomEvent('initiate-trivia-story', {
+                detail: {
+                  section: 'Other',
+                  derivedTopicName: 'Remember When',
+                  storyTitle: currentItem?.headline || 'Remember When',
+                  storyContent: derivedContent,
+                  promptSuggestion: derivedPrompt,
+                  trivia: nostalgiaPayload
+                }
+              }));
             }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white text-xs md:text-sm font-medium shadow-sm transition-all hover:shadow"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 text-white text-xs md:text-sm font-medium shadow-sm transition-all hover:shadow cursor-pointer"
           >
             <Feather className="w-3.5 h-3.5" />
             Write Story About This

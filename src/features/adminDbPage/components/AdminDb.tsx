@@ -319,6 +319,47 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrTopicTrips',
+    name: 'mbrTopicTrips',
+    endpoint: '/mbr-trips',
+    primaryKey: 'mbrTripId',
+    searchField: 'mbrTripTitle',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrTripTitle', label: 'Trip Title / Headline', type: 'string', required: true, placeholder: 'e.g. Summer Road Trip to Yellowstone' },
+      { name: 'mbrTripTypeCd', label: 'Trip Type Code', type: 'string', required: true, placeholder: 'e.g. VACATION, ROAD_TRIP, CRUISE' },
+      { name: 'mbrTripDestination', label: 'Destination', type: 'string', required: true, placeholder: 'e.g. Yellowstone National Park, WY' },
+      { name: 'mbrTripLocation', label: 'Location / Route', type: 'string', required: false, placeholder: 'e.g. Cannon Beach to Big Sur' },
+      { name: 'mbrTripStartDate', label: 'Start Date', type: 'date', required: false },
+      { name: 'mbrTripEndDate', label: 'End Date', type: 'date', required: false },
+      { name: 'mbrTripYear', label: 'Year', type: 'number', required: false, placeholder: 'e.g. 1986' },
+      { name: 'mbrTripDurationDays', label: 'Duration (Days)', type: 'number', required: false, placeholder: 'e.g. 14' },
+      { name: 'mbrTripCompanions', label: 'Companions / Family', type: 'string', required: false, placeholder: 'e.g. Eleanor, Jack, Uncle Harold' },
+      { name: 'mbrTripModeOfTravelCd', label: 'Mode of Travel Code', type: 'string', required: false, placeholder: 'e.g. CAR_DRIVE, FLIGHT, CRUISE_SHIP' },
+      { name: 'mbrTripHighlights', label: 'Key Highlights', type: 'textarea', required: false, placeholder: 'Landmarks visited, memorable sightings...' },
+      { name: 'mbrTripDescription', label: 'Description & Memories', type: 'textarea', required: false, placeholder: 'Detailed stories, reflections, journal...' }
+    ]
+  },
+  {
+    id: 'mbrTopicHealth',
+    name: 'mbrTopicHealth',
+    endpoint: '/mbr-health',
+    primaryKey: 'mbrHealthId',
+    searchField: 'mbrHealthTitle',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrHealthTitle', label: 'Health Headline / Title', type: 'string', required: true, placeholder: 'e.g. Knee Replacement & Rehab' },
+      { name: 'mbrHealthTypeCd', label: 'Health Type Code', type: 'string', required: true, placeholder: 'e.g. CONDITION, SURGERY_PROCEDURE, MILESTONE' },
+      { name: 'mbrHealthStatusCd', label: 'Status Code', type: 'string', required: false, placeholder: 'e.g. RESOLVED, MANAGING, ONGOING' },
+      { name: 'mbrHealthStartDate', label: 'Start / Diagnosis Date', type: 'date', required: false },
+      { name: 'mbrHealthEndDate', label: 'End / Recovery Date', type: 'date', required: false },
+      { name: 'mbrHealthYear', label: 'Year', type: 'number', required: false, placeholder: 'e.g. 1998' },
+      { name: 'mbrHealthCurrentInd', label: 'Ongoing / Current Condition', type: 'boolean', required: true },
+      { name: 'mbrHealthImpactTreatment', label: 'Treatments / Impact', type: 'textarea', required: false, placeholder: 'Key therapies, lifestyle habits, medications...' },
+      { name: 'mbrHealthDescription', label: 'Description & Memories', type: 'textarea', required: false, placeholder: 'Personal reflections, recovery story, life lessons...' }
+    ]
+  },
+  {
     id: 'mbrMedia',
     name: 'mbrMedia',
     endpoint: '/mbr-media',

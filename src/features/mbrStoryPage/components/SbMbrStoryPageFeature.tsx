@@ -10,7 +10,7 @@ import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import StoryMobileMenuBar from './StoryMobileMenuBar';
 import { MEMBER_STORIES, MemberStory } from '@/src/features/publicPage/constants/memberData';
-import { taskApi, resolveMediaUrl } from '@/src/services/api';
+import { taskApi, resolveMediaUrl, matchTopicByName, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import PageSeo from '@/src/components/PageSeo';
 
@@ -239,76 +239,102 @@ export default function SbMbrStoryPageFeature({
             return upper === 'READ' || upper === 'WRITE' || upper === 'VIEW' || upper.includes('VIEW') || upper.includes('COMMENT') || upper === 'ALLOW';
           };
 
-          if (authorTopicPrivs && authorTopicPrivs.length > 0) {
-            const standardTopicKeys = ['family', 'residencies', 'achievements', 'education', 'employment', 'hobbies', 'activities', 'other', 'custom'];
+          const STANDARD_TOPIC_ALIASES: Record<string, string[]> = {
+            family: ['family', 'famly'],
+            relationships: ['relationships', 'relationship'],
+            residencies: ['residencies', 'residence', 'places'],
+            trips: ['trips', 'vacations', 'trips and vacations', 'trips & vacations', 'travel'],
+            education: ['education', 'training', 'education and training', 'education & training', 'school'],
+            employment: ['employment', 'career', 'employment and career', 'employment & career', 'work'],
+            activities: ['activities', 'hobbies', 'activity', 'activities and hobbies', 'activities & hobbies'],
+            health: ['health', 'wellness', 'health and wellness', 'health & wellness'],
+            achievements: ['achievements', 'achievement'],
+            childhood: ['childhood', 'childhoood', 'youth', 'early years'],
+            'life reflections': ['life reflections', 'life reflection', 'reflections', 'reflection'],
+            'special events': ['special events', 'special event', 'specialevents', 'special-events', 'celebrations'],
+            'movies and tv': ['movies and tv', 'movies & tv', 'movies', 'tv', 'television', 'movies and television'],
+            music: ['music', 'songs'],
+            sports: ['sports', 'sport', 'athletics'],
+            technology: ['technology', 'tech', 'computers', 'inventions'],
+            'pop culture': ['pop culture', 'popculture', 'pop-culture'],
+            'fads and trends': ['fads and trends', 'fads & trends', 'fads', 'trends'],
+            'news of the times': ['news of the times', 'news of times', 'news'],
+            other: ['other', 'custom']
+          };
 
-            for (const key of standardTopicKeys) {
-              const matched = matchTopicByName(key, topicsList as any);
-              const targetTopicId = matched?.topicId || DEFAULT_TOPIC_LOOKUP[key]?.topicId;
+          // Combine db topics and standard topic keys
+          const allTopicsToCheck: { topicId?: string; topicName?: string; topicFullName?: string; aliases?: string[] }[] = [];
+          
+          for (const [key, aliases] of Object.entries(STANDARD_TOPIC_ALIASES)) {
+            const matched = matchTopicByName(key, topicsList as any);
+            const targetTopicId = matched?.topicId || DEFAULT_TOPIC_LOOKUP[key]?.topicId;
+            allTopicsToCheck.push({
+              topicId: targetTopicId,
+              topicName: matched?.topicName || key,
+              topicFullName: matched?.topicFullName || DEFAULT_TOPIC_LOOKUP[key]?.topicFullName || key,
+              aliases: [key, ...aliases]
+            });
+          }
 
-              if (targetTopicId) {
-                const privsForTopic = authorTopicPrivs.filter(p => p.topicId === targetTopicId);
-                if (privsForTopic.length > 0) {
-                  let allowed = false;
-                  let denied = false;
+          for (const top of topicsList) {
+            if (!allTopicsToCheck.some(t => t.topicId && top.topicId && t.topicId.toLowerCase() === top.topicId.toLowerCase())) {
+              allTopicsToCheck.push({
+                topicId: top.topicId,
+                topicName: top.topicName,
+                topicFullName: top.topicName,
+                aliases: [top.topicName.toLowerCase()]
+              });
+            }
+          }
 
-                  if (assignedGrpId) {
-                    const assignedPriv = privsForTopic.find(p => p.grpId === assignedGrpId);
-                    if (assignedPriv) {
-                      if (isPrivAllow(assignedPriv.privValueCd)) {
-                        allowed = true;
-                      } else {
-                        denied = true;
-                      }
-                    }
-                  }
+          for (const t of allTopicsToCheck) {
+            const targetTopicId = t.topicId;
+            const normTopicKey = (t.topicName || '').trim().toLowerCase();
 
-                  if (!allowed && !denied && publicGrpId) {
-                    const pubPriv = privsForTopic.find(p => p.grpId === publicGrpId);
-                    if (pubPriv && isPrivAllow(pubPriv.privValueCd)) {
-                      allowed = true;
-                    }
-                  }
+            // Profile and Other (custom stories) are never locked
+            if (normTopicKey === 'profile' || normTopicKey === 'other' || normTopicKey === 'custom') {
+              continue;
+            }
 
-                  if (!allowed) {
-                    lockedIds.push(key);
-                    lockedIds.push(targetTopicId);
-                    if (matched?.topicName) lockedIds.push(matched.topicName);
-                    if (matched?.topicFullName) lockedIds.push(matched.topicFullName);
-                  }
+            const privsForTopic = targetTopicId ? (authorTopicPrivs || []).filter(p => p.topicId === targetTopicId) : [];
+
+            let allowed = false;
+            let denied = false;
+
+            if (assignedGrpId) {
+              const assignedPriv = privsForTopic.find(p => p.grpId === assignedGrpId);
+              if (assignedPriv) {
+                if (isPrivAllow(assignedPriv.privValueCd)) {
+                  allowed = true;
+                } else {
+                  denied = true;
                 }
               }
             }
 
-            for (const top of topicsList) {
-              if (top.topicId) {
-                const privsForTopic = authorTopicPrivs.filter(p => p.topicId === top.topicId);
-                if (privsForTopic.length > 0) {
-                  let allowed = false;
-                  let denied = false;
+            if (!allowed && !denied && publicGrpId) {
+              const pubPriv = privsForTopic.find(p => p.grpId === publicGrpId);
+              if (pubPriv) {
+                if (isPrivAllow(pubPriv.privValueCd)) {
+                  allowed = true;
+                } else if ((pubPriv.privValueCd || '').toUpperCase().trim() === 'NONE') {
+                  denied = true;
+                }
+              }
+            }
 
-                  if (assignedGrpId) {
-                    const assignedPriv = privsForTopic.find(p => p.grpId === assignedGrpId);
-                    if (assignedPriv) {
-                      if (isPrivAllow(assignedPriv.privValueCd)) {
-                        allowed = true;
-                      } else {
-                        denied = true;
-                      }
-                    }
-                  }
+            // Default for connected members: if not explicitly restricted, allow access
+            if (!allowed && !denied && isUserConnected) {
+              allowed = true;
+            }
 
-                  if (!allowed && !denied && publicGrpId) {
-                    const pubPriv = privsForTopic.find(p => p.grpId === publicGrpId);
-                    if (pubPriv && isPrivAllow(pubPriv.privValueCd)) {
-                      allowed = true;
-                    }
-                  }
-
-                  if (!allowed) {
-                    if (!lockedIds.includes(top.topicId)) lockedIds.push(top.topicId);
-                    if (top.topicName && !lockedIds.includes(top.topicName)) lockedIds.push(top.topicName);
-                  }
+            if (!allowed) {
+              if (targetTopicId && !lockedIds.includes(targetTopicId)) lockedIds.push(targetTopicId);
+              if (t.topicName && !lockedIds.includes(t.topicName)) lockedIds.push(t.topicName);
+              if (t.topicFullName && !lockedIds.includes(t.topicFullName)) lockedIds.push(t.topicFullName);
+              if (t.aliases) {
+                for (const alias of t.aliases) {
+                  if (!lockedIds.includes(alias)) lockedIds.push(alias);
                 }
               }
             }
@@ -438,6 +464,7 @@ export default function SbMbrStoryPageFeature({
               activeSection={activeSection}
               setActiveSection={setActiveSection}
               memberName={member.name}
+              memberId={storyAuthorMbrId}
               lockedTopicIds={lockedTopicIds}
             />
           </div>

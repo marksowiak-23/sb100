@@ -10,7 +10,7 @@ import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbPersonalTriviaCardProps {
-  onClickAuthorPage?: (initialPrompt?: string) => void;
+  onClickAuthorPage?: (initialPrompt?: string, section?: string, trivia?: MbrPersonalTrivia | null) => void;
 }
 
 export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTriviaCardProps) {
@@ -268,11 +268,57 @@ export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTr
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
           <button
             onClick={() => {
+              const derivedTopicName = 'Flashback';
+              const derivedPrompt = trivia?.promptSuggestion || trivia?.storyContent || trivia?.headline || '';
+              const derivedContent = trivia?.storyContent || trivia?.promptSuggestion || '';
+
+              const triviaPayload = {
+                derivedTopicName: 'Flashback',
+                headline: trivia?.headline || 'Flashback',
+                storyTitle: trivia?.headline || 'Flashback',
+                storyContent: derivedContent,
+                promptSuggestion: derivedPrompt,
+                anchorTopic: 'Flashback',
+                anchorReference: trivia?.anchorReference || ''
+              };
+
+              try {
+                sessionStorage.setItem('sb_author_active_section', 'Other');
+                sessionStorage.setItem('sb_pending_new_story', JSON.stringify({
+                  topic: 'Other',
+                  derivedTopicName: 'Flashback',
+                  storyTitle: trivia?.headline || 'Flashback',
+                  storyContent: derivedContent,
+                  promptSuggestion: derivedPrompt,
+                  anchorTopic: 'Flashback',
+                  anchorReference: trivia?.anchorReference || ''
+                }));
+              } catch (e) {}
+
               if (onClickAuthorPage) {
-                onClickAuthorPage(trivia?.promptSuggestion || trivia?.headline);
+                onClickAuthorPage(derivedPrompt, 'Other', triviaPayload);
               }
+
+              window.dispatchEvent(new CustomEvent('author-navigate-section', {
+                detail: {
+                  section: 'Other',
+                  prompt: derivedPrompt,
+                  trivia: triviaPayload
+                }
+              }));
+
+              window.dispatchEvent(new CustomEvent('initiate-trivia-story', {
+                detail: {
+                  section: 'Other',
+                  derivedTopicName: 'Flashback',
+                  storyTitle: trivia?.headline || 'Flashback',
+                  storyContent: derivedContent,
+                  promptSuggestion: derivedPrompt,
+                  trivia: triviaPayload
+                }
+              }));
             }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs md:text-sm font-medium shadow-sm transition-all hover:shadow"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs md:text-sm font-medium shadow-sm transition-all hover:shadow cursor-pointer"
           >
             <Feather className="w-3.5 h-3.5" />
             Write Story About This

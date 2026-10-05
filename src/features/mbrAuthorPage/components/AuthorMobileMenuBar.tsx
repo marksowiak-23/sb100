@@ -26,11 +26,12 @@ import {
   Laptop, 
   PartyPopper,
   Compass,
-  Check
+  Check,
+  Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import { taskApi, Topic, Cd } from '@/src/services/api';
+import { taskApi, Topic, Cd, MbrStory } from '@/src/services/api';
 
 const DEFAULT_CATEGORIES: Partial<Cd>[] = [
   { cdTag: 'topicCategoryCd', cdValue: 'PPL', cdLabel: 'People and Relationships', cdSortOrder: 1 },
@@ -124,6 +125,138 @@ function getTopicIconDetails(name: string = '', fullName: string = '') {
   return { icon: Sparkles, colorClass: 'text-amber-500 dark:text-amber-400' };
 }
 
+function matchStoryToTopic(s: MbrStory, topic: Topic): boolean {
+  const normTopicName = (topic.topicName || '').trim().toLowerCase();
+  const normTopicFullName = (topic.topicFullName || '').trim().toLowerCase();
+  const topicId = topic.topicId;
+
+  if (topicId && s.topicId && s.topicId === topicId) {
+    return true;
+  }
+
+  const storyTypeCd = (s.mbrStoryTypeCd || '').trim().toLowerCase();
+  const storyTopicName = (s.mbrStoryTopicName || '').trim().toLowerCase();
+
+  if (normTopicName === 'profile') {
+    return storyTypeCd === 'profile' || storyTopicName === 'profile';
+  }
+  if (normTopicName === 'family') {
+    return storyTypeCd === 'sbmbrstryfamly' || storyTypeCd === 'family' || storyTypeCd === 'sbmbrstryfamilymember' || storyTopicName === 'family';
+  }
+  if (normTopicName === 'relationships') {
+    return storyTypeCd === 'sbmbrstryrelationships' || storyTypeCd === 'sbmbrstryrelationship' || storyTypeCd === 'relationships' || storyTypeCd === 'relationship' || storyTopicName === 'relationships' || storyTopicName === 'relationship';
+  }
+  if (normTopicName === 'residencies' || normTopicName === 'residence') {
+    return storyTypeCd === 'sbmbrstryresidence' || storyTypeCd === 'residencies' || storyTypeCd === 'residence' || storyTopicName === 'residencies' || storyTopicName === 'residence';
+  }
+  if (normTopicName === 'trips and vacations' || normTopicName === 'trips' || normTopicName === 'vacations' || normTopicName === 'trips & vacations') {
+    return storyTypeCd === 'sbmbrstrytrips' || storyTypeCd === 'trips' || storyTypeCd === 'vacations' || storyTopicName.includes('trip') || storyTopicName.includes('vacation');
+  }
+  if (normTopicName === 'education') {
+    return storyTypeCd === 'sbmbrstryeducation' || storyTypeCd === 'education' || storyTopicName.includes('education');
+  }
+  if (normTopicName === 'employment') {
+    return storyTypeCd === 'sbmbrstryemployment' || storyTypeCd === 'employment' || storyTopicName.includes('employment') || storyTopicName.includes('career');
+  }
+  if (normTopicName === 'activities' || normTopicName === 'hobbies') {
+    return storyTypeCd === 'sbmbrstryactivity' || storyTypeCd === 'activities' || storyTypeCd === 'hobbies' || storyTypeCd === 'activity' || storyTopicName.includes('activit') || storyTopicName.includes('hobb');
+  }
+  if (normTopicName === 'health') {
+    return storyTypeCd === 'sbmbrstryhealth' || storyTypeCd === 'health' || storyTopicName.includes('health') || storyTopicName.includes('wellness');
+  }
+  if (normTopicName === 'achievements') {
+    return storyTypeCd === 'sbmbrstryachievement' || storyTypeCd === 'achievements' || storyTypeCd === 'achievement' || storyTopicName.includes('achievement');
+  }
+  if (normTopicName === 'special events') {
+    return storyTypeCd === 'sbmbrstryspecialevents' || storyTypeCd === 'special events' || storyTypeCd === 'special event' || storyTopicName.includes('special event') || storyTopicName.includes('celebrat');
+  }
+  if (normTopicName === 'fads and trends' || normTopicName === 'fads & trends' || normTopicName === 'fads') {
+    return storyTypeCd === 'sbmbrstryfadsandtrends' || storyTopicName.includes('fad') || storyTopicName.includes('trend');
+  }
+  if (normTopicName === 'movies and tv' || normTopicName === 'movies & tv' || normTopicName === 'movies' || normTopicName === 'tv') {
+    return storyTypeCd === 'sbmbrstrymoviesandtv' || storyTopicName.includes('movie') || storyTopicName.includes('tv') || storyTopicName.includes('television');
+  }
+  if (normTopicName === 'music') {
+    return storyTypeCd === 'sbmbrstrymusic' || storyTopicName.includes('music') || storyTopicName.includes('song');
+  }
+  if (normTopicName === 'news of the times' || normTopicName === 'news') {
+    return storyTypeCd === 'sbmbrstrynewsofthetimes' || storyTopicName.includes('news');
+  }
+  if (normTopicName === 'pop culture') {
+    return storyTypeCd === 'sbmbrstrypopculture' || storyTopicName.includes('pop culture');
+  }
+  if (normTopicName === 'sports') {
+    return storyTypeCd === 'sbmbrstrysports' || storyTopicName.includes('sport') || storyTopicName.includes('athletic');
+  }
+  if (normTopicName === 'technology') {
+    return storyTypeCd === 'sbmbrstrytechnology' || storyTopicName.includes('technology') || storyTopicName.includes('tech');
+  }
+  if (normTopicName === 'childhood') {
+    return storyTypeCd === 'sbmbrstrychildhood' || storyTopicName.includes('childhood') || storyTopicName.includes('early years');
+  }
+  if (normTopicName === 'life reflections') {
+    return storyTypeCd === 'sbmbrstrylifereflections' || storyTopicName.includes('reflection') || storyTopicName.includes('life reflection');
+  }
+  if (normTopicName === 'other' || normTopicName === 'custom') {
+    return storyTypeCd === 'sbmbrstrycustom' || storyTypeCd === 'other' || storyTypeCd === 'custom' || storyTypeCd === 'sbmbrstryother' || Boolean(s.mbrCustomTopicId);
+  }
+
+  if (storyTopicName && (storyTopicName === normTopicName || storyTopicName === normTopicFullName)) {
+    return true;
+  }
+  if (storyTypeCd && (storyTypeCd === normTopicName || storyTypeCd === `sbmbrstry${normTopicName.replace(/\s+/g, '')}`)) {
+    return true;
+  }
+
+  return false;
+}
+
+const TOPICS_WITH_CARDS = new Set([
+  'profile',
+  'family',
+  'relationships',
+  'relationship',
+  'residencies',
+  'residence',
+  'trips and vacations',
+  'trips & vacations',
+  'trips',
+  'vacations',
+  'education',
+  'education and training',
+  'education & training',
+  'employment',
+  'employment and career',
+  'employment & career',
+  'activities',
+  'hobbies',
+  'activity',
+  'activities and hobbies',
+  'activities & hobbies',
+  'health',
+  'wellness',
+  'health and wellness',
+  'health & wellness',
+  'achievements',
+  'achievement',
+  'special events',
+  'special event',
+  'specialevents',
+  'special-events',
+  'celebrations'
+]);
+
+const hasTopicCard = (topic: Topic): boolean => {
+  const normName = (topic.topicName || '').trim().toLowerCase();
+  const normFullName = (topic.topicFullName || '').trim().toLowerCase();
+  return TOPICS_WITH_CARDS.has(normName) || TOPICS_WITH_CARDS.has(normFullName);
+};
+
+const isUuid = (id?: string | null): boolean => {
+  if (!id || typeof id !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+};
+
 interface AuthorMobileMenuBarProps {
   activeSection: string;
   setActiveSection: (sectionId: string) => void;
@@ -139,7 +272,77 @@ export default function AuthorMobileMenuBar({
   const [dbTopics, setDbTopics] = useState<Topic[]>(DEFAULT_TOPICS_LIST);
   const [categories, setCategories] = useState<Partial<Cd>[]>(DEFAULT_CATEGORIES);
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+  const [stories, setStories] = useState<MbrStory[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const fetchStories = async () => {
+    try {
+      let resolvedMbrId: string | undefined = undefined;
+      const currentMbr = sessionStorage.getItem('sb_current_mbr');
+      if (currentMbr) {
+        try {
+          const parsed = JSON.parse(currentMbr);
+          if (parsed.mbrId && isUuid(parsed.mbrId)) resolvedMbrId = parsed.mbrId;
+        } catch {}
+      }
+      if (!resolvedMbrId || !isUuid(resolvedMbrId)) {
+        const storedMbr = sessionStorage.getItem('mbr');
+        if (storedMbr) {
+          try {
+            const parsed = JSON.parse(storedMbr);
+            if (parsed.mbrId && isUuid(parsed.mbrId)) resolvedMbrId = parsed.mbrId;
+          } catch {}
+        }
+      }
+      if (!resolvedMbrId || !isUuid(resolvedMbrId)) {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+          try {
+            const u = JSON.parse(userStr);
+            if (u.mbrId && isUuid(u.mbrId)) resolvedMbrId = u.mbrId;
+            else {
+              const profile = await taskApi.getMemberByUserId(u.user_id || u.id).catch(() => null);
+              if (profile?.mbrId) resolvedMbrId = profile.mbrId;
+            }
+          } catch {}
+        }
+      }
+      if (!resolvedMbrId || !isUuid(resolvedMbrId)) {
+        const sandboxMbr = sessionStorage.getItem('sandbox_mbr');
+        if (sandboxMbr) {
+          try {
+            const parsed = JSON.parse(sandboxMbr);
+            if (parsed.mbrId && isUuid(parsed.mbrId)) resolvedMbrId = parsed.mbrId;
+          } catch {}
+        }
+      }
+      if (!resolvedMbrId || !isUuid(resolvedMbrId)) {
+        setStories([]);
+        return;
+      }
+
+      const fetched = await taskApi.getStories(resolvedMbrId).catch(() => []);
+      let allStories = Array.isArray(fetched) ? fetched : [];
+
+      const sandboxKey = `sb_sandbox_stories_${resolvedMbrId}`;
+      const sandboxStr = sessionStorage.getItem(sandboxKey) || sessionStorage.getItem('sb_sandbox_stories');
+      if (sandboxStr) {
+        try {
+          const sandboxStories = JSON.parse(sandboxStr);
+          if (Array.isArray(sandboxStories)) {
+            const map = new Map<string, MbrStory>();
+            allStories.forEach(s => { if (s.mbrStoryId) map.set(s.mbrStoryId, s); });
+            sandboxStories.forEach(s => { if (s.mbrStoryId) map.set(s.mbrStoryId, s); });
+            allStories = Array.from(map.values());
+          }
+        } catch {}
+      }
+
+      setStories(allStories);
+    } catch (err) {
+      console.warn("Could not load stories in AuthorMobileMenuBar:", err);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -173,7 +376,24 @@ export default function AuthorMobileMenuBar({
       }
     };
     fetchTopicsAndCategories();
-    return () => { isMounted = false; };
+    fetchStories();
+
+    const handleRefresh = () => {
+      fetchStories();
+    };
+
+    window.addEventListener('stats-updated', handleRefresh);
+    window.addEventListener('update-story-editor-content', handleRefresh);
+    window.addEventListener('refresh-stories', handleRefresh);
+    window.addEventListener('user-switched', handleRefresh);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('stats-updated', handleRefresh);
+      window.removeEventListener('update-story-editor-content', handleRefresh);
+      window.removeEventListener('refresh-stories', handleRefresh);
+      window.removeEventListener('user-switched', handleRefresh);
+    };
   }, []);
 
   // Close when clicking outside
@@ -350,6 +570,9 @@ export default function AuthorMobileMenuBar({
                               ((activeSecStr === 'hobbies' || activeSecStr === 'activities') && topicName.toLowerCase() === 'activities');
 
                             const { icon: TopicIcon, colorClass } = getTopicIconDetails(topicName, topicFullName);
+                            const matchingStories = stories.filter(s => matchStoryToTopic(s, topic));
+                            const totalCount = matchingStories.length;
+                            const publishedCount = matchingStories.filter(s => (s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published').length;
 
                             return (
                               <button
@@ -362,7 +585,7 @@ export default function AuthorMobileMenuBar({
                                     : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
                                 }`}
                               >
-                                <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0 flex-1 pr-1.5">
                                   <TopicIcon className={`w-4 h-4 shrink-0 ${
                                     isActive 
                                       ? 'text-amber-400 dark:text-amber-600' 
@@ -370,9 +593,20 @@ export default function AuthorMobileMenuBar({
                                   }`} />
                                   <span className="truncate">{topicFullName}</span>
                                 </div>
-                                {isActive && (
-                                  <Check className="w-3.5 h-3.5 text-amber-400 dark:text-amber-600 shrink-0 ml-2" />
-                                )}
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {totalCount > 0 && (
+                                    <div className={`flex items-center gap-0.5 text-[10px] sm:text-[10.5px] font-mono font-medium select-none ${
+                                      isActive ? 'text-amber-300 dark:text-amber-400' : 'text-slate-500'
+                                    }`}>
+                                      <span>{publishedCount}</span>
+                                      <Globe className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-600 shrink-0 inline-block mx-0.5" />
+                                      <span>/ {totalCount}</span>
+                                    </div>
+                                  )}
+                                  {isActive && (
+                                    <Check className="w-3.5 h-3.5 text-amber-400 dark:text-amber-600 shrink-0 ml-1" />
+                                  )}
+                                </div>
                               </button>
                             );
                           })}

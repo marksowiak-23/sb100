@@ -6,7 +6,7 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMbrHomePageFeatureProps {
   onClickReadStory?: (memberId: string) => void;
-  onClickAuthorPage?: (initialPrompt?: string) => void;
+  onClickAuthorPage?: (initialPrompt?: string, section?: string, trivia?: any) => void;
   onNavigate?: (tab: string) => void;
 }
 

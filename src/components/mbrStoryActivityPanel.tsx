@@ -17,7 +17,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   ShieldAlert,
-  BookOpen,
   Images,
   ArrowUp,
   ArrowDown,
@@ -620,22 +619,6 @@ export default function MbrStoryActivityPanel({
               )}
             </button>
 
-            {/* Storybook Icon Button with Count Badge */}
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' }
-              }))}
-              className="relative p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title={readOnly ? `View Member Stories${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}` : `Story Editor${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}`}
-            >
-              <BookOpen className="w-4 h-4 text-blue-500" />
-              {headerStoryCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 px-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] font-bold bg-amber-500 text-white rounded-full leading-none shadow-xs">
-                  {headerStoryCount}
-                </span>
-              )}
-            </button>
-
             {!readOnly && (
               <button
                 onClick={() => setShowPrivacyModal(true)}
@@ -662,9 +645,9 @@ export default function MbrStoryActivityPanel({
               }`}
               title="More options"
               aria-label="More options"
-            >
+              >
               <MoreVertical className="w-4 h-4" />
-              {(headerPhotoCount > 0 || headerStoryCount > 0) && (
+              {headerPhotoCount > 0 && (
                 <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
               )}
             </button>
@@ -694,26 +677,6 @@ export default function MbrStoryActivityPanel({
                       {headerPhotoCount > 0 && (
                         <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-100 text-indigo-700">
                           {headerPhotoCount}
-                        </span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowHeaderMenu(false);
-                        window.dispatchEvent(new CustomEvent('open-story-editor', {
-                          detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Activities and Hobbies', componentName: 'sbMbrStryActivity' }
-                        }));
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <BookOpen className="w-4 h-4 text-blue-500 shrink-0" />
-                        <span>{readOnly ? 'View Stories' : 'Story Editor'}</span>
-                      </div>
-                      {headerStoryCount > 0 && (
-                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800">
-                          {headerStoryCount}
                         </span>
                       )}
                     </button>
@@ -883,30 +846,6 @@ export default function MbrStoryActivityPanel({
                             )}
                           </button>
 
-                          {/* Storybook Button */}
-                          <button
-                            type="button"
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                              detail: { 
-                                topicId: resolvedTopicId,
-                                chIntentId: resolvedChIntentId, 
-                                topicTitle: 'Activities and Hobbies', 
-                                componentName: 'sbMbrStryActivity',
-                                subordinateId: act.mbrActivityId,
-                                subordinateTitle: act.mbrActivityName
-                              }
-                            }))}
-                            className="relative p-1 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                            title={readOnly ? `View Stories${sCount > 0 ? ` (${sCount})` : ''}` : `Story Editor${sCount > 0 ? ` (${sCount})` : ''}`}
-                          >
-                            <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-                            {sCount > 0 && (
-                              <span className="absolute -top-1 -right-1 px-1 min-w-[14px] h-3.5 flex items-center justify-center text-[8.5px] font-bold bg-amber-500 text-white rounded-full leading-none shadow-xs">
-                                {sCount}
-                              </span>
-                            )}
-                          </button>
-
                           {!readOnly && (
                             <>
                               <button
@@ -946,7 +885,7 @@ export default function MbrStoryActivityPanel({
                             aria-label="Actions"
                           >
                             <MoreVertical className="w-3.5 h-3.5" />
-                            {(pCount > 0 || sCount > 0) && (
+                            {pCount > 0 && (
                               <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-blue-600 ring-1 ring-white" />
                             )}
                           </button>
@@ -978,33 +917,6 @@ export default function MbrStoryActivityPanel({
                                     {pCount > 0 && (
                                       <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-indigo-100 text-indigo-700">
                                         {pCount}
-                                      </span>
-                                    )}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setActiveActionMenuId(null);
-                                      window.dispatchEvent(new CustomEvent('open-story-editor', {
-                                        detail: { 
-                                          topicId: resolvedTopicId,
-                                          chIntentId: resolvedChIntentId, 
-                                          topicTitle: 'Activities and Hobbies', 
-                                          componentName: 'sbMbrStryActivity',
-                                          subordinateId: act.mbrActivityId,
-                                          subordinateTitle: act.mbrActivityName
-                                        }
-                                      }));
-                                    }}
-                                    className="w-full flex items-center justify-between px-3 py-1.5 text-xs text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <BookOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                                      <span>{readOnly ? 'View Stories' : 'Story Editor'}</span>
-                                    </div>
-                                    {sCount > 0 && (
-                                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800">
-                                        {sCount}
                                       </span>
                                     )}
                                   </button>

@@ -475,8 +475,49 @@ export default function App() {
           >
             <MbrHomePageFeature
               onClickReadStory={handleReadStory}
-              onClickAuthorPage={() => {
+              onClickAuthorPage={(initialPrompt, section, trivia) => {
+                const targetSection = section || 'Other';
+                sessionStorage.setItem('sb_author_active_section', targetSection);
+                if (trivia) {
+                  const derivedTopicName = trivia.derivedTopicName || trivia.anchorTopic || 'Flashback';
+                  const derivedStoryTitle = trivia.headline || trivia.storyTitle || derivedTopicName;
+                  const derivedContent = trivia.storyContent || trivia.promptSuggestion || '';
+                  const derivedPrompt = trivia.promptSuggestion || trivia.storyContent || trivia.headline || '';
+
+                  sessionStorage.setItem('sb_pending_new_story', JSON.stringify({
+                    topic: targetSection,
+                    derivedTopicName,
+                    storyTitle: derivedStoryTitle,
+                    storyContent: derivedContent,
+                    promptSuggestion: derivedPrompt,
+                    anchorTopic: trivia.anchorTopic || derivedTopicName,
+                    anchorReference: trivia.anchorReference || ''
+                  }));
+                }
                 navigateTo('mbrAuthorPage');
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('author-navigate-section', {
+                    detail: {
+                      section: targetSection,
+                      prompt: initialPrompt,
+                      trivia
+                    }
+                  }));
+                  if (trivia) {
+                    const derivedTopicName = trivia.derivedTopicName || trivia.anchorTopic || 'Flashback';
+                    const derivedStoryTitle = trivia.headline || trivia.storyTitle || derivedTopicName;
+                    window.dispatchEvent(new CustomEvent('initiate-trivia-story', {
+                      detail: {
+                        section: targetSection,
+                        derivedTopicName,
+                        storyTitle: derivedStoryTitle,
+                        storyContent: trivia.storyContent || trivia.promptSuggestion || '',
+                        promptSuggestion: trivia.promptSuggestion || trivia.storyContent || '',
+                        trivia
+                      }
+                    }));
+                  }
+                }, 100);
               }}
               onNavigate={(tab) => {
                 navigateTo(tab as any);

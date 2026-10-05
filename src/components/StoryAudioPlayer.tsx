@@ -23,7 +23,8 @@ export interface StoryAudioPlayerProps {
   text: string;
   storyId?: string;
   title?: string;
-  variant?: 'compact' | 'full' | 'inline-button';
+  variant?: 'compact' | 'full' | 'inline-button' | 'icon-button';
+  showLabel?: boolean;
   className?: string;
 }
 
@@ -32,6 +33,7 @@ export default function StoryAudioPlayer({
   storyId = 'current-story',
   title = 'Story Narration',
   variant = 'compact',
+  showLabel = true,
   className = ''
 }: StoryAudioPlayerProps) {
   const {
@@ -61,8 +63,9 @@ export default function StoryAudioPlayer({
 
   const speedOptions = [0.8, 1.0, 1.25, 1.5];
 
-  // Inline Button Variant (perfect for feed cards and list rows)
-  if (variant === 'inline-button') {
+  // Inline / Icon Button Variant (perfect for action toolbars, feed cards and list rows)
+  if (variant === 'inline-button' || variant === 'icon-button') {
+    const isIconOnly = variant === 'icon-button' || showLabel === false;
     return (
       <button
         type="button"
@@ -70,34 +73,40 @@ export default function StoryAudioPlayer({
           e.stopPropagation();
           togglePlay(text, storyId, title);
         }}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-serif font-semibold transition-all cursor-pointer shadow-2xs ${
+        className={`${
+          isIconOnly
+            ? 'p-2 rounded-xl text-xs font-serif font-semibold transition-all cursor-pointer shadow-2xs'
+            : 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-serif font-semibold transition-all cursor-pointer shadow-2xs'
+        } ${
           isCurrentPlaying && !isCurrentPaused
             ? 'bg-amber-100 text-amber-900 border border-amber-300 ring-2 ring-amber-400/30 animate-pulse'
             : isCurrentPaused
             ? 'bg-amber-50 text-amber-800 border border-amber-200'
             : 'bg-white hover:bg-slate-50 text-slate-700 border border-[#EFECE7]'
         } ${className}`}
-        title={isCurrentPlaying ? (isCurrentPaused ? 'Resume listening' : 'Pause listening') : 'Listen to story'}
+        title={isCurrentPlaying ? (isCurrentPaused ? 'Resume narration' : 'Pause narration') : 'Play story narration'}
       >
         {isCurrentPlaying && !isCurrentPaused ? (
           <>
-            <Pause className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-            <span>Listening</span>
-            <span className="flex items-end gap-0.5 h-3 px-0.5">
-              <span className="w-0.5 h-2 bg-amber-600 rounded-full animate-bounce [animation-delay:0.1s]" />
-              <span className="w-0.5 h-3 bg-amber-600 rounded-full animate-bounce [animation-delay:0.3s]" />
-              <span className="w-0.5 h-1.5 bg-amber-600 rounded-full animate-bounce [animation-delay:0.2s]" />
-            </span>
+            <Pause className={`${isIconOnly ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-amber-600 shrink-0`} />
+            {!isIconOnly && <span>Listening</span>}
+            {!isIconOnly && (
+              <span className="flex items-end gap-0.5 h-3 px-0.5">
+                <span className="w-0.5 h-2 bg-amber-600 rounded-full animate-bounce [animation-delay:0.1s]" />
+                <span className="w-0.5 h-3 bg-amber-600 rounded-full animate-bounce [animation-delay:0.3s]" />
+                <span className="w-0.5 h-1.5 bg-amber-600 rounded-full animate-bounce [animation-delay:0.2s]" />
+              </span>
+            )}
           </>
         ) : isCurrentPaused ? (
           <>
-            <Play className="w-3.5 h-3.5 text-amber-600 fill-amber-600 shrink-0" />
-            <span>Paused</span>
+            <Play className={`${isIconOnly ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-amber-600 fill-amber-600 shrink-0`} />
+            {!isIconOnly && <span>Paused</span>}
           </>
         ) : (
           <>
-            <Headphones className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
-            <span>Listen</span>
+            <Headphones className={`${isIconOnly ? 'w-4 h-4' : 'w-3.5 h-3.5'} text-indigo-500 shrink-0`} />
+            {!isIconOnly && <span>Listen</span>}
           </>
         )}
       </button>

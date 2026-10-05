@@ -963,9 +963,8 @@ export default function MbrStoryEmploymentPanel({
               </thead>
               <tbody className="divide-y divide-[#EFECE7]/70 text-xs">
                 {sortedEmploymentList.map((emp, idx) => {
-                  const storyCount = employmentStoriesMap[emp.mbrEmploymentId] || 0;
                   const photoCount = employmentPhotosMap[emp.mbrEmploymentId] || 0;
-                  const hasContent = storyCount > 0 || photoCount > 0;
+                  const hasContent = photoCount > 0;
                   const isCurrent = !emp.mbrEmploymentEndDate && !!emp.mbrEmploymentStartDate;
 
                   return (
@@ -974,7 +973,7 @@ export default function MbrStoryEmploymentPanel({
                       className="hover:bg-slate-50/80 transition-colors group"
                     >
                       {/* Company & Position details */}
-                      <td className="py-2 sm:py-2.5 pl-2 sm:pl-3 pr-1 sm:pr-2">
+                      <td className="py-2 sm:py-2.5 pl-2 sm:pr-2">
                         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
                           <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
                             <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -989,15 +988,6 @@ export default function MbrStoryEmploymentPanel({
                             </span>
                             {hasContent && (
                               <div className="flex items-center gap-1 mt-0.5">
-                                {storyCount > 0 && (
-                                  <span
-                                    className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] sm:text-[9px] font-semibold bg-amber-50 text-amber-800 border border-amber-200/70"
-                                    title={`${storyCount} ${storyCount === 1 ? 'story' : 'stories'} available`}
-                                  >
-                                    <BookOpen className="w-2.5 h-2.5 text-amber-600 shrink-0" />
-                                    <span>{storyCount}</span>
-                                  </span>
-                                )}
                                 {photoCount > 0 && (
                                   <span
                                     className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[8px] sm:text-[9px] font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200/70"
@@ -1056,29 +1046,6 @@ export default function MbrStoryEmploymentPanel({
                             {photoCount > 0 && (
                               <span className="absolute -top-1 -right-1 px-1 min-w-[14px] h-3.5 flex items-center justify-center text-[8.5px] font-bold bg-emerald-600 text-white rounded-full leading-none shadow-xs">
                                 {photoCount}
-                              </span>
-                            )}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                              detail: {
-                                topicId: resolvedTopicId,
-                                chIntentId: resolvedChIntentId,
-                                topicTitle: `Employment (${emp.mbrEmploymentCompany})`,
-                                componentName: 'sbMbrStryEmployment',
-                                subordinateId: emp.mbrEmploymentId,
-                                subordinateTitle: emp.mbrEmploymentCompany
-                              }
-                            }))}
-                            title={readOnly ? `View Stories for ${emp.mbrEmploymentCompany}${storyCount > 0 ? ` (${storyCount} stories)` : ''}` : `Story Editor for ${emp.mbrEmploymentCompany}${storyCount > 0 ? ` (${storyCount} stories)` : ''}`}
-                            className="relative p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <BookOpen className={`w-3.5 h-3.5 ${storyCount > 0 ? 'text-amber-500' : 'text-blue-500'}`} />
-                            {storyCount > 0 && (
-                              <span className="absolute -top-1 -right-1 px-1 min-w-[14px] h-3.5 flex items-center justify-center text-[8.5px] font-bold bg-amber-500 text-white rounded-full leading-none shadow-xs">
-                                {storyCount}
                               </span>
                             )}
                           </button>
@@ -1153,33 +1120,6 @@ export default function MbrStoryEmploymentPanel({
                                     {photoCount > 0 && (
                                       <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-700">
                                         {photoCount}
-                                      </span>
-                                    )}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setActiveActionMenuId(null);
-                                      window.dispatchEvent(new CustomEvent('open-story-editor', {
-                                        detail: {
-                                          topicId: resolvedTopicId,
-                                          chIntentId: resolvedChIntentId,
-                                          topicTitle: `Employment (${emp.mbrEmploymentCompany})`,
-                                          componentName: 'sbMbrStryEmployment',
-                                          subordinateId: emp.mbrEmploymentId,
-                                          subordinateTitle: emp.mbrEmploymentCompany
-                                        }
-                                      }));
-                                    }}
-                                    className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      <BookOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />
-                                      <span>{readOnly ? 'View Stories' : 'Story Editor'}</span>
-                                    </div>
-                                    {storyCount > 0 && (
-                                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800">
-                                        {storyCount}
                                       </span>
                                     )}
                                   </button>

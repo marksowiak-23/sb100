@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
@@ -48,6 +48,17 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
       sessionStorage.setItem('sb_author_active_section', sec);
     } catch {}
   };
+
+  useEffect(() => {
+    const handleNavSection = (e: any) => {
+      const targetSec = e?.detail?.section || sessionStorage.getItem('sb_author_active_section');
+      if (targetSec) {
+        setActiveSection(targetSec);
+      }
+    };
+    window.addEventListener('author-navigate-section', handleNavSection);
+    return () => window.removeEventListener('author-navigate-section', handleNavSection);
+  }, []);
 
   const getActiveContent = (): string[] => {
     return storyContents[activeSection] || ["This chapter draft is empty."];

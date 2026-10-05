@@ -9,7 +9,7 @@ import { useHomePageCardConfigs } from '@/src/hooks/useHomePageCardConfigs';
 
 interface CenterColumnProps {
   onClickReadStory?: (memberId: string) => void;
-  onClickAuthorPage?: (initialPrompt?: string) => void;
+  onClickAuthorPage?: (initialPrompt?: string, section?: string, trivia?: any) => void;
   onNavigate?: (tab: string) => void;
 }
 

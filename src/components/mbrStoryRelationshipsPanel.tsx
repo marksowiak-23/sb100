@@ -1053,7 +1053,7 @@ export default function MbrStoryRelationshipsPanel({
                 {/* Nickname & Maiden Name */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-700 font-serif">Nickname / Moniker</label>
+                    <label className="text-xs font-bold text-slate-700 font-serif">Nickname</label>
                     <input
                       type="text"
                       value={formNickname}
@@ -1220,10 +1220,11 @@ export default function MbrStoryRelationshipsPanel({
       <AnimatePresence>
         {showGalleryModal && (
           <MbrPhotoGalleryPanel
-            memberId={mbrId}
-            category="relationships"
+            mbrId={mbrId}
+            categoryCd="relationships"
+            categoryTitle={activeGalleryTitle}
+            isSandbox={isSandbox}
             subordinateId={activeGallerySubordinateId || undefined}
-            title={activeGalleryTitle}
             isOpen={showGalleryModal}
             onClose={() => {
               setShowGalleryModal(false);
@@ -1237,8 +1238,10 @@ export default function MbrStoryRelationshipsPanel({
       <AnimatePresence>
         {showPrivacyModal && (
           <MbrTopicPrivacyModal
-            memberId={mbrId}
-            topicTitle="Relationships"
+            mbrId={mbrId}
+            topicId={topicId}
+            topicName="Relationships"
+            isSandbox={isSandbox}
             isOpen={showPrivacyModal}
             onClose={() => setShowPrivacyModal(false)}
           />

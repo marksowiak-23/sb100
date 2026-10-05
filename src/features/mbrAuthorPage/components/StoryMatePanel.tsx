@@ -469,15 +469,54 @@ export default function StoryMatePanel({
       const normalize = (s?: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
       try {
-        // 1. Fetch intents
-        const intents = await adminDbApi.getTableData('/chIntents');
+        // 0. Fetch intents and topics from database
+        const [intents, topicsList] = await Promise.all([
+          adminDbApi.getTableData('/chIntents').catch(() => []),
+          adminDbApi.getTableData('/topics').catch(() => taskApi.getTopics().catch(() => []))
+        ]);
+        const dbTopics: Topic[] = Array.isArray(topicsList) ? topicsList : [];
+
+        const isOtherTopic =
+          normalize(componentName).includes('other') ||
+          normalize(componentName).includes('custom') ||
+          normalize(topicId).includes('other') ||
+          normalize(topicId).includes('custom') ||
+          topicId === 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e' ||
+          chIntentId === 'c75f4efc-8a83-4084-89a4-e3ab49798d60' ||
+          chIntentId === '3a435df1-392c-433d-adf3-7fb9c3e5051a' ||
+          chIntentId === DEFAULT_TOPIC_LOOKUP.other?.chIntentId;
+
         if (Array.isArray(intents) && intents.length > 0) {
-          // A. Direct match by chIntentId
-          if (chIntentId) {
+          // Priority 1: If launched from the Other topic, find the Other topic in the topic table and use its chatbot intent id
+          if (isOtherTopic) {
+            const otherTopicRecord = dbTopics.find((t: any) =>
+              t.topicId === 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e' ||
+              normalize(t.topicName) === 'other' ||
+              normalize(t.topicFullName) === 'other' ||
+              t.chIntentId === 'c75f4efc-8a83-4084-89a4-e3ab49798d60'
+            );
+            const otherIntentId = otherTopicRecord?.chIntentId || DEFAULT_TOPIC_LOOKUP.other?.chIntentId || 'c75f4efc-8a83-4084-89a4-e3ab49798d60';
+            resolvedIntent = intents.find((i: any) => i.chIntentId === otherIntentId || normalize(i.chIntentName) === 'sbmbrstryother' || normalize(i.chIntentName) === 'sbmbrstoryother');
+          }
+
+          // Priority 2: Direct match by passed chIntentId
+          if (!resolvedIntent && chIntentId) {
             resolvedIntent = intents.find((i: any) => i.chIntentId === chIntentId);
           }
 
-          // B. Match by topicId from DEFAULT_TOPIC_LOOKUP
+          // Priority 3: Match topic in topic table directly
+          if (!resolvedIntent && topicId) {
+            const matchedDbTopic = dbTopics.find((t: any) =>
+              t.topicId === topicId ||
+              normalize(t.topicName) === normalize(topicId) ||
+              normalize(t.topicFullName) === normalize(topicId)
+            );
+            if (matchedDbTopic?.chIntentId) {
+              resolvedIntent = intents.find((i: any) => i.chIntentId === matchedDbTopic.chIntentId);
+            }
+          }
+
+          // Priority 4: Match by topicId from DEFAULT_TOPIC_LOOKUP
           if (!resolvedIntent && topicId) {
             const lookup = DEFAULT_TOPIC_LOOKUP[topicId.toLowerCase()];
             if (lookup?.chIntentId) {
@@ -485,7 +524,7 @@ export default function StoryMatePanel({
             }
           }
 
-          // C. Match by normalized names/component/topic
+          // Priority 5: Match by normalized names/component/topic
           if (!resolvedIntent && (componentName || topicId)) {
             const targetKeys = [componentName, topicId].filter(Boolean).map(normalize);
             resolvedIntent = intents.find((i: any) => {
@@ -509,15 +548,15 @@ export default function StoryMatePanel({
             });
           }
 
-          // D. matchTopicByName lookup
+          // Priority 6: matchTopicByName lookup
           if (!resolvedIntent && (componentName || topicId)) {
-            const matched = matchTopicByName(componentName || topicId);
+            const matched = matchTopicByName(componentName || topicId, dbTopics);
             if (matched?.chIntentId) {
               resolvedIntent = intents.find((i: any) => i.chIntentId === matched.chIntentId);
             }
           }
 
-          // E. If still not matched, use fallback map name lookup rather than blindly defaulting to intents[0]
+          // Priority 7: If still not matched, use fallback map name lookup
           if (!resolvedIntent) {
             const fb = getFallbackIntent(componentName || topicId);
             resolvedIntent = intents.find((i: any) =>
@@ -531,7 +570,7 @@ export default function StoryMatePanel({
           }
         }
       } catch (e) {
-        console.warn("Could not query /chIntents, using fallback:", e);
+        console.warn("Could not query /chIntents or /topics, using fallback:", e);
       }
 
       if (resolvedIntent) {
@@ -542,10 +581,10 @@ export default function StoryMatePanel({
       if (!resolvedIntent) {
         const fallback = getFallbackIntent(componentName || topicId);
         resolvedIntent = {
-          chIntentId: chIntentId || '98fac10e-a61f-49ff-88ec-a6cbef6542a1',
+          chIntentId: chIntentId || (isOtherOrCustom ? 'c75f4efc-8a83-4084-89a4-e3ab49798d60' : '98fac10e-a61f-49ff-88ec-a6cbef6542a1'),
           chIntentName: fallback.intentName,
           chIntentDesc: fallback.desc,
-          chInstId: '7682e6f1-a9c1-4b11-a67b-12d8a0c24bdf'
+          chInstId: isOtherOrCustom ? 'e7cb1f52-1744-4df3-8a39-4ba1c62069f7' : '7682e6f1-a9c1-4b11-a67b-12d8a0c24bdf'
         };
         resolvedInst = fallback.inst;
         resolvedPrompt = fallback.prompt;
@@ -602,7 +641,7 @@ export default function StoryMatePanel({
         }
       }
 
-      // 3. Fetch Prompt using chIntentId
+      // 3. Fetch Prompt using chIntentId from chPrompts
       if (resolvedIntent?.chIntentId && !resolvedPrompt) {
         try {
           const prompts = await adminDbApi.getTableData('/chPrompts');
@@ -630,6 +669,7 @@ export default function StoryMatePanel({
         normalize(componentName).includes('other') ||
         normalize(topicId).includes('custom') ||
         normalize(topicId).includes('other') ||
+        chIntentId === 'c75f4efc-8a83-4084-89a4-e3ab49798d60' ||
         chIntentId === '3a435df1-392c-433d-adf3-7fb9c3e5051a' ||
         chIntentId === DEFAULT_TOPIC_LOOKUP.other?.chIntentId ||
         normalize(resolvedIntentName).includes('other') ||
@@ -692,14 +732,16 @@ export default function StoryMatePanel({
         const customInstFocus = `\n\n[Custom Topic Focus: "${customName}"${descClause}]\nYou are assisting the user with their custom topic "${customName}". Guide and assist them in authoring and shaping their story around this specific topic. Ask evocative sensory questions, capture key memories, and weave their personal recollections into their memoir around "${customName}".`;
         
         resolvedInst = resolvedInst ? `${resolvedInst}${customInstFocus}` : `Guide and assist the user in authoring and shaping their story around "${customName}"${descClause}.${customInstFocus}`;
-        resolvedInstName = `${customName} Instructions`;
-
-        const customPromptQuestion = customDesc
-          ? `What memory, experience, or reflection would you like to share about "${customName}"? (${customDesc})`
-          : `What memory, experience, or story would you like to explore for "${customName}"?`;
         
-        resolvedPrompt = customPromptQuestion;
-        resolvedPromptName = `${customName} Prompt`;
+        // Only set fallback custom prompt if no prompt was retrieved from the chPrompt database table
+        if (!resolvedPrompt) {
+          const customPromptQuestion = customDesc
+            ? `What memory, experience, or reflection would you like to share about "${customName}"? (${customDesc})`
+            : `What memory, experience, or story would you like to explore for "${customName}"?`;
+          
+          resolvedPrompt = customPromptQuestion;
+          resolvedPromptName = `${customName} Prompt`;
+        }
       }
 
       // 4. Lookup Member Preference & selected chWriter persona instructions

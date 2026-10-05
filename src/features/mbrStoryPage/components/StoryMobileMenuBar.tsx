@@ -128,12 +128,14 @@ interface StoryMobileMenuBarProps {
   activeSection: string;
   setActiveSection: (sectionId: string) => void;
   className?: string;
+  lockedTopicIds?: string[];
 }
 
 export default function StoryMobileMenuBar({
   activeSection,
   setActiveSection,
-  className = ''
+  className = '',
+  lockedTopicIds = []
 }: StoryMobileMenuBarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [dbTopics, setDbTopics] = useState<Topic[]>(DEFAULT_TOPICS_LIST);

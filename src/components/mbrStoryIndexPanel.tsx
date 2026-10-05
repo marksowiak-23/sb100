@@ -24,11 +24,12 @@ import {
   Newspaper, 
   Laptop, 
   PartyPopper,
-  Compass
+  Compass,
+  Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import { taskApi, Topic, Cd } from '@/src/services/api';
+import { taskApi, Topic, Cd, MbrStory } from '@/src/services/api';
 
 export interface StoryTopic {
   id: string;
@@ -43,6 +44,7 @@ export interface StoryTopic {
 export type StorySection = StoryTopic;
 
 export interface MbrStoryIndexPanelProps {
+  memberId?: string;
   activeSection?: string;
   activeTopic?: string;
   setActiveSection?: (topicId: string) => void;
@@ -54,6 +56,7 @@ export interface MbrStoryIndexPanelProps {
   onEditStories?: () => void;
   onEditBiography?: () => void;
   showEditControls?: boolean;
+  isStoryPage?: boolean;
 }
 
 export type SbStoryIndexPanelProps = MbrStoryIndexPanelProps;
@@ -151,16 +154,194 @@ function getTopicIconDetails(name: string = '', fullName: string = '') {
   return { icon: Sparkles, colorClass: 'text-amber-500 dark:text-amber-400' };
 }
 
+function matchStoryToTopic(s: MbrStory, topic: Topic): boolean {
+  const normTopicName = (topic.topicName || '').trim().toLowerCase();
+  const normTopicFullName = (topic.topicFullName || '').trim().toLowerCase();
+  const topicId = topic.topicId;
+
+  // Direct UUID match
+  if (topicId && s.topicId && s.topicId === topicId) {
+    return true;
+  }
+
+  const storyTypeCd = (s.mbrStoryTypeCd || '').trim().toLowerCase();
+  const storyTopicName = (s.mbrStoryTopicName || '').trim().toLowerCase();
+
+  if (normTopicName === 'profile') {
+    return storyTypeCd === 'profile' || storyTopicName === 'profile';
+  }
+  if (normTopicName === 'family') {
+    return storyTypeCd === 'sbmbrstryfamly' || storyTypeCd === 'family' || storyTypeCd === 'sbmbrstryfamilymember' || storyTopicName === 'family';
+  }
+  if (normTopicName === 'relationships') {
+    return storyTypeCd === 'sbmbrstryrelationships' || storyTypeCd === 'sbmbrstryrelationship' || storyTypeCd === 'relationships' || storyTypeCd === 'relationship' || storyTopicName === 'relationships' || storyTopicName === 'relationship';
+  }
+  if (normTopicName === 'residencies' || normTopicName === 'residence') {
+    return storyTypeCd === 'sbmbrstryresidence' || storyTypeCd === 'residencies' || storyTypeCd === 'residence' || storyTopicName === 'residencies' || storyTopicName === 'residence';
+  }
+  if (normTopicName === 'trips and vacations' || normTopicName === 'trips' || normTopicName === 'vacations' || normTopicName === 'trips & vacations') {
+    return storyTypeCd === 'sbmbrstrytrips' || storyTypeCd === 'trips' || storyTypeCd === 'vacations' || storyTopicName.includes('trip') || storyTopicName.includes('vacation');
+  }
+  if (normTopicName === 'education') {
+    return storyTypeCd === 'sbmbrstryeducation' || storyTypeCd === 'education' || storyTopicName.includes('education');
+  }
+  if (normTopicName === 'employment') {
+    return storyTypeCd === 'sbmbrstryemployment' || storyTypeCd === 'employment' || storyTopicName.includes('employment') || storyTopicName.includes('career');
+  }
+  if (normTopicName === 'activities' || normTopicName === 'hobbies') {
+    return storyTypeCd === 'sbmbrstryactivity' || storyTypeCd === 'activities' || storyTypeCd === 'hobbies' || storyTypeCd === 'activity' || storyTopicName.includes('activit') || storyTopicName.includes('hobb');
+  }
+  if (normTopicName === 'health') {
+    return storyTypeCd === 'sbmbrstryhealth' || storyTypeCd === 'health' || storyTopicName.includes('health') || storyTopicName.includes('wellness');
+  }
+  if (normTopicName === 'achievements') {
+    return storyTypeCd === 'sbmbrstryachievement' || storyTypeCd === 'achievements' || storyTypeCd === 'achievement' || storyTopicName.includes('achievement');
+  }
+  if (normTopicName === 'special events') {
+    return storyTypeCd === 'sbmbrstryspecialevents' || storyTypeCd === 'special events' || storyTypeCd === 'special event' || storyTopicName.includes('special event') || storyTopicName.includes('celebrat');
+  }
+  if (normTopicName === 'fads and trends' || normTopicName === 'fads & trends' || normTopicName === 'fads') {
+    return storyTypeCd === 'sbmbrstryfadsandtrends' || storyTopicName.includes('fad') || storyTopicName.includes('trend');
+  }
+  if (normTopicName === 'movies and tv' || normTopicName === 'movies & tv' || normTopicName === 'movies' || normTopicName === 'tv') {
+    return storyTypeCd === 'sbmbrstrymoviesandtv' || storyTopicName.includes('movie') || storyTopicName.includes('tv') || storyTopicName.includes('television');
+  }
+  if (normTopicName === 'music') {
+    return storyTypeCd === 'sbmbrstrymusic' || storyTopicName.includes('music') || storyTopicName.includes('song');
+  }
+  if (normTopicName === 'news of the times' || normTopicName === 'news') {
+    return storyTypeCd === 'sbmbrstrynewsofthetimes' || storyTopicName.includes('news');
+  }
+  if (normTopicName === 'pop culture') {
+    return storyTypeCd === 'sbmbrstrypopculture' || storyTopicName.includes('pop culture');
+  }
+  if (normTopicName === 'sports') {
+    return storyTypeCd === 'sbmbrstrysports' || storyTopicName.includes('sport') || storyTopicName.includes('athletic');
+  }
+  if (normTopicName === 'technology') {
+    return storyTypeCd === 'sbmbrstrytechnology' || storyTopicName.includes('technology') || storyTopicName.includes('tech');
+  }
+  if (normTopicName === 'childhood') {
+    return storyTypeCd === 'sbmbrstrychildhood' || storyTopicName.includes('childhood') || storyTopicName.includes('early years');
+  }
+  if (normTopicName === 'life reflections') {
+    return storyTypeCd === 'sbmbrstrylifereflections' || storyTopicName.includes('reflection') || storyTopicName.includes('life reflection');
+  }
+  if (normTopicName === 'other' || normTopicName === 'custom') {
+    return storyTypeCd === 'sbmbrstrycustom' || storyTypeCd === 'other' || storyTypeCd === 'custom' || storyTypeCd === 'sbmbrstryother' || Boolean(s.mbrCustomTopicId);
+  }
+
+  if (storyTopicName && (storyTopicName === normTopicName || storyTopicName === normTopicFullName)) {
+    return true;
+  }
+  if (storyTypeCd && (storyTypeCd === normTopicName || storyTypeCd === `sbmbrstry${normTopicName.replace(/\s+/g, '')}`)) {
+    return true;
+  }
+
+  return false;
+}
+
+const isUuid = (id?: string | null): boolean => {
+  if (!id || typeof id !== 'string') return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+};
+
 export default function MbrStoryIndexPanel({
+  memberId,
   activeSection,
   activeTopic,
   setActiveSection,
   setActiveTopic,
-  onSelectTopic
+  onSelectTopic,
+  lockedTopicIds = [],
+  showEditControls = true,
+  isStoryPage = false
 }: MbrStoryIndexPanelProps) {
   const [dbTopics, setDbTopics] = useState<Topic[]>(DEFAULT_TOPICS_LIST);
   const [categories, setCategories] = useState<Partial<Cd>[]>(DEFAULT_CATEGORIES);
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+  const [stories, setStories] = useState<MbrStory[]>([]);
+
+  const fetchStories = async () => {
+    try {
+      let resolvedMbrId = memberId;
+      if (!resolvedMbrId || resolvedMbrId === 'm1' || !isUuid(resolvedMbrId)) {
+        if (!isStoryPage && showEditControls) {
+          const currentMbr = sessionStorage.getItem('sb_current_mbr');
+          if (currentMbr) {
+            try {
+              const parsed = JSON.parse(currentMbr);
+              if (parsed.mbrId && isUuid(parsed.mbrId)) resolvedMbrId = parsed.mbrId;
+            } catch {}
+          }
+        }
+      }
+      if (!resolvedMbrId || !isUuid(resolvedMbrId)) {
+        if (!isStoryPage && showEditControls) {
+          const storedMbr = sessionStorage.getItem('mbr');
+          if (storedMbr) {
+            try {
+              const parsed = JSON.parse(storedMbr);
+              if (parsed.mbrId && isUuid(parsed.mbrId)) resolvedMbrId = parsed.mbrId;
+            } catch {}
+          }
+        }
+      }
+      if (!resolvedMbrId || !isUuid(resolvedMbrId)) {
+        if (!isStoryPage && showEditControls) {
+          const userStr = sessionStorage.getItem('user');
+          if (userStr) {
+            try {
+              const u = JSON.parse(userStr);
+              if (u.mbrId && isUuid(u.mbrId)) resolvedMbrId = u.mbrId;
+              else {
+                const profile = await taskApi.getMemberByUserId(u.user_id || u.id).catch(() => null);
+                if (profile?.mbrId) resolvedMbrId = profile.mbrId;
+              }
+            } catch {}
+          }
+        }
+      }
+      if (!resolvedMbrId || !isUuid(resolvedMbrId)) {
+        if (!isStoryPage && showEditControls) {
+          const sandboxMbr = sessionStorage.getItem('sandbox_mbr');
+          if (sandboxMbr) {
+            try {
+              const parsed = JSON.parse(sandboxMbr);
+              if (parsed.mbrId && isUuid(parsed.mbrId)) resolvedMbrId = parsed.mbrId;
+            } catch {}
+          }
+        }
+      }
+      if (!resolvedMbrId || !isUuid(resolvedMbrId)) {
+        setStories([]);
+        return;
+      }
+
+      const fetched = await taskApi.getStories(resolvedMbrId).catch(() => []);
+      let allStories = Array.isArray(fetched) ? fetched : [];
+
+      if (!isStoryPage) {
+        const sandboxKey = `sb_sandbox_stories_${resolvedMbrId}`;
+        const sandboxStr = sessionStorage.getItem(sandboxKey) || sessionStorage.getItem('sb_sandbox_stories');
+        if (sandboxStr) {
+          try {
+            const sandboxStories = JSON.parse(sandboxStr);
+            if (Array.isArray(sandboxStories)) {
+              const map = new Map<string, MbrStory>();
+              allStories.forEach(s => { if (s.mbrStoryId) map.set(s.mbrStoryId, s); });
+              sandboxStories.forEach(s => { if (s.mbrStoryId) map.set(s.mbrStoryId, s); });
+              allStories = Array.from(map.values());
+            }
+          } catch {}
+        }
+      }
+
+      setStories(allStories);
+    } catch (err) {
+      console.warn("Could not fetch stories in MbrStoryIndexPanel:", err);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -195,8 +376,25 @@ export default function MbrStoryIndexPanel({
       }
     };
     fetchTopicsAndCategories();
-    return () => { isMounted = false; };
-  }, []);
+    fetchStories();
+
+    const handleRefresh = () => {
+      fetchStories();
+    };
+
+    window.addEventListener('stats-updated', handleRefresh);
+    window.addEventListener('update-story-editor-content', handleRefresh);
+    window.addEventListener('refresh-stories', handleRefresh);
+    window.addEventListener('user-switched', handleRefresh);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('stats-updated', handleRefresh);
+      window.removeEventListener('update-story-editor-content', handleRefresh);
+      window.removeEventListener('refresh-stories', handleRefresh);
+      window.removeEventListener('user-switched', handleRefresh);
+    };
+  }, [memberId]);
 
   const currentActive = (activeTopic || activeSection || 'Profile').toLowerCase();
 
@@ -268,6 +466,91 @@ export default function MbrStoryIndexPanel({
     if (onSelectTopic) onSelectTopic(storyTopicItem, rawTopic);
   };
 
+  const TOPICS_WITH_CARDS = new Set([
+    'profile',
+    'family',
+    'relationships',
+    'relationship',
+    'residencies',
+    'residence',
+    'trips and vacations',
+    'trips & vacations',
+    'trips',
+    'vacations',
+    'education',
+    'education and training',
+    'education & training',
+    'employment',
+    'employment and career',
+    'employment & career',
+    'activities',
+    'hobbies',
+    'activity',
+    'activities and hobbies',
+    'activities & hobbies',
+    'health',
+    'wellness',
+    'health and wellness',
+    'health & wellness',
+    'achievements',
+    'achievement',
+    'special events',
+    'special event',
+    'specialevents',
+    'special-events',
+    'celebrations'
+  ]);
+
+  const hasTopicCard = (topic: Topic): boolean => {
+    const normName = (topic.topicName || '').trim().toLowerCase();
+    const normFullName = (topic.topicFullName || '').trim().toLowerCase();
+    return TOPICS_WITH_CARDS.has(normName) || TOPICS_WITH_CARDS.has(normFullName);
+  };
+
+  const isStoryPageView = isStoryPage || showEditControls === false;
+
+  const isTopicCardLocked = (topic: Topic): boolean => {
+    const normName = (topic.topicName || '').trim().toLowerCase();
+    if (normName === 'profile' || normName === 'other' || normName === 'custom') return false;
+    if (!lockedTopicIds || lockedTopicIds.length === 0) return false;
+    const normFullName = (topic.topicFullName || '').trim().toLowerCase();
+    const topicId = (topic.topicId || '').trim().toLowerCase();
+    return lockedTopicIds.some((lid) => {
+      if (typeof lid !== 'string') return false;
+      const lower = lid.trim().toLowerCase();
+      return (
+        lower === normName ||
+        lower === normFullName ||
+        (topicId && lower === topicId) ||
+        (normName.includes(lower) && lower.length > 3) ||
+        (normFullName.includes(lower) && lower.length > 3)
+      );
+    });
+  };
+
+  const getStoryCountsForTopic = (topic: Topic) => {
+    const isLocked = isTopicCardLocked(topic);
+    // When viewing another member's story page and the topic is locked,
+    // the viewer cannot view any stories or panels for this topic.
+    if (isStoryPageView && isLocked) {
+      return { total: 0, published: 0 };
+    }
+
+    const matching = stories.filter(s => matchStoryToTopic(s, topic));
+    const publishedStories = matching.filter(s => (s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published').length;
+
+    if (isStoryPageView) {
+      // On the Story Page (member reading view), display published story count
+      return { total: publishedStories, published: publishedStories };
+    }
+
+    // On the Author Page (workspace), display published / total authored stories
+    const total = matching.length;
+    const published = publishedStories;
+
+    return { total, published };
+  };
+
   return (
     <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-4 sm:p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-3 relative select-none">
       {/* --- PANEL HEADER --- */}
@@ -330,6 +613,7 @@ export default function MbrStoryIndexPanel({
                         ((currentActive === 'hobbies' || currentActive === 'activities') && topicName.toLowerCase() === 'activities');
 
                       const { icon: IconComponent, colorClass } = getTopicIconDetails(topicName, topicFullName);
+                      const { total: totalCount, published: publishedCount } = getStoryCountsForTopic(topic);
 
                       return (
                         <button
@@ -342,10 +626,30 @@ export default function MbrStoryIndexPanel({
                               : 'text-slate-650 hover:text-slate-850 hover:bg-slate-50/80'
                           }`}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="flex items-center gap-2 min-w-0 flex-1 pr-1.5">
                             <IconComponent className={`w-3.5 h-3.5 shrink-0 ${colorClass}`} />
                             <span className="truncate">{topicFullName}</span>
                           </div>
+                          {isStoryPageView ? (
+                            publishedCount > 0 && (
+                              <div className={`flex items-center gap-0.5 text-[10px] sm:text-[10.5px] font-mono font-medium shrink-0 select-none ${
+                                isActive ? 'text-slate-700 font-semibold' : 'text-slate-500'
+                              }`}>
+                                <span>{publishedCount}</span>
+                                <Globe className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-600 shrink-0 inline-block ml-0.5" />
+                              </div>
+                            )
+                          ) : (
+                            totalCount > 0 && (
+                              <div className={`flex items-center gap-0.5 text-[10px] sm:text-[10.5px] font-mono font-medium shrink-0 select-none ${
+                                isActive ? 'text-slate-700 font-semibold' : 'text-slate-500'
+                              }`}>
+                                <span>{publishedCount}</span>
+                                <Globe className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-600 shrink-0 inline-block mx-0.5" />
+                                <span>/ {totalCount}</span>
+                              </div>
+                            )
+                          )}
                         </button>
                       );
                     })}

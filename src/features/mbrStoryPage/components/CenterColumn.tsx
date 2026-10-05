@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Lock } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { MemberStory } from '@/src/features/publicPage/constants/memberData';
 import MbrProfilePanel from '@/src/components/mbrProfilePanel';
 import MbrProfileBriefPanel from '@/src/components/mbrProfileBriefPanel';
@@ -9,8 +9,10 @@ import MbrStoryActivityPanel from '@/src/components/mbrStoryActivityPanel';
 import MbrStoryAchievementPanel from '@/src/components/mbrStoryAchievementPanel';
 import MbrStoryEducationPanel from '@/src/components/mbrStoryEducationPanel';
 import MbrStoryEmploymentPanel from '@/src/components/mbrStoryEmploymentPanel';
-import MbrStoryCustomPanel from '@/src/components/mbrStoryCustomPanel';
 import MbrStoryRelationshipsPanel from '@/src/components/mbrStoryRelationshipsPanel';
+import MbrStoryTripsPanel from '@/src/components/mbrStoryTripsPanel';
+import MbrStoryHealthPanel from '@/src/components/mbrStoryHealthPanel';
+import MbrStorySpecialEventsPanel from '@/src/components/mbrStorySpecialEventsPanel';
 import StoryEditorPanel from '@/src/features/mbrAuthorPage/components/StoryEditorPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { taskApi, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
@@ -33,11 +35,58 @@ const componentNameMap: Record<string, string> = {
   relationships: 'sbMbrStryRelationships',
   relationship: 'sbMbrStryRelationships',
   residencies: 'sbMbrStryResidence',
+  trips: 'sbMbrStryTrips',
+  vacations: 'sbMbrStryTrips',
+  'trips and vacations': 'sbMbrStryTrips',
+  'trips & vacations': 'sbMbrStryTrips',
+  health: 'sbMbrStryHealth',
+  wellness: 'sbMbrStryHealth',
+  'health and wellness': 'sbMbrStryHealth',
+  'health & wellness': 'sbMbrStryHealth',
+  'special events': 'sbMbrStrySpecialEvents',
+  'special event': 'sbMbrStrySpecialEvents',
+  specialevents: 'sbMbrStrySpecialEvents',
+  'special-events': 'sbMbrStrySpecialEvents',
+  milestones: 'sbMbrStrySpecialEvents',
+  celebrations: 'sbMbrStrySpecialEvents',
   hobbies: 'sbMbrStryActivity',
   activities: 'sbMbrStryActivity',
   achievements: 'sbMbrStryAchievement',
   education: 'sbMbrStryEducation',
   employment: 'sbMbrStryEmployment',
+  'fads and trends': 'sbMbrStryFadsAndTrends',
+  'fads & trends': 'sbMbrStryFadsAndTrends',
+  fads: 'sbMbrStryFadsAndTrends',
+  trends: 'sbMbrStryFadsAndTrends',
+  'movies and tv': 'sbMbrStryMoviesAndTv',
+  'movies & tv': 'sbMbrStryMoviesAndTv',
+  movies: 'sbMbrStryMoviesAndTv',
+  tv: 'sbMbrStryMoviesAndTv',
+  television: 'sbMbrStryMoviesAndTv',
+  'movies and television': 'sbMbrStryMoviesAndTv',
+  music: 'sbMbrStryMusic',
+  songs: 'sbMbrStryMusic',
+  'news of the times': 'sbMbrStryNewsOfTheTimes',
+  'news of times': 'sbMbrStryNewsOfTheTimes',
+  news: 'sbMbrStryNewsOfTheTimes',
+  'pop culture': 'sbMbrStryPopCulture',
+  popculture: 'sbMbrStryPopCulture',
+  'pop-culture': 'sbMbrStryPopCulture',
+  sports: 'sbMbrStrySports',
+  sport: 'sbMbrStrySports',
+  athletics: 'sbMbrStrySports',
+  technology: 'sbMbrStryTechnology',
+  tech: 'sbMbrStryTechnology',
+  computers: 'sbMbrStryTechnology',
+  inventions: 'sbMbrStryTechnology',
+  childhood: 'sbMbrStryChildhood',
+  childhoood: 'sbMbrStryChildhood',
+  youth: 'sbMbrStryChildhood',
+  'early years': 'sbMbrStryChildhood',
+  'life reflections': 'sbMbrStryLifeReflections',
+  'life reflection': 'sbMbrStryLifeReflections',
+  reflections: 'sbMbrStryLifeReflections',
+  reflection: 'sbMbrStryLifeReflections',
   other: 'sbMbrStryCustom',
   custom: 'sbMbrStryCustom',
 };
@@ -140,7 +189,23 @@ export default function CenterColumn({
     )
   );
 
-  const isStandardTopic = ['family', 'relationships', 'relationship', 'residencies', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'other', 'custom'].includes(topicId);
+  const isStandardTopic = [
+    'family', 'relationships', 'relationship', 'residencies',
+    'trips', 'vacations', 'trips and vacations', 'trips & vacations',
+    'health', 'wellness', 'health and wellness', 'health & wellness',
+    'special events', 'special event', 'specialevents', 'special-events', 'milestones', 'celebrations',
+    'hobbies', 'activities', 'achievements', 'education', 'employment',
+    'fads and trends', 'fads & trends', 'fads', 'trends',
+    'movies and tv', 'movies & tv', 'movies', 'tv', 'television', 'movies and television',
+    'music', 'songs',
+    'news of the times', 'news of times', 'news',
+    'pop culture', 'popculture', 'pop-culture',
+    'sports', 'sport', 'athletics',
+    'technology', 'tech', 'computers', 'inventions',
+    'childhood', 'childhoood', 'youth', 'early years',
+    'life reflections', 'life reflection', 'reflections', 'reflection',
+    'other', 'custom'
+  ].includes(topicId) || currentTopicId === '5cd2052b-28fc-434f-9ce4-4358ff944576' || currentTopicId === '273184ab-e09d-49ef-b416-3fc3ba0a8161' || currentTopicId === '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff' || currentTopicId === '6635482f-24c8-4fdd-83d0-c5f86e22442f' || currentTopicId === '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e' || currentTopicId === 'b24de4f6-9029-4665-94bf-f42630baee61' || currentTopicId === '99e16767-c945-47f9-8e5e-21c309cceac3' || currentTopicId === '40b046fa-cfae-4821-b3b8-17fda934a61a' || currentTopicId === 'eeecb988-25d8-45d4-9304-e040aa14a326' || currentTopicId === '74e60a94-dd9e-4148-a084-86d41ed9998a' || currentTopicId === 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28' || currentTopicId === '4cd7ccff-0617-445c-ae72-173daa059500';
 
   const isFromConnections = previousTab === 'mbrConnectionPage' || previousTab === 'mbrConnections';
   const isFromStoriesFeed = previousTab === 'mbrStoryFeedPage' || previousTab === 'sbStoryFeed';
@@ -198,21 +263,7 @@ export default function CenterColumn({
       )}
 
       {/* --- TOPIC DIRECTORY PANEL (When permitted) --- */}
-      {isTopicLocked ? (
-        <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 sm:p-8 text-center flex flex-col items-center justify-center gap-3 shadow-xs">
-          <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center">
-            <Lock className="w-5 h-5" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="font-serif text-base sm:text-lg font-bold text-slate-800">
-              {currentTopicTitle} Privacy Restricted
-            </h3>
-            <p className="text-xs font-serif text-slate-500 max-w-sm mx-auto leading-relaxed">
-              The author has configured privacy restrictions for this topic. You do not have permission to view the {currentTopicTitle.toLowerCase()} directory entries.
-            </p>
-          </div>
-        </div>
-      ) : (
+      {!isTopicLocked && (
         <>
           {/* --- FAMILY DIRECTORY PANEL --- */}
           {(topicId === 'family') && (
@@ -239,6 +290,39 @@ export default function CenterColumn({
           {/* --- RESIDENCES PANEL --- */}
           {(topicId === 'residencies') && (
             <MbrStoryResidencePanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
+          )}
+
+          {/* --- TRIPS & VACATIONS PANEL --- */}
+          {(topicId === 'trips' || topicId === 'vacations' || topicId === 'trips and vacations' || topicId === 'trips & vacations' || currentTopicId === '5cd2052b-28fc-434f-9ce4-4358ff944576') && (
+            <MbrStoryTripsPanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
+          )}
+
+          {/* --- HEALTH & WELLNESS PANEL --- */}
+          {(topicId === 'health' || topicId === 'wellness' || topicId === 'health and wellness' || topicId === 'health & wellness' || currentTopicId === '273184ab-e09d-49ef-b416-3fc3ba0a8161') && (
+            <MbrStoryHealthPanel
+              memberId={effectiveMemberId}
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              isSandbox={false}
+              readOnly={isReadOnly}
+            />
+          )}
+
+          {/* --- SPECIAL EVENTS & MILESTONES PANEL --- */}
+          {(topicId === 'special events' || topicId === 'special event' || topicId === 'specialevents' || topicId === 'special-events' || topicId === 'milestones' || topicId === 'celebrations' || currentTopicId === '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff') && (
+            <MbrStorySpecialEventsPanel
               memberId={effectiveMemberId}
               topicId={currentTopicId}
               chIntentId={currentChIntentId}
@@ -283,17 +367,6 @@ export default function CenterColumn({
           {/* --- EMPLOYMENT & PROFESSIONAL HISTORY PANEL --- */}
           {(topicId === 'employment') && (
             <MbrStoryEmploymentPanel
-              memberId={effectiveMemberId}
-              topicId={currentTopicId}
-              chIntentId={currentChIntentId}
-              isSandbox={false}
-              readOnly={isReadOnly}
-            />
-          )}
-
-          {/* --- CUSTOM TOPICS PANEL --- */}
-          {(topicId === 'other' || topicId === 'custom' || (!isStandardTopic && topicId !== 'profile')) && (
-            <MbrStoryCustomPanel
               memberId={effectiveMemberId}
               topicId={currentTopicId}
               chIntentId={currentChIntentId}

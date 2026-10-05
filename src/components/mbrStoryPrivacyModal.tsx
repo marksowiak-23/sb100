@@ -419,7 +419,7 @@ export default function MbrStoryPrivacyModal({
 
               {/* Helper Description */}
               <div className="mt-3 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[11.5px] text-slate-600 font-serif">
-                Select the access privilege for each group. Privileges are stored in <span className="font-mono text-indigo-600 font-bold">mbrStoryGroupPrivs</span>.
+                Select the access privilege for each group to control who can view or comment on this story.
               </div>
 
               {/* Modal Body / Groups List */}
