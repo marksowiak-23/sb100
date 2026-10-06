@@ -3,9 +3,9 @@
     Stops all StoryBook ecosystem services cleanly.
 #>
 
-Write-Host "Stopping StoryBook services on ports 8000, 8002, 8003, 3000..." -ForegroundColor Yellow
+Write-Host "Stopping StoryBook services on ports 8000, 8002, 8003, 3000, 3100..." -ForegroundColor Yellow
 
-$ports = @(8000, 8002, 8003, 3000)
+$ports = @(8000, 8002, 8003, 3000, 3100)
 foreach ($p in $ports) {
     $connections = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue
     if ($connections) {

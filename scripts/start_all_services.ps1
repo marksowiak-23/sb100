@@ -74,17 +74,26 @@ $services = @(
         Exec = "cmd.exe"
         Args = "/c npm run dev"
         Url  = "http://127.0.0.1:3000"
+    },
+    @{
+        Name = "sb-admin-web"
+        Port = 3100
+        Dir  = (Join-Path $root "sb-admin-web")
+        Exec = "cmd.exe"
+        Args = "/c npm run dev"
+        Url  = "http://127.0.0.1:3100"
     }
 )
 
 # 2. Start Services Concurrently
 $idx = 1
+$totalCount = $services.Count
 foreach ($svc in $services) {
     if (-not $activePorts.ContainsKey($svc.Port)) {
-        Write-Host "[$idx/4] Starting $($svc.Name) (Port $($svc.Port))..." -ForegroundColor Yellow
+        Write-Host "[$idx/$totalCount] Starting $($svc.Name) (Port $($svc.Port))..." -ForegroundColor Yellow
         $null = Start-DetachedProcess $svc.Exec $svc.Args $svc.Dir
     } else {
-        Write-Host "[$idx/4] $($svc.Name) already running on port $($svc.Port)." -ForegroundColor Green
+        Write-Host "[$idx/$totalCount] $($svc.Name) already running on port $($svc.Port)." -ForegroundColor Green
     }
     $idx++
 }
@@ -141,7 +150,7 @@ foreach ($svc in $services) {
     $res = $results[$svc.Name]
     if ($res) {
         $detail = ""
-        if ($svc.Name -eq "sb100") {
+        if ($svc.Name -eq "sb100" -or $svc.Name -eq "sb-admin-web") {
             $detail = "HTTP $($res.Code) (Ready at $($svc.Url))"
         } else {
             try {
@@ -154,11 +163,12 @@ foreach ($svc in $services) {
                 $detail = "HTTP $($res.Code)"
             }
         }
-        Write-Host " [OK] $($svc.Name.PadRight(14)) (Port $($svc.Port)): $detail" -ForegroundColor Green
+        Write-Host " [OK] $($svc.Name.PadRight(16)) (Port $($svc.Port)): $detail" -ForegroundColor Green
     } else {
-        Write-Host " [WAIT] $($svc.Name.PadRight(12)) (Port $($svc.Port)): Service warming up or unavailable" -ForegroundColor Yellow
+        Write-Host " [WAIT] $($svc.Name.PadRight(14)) (Port $($svc.Port)): Service warming up or unavailable" -ForegroundColor Yellow
     }
 }
 
 $elapsed = [math]::Round($sw.Elapsed.TotalSeconds, 2)
 Write-Host "`nAll StoryBook services verified in $($elapsed)s!" -ForegroundColor Cyan
+
