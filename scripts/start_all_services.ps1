@@ -13,9 +13,13 @@ param (
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $scriptDir) { $scriptDir = $PSScriptRoot }
-$root = Resolve-Path (Join-Path $scriptDir "..\..")
-if (-not (Test-Path $root)) {
-    $root = "c:\Users\marks\OneDrive\Documents\My Antigravity\sbook"
+$root = $null
+try {
+    $resolved = Resolve-Path (Join-Path $scriptDir "..\..") -ErrorAction SilentlyContinue
+    if ($resolved -and (Test-Path $resolved)) { $root = $resolved.Path }
+} catch {}
+if (-not $root) {
+    $root = (Get-Location).Path
 }
 
 Write-Host "=========================================" -ForegroundColor Cyan
@@ -42,28 +46,52 @@ function Start-DetachedProcess($filePath, $argumentList, $workDir) {
     return $p.Id
 }
 
+function Resolve-PythonExec($svcDir) {
+    $candidates = @(
+        (Join-Path $svcDir ".venv\Scripts\python.exe"),
+        (Join-Path $svcDir ".venv/bin/python"),
+        (Join-Path $root ".venv\Scripts\python.exe"),
+        (Join-Path $root ".venv/bin/python"),
+        "python.exe",
+        "python"
+    )
+    foreach ($c in $candidates) {
+        if ($c -eq "python" -or $c -eq "python.exe") {
+            $cmd = Get-Command $c -ErrorAction SilentlyContinue
+            if ($cmd) { return $cmd.Source }
+        } elseif (Test-Path $c) {
+            return $c
+        }
+    }
+    return "python"
+}
+
+$apiDir = Join-Path $root "sb-api"
+$aiDir  = Join-Path $root "sb-api-ai"
+$medDir = Join-Path $root "sb-api-media"
+
 $services = @(
     @{
         Name = "sb-api"
         Port = 8000
-        Dir  = (Join-Path $root "sb-api")
-        Exec = (Join-Path $root "sb-api\.venv\Scripts\python.exe")
+        Dir  = $apiDir
+        Exec = (Resolve-PythonExec $apiDir)
         Args = "-m uvicorn main:app --host 0.0.0.0 --port 8000"
         Url  = "http://127.0.0.1:8000/health"
     },
     @{
         Name = "sb-api-ai"
         Port = 8002
-        Dir  = (Join-Path $root "sb-api-ai")
-        Exec = (Join-Path $root "sb-api-ai\.venv\Scripts\python.exe")
+        Dir  = $aiDir
+        Exec = (Resolve-PythonExec $aiDir)
         Args = "-m uvicorn main:app --host 0.0.0.0 --port 8002"
         Url  = "http://127.0.0.1:8002/health"
     },
     @{
         Name = "sb-api-media"
         Port = 8003
-        Dir  = (Join-Path $root "sb-api-media")
-        Exec = (Join-Path $root "sb-api-media\.venv\Scripts\python.exe")
+        Dir  = $medDir
+        Exec = (Resolve-PythonExec $medDir)
         Args = "-m uvicorn main:app --host 0.0.0.0 --port 8003"
         Url  = "http://127.0.0.1:8003/health"
     },

@@ -5,8 +5,22 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ShieldAlert, X, CheckCircle2, Save, Loader2, Users, UserCheck, Briefcase, Globe, Shield, AlertTriangle, BookOpen } from 'lucide-react';
-import { taskApi } from '@/src/services/api';
+import {
+  ShieldAlert,
+  X,
+  CheckCircle2,
+  Save,
+  Loader2,
+  Users,
+  UserCheck,
+  Briefcase,
+  Globe,
+  Shield,
+  AlertTriangle,
+  Search,
+  User
+} from 'lucide-react';
+import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { CdSelect } from '@/src/components/CdSelect';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
@@ -22,6 +36,8 @@ export interface MbrStoryPrivacyModalProps {
 
 export type SbStoryPrivacyModalProps = MbrStoryPrivacyModalProps;
 export type mbrStoryPrivacyModalProps = MbrStoryPrivacyModalProps;
+
+type PrivacyTab = 'groups' | 'members';
 
 interface UnifiedGroup {
   grpId: string;
@@ -39,6 +55,24 @@ interface PrivilegeState {
   originalPrivValueCd: string;
 }
 
+interface ConnectedMemberInfo {
+  connectionId: string;
+  mbrConnectionMbrId: string;
+  fullName: string;
+  avatarUrl?: string;
+  location?: string;
+  email?: string;
+}
+
+interface MemberPrivilegeState {
+  privId?: string;
+  mbrId: string;
+  mbrStoryId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  originalPrivValueCd: string;
+}
+
 export default function MbrStoryPrivacyModal({
   isOpen,
   onClose,
@@ -48,20 +82,36 @@ export default function MbrStoryPrivacyModal({
   isSandbox = false,
   onSaved
 }: MbrStoryPrivacyModalProps) {
+  const [activeTab, setActiveTab] = useState<PrivacyTab>('groups');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [resolvedStoryId, setResolvedStoryId] = useState<string>(propStoryId || '');
   const [resolvedMbrId, setResolvedMbrId] = useState<string>(propMbrId || '');
-  const [groups, setGroups] = useState<UnifiedGroup[]>([]);
-  const [matrix, setMatrix] = useState<Record<string, PrivilegeState>>({});
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
-  // Check if any privilege value differs from its initial/original value
-  const hasUnsavedChanges = useMemo(() => {
+  // Group privacy states (existing functionality)
+  const [groups, setGroups] = useState<UnifiedGroup[]>([]);
+  const [matrix, setMatrix] = useState<Record<string, PrivilegeState>>({});
+
+  // Member connection privacy states (new functionality)
+  const [connectedMembers, setConnectedMembers] = useState<ConnectedMemberInfo[]>([]);
+  const [memberMatrix, setMemberMatrix] = useState<Record<string, MemberPrivilegeState>>({});
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+
+  // Unsaved changes checks
+  const hasGroupUnsaved = useMemo(() => {
     return (Object.values(matrix) as PrivilegeState[]).some((cell) => cell.privValueCd !== cell.originalPrivValueCd);
   }, [matrix]);
+
+  const hasMemberUnsaved = useMemo(() => {
+    return (Object.values(memberMatrix) as MemberPrivilegeState[]).some((cell) => cell.privValueCd !== cell.originalPrivValueCd);
+  }, [memberMatrix]);
+
+  const hasUnsavedChanges = useMemo(() => {
+    return hasGroupUnsaved || hasMemberUnsaved;
+  }, [hasGroupUnsaved, hasMemberUnsaved]);
 
   const loadPrivacyData = useCallback(async () => {
     if (!isOpen) return;
@@ -69,9 +119,10 @@ export default function MbrStoryPrivacyModal({
     setError(null);
     setSuccess(null);
     setShowDiscardConfirm(false);
+    setMemberSearchQuery('');
 
     try {
-      // 1. Resolve Member ID
+      // 1. Resolve Current Member ID
       let currentMbrId = propMbrId || '';
       if (!currentMbrId) {
         const userStr = sessionStorage.getItem('user');
@@ -148,7 +199,6 @@ export default function MbrStoryPrivacyModal({
         }))
       ];
 
-      // Deduplicate groups by grpId
       const seenGrpIds = new Set<string>();
       const unified: UnifiedGroup[] = [];
       for (const g of rawUnified) {
@@ -167,11 +217,11 @@ export default function MbrStoryPrivacyModal({
 
       setGroups(unified);
 
-      // 3. Fetch Privileges for this story
-      let fetchedPrivs: any[] = [];
+      // 3. Fetch Group Privileges for this story (mbrStoryGroupPrivs)
+      let fetchedGroupPrivs: any[] = [];
       if (!isSandbox && effectiveStoryId && !effectiveStoryId.startsWith('temp_')) {
         try {
-          fetchedPrivs = await taskApi.getMemberStoryGroupPrivs({ mbrStoryId: effectiveStoryId });
+          fetchedGroupPrivs = await taskApi.getMemberStoryGroupPrivs({ mbrStoryId: effectiveStoryId });
         } catch (e) {
           console.warn('Error fetching member story group privs:', e);
         }
@@ -179,14 +229,14 @@ export default function MbrStoryPrivacyModal({
         const saved = sessionStorage.getItem(`sandbox_story_privs_${effectiveStoryId}`);
         if (saved) {
           try {
-            fetchedPrivs = JSON.parse(saved);
+            fetchedGroupPrivs = JSON.parse(saved);
           } catch {}
         }
       }
 
       const matrixMap: Record<string, PrivilegeState> = {};
       const privLookup = new Map<string, any>();
-      for (const p of fetchedPrivs) {
+      for (const p of fetchedGroupPrivs) {
         if (p.mbrStoryId === effectiveStoryId) {
           privLookup.set(p.grpId, p);
         }
@@ -203,8 +253,121 @@ export default function MbrStoryPrivacyModal({
           originalPrivValueCd: val
         };
       }
-
       setMatrix(matrixMap);
+
+      // 4. Fetch Connections, Members, and Individual Connection Privileges (mbrStoryConnectionPrivs)
+      let connections: any[] = [];
+      let allMembers: any[] = [];
+      let fetchedConnPrivs: any[] = [];
+
+      if (!isSandbox) {
+        const [connsRes, membersRes, privsRes] = await Promise.allSettled([
+          taskApi.getMemberConnections({ mbrId: currentMbrId }),
+          taskApi.getMembers({ limit: 300 }),
+          effectiveStoryId && !effectiveStoryId.startsWith('temp_')
+            ? taskApi.getMemberStoryConnectionPrivs({ mbrStoryId: effectiveStoryId })
+            : Promise.resolve([])
+        ]);
+
+        if (connsRes.status === 'fulfilled' && Array.isArray(connsRes.value)) {
+          connections = connsRes.value;
+        }
+        if (membersRes.status === 'fulfilled' && Array.isArray(membersRes.value)) {
+          allMembers = membersRes.value;
+        }
+        if (privsRes.status === 'fulfilled' && Array.isArray(privsRes.value)) {
+          fetchedConnPrivs = privsRes.value;
+        }
+      } else {
+        const savedConns = sessionStorage.getItem(`sandbox_mbr_connections_${currentMbrId}`);
+        if (savedConns) {
+          try { connections = JSON.parse(savedConns); } catch {}
+        }
+        const savedPrivs = sessionStorage.getItem(`sandbox_story_conn_privs_${effectiveStoryId}`);
+        if (savedPrivs) {
+          try { fetchedConnPrivs = JSON.parse(savedPrivs); } catch {}
+        }
+      }
+
+      // Fallback connections for demo or sandbox environments if empty
+      if (connections.length === 0 && (isSandbox || !connections)) {
+        connections = [
+          { mbrConnectionId: 'c1', mbrId: currentMbrId, mbrConnectionMbrId: 'e1a2b3c4-1111-4000-8000-000000000001' },
+          { mbrConnectionId: 'c2', mbrId: currentMbrId, mbrConnectionMbrId: 'e1a2b3c4-2222-4000-8000-000000000002' }
+        ];
+        allMembers = [
+          {
+            mbrId: 'e1a2b3c4-1111-4000-8000-000000000001',
+            mbrFirstName: 'Eleanor',
+            mbrLastName: 'Vance',
+            mbrLivesCityState: 'Boston, MA',
+            mbrEmailAddress: 'eleanor.vance@storybook.ai'
+          },
+          {
+            mbrId: 'e1a2b3c4-2222-4000-8000-000000000002',
+            mbrFirstName: 'Thomas',
+            mbrLastName: 'Sterling',
+            mbrLivesCityState: 'New York, NY',
+            mbrEmailAddress: 'thomas.sterling@storybook.ai'
+          }
+        ];
+      }
+
+      // Map member profiles
+      const membersById = new Map<string, any>();
+      allMembers.forEach((m) => {
+        if (m.mbrId) membersById.set(m.mbrId, m);
+      });
+
+      const resolvedConnMembers: ConnectedMemberInfo[] = [];
+      const seenConnMbrIds = new Set<string>();
+
+      for (const c of connections) {
+        const targetMbrId = c.mbrConnectionMbrId;
+        if (!targetMbrId || seenConnMbrIds.has(targetMbrId)) continue;
+        seenConnMbrIds.add(targetMbrId);
+
+        const mProfile = membersById.get(targetMbrId);
+        const fullName = mProfile
+          ? `${mProfile.mbrFirstName || ''} ${mProfile.mbrLastName || ''}`.trim() || 'Connected Member'
+          : `Member (${targetMbrId.slice(0, 8)})`;
+
+        resolvedConnMembers.push({
+          connectionId: c.mbrConnectionId,
+          mbrConnectionMbrId: targetMbrId,
+          fullName,
+          avatarUrl: mProfile?.mbrProfilePic ? resolveMediaUrl(mProfile.mbrProfilePic) : undefined,
+          location: mProfile?.mbrLivesCityState || undefined,
+          email: mProfile?.mbrEmailAddress || undefined
+        });
+      }
+
+      resolvedConnMembers.sort((a, b) => a.fullName.localeCompare(b.fullName));
+      setConnectedMembers(resolvedConnMembers);
+
+      // Build memberMatrix
+      const connPrivLookup = new Map<string, any>();
+      for (const cp of fetchedConnPrivs) {
+        if (cp.mbrStoryId === effectiveStoryId && cp.mbrConnectionMbrId) {
+          connPrivLookup.set(cp.mbrConnectionMbrId, cp);
+        }
+      }
+
+      const memberMatrixMap: Record<string, MemberPrivilegeState> = {};
+      for (const m of resolvedConnMembers) {
+        const existing = connPrivLookup.get(m.mbrConnectionMbrId);
+        const val = existing?.privValueCd || 'NONE';
+        memberMatrixMap[m.mbrConnectionMbrId] = {
+          privId: existing?.privId,
+          mbrId: currentMbrId,
+          mbrStoryId: effectiveStoryId,
+          mbrConnectionMbrId: m.mbrConnectionMbrId,
+          privValueCd: val,
+          originalPrivValueCd: val
+        };
+      }
+      setMemberMatrix(memberMatrixMap);
+
     } catch (err: any) {
       console.error('Failed to load story privacy data:', err);
       setError(err?.message || 'Failed to load story privacy settings.');
@@ -219,11 +382,21 @@ export default function MbrStoryPrivacyModal({
     }
   }, [isOpen, loadPrivacyData]);
 
-  const handlePrivilegeChange = (grpId: string, newValue: string) => {
+  const handleGroupPrivilegeChange = (grpId: string, newValue: string) => {
     setMatrix((prev) => ({
       ...prev,
       [grpId]: {
         ...prev[grpId],
+        privValueCd: newValue
+      }
+    }));
+  };
+
+  const handleMemberPrivilegeChange = (connMbrId: string, newValue: string) => {
+    setMemberMatrix((prev) => ({
+      ...prev,
+      [connMbrId]: {
+        ...prev[connMbrId],
         privValueCd: newValue
       }
     }));
@@ -246,6 +419,13 @@ export default function MbrStoryPrivacyModal({
       }
       return reverted;
     });
+    setMemberMatrix((prev) => {
+      const reverted: Record<string, MemberPrivilegeState> = {};
+      for (const [k, v] of Object.entries(prev) as [string, MemberPrivilegeState][]) {
+        reverted[k] = { ...v, privValueCd: v.originalPrivValueCd };
+      }
+      return reverted;
+    });
     onClose();
   };
 
@@ -262,9 +442,10 @@ export default function MbrStoryPrivacyModal({
       const effectiveStoryId = resolvedStoryId || propStoryId;
 
       if (!effectiveStoryId) {
-        throw new Error('Please save the story draft first before configuring story-level group privacy.');
+        throw new Error('Please save the story draft first before configuring story-level privacy.');
       }
 
+      // 1. Process Group Privileges (mbrStoryGroupPrivs)
       for (const grpId of Object.keys(matrix)) {
         const cell = matrix[grpId];
         if (cell.privValueCd !== cell.originalPrivValueCd) {
@@ -292,13 +473,52 @@ export default function MbrStoryPrivacyModal({
         }
       }
 
+      // 2. Process Member Connection Privileges (mbrStoryConnectionPrivs)
+      for (const connMbrId of Object.keys(memberMatrix)) {
+        const cell = memberMatrix[connMbrId];
+        if (cell.privValueCd !== cell.originalPrivValueCd) {
+          if (cell.privId) {
+            if (!isSandbox && !effectiveStoryId.startsWith('temp_')) {
+              savePromises.push(
+                taskApi.updateMemberStoryConnectionPriv(cell.privId, {
+                  privValueCd: cell.privValueCd
+                })
+              );
+            }
+          } else {
+            if (!isSandbox && !effectiveStoryId.startsWith('temp_')) {
+              savePromises.push(
+                taskApi.createMemberStoryConnectionPriv({
+                  mbrId: resolvedMbrId,
+                  mbrStoryId: effectiveStoryId,
+                  mbrConnectionMbrId: cell.mbrConnectionMbrId,
+                  privValueCd: cell.privValueCd
+                }).then((created) => {
+                  cell.privId = created.privId;
+                })
+              );
+            }
+          }
+        }
+      }
+
       if (!isSandbox && !effectiveStoryId.startsWith('temp_')) {
         await Promise.all(savePromises);
       } else {
         sessionStorage.setItem(`sandbox_story_privs_${effectiveStoryId}`, JSON.stringify(Object.values(matrix)));
+        sessionStorage.setItem(`sandbox_story_conn_privs_${effectiveStoryId}`, JSON.stringify(Object.values(memberMatrix)));
       }
 
+      // Update baseline states to reflect saved values
       setMatrix((prev) => {
+        const updated = { ...prev };
+        for (const k of Object.keys(updated)) {
+          updated[k] = { ...updated[k], originalPrivValueCd: updated[k].privValueCd };
+        }
+        return updated;
+      });
+
+      setMemberMatrix((prev) => {
         const updated = { ...prev };
         for (const k of Object.keys(updated)) {
           updated[k] = { ...updated[k], originalPrivValueCd: updated[k].privValueCd };
@@ -317,7 +537,15 @@ export default function MbrStoryPrivacyModal({
         const effectiveStoryId = resolvedStoryId || propStoryId;
         if (effectiveStoryId) {
           sessionStorage.setItem(`sandbox_story_privs_${effectiveStoryId}`, JSON.stringify(Object.values(matrix)));
+          sessionStorage.setItem(`sandbox_story_conn_privs_${effectiveStoryId}`, JSON.stringify(Object.values(memberMatrix)));
           setMatrix((prev) => {
+            const updatedState = { ...prev };
+            for (const k of Object.keys(updatedState)) {
+              updatedState[k] = { ...updatedState[k], originalPrivValueCd: updatedState[k].privValueCd };
+            }
+            return updatedState;
+          });
+          setMemberMatrix((prev) => {
             const updatedState = { ...prev };
             for (const k of Object.keys(updatedState)) {
               updatedState[k] = { ...updatedState[k], originalPrivValueCd: updatedState[k].privValueCd };
@@ -347,11 +575,22 @@ export default function MbrStoryPrivacyModal({
     return <Shield className="w-4 h-4 text-slate-600" />;
   };
 
+  // Filtered members for member tab search
+  const filteredMembers = useMemo(() => {
+    if (!memberSearchQuery.trim()) return connectedMembers;
+    const q = memberSearchQuery.toLowerCase();
+    return connectedMembers.filter((m) =>
+      m.fullName.toLowerCase().includes(q) ||
+      (m.location && m.location.toLowerCase().includes(q)) ||
+      (m.email && m.email.toLowerCase().includes(q))
+    );
+  }, [connectedMembers, memberSearchQuery]);
+
   return (
     <>
       <AnimatePresence>
         {isOpen && (
-          <div 
+          <div
             key="story-privacy-backdrop"
             className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
             onClick={(e) => {
@@ -365,7 +604,7 @@ export default function MbrStoryPrivacyModal({
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white border border-[#EFECE7] rounded-3xl p-5 sm:p-6 shadow-2xl max-w-lg w-full relative flex flex-col max-h-[90vh] overflow-hidden text-left"
+              className="bg-white border border-[#EFECE7] rounded-3xl p-5 sm:p-6 shadow-2xl max-w-xl w-full relative flex flex-col max-h-[90vh] overflow-hidden text-left"
             >
               {/* Modal Header */}
               <div className="flex items-start justify-between pb-3.5 border-b border-[#EFECE7] shrink-0">
@@ -375,7 +614,7 @@ export default function MbrStoryPrivacyModal({
                   </div>
                   <div>
                     <h3 className="font-serif text-base sm:text-lg font-bold text-slate-850 leading-tight">
-                      Story Group Privacy Settings
+                      Story Privacy Settings
                     </h3>
                     <p className="text-xs text-slate-500 font-serif mt-1 flex items-center gap-1.5">
                       <span className="font-semibold text-slate-400">Story:</span>
@@ -417,19 +656,64 @@ export default function MbrStoryPrivacyModal({
                 </div>
               )}
 
-              {/* Helper Description */}
-              <div className="mt-3 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[11.5px] text-slate-600 font-serif">
-                Select the access privilege for each group to control who can view or comment on this story.
+              {/* Tab Navigation Component */}
+              <div className="mt-3.5 flex items-center p-1 bg-slate-100 rounded-2xl border border-slate-200/80 shrink-0 gap-1">
+                <button
+                  type="button"
+                  id="tab-btn-group-privacy"
+                  onClick={() => setActiveTab('groups')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer ${
+                    activeTab === 'groups'
+                      ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <Users className="w-4 h-4 text-indigo-600" />
+                  <span>Group Privacy Settings</span>
+                  {hasGroupUnsaved && (
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved group edits" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  id="tab-btn-member-privacy"
+                  onClick={() => setActiveTab('members')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer ${
+                    activeTab === 'members'
+                      ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/60'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                  <span>Member Privacy Settings</span>
+                  {connectedMembers.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-sans font-semibold bg-slate-200/80 text-slate-700">
+                      {connectedMembers.length}
+                    </span>
+                  )}
+                  {hasMemberUnsaved && (
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Unsaved member edits" />
+                  )}
+                </button>
               </div>
 
-              {/* Modal Body / Groups List */}
-              <div className="flex-1 overflow-y-auto py-3 space-y-2.5 pr-1 min-h-[160px]">
+              {/* Helper Description based on Active Tab */}
+              <div className="mt-2.5 p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[11.5px] text-slate-600 font-serif shrink-0">
+                {activeTab === 'groups'
+                  ? 'Select the access privilege for each group to control who can view or comment on this story.'
+                  : 'Set individual story access privileges for specific members in your connection network.'}
+              </div>
+
+              {/* Modal Body: Active Tab Content */}
+              <div className="flex-1 overflow-y-auto py-3 space-y-2.5 pr-1 min-h-[180px]">
                 {loading ? (
                   <div className="py-12 flex flex-col items-center justify-center gap-2 text-slate-400">
                     <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
-                    <span className="text-xs font-serif">Loading group privileges...</span>
+                    <span className="text-xs font-serif">Loading privacy settings...</span>
                   </div>
-                ) : (
+                ) : activeTab === 'groups' ? (
+                  // --- GROUP PRIVACY SETTINGS TAB ---
                   groups.map((grp, index) => {
                     const currentVal = matrix[grp.grpId]?.privValueCd || 'NONE';
                     const isModified = matrix[grp.grpId]?.privValueCd !== matrix[grp.grpId]?.originalPrivValueCd;
@@ -472,7 +756,7 @@ export default function MbrStoryPrivacyModal({
                           <CdSelect
                             tag="privValueCd"
                             value={currentVal}
-                            onChange={(newVal) => handlePrivilegeChange(grp.grpId, newVal)}
+                            onChange={(newVal) => handleGroupPrivilegeChange(grp.grpId, newVal)}
                             includeEmptyOption={false}
                             showDescriptionHelper={false}
                           />
@@ -480,6 +764,90 @@ export default function MbrStoryPrivacyModal({
                       </div>
                     );
                   })
+                ) : (
+                  // --- MEMBER PRIVACY SETTINGS TAB ---
+                  <div className="space-y-2.5">
+                    {connectedMembers.length >= 4 && (
+                      <div className="relative mb-2">
+                        <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          value={memberSearchQuery}
+                          onChange={(e) => setMemberSearchQuery(e.target.value)}
+                          placeholder="Search connected members..."
+                          className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-serif"
+                        />
+                      </div>
+                    )}
+
+                    {connectedMembers.length === 0 ? (
+                      <div className="py-10 text-center flex flex-col items-center justify-center gap-2 bg-slate-50/60 rounded-2xl border border-dashed border-slate-200 p-4">
+                        <UserCheck className="w-8 h-8 text-slate-350" />
+                        <p className="text-xs font-semibold text-slate-750 font-serif">No Connected Members Found</p>
+                        <p className="text-[11px] text-slate-400 font-serif max-w-xs leading-relaxed">
+                          You haven't established connections with other members yet. Add connections in your Connections directory to configure individual member story privileges.
+                        </p>
+                      </div>
+                    ) : filteredMembers.length === 0 ? (
+                      <div className="py-8 text-center text-xs text-slate-400 font-serif">
+                        No connected members match "{memberSearchQuery}".
+                      </div>
+                    ) : (
+                      filteredMembers.map((conn) => {
+                        const currentVal = memberMatrix[conn.mbrConnectionMbrId]?.privValueCd || 'NONE';
+                        const isModified = memberMatrix[conn.mbrConnectionMbrId]?.privValueCd !== memberMatrix[conn.mbrConnectionMbrId]?.originalPrivValueCd;
+                        const memberKey = `story-privacy-member-${conn.mbrConnectionMbrId}`;
+
+                        return (
+                          <div
+                            key={memberKey}
+                            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 sm:p-3.5 border rounded-2xl transition-colors ${
+                              isModified ? 'bg-amber-50/40 border-amber-200/80' : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200/80'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200/80 shrink-0 bg-indigo-50 flex items-center justify-center">
+                                {conn.avatarUrl ? (
+                                  <img
+                                    src={conn.avatarUrl}
+                                    alt={conn.fullName}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="text-xs font-bold text-indigo-700 font-serif">
+                                    {conn.fullName.slice(0, 2).toUpperCase()}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-serif font-bold text-slate-800 text-xs sm:text-sm truncate">
+                                    {conn.fullName}
+                                  </span>
+                                  {isModified && (
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" title="Modified" />
+                                  )}
+                                </div>
+                                <span className="text-[10.5px] text-slate-400 font-serif truncate">
+                                  {conn.location || conn.email || 'Connected Member'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="w-full sm:w-48 shrink-0 mt-1 sm:mt-0">
+                              <CdSelect
+                                tag="privValueCd"
+                                value={currentVal}
+                                onChange={(newVal) => handleMemberPrivilegeChange(conn.mbrConnectionMbrId, newVal)}
+                                includeEmptyOption={false}
+                                showDescriptionHelper={false}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
                 )}
               </div>
 

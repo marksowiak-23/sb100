@@ -94,6 +94,7 @@ const DEFAULT_TOPICS_LIST: Topic[] = [
   { topicId: '40b046fa-cfae-4821-b3b8-17fda934a61a', topicName: 'Pop Culture', topicFullName: 'Pop Culture', topicCategoryCd: 'CME', topicSortOrder: 5 },
   { topicId: '6635482f-24c8-4fdd-83d0-c5f86e22442f', topicName: 'Fads and Trends', topicFullName: 'Fads and Trends', topicCategoryCd: 'CME', topicSortOrder: 6 },
   { topicId: '99e16767-c945-47f9-8e5e-21c309cceac3', topicName: 'News of the Times', topicFullName: 'News of the Times', topicCategoryCd: 'CME', topicSortOrder: 7 },
+  { topicId: 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e', topicName: 'Sparks', topicFullName: 'Question Spark', topicCategoryCd: 'OTHER', topicSortOrder: 8 },
   { topicId: 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e', topicName: 'Other', topicFullName: 'Other', topicCategoryCd: 'OTHER', topicSortOrder: 99 }
 ];
 

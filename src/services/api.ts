@@ -472,6 +472,30 @@ export const DEFAULT_TOPIC_LOOKUP: Record<string, { topicId: string; topicName: 
     topicName: 'Other',
     topicFullName: 'Other',
     chIntentId: 'c75f4efc-8a83-4084-89a4-e3ab49798d60'
+  },
+  sparks: {
+    topicId: 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e',
+    topicName: 'Sparks',
+    topicFullName: 'Question Spark',
+    chIntentId: ''
+  },
+  'question spark': {
+    topicId: 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e',
+    topicName: 'Sparks',
+    topicFullName: 'Question Spark',
+    chIntentId: ''
+  },
+  'question sparks': {
+    topicId: 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e',
+    topicName: 'Sparks',
+    topicFullName: 'Question Spark',
+    chIntentId: ''
+  },
+  spark: {
+    topicId: 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e',
+    topicName: 'Sparks',
+    topicFullName: 'Question Spark',
+    chIntentId: ''
   }
 };
 
@@ -498,7 +522,8 @@ export function matchTopicByName(name?: string | null, topicList?: Topic[]): Top
       ((n === 'sports' || n === 'sport' || n === 'athletics') && (t.topicName?.toLowerCase() === 'sports' || t.topicFullName?.toLowerCase() === 'sports')) ||
       ((n === 'technology' || n === 'tech' || n === 'computers' || n === 'inventions' || n === 'technology and inventions' || n === 'technology & inventions') && (t.topicName?.toLowerCase() === 'technology' || t.topicFullName?.toLowerCase() === 'technology')) ||
       ((n === 'childhood' || n === 'childhoood' || n === 'youth' || n === 'early years') && (t.topicName?.toLowerCase() === 'childhood' || t.topicFullName?.toLowerCase() === 'childhood')) ||
-      ((n === 'life reflections' || n === 'life reflection' || n === 'reflections' || n === 'reflection') && (t.topicName?.toLowerCase() === 'life reflections' || t.topicFullName?.toLowerCase() === 'life reflections'))
+      ((n === 'life reflections' || n === 'life reflection' || n === 'reflections' || n === 'reflection') && (t.topicName?.toLowerCase() === 'life reflections' || t.topicFullName?.toLowerCase() === 'life reflections')) ||
+      ((n === 'sparks' || n === 'question spark' || n === 'spark' || n === 'question sparks') && (t.topicName?.toLowerCase() === 'sparks' || t.topicFullName?.toLowerCase() === 'question spark'))
     );
     if (found) return found;
   }
@@ -546,6 +571,16 @@ export interface MbrStoryGroupPrivs {
   privId: string;
   mbrStoryId: string;
   grpId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrStoryConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrStoryId: string;
+  mbrConnectionMbrId: string;
   privValueCd: string;
   privCreatedAt?: string;
   privUpdatedAt?: string;
@@ -2210,6 +2245,75 @@ export const taskApi = {
   },
 
   /**
+   * Fetch member story connection privilege records.
+   */
+  async getMemberStoryConnectionPrivs(params?: { mbrId?: string; mbrStoryId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrStoryConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrStoryId) searchParams.append('mbr_story_id', params.mbrStoryId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-story-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create a single member story connection privilege record.
+   */
+  async createMemberStoryConnectionPriv(priv: Partial<MbrStoryConnectionPrivs>): Promise<MbrStoryConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrStoryConnectionPrivs>(response);
+  },
+
+  /**
+   * Update a member story connection privilege record.
+   */
+  async updateMemberStoryConnectionPriv(privId: string, priv: Partial<MbrStoryConnectionPrivs>): Promise<MbrStoryConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrStoryConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete a member story connection privilege record.
+   */
+  async deleteMemberStoryConnectionPriv(privId: string): Promise<MbrStoryConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrStoryConnectionPrivs>(response);
+  },
+
+  /**
    * Fetch member profile group privileges with optional filtering.
    */
   async getMemberProfileGroupPrivs(params?: { mbrId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrProfileGroupPrivs[]> {
@@ -3162,6 +3266,21 @@ export const mbrStoryGroupPrivsApi = {
   },
   async deleteStoryGroupPriv(privId: string): Promise<MbrStoryGroupPrivs> {
     return taskApi.deleteMemberStoryGroupPriv(privId);
+  }
+};
+
+export const mbrStoryConnectionPrivsApi = {
+  async getStoryConnectionPrivs(params?: { mbrId?: string; mbrStoryId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrStoryConnectionPrivs[]> {
+    return taskApi.getMemberStoryConnectionPrivs(params);
+  },
+  async createStoryConnectionPriv(priv: Partial<MbrStoryConnectionPrivs>): Promise<MbrStoryConnectionPrivs> {
+    return taskApi.createMemberStoryConnectionPriv(priv);
+  },
+  async updateStoryConnectionPriv(privId: string, priv: Partial<MbrStoryConnectionPrivs>): Promise<MbrStoryConnectionPrivs> {
+    return taskApi.updateMemberStoryConnectionPriv(privId, priv);
+  },
+  async deleteStoryConnectionPriv(privId: string): Promise<MbrStoryConnectionPrivs> {
+    return taskApi.deleteMemberStoryConnectionPriv(privId);
   }
 };
 

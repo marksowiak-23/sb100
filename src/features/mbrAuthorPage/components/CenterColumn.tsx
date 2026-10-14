@@ -33,6 +33,7 @@ import TechnologyHeaderPanel from './TechnologyHeaderPanel';
 import ChildhoodHeaderPanel from './ChildhoodHeaderPanel';
 import LifeReflectionsHeaderPanel from './LifeReflectionsHeaderPanel';
 import OtherHeaderPanel from './OtherHeaderPanel';
+import SparksHeaderPanel from './SparksHeaderPanel';
 import AuthorHowToCard from './AuthorHowToCard';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { taskApi, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
@@ -109,6 +110,10 @@ const TOPIC_DETAILS: Record<string, { topicId: string; topicTitle: string; compo
   other: { topicId: DEFAULT_TOPIC_LOOKUP.other.topicId, topicTitle: 'Other', componentName: 'sbMbrStryCustom', chIntentId: DEFAULT_TOPIC_LOOKUP.other.chIntentId },
   custom: { topicId: DEFAULT_TOPIC_LOOKUP.custom.topicId, topicTitle: 'Other', componentName: 'sbMbrStryCustom', chIntentId: DEFAULT_TOPIC_LOOKUP.custom.chIntentId },
   profile: { topicId: DEFAULT_TOPIC_LOOKUP.profile.topicId, topicTitle: 'Profile', componentName: 'SbMbrProfile', chIntentId: DEFAULT_TOPIC_LOOKUP.profile.chIntentId },
+  sparks: { topicId: 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e', topicTitle: 'Sparks', componentName: 'mbrStorySpark', chIntentId: undefined },
+  'question spark': { topicId: 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e', topicTitle: 'Sparks', componentName: 'mbrStorySpark', chIntentId: undefined },
+  'question sparks': { topicId: 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e', topicTitle: 'Sparks', componentName: 'mbrStorySpark', chIntentId: undefined },
+  spark: { topicId: 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e', topicTitle: 'Sparks', componentName: 'mbrStorySpark', chIntentId: undefined },
 };
 
 export default function CenterColumn({
@@ -195,8 +200,9 @@ export default function CenterColumn({
     'technology', 'tech', 'computers', 'inventions',
     'childhood', 'childhoood', 'youth', 'early years',
     'life reflections', 'life reflection', 'reflections', 'reflection',
+    'sparks', 'question spark', 'spark', 'question sparks',
     'other', 'custom'
-  ].includes(sec) || currentTopicId === '5cd2052b-28fc-434f-9ce4-4358ff944576' || currentTopicId === '273184ab-e09d-49ef-b416-3fc3ba0a8161' || currentTopicId === '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff' || currentTopicId === '6635482f-24c8-4fdd-83d0-c5f86e22442f' || currentTopicId === '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e' || currentTopicId === 'b24de4f6-9029-4665-94bf-f42630baee61' || currentTopicId === '99e16767-c945-47f9-8e5e-21c309cceac3' || currentTopicId === '40b046fa-cfae-4821-b3b8-17fda934a61a' || currentTopicId === 'eeecb988-25d8-45d4-9304-e040aa14a326' || currentTopicId === '74e60a94-dd9e-4148-a084-86d41ed9998a' || currentTopicId === 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28' || currentTopicId === '4cd7ccff-0617-445c-ae72-173daa059500';
+  ].includes(sec) || currentTopicId === 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e' || currentTopicId === '5cd2052b-28fc-434f-9ce4-4358ff944576' || currentTopicId === '273184ab-e09d-49ef-b416-3fc3ba0a8161' || currentTopicId === '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff' || currentTopicId === '6635482f-24c8-4fdd-83d0-c5f86e22442f' || currentTopicId === '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e' || currentTopicId === 'b24de4f6-9029-4665-94bf-f42630baee61' || currentTopicId === '99e16767-c945-47f9-8e5e-21c309cceac3' || currentTopicId === '40b046fa-cfae-4821-b3b8-17fda934a61a' || currentTopicId === 'eeecb988-25d8-45d4-9304-e040aa14a326' || currentTopicId === '74e60a94-dd9e-4148-a084-86d41ed9998a' || currentTopicId === 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28' || currentTopicId === '4cd7ccff-0617-445c-ae72-173daa059500';
 
   useEffect(() => {
     const handleOpen = (e: any) => {
@@ -429,7 +435,11 @@ export default function CenterColumn({
         <LifeReflectionsHeaderPanel />
       )}
 
-      {(sec === 'other' || sec === 'custom' || (!['profile', 'family', 'residencies', 'trips', 'vacations', 'trips and vacations', 'trips & vacations', 'health', 'wellness', 'health and wellness', 'health & wellness', 'special events', 'special event', 'specialevents', 'special-events', 'milestones', 'celebrations', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'relationships', 'relationship', 'fads and trends', 'fads & trends', 'fads', 'trends', 'movies and tv', 'movies & tv', 'movies', 'tv', 'television', 'movies and television', 'music', 'songs', 'news of the times', 'news of times', 'news', 'pop culture', 'popculture', 'pop-culture', 'sports', 'sport', 'athletics', 'technology', 'tech', 'computers', 'inventions', 'childhood', 'childhoood', 'youth', 'early years', 'life reflections', 'life reflection', 'reflections', 'reflection'].includes(sec) && currentTopicId !== '5cd2052b-28fc-434f-9ce4-4358ff944576' && currentTopicId !== '273184ab-e09d-49ef-b416-3fc3ba0a8161' && currentTopicId !== '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff' && currentTopicId !== '6635482f-24c8-4fdd-83d0-c5f86e22442f' && currentTopicId !== '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e' && currentTopicId !== 'b24de4f6-9029-4665-94bf-f42630baee61' && currentTopicId !== '99e16767-c945-47f9-8e5e-21c309cceac3' && currentTopicId !== '40b046fa-cfae-4821-b3b8-17fda934a61a' && currentTopicId !== 'eeecb988-25d8-45d4-9304-e040aa14a326' && currentTopicId !== '74e60a94-dd9e-4148-a084-86d41ed9998a' && currentTopicId !== 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28' && currentTopicId !== '4cd7ccff-0617-445c-ae72-173daa059500')) && (
+      {(sec === 'sparks' || sec === 'question spark' || sec === 'spark' || sec === 'question sparks' || currentTopicId === 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e') && (
+        <SparksHeaderPanel />
+      )}
+
+      {(sec === 'other' || sec === 'custom' || (!['profile', 'family', 'residencies', 'trips', 'vacations', 'trips and vacations', 'trips & vacations', 'health', 'wellness', 'health and wellness', 'health & wellness', 'special events', 'special event', 'specialevents', 'special-events', 'milestones', 'celebrations', 'hobbies', 'activities', 'achievements', 'education', 'employment', 'relationships', 'relationship', 'fads and trends', 'fads & trends', 'fads', 'trends', 'movies and tv', 'movies & tv', 'movies', 'tv', 'television', 'movies and television', 'music', 'songs', 'news of the times', 'news of times', 'news', 'pop culture', 'popculture', 'pop-culture', 'sports', 'sport', 'athletics', 'technology', 'tech', 'computers', 'inventions', 'childhood', 'childhoood', 'youth', 'early years', 'life reflections', 'life reflection', 'reflections', 'reflection', 'sparks', 'question spark', 'spark', 'question sparks'].includes(sec) && currentTopicId !== 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e' && currentTopicId !== '5cd2052b-28fc-434f-9ce4-4358ff944576' && currentTopicId !== '273184ab-e09d-49ef-b416-3fc3ba0a8161' && currentTopicId !== '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff' && currentTopicId !== '6635482f-24c8-4fdd-83d0-c5f86e22442f' && currentTopicId !== '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e' && currentTopicId !== 'b24de4f6-9029-4665-94bf-f42630baee61' && currentTopicId !== '99e16767-c945-47f9-8e5e-21c309cceac3' && currentTopicId !== '40b046fa-cfae-4821-b3b8-17fda934a61a' && currentTopicId !== 'eeecb988-25d8-45d4-9304-e040aa14a326' && currentTopicId !== '74e60a94-dd9e-4148-a084-86d41ed9998a' && currentTopicId !== 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28' && currentTopicId !== '4cd7ccff-0617-445c-ae72-173daa059500')) && (
         <OtherHeaderPanel />
       )}
 

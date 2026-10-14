@@ -599,6 +599,19 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrStoryConnectionPrivs',
+    name: 'mbrStoryConnectionPrivs',
+    endpoint: '/mbr-story-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrStoryId', label: 'Story ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
     id: 'mbrProfileGroupPrivs',
     name: 'mbrProfileGroupPrivs',
     endpoint: '/mbr-profile-group-privs',
@@ -925,6 +938,18 @@ const getInitialMockData = (tableId: string): any[] => {
     case 'mbrStoryGroupPrivs':
       return [
         { privId: 'priv-story-1', mbrStoryId: '0aae45b5-822e-4301-acad-482d5c78ef10', grpId: 'gg-1', privValueCd: 'READ', privCreatedAt: now, privUpdatedAt: now }
+      ];
+    case 'mbrStoryConnectionPrivs':
+      return [
+        {
+          privId: 'priv-story-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrStoryId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
       ];
     case 'mbrProfileGroupPrivs':
       return [

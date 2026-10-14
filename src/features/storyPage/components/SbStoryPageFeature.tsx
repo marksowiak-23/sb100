@@ -204,7 +204,8 @@ export default function SbStoryPageFeature({
           storyPrivsList,
           groupsGlobal,
           authorCustomGrps,
-          viewerCustomGrps
+          viewerCustomGrps,
+          memberConnPrivs
         ] = await Promise.all([
           taskApi.getMemberById(resolvedAuthorId).catch(() => null),
           taskApi.getMemberConnections({ mbrId: resolvedAuthorId, connectedMbrId: resolvedViewerId }).catch(() => []),
@@ -214,7 +215,10 @@ export default function SbStoryPageFeature({
           taskApi.getMemberStoryGroupPrivs({ mbrStoryId: loadedStory.mbrStoryId || storyId || undefined }).catch(() => []),
           taskApi.getGroupsGlobal().catch(() => []),
           resolvedAuthorId ? taskApi.getGroupsCustom(resolvedAuthorId).catch(() => []) : Promise.resolve([]),
-          resolvedViewerId ? taskApi.getGroupsCustom(resolvedViewerId).catch(() => []) : Promise.resolve([])
+          resolvedViewerId ? taskApi.getGroupsCustom(resolvedViewerId).catch(() => []) : Promise.resolve([]),
+          (loadedStory.mbrStoryId || storyId) && resolvedViewerId
+            ? taskApi.getMemberStoryConnectionPrivs({ mbrStoryId: loadedStory.mbrStoryId || storyId, mbrConnectionMbrId: resolvedViewerId }).catch(() => [])
+            : Promise.resolve([])
         ]);
 
         if (isCancelled) return;
@@ -245,13 +249,13 @@ export default function SbStoryPageFeature({
           : undefined;
 
         const assignedGrpId = authorConnGrp?.grpId || viewerConnGrp?.grpId;
-        const resolvedBadgeName = (viewerConnGrp?.grpId && groupNameById.get(viewerConnGrp.grpId))
+        let resolvedBadgeName = (viewerConnGrp?.grpId && groupNameById.get(viewerConnGrp.grpId))
           || (authorConnGrp?.grpId && groupNameById.get(authorConnGrp.grpId))
           || 'Public';
 
         let publicGrpId = groupsGlobal?.find(g => g.grpName?.toLowerCase() === 'public')?.grpId || '13efcbad-d840-44ad-9b50-d6d2218e5cac';
 
-        // 5. Evaluate Privacy for this Story based on mbrStoryGroupPrivs
+        // 5. Evaluate Privacy for this Story based on mbrStoryGroupPrivs and mbrStoryConnectionPrivs
         // Self-author bypass
         const isSelf = Boolean(resolvedAuthorId && resolvedViewerId && resolvedAuthorId === resolvedViewerId);
         let hasAccess = isSelf;
@@ -280,6 +284,17 @@ export default function SbStoryPageFeature({
             );
             if (pubPriv && isPrivAllow(pubPriv.privValueCd)) {
               hasAccess = true;
+            }
+          }
+
+          // Check Individual Member Connection privilege in mbrStoryConnectionPrivs
+          if (!hasAccess && memberConnPrivs && (memberConnPrivs as any[]).length > 0) {
+            const memberPriv = (memberConnPrivs as any[]).find((p: any) => p.mbrConnectionMbrId === resolvedViewerId);
+            if (memberPriv && isPrivAllow(memberPriv.privValueCd)) {
+              hasAccess = true;
+              if (resolvedBadgeName === 'Public') {
+                resolvedBadgeName = 'Direct Share';
+              }
             }
           }
         }

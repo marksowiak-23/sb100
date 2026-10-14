@@ -297,10 +297,55 @@ export default function SbMbrStoryFeedPageFeature({
         if (isCancelled) return;
         setViewerMbrId(resolvedViewerId);
 
+        // Helper to evaluate permission codes
+        const isPrivAllow = (val?: string) => {
+          if (!val) return false;
+          const upper = val.toUpperCase().trim();
+          return upper === 'READ' || upper === 'WRITE' || upper === 'VIEW' || upper.includes('VIEW') || upper.includes('COMMENT') || upper === 'ALLOW';
+        };
+
         // In Sandbox mode, we use rich mock feed stories filtered to other members
         if (isSandbox) {
+          const sandboxStories = [...SANDBOX_FEED_STORIES];
+
+          // Check if any additional sandbox stories were granted to this viewer via mbrStoryConnectionPrivs in sessionStorage
+          try {
+            for (let i = 0; i < sessionStorage.length; i++) {
+              const key = sessionStorage.key(i);
+              if (key && key.startsWith('sandbox_story_conn_privs_')) {
+                const storyId = key.replace('sandbox_story_conn_privs_', '');
+                const rawPrivs = sessionStorage.getItem(key);
+                if (rawPrivs) {
+                  const privList = JSON.parse(rawPrivs);
+                  if (Array.isArray(privList)) {
+                    const match = privList.find((p: any) => p.mbrConnectionMbrId === resolvedViewerId && isPrivAllow(p.privValueCd));
+                    if (match && !sandboxStories.some(s => s.mbrStoryId === storyId)) {
+                      const rawStory = sessionStorage.getItem(`sandbox_story_${storyId}`);
+                      if (rawStory) {
+                        const parsed = JSON.parse(rawStory);
+                        sandboxStories.push({
+                          mbrStoryId: parsed.mbrStoryId || storyId,
+                          mbrStoryTitle: parsed.mbrStoryTitle || 'Directly Shared Story',
+                          mbrStoryContent: parsed.mbrStoryContent || '',
+                          mbrStoryPublishStatusCd: parsed.mbrStoryPublishStatusCd || 'Published',
+                          mbrStoryPublishedDate: parsed.mbrStoryPublishedDate || parsed.mbrStoryCreatedAt || new Date().toISOString(),
+                          mbrStoryTypeCd: parsed.mbrStoryTypeCd || 'Story Chapter',
+                          authorMbrId: parsed.mbrMbrId || parsed.mbrId || 'author_connection',
+                          authorName: 'Connected Member',
+                          connectionGrpName: 'Direct Share',
+                          isConnection: true,
+                          isDirectShared: true
+                        });
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } catch {}
+
           // Exclude stories where author is the viewer themselves
-          const filtered = SANDBOX_FEED_STORIES.filter(s => s.authorMbrId !== resolvedViewerId);
+          const filtered = sandboxStories.filter(s => s.authorMbrId !== resolvedViewerId);
           // Sort by published date descending
           const sorted = [...filtered].sort((a, b) => {
             const dateA = new Date(a.mbrStoryPublishedDate || a.mbrStoryCreatedAt || 0).getTime();
@@ -333,7 +378,8 @@ export default function SbMbrStoryFeedPageFeature({
           allMembers,
           allStoryPrivs,
           groupsGlobal,
-          groupsCustom
+          groupsCustom,
+          connPrivsForViewer
         ] = await Promise.all([
           taskApi.getMemberConnections({ mbrId: resolvedViewerId }).catch(() => []),
           taskApi.getMemberConnections({ connectedMbrId: resolvedViewerId }).catch(() => []),
@@ -343,7 +389,8 @@ export default function SbMbrStoryFeedPageFeature({
           taskApi.getMembers({ limit: 200 }).catch(() => []),
           taskApi.getMemberStoryGroupPrivs({ limit: 1000 }).catch(() => []),
           taskApi.getGroupsGlobal().catch(() => []),
-          taskApi.getGroupsCustom(resolvedViewerId).catch(() => [])
+          taskApi.getGroupsCustom(resolvedViewerId).catch(() => []),
+          taskApi.getMemberStoryConnectionPrivs({ mbrConnectionMbrId: resolvedViewerId, limit: 1000 }).catch(() => [])
         ]);
 
         if (isCancelled) return;
@@ -389,7 +436,7 @@ export default function SbMbrStoryFeedPageFeature({
           if (m.mbrId) memberById.set(m.mbrId, m);
         }
 
-        // Story Privileges grouped by story ID
+        // Story Privileges grouped by story ID (from mbrStoryGroupPrivs)
         const privsByStoryId = new Map<string, any[]>();
         for (const p of (allStoryPrivs || [])) {
           if (p.mbrStoryId) {
@@ -399,9 +446,52 @@ export default function SbMbrStoryFeedPageFeature({
           }
         }
 
+        // Individual Member Connection Privileges (from mbrStoryConnectionPrivs)
+        // where logged-in member ID is used as mbrConnectionMbrId
+        const allowedConnPrivsByStoryId = new Map<string, any>();
+        for (const cp of (connPrivsForViewer || [])) {
+          if (cp.mbrStoryId && cp.mbrConnectionMbrId === resolvedViewerId && isPrivAllow(cp.privValueCd)) {
+            allowedConnPrivsByStoryId.set(cp.mbrStoryId, cp);
+          }
+        }
+
+        // Identify additional stories granted via mbrStoryConnectionPrivs that may not be in allDbStories
+        const existingStoryIdSet = new Set((allDbStories || []).map((s: any) => s.mbrStoryId).filter(Boolean));
+        const missingConnStoryIds = Array.from(allowedConnPrivsByStoryId.keys()).filter(id => !existingStoryIdSet.has(id));
+
+        let extraConnStories: any[] = [];
+        if (missingConnStoryIds.length > 0) {
+          const fetched = await Promise.all(
+            missingConnStoryIds.map(id => taskApi.getStoryById(id, resolvedViewerId).catch(() => null))
+          );
+          extraConnStories = fetched.filter((s): s is any => Boolean(s && s.mbrStoryId));
+        }
+
+        // Combine DB stories with any extra stories fetched via mbrStoryConnectionPrivs (no duplicates)
+        const combinedDbStories = [
+          ...(allDbStories || []),
+          ...extraConnStories
+        ];
+
+        // Fetch any authors not already present in memberById
+        const missingAuthorIds = new Set<string>();
+        for (const s of combinedDbStories) {
+          const aId = s.mbrMbrId || s.mbrId;
+          if (aId && !memberById.has(aId)) {
+            missingAuthorIds.add(aId);
+          }
+        }
+        if (missingAuthorIds.size > 0) {
+          const fetchedAuthors = await Promise.all(
+            Array.from(missingAuthorIds).map(id => taskApi.getMemberById(id).catch(() => null))
+          );
+          for (const m of fetchedAuthors) {
+            if (m && m.mbrId) memberById.set(m.mbrId, m);
+          }
+        }
+
         // Fast Connection lookups between author and viewer
         // 1. Logged-in viewer's connections to other members (Viewer -> Author):
-        //    This tells us which group the logged-in member assigned to the other member.
         const viewerConnsByTargetMbrId = new Map<string, any[]>();
         for (const c of (viewerConns || [])) {
           if (c.mbrId === resolvedViewerId && c.mbrConnectionMbrId) {
@@ -412,7 +502,6 @@ export default function SbMbrStoryFeedPageFeature({
         }
 
         // 2. Author's connections to the logged-in viewer (Author -> Viewer):
-        //    This tells us which group the author assigned the logged-in viewer to (for story privileges).
         const authorConnsByAuthorId = new Map<string, any[]>();
         for (const c of (authorConns || [])) {
           if (c.mbrId && c.mbrConnectionMbrId === resolvedViewerId) {
@@ -435,22 +524,18 @@ export default function SbMbrStoryFeedPageFeature({
           return clean;
         };
 
-        const isPrivAllow = (val?: string) => {
-          if (!val) return false;
-          const upper = val.toUpperCase().trim();
-          return upper === 'READ' || upper === 'WRITE' || upper === 'VIEW' || upper.includes('VIEW') || upper.includes('COMMENT') || upper === 'ALLOW';
-        };
-
         // 3. In-memory joins and access evaluation for all published stories from other authors
         const feedItems: FeedStoryItem[] = [];
+        const seenStoryIds = new Set<string>();
 
-        const candidateStories = (allDbStories || []).filter(s => {
+        const candidateStories = (combinedDbStories || []).filter((s: any) => {
           const authorId = s.mbrMbrId || s.mbrId;
           const status = (s.mbrStoryPublishStatusCd || '').toLowerCase();
           return authorId && authorId !== resolvedViewerId && status === 'published';
         });
 
         for (const story of candidateStories) {
+          if (!story.mbrStoryId || seenStoryIds.has(story.mbrStoryId)) continue;
           const authorId = story.mbrMbrId || story.mbrId;
           if (!authorId) continue;
 
@@ -463,7 +548,6 @@ export default function SbMbrStoryFeedPageFeature({
           // Get connections between author and viewer
           const viewerConnsList = viewerConnsByTargetMbrId.get(authorId) || [];
           const authorConnsList = authorConnsByAuthorId.get(authorId) || [];
-          const isConnection = viewerConnsList.length > 0 || authorConnsList.length > 0;
 
           // Collect all assigned group IDs for access evaluation
           const accessGrpIds = new Set<string>();
@@ -482,11 +566,13 @@ export default function SbMbrStoryFeedPageFeature({
 
           const storyPrivs = story.mbrStoryId ? (privsByStoryId.get(story.mbrStoryId) || []) : [];
 
-          // Evaluate story-level group privileges:
-          // A story is visible ONLY IF:
+          // Evaluate story-level group privileges AND member connection privileges:
+          // A story is visible IF:
           // a) The viewer has privs through mbrStoryGroupPrivs (via assigned connection groups)
           // OR
-          // b) The story has granted access to the Public group
+          // b) The story has granted access to the Public group in mbrStoryGroupPrivs
+          // OR
+          // c) The story granted individual member access to the logged-in member in mbrStoryConnectionPrivs (mbrConnectionMbrId === resolvedViewerId)
           let hasAccess = false;
 
           // 1. Check if viewer has access through assigned connection groups in mbrStoryGroupPrivs
@@ -509,10 +595,22 @@ export default function SbMbrStoryFeedPageFeature({
             }
           }
 
+          // 3. Check if the story has granted direct access in mbrStoryConnectionPrivs
+          const directConnPriv = allowedConnPrivsByStoryId.get(story.mbrStoryId);
+          const hasDirectMemberPriv = Boolean(directConnPriv && isPrivAllow(directConnPriv.privValueCd));
+          if (!hasAccess && hasDirectMemberPriv) {
+            hasAccess = true;
+          }
+
           // Skip if viewer does not have access
           if (!hasAccess) {
             continue;
           }
+
+          // Mark story as seen so we never duplicate
+          seenStoryIds.add(story.mbrStoryId);
+
+          const isConnection = viewerConnsList.length > 0 || authorConnsList.length > 0 || hasDirectMemberPriv;
 
           // Determine connection group assigned by the logged-in viewer to the author
           const viewerAssignedGrps: Array<{ grpId: string; grpName: string }> = [];
@@ -539,6 +637,8 @@ export default function SbMbrStoryFeedPageFeature({
             }
             const namedGrp = authorAssignedGrps.find(g => g.grpName && g.grpName.toLowerCase() !== 'connected');
             displayedConnectionGrpName = namedGrp ? namedGrp.grpName : (authorAssignedGrps[0]?.grpName || 'Connected');
+          } else if (hasDirectMemberPriv) {
+            displayedConnectionGrpName = 'Direct Share';
           } else {
             displayedConnectionGrpName = 'Public';
           }
@@ -564,7 +664,8 @@ export default function SbMbrStoryFeedPageFeature({
             authorAvatarUrl,
             authorInitials,
             connectionGrpName: displayedConnectionGrpName,
-            isConnection
+            isConnection,
+            isDirectShared: hasDirectMemberPriv
           });
         }
 

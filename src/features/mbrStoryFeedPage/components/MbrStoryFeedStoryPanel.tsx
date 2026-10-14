@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  BookOpen, Calendar, MapPin, Sparkles, ChevronRight, ChevronDown, User, Users, 
+  BookOpen, Calendar, MapPin, Sparkles, ChevronRight, ChevronDown, User, Users, UserCheck,
   Bookmark, CheckCircle2, ThumbsUp, MessageSquare, Send, CornerDownRight, 
   X, MessageCircle, Loader2, Clock, Reply, Pencil, Trash2, Check
 } from 'lucide-react';
@@ -31,6 +31,7 @@ export interface FeedStoryItem {
   authorInitials?: string;
   connectionGrpName?: string;
   isConnection?: boolean;
+  isDirectShared?: boolean;
 }
 
 export interface MbrStoryFeedStoryPanelProps {
@@ -911,8 +912,12 @@ export default function MbrStoryFeedStoryPanel({
               </button>
 
               {story.connectionGrpName && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60 shrink-0">
-                  <Users className="w-3 h-3 text-blue-500 shrink-0" />
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                  {story.isDirectShared ? (
+                    <UserCheck className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                  ) : (
+                    <Users className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                  )}
                   {story.connectionGrpName}
                 </span>
               )}
@@ -939,7 +944,7 @@ export default function MbrStoryFeedStoryPanel({
           <span
             className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border} shadow-2xs whitespace-nowrap`}
           >
-            {displayTopic}
+            Topic : {displayTopic}
           </span>
 
           {isRead && (
@@ -963,10 +968,26 @@ export default function MbrStoryFeedStoryPanel({
 
       {/* Story Content / Narrative Excerpt */}
       {story.mbrStoryContent && (
-        <p className="text-slate-600 dark:text-slate-300 font-sans text-sm sm:text-[15px] leading-relaxed line-clamp-4 sm:line-clamp-5 mb-5 whitespace-pre-line font-normal">
+        <p className="text-slate-600 dark:text-slate-300 font-sans text-sm sm:text-[15px] leading-relaxed line-clamp-4 sm:line-clamp-5 mb-3.5 whitespace-pre-line font-normal">
           {story.mbrStoryContent}
         </p>
       )}
+
+      {/* Read Full Story Button (Above the line, right-justified) */}
+      <div className="flex justify-end mb-4">
+        <button
+          type="button"
+          onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors focus:outline-none cursor-pointer ${
+            isRead
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40'
+              : 'bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-300'
+          }`}
+        >
+          <span>{isRead ? 'Read Again' : 'Read Full Story'}</span>
+          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+        </button>
+      </div>
 
       {/* Card Action Footer */}
       <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 flex-wrap">
@@ -1044,7 +1065,8 @@ export default function MbrStoryFeedStoryPanel({
               type="button"
               onClick={handleMainButtonClick}
               disabled={isLiking}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+              aria-label={activeReactionConfig ? activeReactionConfig.label : 'Like'}
+              className={`inline-flex items-center justify-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                 activeReactionConfig
                   ? `${activeReactionConfig.bgColor} ${activeReactionConfig.color} border-slate-200 dark:border-slate-700 shadow-xs font-bold`
                   : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80'
@@ -1056,7 +1078,6 @@ export default function MbrStoryFeedStoryPanel({
               ) : (
                 <ThumbsUp className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 transition-colors" />
               )}
-              <span>{activeReactionConfig ? activeReactionConfig.label : 'Like'}</span>
             </button>
           </div>
 
@@ -1087,43 +1108,30 @@ export default function MbrStoryFeedStoryPanel({
           <button
             type="button"
             onClick={() => setIsCommentModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs"
+            aria-label="Comments"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs"
             title="Read full story and join the conversation"
           >
             <MessageSquare className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
-            <span>Comment</span>
             {comments.length > 0 && (
-              <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                 {comments.length}
               </span>
             )}
           </button>
         </div>
 
-        {/* Right Side: Audio Narration & Read Story */}
-        <div className="flex items-center gap-2">
-          {story.mbrStoryContent && (
+        {/* Right Side: Audio Narration */}
+        {story.mbrStoryContent && (
+          <div className="flex items-center gap-2">
             <StoryAudioPlayer
               text={`${story.mbrStoryTitle}. ${story.mbrStoryContent}`}
               storyId={story.mbrStoryId}
               title={story.mbrStoryTitle}
               variant="inline-button"
             />
-          )}
-
-          <button
-            type="button"
-            onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors focus:outline-none cursor-pointer ${
-              isRead
-                ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40'
-                : 'bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-300'
-            }`}
-          >
-            <span>{isRead ? 'Read Again' : 'Read Full Story'}</span>
-            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        </div>
+          </div>
+        )}
       </div>
 
       {/* --- STORY COMMENTS & CONVERSATION DIALOG MODAL --- */}

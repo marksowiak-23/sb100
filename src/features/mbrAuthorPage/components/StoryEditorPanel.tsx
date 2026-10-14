@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi } from '@/src/services/api';
+import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark } from '@/src/services/api';
 import { FALLBACK_PERSONAS, WriterPersona } from '@/src/features/mbrPreferencesPage/types';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
@@ -14,6 +14,7 @@ import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import AiVoiceModal from '@/src/components/AiVoiceModal';
 import StoryPdfPrintModal from './StoryPdfPrintModal';
 import MbrStoryPrivacyModal from '@/src/components/mbrStoryPrivacyModal';
+import SparkQuestionModal from './SparkQuestionModal';
 
 interface StoryEditorPanelProps {
   topicTitle?: string;
@@ -91,6 +92,10 @@ const componentNameMap: Record<string, string> = {
   other: 'sbMbrStryCustom',
   custom: 'sbMbrStryCustom',
   profile: 'SbMbrProfile',
+  sparks: 'mbrStorySpark',
+  'question spark': 'mbrStorySpark',
+  'question sparks': 'mbrStorySpark',
+  spark: 'mbrStorySpark',
 };
 
 const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
@@ -107,6 +112,22 @@ const DEFAULT_STORIES: Record<string, Partial<MbrStory>[]> = {
       mbrStoryId: 'st_event_1',
       mbrStoryTitle: 'A Night to Remember: Celebrating 50 Golden Years',
       mbrStoryContent: 'Looking out across the ballroom filled with our children, grandchildren, and friends who traveled hundreds of miles to celebrate our golden anniversary with us, I was overwhelmed with gratitude. Five decades of shared laughter, quiet morning coffee, and weathered storms culminating in an unforgettable night of love and celebration.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  sparks: [
+    {
+      mbrStoryId: 'st_spark_1',
+      mbrStoryTitle: 'The Advice I Never Forgot',
+      mbrStoryContent: 'It was late autumn when my father sat me down on the porch steps. The leaves were swirling across the yard in the brisk October wind. He gave me a simple piece of advice that would stay with me through every major crossroad of my life: never let fear make a decision that belongs to faith.',
+      mbrStoryPublishStatusCd: 'Draft'
+    }
+  ],
+  'question spark': [
+    {
+      mbrStoryId: 'st_spark_1',
+      mbrStoryTitle: 'The Advice I Never Forgot',
+      mbrStoryContent: 'It was late autumn when my father sat me down on the porch steps. The leaves were swirling across the yard in the brisk October wind. He gave me a simple piece of advice that would stay with me through every major crossroad of my life: never let fear make a decision that belongs to faith.',
       mbrStoryPublishStatusCd: 'Draft'
     }
   ],
@@ -804,6 +825,7 @@ export default function StoryEditorPanel({
     if (t.includes('achiev')) return 'Achievements';
     if (t.includes('edu') || t.includes('train')) return 'Education';
     if (t.includes('employ') || t.includes('career')) return 'Employment';
+    if (t.includes('spark')) return 'Sparks';
     if (t.includes('cust') || t.includes('other')) return 'Custom';
     if (t.includes('prof') || t.includes('bio')) return 'Profile';
     return topicTitle || 'Story';
@@ -891,6 +913,9 @@ export default function StoryEditorPanel({
       console.warn('Could not load story photo counts:', e);
     }
   };
+
+  // Spark Question Selection Modal state (for Sparks / Question Spark topic)
+  const [showSparkModal, setShowSparkModal] = useState(false);
 
   // Custom Topic Selection Modal state (for Other / Custom topics)
   const [customTopics, setCustomTopics] = useState<TopicCustom[]>([]);
@@ -1033,15 +1058,19 @@ Output Rules:
             const addedTokens = res.tokens_used || Math.ceil((prompt.length + polished.length) / 4);
             const durationMs = Math.round(performance.now() - startTime);
             if (!isSandbox) {
-              await mbrAiUsageLogApi.createLog({
+              await mbrAiUsageLogApi.recordUsage({
                 mbrId: currentMbrId,
-                chIntentId: intentId,
-                tokensUsed: addedTokens,
+                sessionId: 'story-editor-session',
                 promptTokens: Math.ceil(prompt.length / 4),
                 completionTokens: Math.ceil(polished.length / 4),
+                totalTokens: addedTokens,
                 latencyMs: durationMs,
-                aiModel: 'gemini-1.5-flash',
-                callerComponent: 'StoryEditorPanel:applyTriviaStory'
+                estimatedCostUsd: 0,
+                modelName: 'gemini-1.5-flash',
+                metadataJson: {
+                  chIntentId: intentId,
+                  callerComponent: 'StoryEditorPanel:applyTriviaStory'
+                }
               });
             }
           } catch (telemErr) {
@@ -1250,6 +1279,13 @@ Output Rules:
             s.mbrStoryTypeCd === 'sbMbrStryOther' ||
             Boolean(s.mbrStoryTopicName && (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom'))
           );
+          const isSparkType = (
+            s.mbrStoryTypeCd === 'mbrStorySpark' ||
+            s.mbrStoryTypeCd === 'Sparks' ||
+            s.mbrStoryTypeCd === 'Question Spark' ||
+            s.mbrStoryTypeCd === 'sbMbrStrySpark' ||
+            Boolean(s.mbrStoryTopicName && (topicId?.toLowerCase() === 'sparks' || topicId?.toLowerCase() === 'question spark'))
+          );
           
           let matchesType = false;
           if (resolvedTopicId && s.topicId && s.topicId === resolvedTopicId) {
@@ -1266,6 +1302,8 @@ Output Rules:
             matchesType = isEducationType;
           } else if (topicId?.toLowerCase() === 'hobbies' || topicId?.toLowerCase() === 'activities' || finalStoryTypeCd === 'sbMbrStryActivity') {
             matchesType = isActivityType;
+          } else if (topicId?.toLowerCase() === 'sparks' || topicId?.toLowerCase() === 'question spark' || finalStoryTypeCd === 'mbrStorySpark') {
+            matchesType = isSparkType;
           } else if (topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom' || finalStoryTypeCd === 'sbMbrStryCustom') {
             matchesType = isCustomType;
           } else {
@@ -1557,6 +1595,21 @@ Output Rules:
   };
 
   const handleAddNewStoryClick = async () => {
+    const isSparkTopic =
+      topicId?.toLowerCase() === 'sparks' ||
+      topicId?.toLowerCase() === 'question spark' ||
+      topicId?.toLowerCase() === 'spark' ||
+      topicId?.toLowerCase() === 'question sparks' ||
+      topicTitle?.toLowerCase() === 'sparks' ||
+      topicTitle?.toLowerCase() === 'question spark' ||
+      topicTitle?.toLowerCase() === 'spark' ||
+      resolvedTopicId === 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e';
+
+    if (isSparkTopic) {
+      setShowSparkModal(true);
+      return;
+    }
+
     const isOtherOrCustom = topicId?.toLowerCase() === 'other' || topicId?.toLowerCase() === 'custom' || topicTitle?.toLowerCase() === 'other' || topicTitle?.toLowerCase() === 'custom';
     
     if (isOtherOrCustom) {
@@ -1570,6 +1623,36 @@ Output Rules:
     } else {
       handleCreateNew();
     }
+  };
+
+  const handleSelectSparkQuestion = (question: string, spark?: TopicSpark) => {
+    setShowSparkModal(false);
+
+    const newId = `temp_${Date.now()}`;
+    const finalStoryTypeCd = componentName || componentNameMap[topicId?.toLowerCase()] || 'mbrStorySpark';
+    const sparkTopicId = resolvedTopicId || DEFAULT_TOPIC_LOOKUP['sparks']?.topicId || 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e';
+
+    const newStory: Partial<MbrStory> = {
+      mbrStoryId: newId,
+      mbrStoryTitle: question,
+      mbrStoryContent: '',
+      mbrStoryPublishStatusCd: 'Draft',
+      mbrStoryTypeCd: finalStoryTypeCd,
+      mbrStorySubordinateId: spark?.sparkId || undefined,
+      mbrStoryTopicName: 'Question Spark',
+      topicId: sparkTopicId,
+      chIntentId: resolvedChIntentId || undefined,
+    };
+
+    setStories((prev) => [...prev, newStory]);
+    setActiveStoryId(newId);
+    setTitle(question);
+    setContent('');
+    setStatus('Draft');
+    setActiveIntentId(newStory.chIntentId);
+    setIsEditing(true);
+    setError(null);
+    setSuccessMsg(`Draft started with Spark Title: "${question}"`);
   };
 
   const handleConfirmCustomTopicSelection = (topicToUse?: TopicCustom) => {
@@ -3220,6 +3303,13 @@ Output Rules:
         onSaved={() => {
           setSuccessMsg('Story group privacy settings updated successfully.');
         }}
+      />
+
+      {/* Spark Question Selection Modal Dialog */}
+      <SparkQuestionModal
+        isOpen={showSparkModal}
+        onClose={() => setShowSparkModal(false)}
+        onSelectQuestion={handleSelectSparkQuestion}
       />
 
       <AdminComponentTag name="StoryEditorPanel" />

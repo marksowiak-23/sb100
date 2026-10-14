@@ -67,6 +67,7 @@ const TABLE_TITLE_MAP: Record<string, string> = {
   mbrTopicTrips: 'Member Trips, Vacations & Travels (mbrTopicTrips)',
   mbrTopicHealth: 'Member Health, Wellness & Milestones (mbrTopicHealth)',
   mbrStoryGroupPrivs: 'Story Group Access Privileges (mbrStoryGroupPrivs)',
+  mbrStoryConnectionPrivs: 'Story Connection Access Privileges (mbrStoryConnectionPrivs)',
   mbrProfileGroupPrivs: 'Profile Group Access Privileges (mbrProfileGroupPrivs)',
   sysConfig: 'System Global Configurations (sysConfig)',
   topic: 'Standard Story Topics Directory (topic)',
