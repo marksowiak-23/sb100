@@ -968,7 +968,7 @@ export default function MbrStoryFeedStoryPanel({
 
       {/* Story Content / Narrative Excerpt */}
       {story.mbrStoryContent && (
-        <p className="text-slate-600 dark:text-slate-300 font-sans text-sm sm:text-[15px] leading-relaxed line-clamp-4 sm:line-clamp-5 mb-3.5 whitespace-pre-line font-normal">
+        <p className="text-slate-700 dark:text-slate-200 font-serif text-[15px] sm:text-base leading-[1.75] line-clamp-4 sm:line-clamp-5 mb-3.5 whitespace-pre-line font-normal">
           {story.mbrStoryContent}
         </p>
       )}

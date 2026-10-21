@@ -474,7 +474,7 @@ export default function StoryMatePanel({
           adminDbApi.getTableData('/chIntents').catch(() => []),
           adminDbApi.getTableData('/topics').catch(() => taskApi.getTopics().catch(() => []))
         ]);
-        const dbTopics: Topic[] = Array.isArray(topicsList) ? topicsList : [];
+        const dbTopics: any[] = Array.isArray(topicsList) ? topicsList : [];
 
         const isOtherTopic =
           normalize(componentName).includes('other') ||
@@ -577,6 +577,20 @@ export default function StoryMatePanel({
         resolvedIntentName = resolvedIntent.chIntentName || '';
       }
 
+      const isOtherOrCustom =
+        normalize(componentName).includes('custom') ||
+        normalize(componentName).includes('other') ||
+        normalize(topicId).includes('custom') ||
+        normalize(topicId).includes('other') ||
+        chIntentId === 'c75f4efc-8a83-4084-89a4-e3ab49798d60' ||
+        chIntentId === '3a435df1-392c-433d-adf3-7fb9c3e5051a' ||
+        chIntentId === DEFAULT_TOPIC_LOOKUP.other?.chIntentId ||
+        normalize(resolvedIntentName).includes('other') ||
+        normalize(resolvedIntentName).includes('custom') ||
+        normalize(resolvedIntentName).includes('sbmbrstoryother') ||
+        normalize(resolvedIntentName).includes('sbmbrstryother') ||
+        Boolean(topicCustomName || topicCustomTopicDesc || topicCustomId);
+
       // Fallback intent lookup if backend not present or intent not matched
       if (!resolvedIntent) {
         const fallback = getFallbackIntent(componentName || topicId);
@@ -664,20 +678,6 @@ export default function StoryMatePanel({
       if (!resolvedPrompt) resolvedPrompt = getFallbackIntent(componentName || topicId).prompt;
 
       // 3.5. Threading Custom Topic name and description for "Other" or "Custom" / SbMbrStoryOther
-      const isOtherOrCustom =
-        normalize(componentName).includes('custom') ||
-        normalize(componentName).includes('other') ||
-        normalize(topicId).includes('custom') ||
-        normalize(topicId).includes('other') ||
-        chIntentId === 'c75f4efc-8a83-4084-89a4-e3ab49798d60' ||
-        chIntentId === '3a435df1-392c-433d-adf3-7fb9c3e5051a' ||
-        chIntentId === DEFAULT_TOPIC_LOOKUP.other?.chIntentId ||
-        normalize(resolvedIntentName).includes('other') ||
-        normalize(resolvedIntentName).includes('custom') ||
-        normalize(resolvedIntentName).includes('sbmbrstoryother') ||
-        normalize(resolvedIntentName).includes('sbmbrstryother') ||
-        Boolean(topicCustomName || topicCustomTopicDesc || topicCustomId);
-
       let customName = topicCustomName;
       let customDesc = topicCustomTopicDesc;
 

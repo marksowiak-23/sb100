@@ -17,6 +17,7 @@ interface SbMbrSearchResultsProps {
   loadingMore?: boolean;
   hasMore?: boolean;
   connectionsMap?: Map<string, { isConnected: boolean; grpName?: string }>;
+  pendingRequestsSet?: Set<string>;
   viewerMbrId?: string | null;
   onLoadMore?: () => void;
   onClickReadStory?: (memberId: string) => void;
@@ -31,6 +32,7 @@ export default function SbMbrSearchResults({
   loadingMore = false,
   hasMore = false,
   connectionsMap,
+  pendingRequestsSet,
   viewerMbrId,
   onLoadMore,
   onClickReadStory,
@@ -103,6 +105,7 @@ export default function SbMbrSearchResults({
           {uniqueMembers.map((member, idx) => {
             const targetId = member.mbrId || member.id;
             const connInfo = connectionsMap?.get(targetId);
+            const isRequestSent = pendingRequestsSet ? pendingRequestsSet.has(targetId) : undefined;
             return (
               <MbrProfilePanel
                 key={`${targetId}-${idx}`}
@@ -110,6 +113,7 @@ export default function SbMbrSearchResults({
                 isSandbox={false}
                 isConnected={connInfo?.isConnected}
                 connectionGrpName={connInfo?.grpName}
+                isRequestSent={isRequestSent}
                 viewerMbrId={viewerMbrId}
                 onClickReadStory={onClickReadStory}
                 clampIntroduction={true}

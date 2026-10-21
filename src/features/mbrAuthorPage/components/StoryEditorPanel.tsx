@@ -2548,11 +2548,11 @@ Output Rules:
               </span>
             </div>
             <textarea
-              rows={8}
+              rows={9}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Write your story details here. Share memories, feelings, and reflection..."
-              className="w-full bg-white border border-[#EFECE7] rounded-2xl text-sm sm:text-[15px] font-sans text-slate-600 dark:text-slate-300 p-3 sm:p-3.5 leading-relaxed outline-none focus:border-slate-800 transition-colors resize-y font-normal"
+              className="w-full bg-white border border-[#EFECE7] rounded-2xl text-base sm:text-[16.5px] font-serif text-slate-700 dark:text-slate-200 p-3.5 sm:p-4 leading-[1.8] outline-none focus:border-slate-800 transition-colors resize-y font-normal placeholder:font-sans placeholder:text-sm placeholder:text-slate-400"
             />
           </div>
 
@@ -2840,11 +2840,11 @@ Output Rules:
             </div>
 
             {content ? (
-              <div className="text-slate-600 dark:text-slate-300 font-sans text-sm sm:text-[15px] leading-relaxed space-y-2.5 whitespace-pre-line font-normal pt-1 border-t border-slate-100">
+              <div className="text-slate-700 dark:text-slate-200 font-serif text-base sm:text-[17px] leading-[1.8] max-w-prose space-y-4 whitespace-pre-line font-normal pt-2 border-t border-slate-100 dark:border-slate-800">
                 {content}
               </div>
             ) : (
-              <div className="py-6 text-center text-slate-400 font-sans italic text-sm">
+              <div className="py-6 text-center text-slate-400 font-serif italic text-sm">
                 No content written for this story yet. Click the edit icon to start writing.
               </div>
             )}

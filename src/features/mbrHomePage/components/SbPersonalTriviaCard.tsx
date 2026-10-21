@@ -10,7 +10,7 @@ import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbPersonalTriviaCardProps {
-  onClickAuthorPage?: (initialPrompt?: string, section?: string, trivia?: MbrPersonalTrivia | null) => void;
+  onClickAuthorPage?: (initialPrompt?: string, section?: string, trivia?: any) => void;
 }
 
 export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTriviaCardProps) {

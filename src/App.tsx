@@ -98,18 +98,128 @@ interface NavigationOptions {
   skipHistory?: boolean;
 }
 
+interface InitialNavState {
+  tab: TabType;
+  selectedMemberId: string;
+  selectedStoryId: string | null;
+  targetStoryMemberId: string | null;
+  logonType: 'Google' | 'Apple';
+}
+
+const getInitialNavState = (): InitialNavState => {
+  const defaultState: InitialNavState = {
+    tab: 'publicPage',
+    selectedMemberId: 'm1',
+    selectedStoryId: null,
+    targetStoryMemberId: null,
+    logonType: 'Google',
+  };
+
+  try {
+    const isUserLoggedIn = Boolean(
+      sessionStorage.getItem('user') ||
+      sessionStorage.getItem('sb_current_mbr')
+    );
+
+    let savedTab: TabType | null = null;
+    let savedMemberId: string | undefined = undefined;
+    let savedStoryId: string | null | undefined = undefined;
+    let savedTargetMemberId: string | null | undefined = undefined;
+    let savedLogonType: ('Google' | 'Apple') | undefined = undefined;
+
+    const histState = window.history.state;
+    if (histState && histState.tab) {
+      savedTab = histState.tab;
+      savedMemberId = histState.selectedMemberId;
+      savedStoryId = histState.selectedStoryId;
+      savedTargetMemberId = histState.targetStoryMemberId;
+      savedLogonType = histState.logonType;
+    } else {
+      const storedNav = sessionStorage.getItem('sb_active_nav');
+      if (storedNav) {
+        const parsed = JSON.parse(storedNav);
+        if (parsed && parsed.tab) {
+          savedTab = parsed.tab;
+          savedMemberId = parsed.selectedMemberId;
+          savedStoryId = parsed.selectedStoryId;
+          savedTargetMemberId = parsed.targetStoryMemberId;
+          savedLogonType = parsed.logonType;
+        }
+      }
+    }
+
+    if (savedTab) {
+      if (isUserLoggedIn) {
+        // If logged in and saved tab was a sign-in or sign-up page, redirect to member home
+        if (
+          savedTab === 'mbrLogonPage' ||
+          savedTab === 'sbMbrLogon' ||
+          savedTab === 'mbrRegistrationPage' ||
+          savedTab === 'sbMbrRegister'
+        ) {
+          savedTab = 'mbrHomePage';
+        }
+        return {
+          tab: savedTab,
+          selectedMemberId: savedMemberId || 'm1',
+          selectedStoryId: savedStoryId ?? null,
+          targetStoryMemberId: savedTargetMemberId ?? null,
+          logonType: savedLogonType || 'Google',
+        };
+      } else {
+        // If not logged in and attempted a member-only tab, default to publicPage
+        const memberOnlyTabs: TabType[] = [
+          'mbrHomePage',
+          'sbMbrHomePage',
+          'mbrStoryFeedPage',
+          'sbMbrStoryFeedPage',
+          'mbrAuthorPage',
+          'sbMbrAuthorPage',
+          'mbrProfilePage',
+          'mbrProfile',
+          'mbrPreferencesPage',
+          'mbrPreferences',
+          'mbrPrivacySettingsPage',
+          'mbrPrivacy',
+          'mbrConnectionPage',
+          'mbrConnections',
+        ];
+        if (memberOnlyTabs.includes(savedTab)) {
+          return defaultState;
+        }
+        return {
+          tab: savedTab,
+          selectedMemberId: savedMemberId || 'm1',
+          selectedStoryId: savedStoryId ?? null,
+          targetStoryMemberId: savedTargetMemberId ?? null,
+          logonType: savedLogonType || 'Google',
+        };
+      }
+    }
+
+    if (isUserLoggedIn) {
+      return {
+        ...defaultState,
+        tab: 'mbrHomePage',
+      };
+    }
+  } catch (err) {
+    console.warn('Error reading saved navigation state:', err);
+  }
+
+  return defaultState;
+};
+
 export default function App() {
   // --- STATE DEFINITIONS ---
-  // useState returns an array with two elements: [currentValue, setterFunction].
-  // React monitors state variables. When a setterFunction is called, React re-renders 
-  // the component with the new value.
-  
-  const [activeTab, setActiveTab] = useState<TabType>('publicPage');
-  const [previousTab, setPreviousTab] = useState<TabType>('publicPage');
-  const [selectedMemberId, setSelectedMemberId] = useState<string>('m1');
-  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
-  const [targetStoryMemberId, setTargetStoryMemberId] = useState<string | null>(null);
-  const [logonType, setLogonType] = useState<'Google' | 'Apple'>('Google');
+  // Restore navigation state if user is logged in and refreshing the page
+  const [initialNavState] = useState<InitialNavState>(getInitialNavState);
+  const [activeTab, setActiveTab] = useState<TabType>(initialNavState.tab);
+  const [previousTab, setPreviousTab] = useState<TabType>(initialNavState.tab);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>(initialNavState.selectedMemberId);
+  const [selectedStoryId, setSelectedStoryId] = useState<string | null>(initialNavState.selectedStoryId);
+  const [targetStoryMemberId, setTargetStoryMemberId] = useState<string | null>(initialNavState.targetStoryMemberId);
+  const [logonType, setLogonType] = useState<'Google' | 'Apple'>(initialNavState.logonType);
   
   // Tracks whether the health check network request is currently active.
   const [loading, setLoading] = useState(true);
@@ -136,12 +246,33 @@ export default function App() {
       return newTab;
     });
 
+    const nextSelectedMemberId = options?.selectedMemberId !== undefined ? options.selectedMemberId : selectedMemberId;
+    let nextSelectedStoryId = options?.selectedStoryId !== undefined ? options.selectedStoryId : selectedStoryId;
+    if (options?.selectedStoryId === undefined && newTab !== 'storyPage' && newTab !== 'mbrStoryPage' && newTab !== 'sbMbrStoryPage') {
+      nextSelectedStoryId = null;
+    }
+
+    let nextTargetStoryMemberId = options?.targetStoryMemberId !== undefined ? options.targetStoryMemberId : targetStoryMemberId;
+    if (
+      options?.targetStoryMemberId === undefined &&
+      newTab !== 'mbrRegistrationPage' &&
+      newTab !== 'sbMbrRegister' &&
+      newTab !== 'mbrStoryPage' &&
+      newTab !== 'sbMbrStoryPage' &&
+      newTab !== 'mbrLogonPage' &&
+      newTab !== 'sbMbrLogon'
+    ) {
+      nextTargetStoryMemberId = null;
+    }
+
+    const nextLogonType = options?.logonType || logonType;
+
     if (options?.selectedMemberId !== undefined) {
       setSelectedMemberId(options.selectedMemberId);
     }
     if (options?.selectedStoryId !== undefined) {
       setSelectedStoryId(options.selectedStoryId);
-    } else if (newTab !== 'storyPage') {
+    } else if (newTab !== 'storyPage' && newTab !== 'mbrStoryPage' && newTab !== 'sbMbrStoryPage') {
       setSelectedStoryId(null);
     }
     if (options?.targetStoryMemberId !== undefined) {
@@ -160,14 +291,21 @@ export default function App() {
       setLogonType(options.logonType);
     }
 
+    const stateObj = {
+      tab: newTab,
+      selectedMemberId: nextSelectedMemberId,
+      selectedStoryId: nextSelectedStoryId,
+      targetStoryMemberId: nextTargetStoryMemberId,
+      logonType: nextLogonType
+    };
+
+    try {
+      sessionStorage.setItem('sb_active_nav', JSON.stringify(stateObj));
+    } catch (e) {
+      console.warn('Could not persist navigation state to sessionStorage:', e);
+    }
+
     if (!options?.skipHistory) {
-      const stateObj = {
-        tab: newTab,
-        selectedMemberId: options?.selectedMemberId !== undefined ? options.selectedMemberId : selectedMemberId,
-        selectedStoryId: options?.selectedStoryId !== undefined ? options.selectedStoryId : (newTab === 'storyPage' ? selectedStoryId : null),
-        targetStoryMemberId: options?.targetStoryMemberId !== undefined ? options.targetStoryMemberId : (newTab === 'mbrRegistrationPage' || newTab === 'sbMbrRegister' || newTab === 'mbrStoryPage' || newTab === 'sbMbrStoryPage' || newTab === 'mbrLogonPage' || newTab === 'sbMbrLogon' ? targetStoryMemberId : null),
-        logonType: options?.logonType || logonType
-      };
       if (options?.replace) {
         window.history.replaceState(stateObj, '', window.location.href);
       } else {
@@ -211,20 +349,27 @@ export default function App() {
   useEffect(() => {
     loadHealth();
 
-    // 1. Initialize browser history state for current initial view if not already present
+    // 1. Initialize browser history state and session storage for current initial view if not already present
     const currentState = window.history.state;
+    const initialObj = {
+      tab: activeTab,
+      selectedMemberId,
+      selectedStoryId,
+      targetStoryMemberId,
+      logonType
+    };
+
     if (!currentState || !currentState.tab) {
       window.history.replaceState(
-        {
-          tab: activeTab,
-          selectedMemberId,
-          selectedStoryId,
-          targetStoryMemberId,
-          logonType
-        },
+        initialObj,
         '',
         window.location.href
       );
+    }
+    if (!sessionStorage.getItem('sb_active_nav')) {
+      try {
+        sessionStorage.setItem('sb_active_nav', JSON.stringify(initialObj));
+      } catch {}
     }
 
     // 2. Popstate listener: handles browser Back and Forward navigation within StoryBook
@@ -234,6 +379,10 @@ export default function App() {
         setIsProfileDirty(false);
         setIsConnectionsDirty(false);
         setShowAppDiscardModal(false);
+
+        try {
+          sessionStorage.setItem('sb_active_nav', JSON.stringify(state));
+        } catch {}
 
         applyNavigation(state.tab, {
           selectedMemberId: state.selectedMemberId,

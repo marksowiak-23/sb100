@@ -89,6 +89,7 @@ export default function MainLayout({
   const [isMobileNotificationsOpen, setIsMobileNotificationsOpen] = React.useState(false);
   const [isMobileMessagingOpen, setIsMobileMessagingOpen] = React.useState(false);
   const [isMobileAccountOpen, setIsMobileAccountOpen] = React.useState(false);
+  const [isMobileAdminOpen, setIsMobileAdminOpen] = React.useState(false);
   const [profilePic, setProfilePic] = React.useState<string | null>(null);
   const [userName, setUserName] = React.useState<string>('StoryBook Member');
   const [invitationCount, setInvitationCount] = React.useState<number>(0);
@@ -101,6 +102,7 @@ export default function MainLayout({
         setIsMobileNotificationsOpen(false);
         setIsMobileMessagingOpen(false);
         setIsMobileAccountOpen(false);
+        setIsMobileAdminOpen(false);
       }
     };
     window.addEventListener('resize', handleResize);
@@ -116,10 +118,9 @@ export default function MainLayout({
     activeTab === 'sbMbrRegister';
 
   const isMemberLoggedIn = Boolean(
-    !isPublicView ||
     sessionStorage.getItem('user') ||
     sessionStorage.getItem('sb_current_mbr')
-  ) && !isPublicView;
+  );
 
   const handleSessionTimeout = React.useCallback(() => {
     userManager.userLogout();

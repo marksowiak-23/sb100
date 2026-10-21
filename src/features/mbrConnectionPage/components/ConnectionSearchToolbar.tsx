@@ -64,7 +64,7 @@ export default function ConnectionSearchToolbar({
       {/* Group Filter Dropdown */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2.5 flex-wrap">
-          <label htmlFor="connection-group-filter" className="text-xs font-serif font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
+          <label htmlFor="connection-group-filter" className="text-xs font-sans font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5 shrink-0">
             <Filter className="w-3.5 h-3.5 text-slate-500" />
             <span>Filter by Group:</span>
           </label>
@@ -73,7 +73,7 @@ export default function ConnectionSearchToolbar({
               id="connection-group-filter"
               value={groupFilter}
               onChange={(e) => onGroupFilterChange(e.target.value as ConnectionFilterType)}
-              className="w-full appearance-none pl-3.5 pr-9 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-serif font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer shadow-2xs"
+              className="w-full appearance-none pl-3.5 pr-9 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100/80 dark:hover:bg-slate-750 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-sans font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer shadow-2xs"
             >
               <option value="ALL">All Connections ({totalMembers})</option>
               {groups
@@ -92,7 +92,7 @@ export default function ConnectionSearchToolbar({
           <button
             type="button"
             onClick={() => onGroupFilterChange('ALL')}
-            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-serif font-medium self-start sm:self-auto cursor-pointer"
+            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-sans font-semibold self-start sm:self-auto cursor-pointer"
           >
             Clear filter
           </button>

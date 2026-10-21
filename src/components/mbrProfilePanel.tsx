@@ -16,6 +16,7 @@ export interface MbrProfilePanelProps {
   readOnly?: boolean;
   isConnected?: boolean;
   connectionGrpName?: string;
+  isRequestSent?: boolean;
   viewerMbrId?: string | null;
   showConnectButton?: boolean;
   showReadStoryButton?: boolean;
@@ -38,6 +39,7 @@ export default function MbrProfilePanel({
   readOnly = false,
   isConnected: propIsConnected,
   connectionGrpName: propConnectionGrpName,
+  isRequestSent: propIsRequestSent,
   viewerMbrId: propViewerMbrId,
   showConnectButton = true,
   showReadStoryButton = true,
@@ -62,7 +64,7 @@ export default function MbrProfilePanel({
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
-  const [requestSent, setRequestSent] = useState(false);
+  const [requestSent, setRequestSent] = useState<boolean>(propIsRequestSent ?? false);
   const [currentGalleryIndex, setCurrentGalleryIndex] = useState(0);
 
   // Resolved viewer member ID
@@ -162,6 +164,62 @@ export default function MbrProfilePanel({
     fetchDirectConnection();
   }, [profile?.mbrId, memberId, resolvedViewerId, propConnectionGrpName, propIsConnected]);
 
+  // Sync isRequestSent prop or detect direct pending connection request to target member
+  useEffect(() => {
+    if (propIsRequestSent !== undefined) {
+      setRequestSent(propIsRequestSent);
+      return;
+    }
+
+    const targetMbrId = profile?.mbrId || memberId;
+    if (!targetMbrId || !resolvedViewerId || targetMbrId === resolvedViewerId) return;
+
+    let isMounted = true;
+    const checkOutstandingRequest = async () => {
+      try {
+        if (!isSandbox && !targetMbrId.startsWith('sandbox-')) {
+          const contacts = await taskApi.getMemberContacts(resolvedViewerId).catch(() => []);
+          if (isMounted && Array.isArray(contacts)) {
+            const hasPending = contacts.some(
+              (c: any) =>
+                c.mbrId === resolvedViewerId &&
+                c.mbrContactMbrId === targetMbrId &&
+                (!c.mbrContactResponseInd || c.mbrContactResponseInd === 0)
+            );
+            if (hasPending) {
+              setRequestSent(true);
+            }
+          }
+        } else {
+          const savedContactsStr = sessionStorage.getItem(`sandbox_mbr_contacts_${resolvedViewerId}`);
+          if (savedContactsStr && isMounted) {
+            try {
+              const savedContacts = JSON.parse(savedContactsStr);
+              if (Array.isArray(savedContacts)) {
+                const hasPending = savedContacts.some(
+                  (c: any) =>
+                    c.mbrId === resolvedViewerId &&
+                    c.mbrContactMbrId === targetMbrId &&
+                    (!c.mbrContactResponseInd || c.mbrContactResponseInd === 0)
+                );
+                if (hasPending) {
+                  setRequestSent(true);
+                }
+              }
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.warn("Could not check outstanding request in MbrProfilePanel:", err);
+      }
+    };
+
+    checkOutstandingRequest();
+    return () => {
+      isMounted = false;
+    };
+  }, [propIsRequestSent, profile?.mbrId, memberId, resolvedViewerId, isSandbox]);
+
   const loggedInUserId = useMemo(() => {
     try {
       const userStr = sessionStorage.getItem('user');
@@ -219,7 +277,7 @@ export default function MbrProfilePanel({
         } catch {}
         if (!publicGrpId) publicGrpId = '13efcbad-d840-44ad-9b50-d6d2218e5cac';
 
-        let assignedGrpId: string | null = null;
+        let assignedGrpIds: string[] = [];
         if (resolvedViewerId && targetMbrId) {
           try {
             const authorConns = await taskApi.getMemberConnections({
@@ -228,11 +286,17 @@ export default function MbrProfilePanel({
             }).catch(() => []);
 
             if (authorConns && authorConns.length > 0) {
-              const authorConnGrps = await taskApi.getMemberConnectionGrps({
-                connectionId: authorConns[0].mbrConnectionId
-              }).catch(() => []);
-              if (authorConnGrps && authorConnGrps.length > 0) {
-                assignedGrpId = authorConnGrps[0].grpId;
+              for (const conn of authorConns) {
+                const authorConnGrps = await taskApi.getMemberConnectionGrps({
+                  connectionId: conn.mbrConnectionId
+                }).catch(() => []);
+                if (authorConnGrps && authorConnGrps.length > 0) {
+                  for (const cg of authorConnGrps) {
+                    if (cg.grpId && !assignedGrpIds.includes(cg.grpId)) {
+                      assignedGrpIds.push(cg.grpId);
+                    }
+                  }
+                }
               }
             }
           } catch {}
@@ -241,24 +305,30 @@ export default function MbrProfilePanel({
         let hasAccess = false;
         let hasDenial = false;
 
-        if (assignedGrpId) {
-          const assignedPriv = authorPrivs.find(p => p.grpId === assignedGrpId);
-          if (assignedPriv) {
-            const val = (assignedPriv.privValueCd || '').toUpperCase();
-            if (val === 'READ' || val === 'WRITE' || val === 'VIEW' || val.includes('VIEW') || val.includes('COMMENT')) {
-              hasAccess = true;
-            } else if (val === 'NONE' || val === 'HIDE') {
-              hasDenial = true;
+        if (assignedGrpIds.length > 0) {
+          for (const grpId of assignedGrpIds) {
+            const assignedPriv = authorPrivs.find(p => p.grpId === grpId);
+            if (assignedPriv) {
+              const val = (assignedPriv.privValueCd || '').toUpperCase();
+              if (val === 'READ' || val === 'WRITE' || val === 'VIEW' || val.includes('VIEW') || val.includes('COMMENT')) {
+                hasAccess = true;
+                break;
+              } else if (val === 'NONE' || val === 'HIDE') {
+                hasDenial = true;
+              }
             }
           }
         }
 
         if (!hasAccess && !hasDenial && publicGrpId) {
-          const pubPriv = authorPrivs.find(p => p.grpId === publicGrpId);
-          if (pubPriv) {
-            const val = (pubPriv.privValueCd || '').toUpperCase();
-            if (val === 'READ' || val === 'WRITE' || val === 'VIEW' || val.includes('VIEW') || val.includes('COMMENT')) {
-              hasAccess = true;
+          const allowPublic = propProfile?.mbrSettingsAllowPublicFlag ?? propProfile?.mbrSettings?.mbrSettingsAllowPublicFlag ?? settings?.mbrSettingsAllowPublicFlag ?? true;
+          if (allowPublic) {
+            const pubPriv = authorPrivs.find(p => p.grpId === publicGrpId);
+            if (pubPriv) {
+              const val = (pubPriv.privValueCd || '').toUpperCase();
+              if (val === 'READ' || val === 'WRITE' || val === 'VIEW' || val.includes('VIEW') || val.includes('COMMENT')) {
+                hasAccess = true;
+              }
             }
           }
         }
@@ -721,16 +791,6 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
   const connectionGrpName = resolvedConnectionGrpName;
 
 
-  // If viewing someone else's profile (not self) and mbrSettingsAllowPublicFlag is false or settings record does not exist
-  if (!isSelf && propProfile?.mbrSettingsAllowPublicFlag === false) {
-    return null;
-  }
-  if (!isSelf && propProfile?.mbrSettings && propProfile.mbrSettings.mbrSettingsAllowPublicFlag === false) {
-    return null;
-  }
-  if (!isSelf && settingsLoaded && (!settings || settings.mbrSettingsAllowPublicFlag === false)) {
-    return null;
-  }
   // Check profile group privileges in mbrProfileGroupPrivs (must have view or view & comment privs)
   if (!isSelf && !profileGroupPrivsAllowed) {
     return null;
@@ -963,7 +1023,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
               >
                 <div className="pl-3.5 border-l-2 border-slate-500">
                   <p
-                    className="text-slate-600 font-sans text-sm sm:text-[15px] leading-relaxed font-normal whitespace-pre-line"
+                    className="text-slate-700 dark:text-slate-200 font-serif italic text-[15px] sm:text-base leading-[1.75] font-normal whitespace-pre-line"
                     style={
                       clampIntroduction
                         ? {
@@ -1058,7 +1118,15 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
                 {connectionGrpName ? connectionGrpName : 'Connected'}
               </span>
             </div>
-          ) : showConnectButton && !requestSent ? (
+          ) : requestSent ? (
+            <div
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-50 text-amber-800 border border-amber-200/80 rounded-xl text-xs font-serif shadow-2xs shrink-0"
+              title="Connection request sent"
+            >
+              <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="font-bold text-xs tracking-tight">Request Sent</span>
+            </div>
+          ) : showConnectButton ? (
             <button
               type="button"
               onClick={(e) => {
@@ -1066,20 +1134,12 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
                 e.stopPropagation();
                 setIsConnectModalOpen(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 rounded-xl text-xs font-serif font-semibold shadow-2xs hover:shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/80 rounded-xl text-xs font-serif font-semibold shadow-2xs hover:shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer shrink-0"
               title="Connect with this member"
             >
               <UserPlus className="w-3.5 h-3.5 text-blue-600 shrink-0" />
               <span>Connect</span>
             </button>
-          ) : requestSent ? (
-            <div
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200/80 rounded-xl text-xs font-serif shadow-2xs"
-              title="Connection request sent"
-            >
-              <Users className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span className="font-semibold text-xs tracking-tight">Request Sent</span>
-            </div>
           ) : null}
         </div>
 

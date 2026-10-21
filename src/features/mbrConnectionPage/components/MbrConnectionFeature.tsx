@@ -542,7 +542,31 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
 
   useEffect(() => {
     loadData();
+
+    const handleUpdate = () => {
+      loadData();
+    };
+    window.addEventListener('invitations-updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('invitations-updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
   }, [loadData]);
+
+  // Set of member IDs with outstanding outgoing requests
+  const pendingRequestsSet = useMemo(() => {
+    const set = new Set<string>();
+    (Object.values(requests) as MemberRequestItem[]).forEach(item => {
+      if (item.contact?.mbrContactMbrId) {
+        set.add(item.contact.mbrContactMbrId);
+      }
+      if (item.targetMember?.mbrId) {
+        set.add(item.targetMember.mbrId);
+      }
+    });
+    return set;
+  }, [requests]);
 
   // Handle section switching
   const handleSelectSection = (targetSection: ConnectionSection) => {
@@ -874,10 +898,33 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
     }
   };
 
-  // Filtered member list for Connections view
+  // Set of group IDs that correspond to the Public group
+  const publicGroupIds = useMemo(() => {
+    const set = new Set<string>();
+    groups.forEach(g => {
+      if ((g.grpName || '').trim().toLowerCase() === 'public') {
+        set.add(g.grpId);
+      }
+    });
+    set.add('00000000-0000-4000-8000-000000000004');
+    return set;
+  }, [groups]);
+
+  // Helper: check if a member is in a non-public group
+  const isMemberInNonPublicGroup = useCallback((selectedGrpId?: string | null) => {
+    if (!selectedGrpId || selectedGrpId.trim() === '') return false;
+    return !publicGroupIds.has(selectedGrpId);
+  }, [publicGroupIds]);
+
+  // Filtered member list for My Groups view (only members in non-public groups are displayed)
   const filteredMemberList = useMemo(() => {
     const list = Object.values(items) as MemberConnectionItem[];
     return list.filter(item => {
+      // Exclude members not in non-public groups
+      if (!isMemberInNonPublicGroup(item.selectedGrpId)) {
+        return false;
+      }
+
       const name = `${item.member.mbrFirstName || ''} ${item.member.mbrLastName || ''}`.toLowerCase();
       const location = `${item.member.mbrLivesCityState || ''} ${item.member.mbrFromCityState || ''}`.toLowerCase();
       const email = (item.member.mbrEmailAddress || '').toLowerCase();
@@ -893,11 +940,17 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
 
       return true;
     });
-  }, [items, searchQuery, groupFilter]);
+  }, [items, searchQuery, groupFilter, isMemberInNonPublicGroup]);
 
-  // Statistics counters
-  const totalConnectionsCount = Object.keys(items).length;
-  const assignedCount = (Object.values(items) as MemberConnectionItem[]).filter(it => it.selectedGrpId !== '').length;
+  // Statistics counters: only count members in non-public groups
+  const nonPublicConnectedMembers = useMemo(() => {
+    return (Object.values(items) as MemberConnectionItem[]).filter(it =>
+      isMemberInNonPublicGroup(it.selectedGrpId)
+    );
+  }, [items, isMemberInNonPublicGroup]);
+
+  const totalConnectionsCount = nonPublicConnectedMembers.length;
+  const assignedCount = nonPublicConnectedMembers.length;
   
   const pendingInvitationsList = useMemo(() => Object.values(invitations) as MemberInvitationItem[], [invitations]);
   const pendingInvitationsCount = pendingInvitationsList.length;
@@ -913,15 +966,18 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
 
     (Object.values(items) as any[]).forEach((it: any) => {
       if (it.member && it.member.mbrId) {
-        const grpName = it.selectedGrpId ? groupNameById.get(it.selectedGrpId) : undefined;
-        map.set(it.member.mbrId, {
-          isConnected: !!it.mbrConnectionId,
-          grpName: grpName || (it.mbrConnectionId ? 'Connected' : undefined)
-        });
+        const inNonPublicGroup = isMemberInNonPublicGroup(it.selectedGrpId);
+        if (inNonPublicGroup) {
+          const grpName = groupNameById.get(it.selectedGrpId);
+          map.set(it.member.mbrId, {
+            isConnected: true,
+            grpName: grpName || (it.mbrConnectionId ? 'Connected' : undefined)
+          });
+        }
       }
     });
     return map;
-  }, [items, groups]);
+  }, [items, groups, isMemberInNonPublicGroup]);
 
   // Debounced member search for "My Connections" section
   useEffect(() => {
@@ -941,6 +997,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             proximity_lat: userLocation?.latitude,
             proximity_lng: userLocation?.longitude,
             public_only: true,
+            viewer_mbr_id: currentMbrId || undefined,
             limit: fetchLimit,
             skip: 0
           });
@@ -999,6 +1056,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         proximity_lat: userLocation?.latitude,
         proximity_lng: userLocation?.longitude,
         public_only: true,
+        viewer_mbr_id: currentMbrId || undefined,
         limit: SEARCH_PAGE_SIZE,
         skip: currentSkip
       });
@@ -1100,7 +1158,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
                 setSearchQuery={setMbrSearchQuery}
                 connectionsOnly={connectionsOnly}
                 setConnectionsOnly={setConnectionsOnly}
-                connectedCount={connectionsMap.size}
+                connectedCount={totalConnectionsCount}
                 userLocation={userLocation}
                 onRefreshLocation={handleRefreshLocation}
               />
@@ -1112,6 +1170,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
                 loadingMore={searchLoadingMore}
                 hasMore={searchHasMore}
                 connectionsMap={connectionsMap}
+                pendingRequestsSet={pendingRequestsSet}
                 viewerMbrId={currentMbrId}
                 onLoadMore={handleLoadMoreSearchMembers}
                 onClickReadStory={(memberId) => {

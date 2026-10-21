@@ -110,7 +110,7 @@ export default function ConnectionMobileMenuBar({
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer ${
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-sans font-semibold transition-all cursor-pointer ${
               isOpen
                 ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700'
@@ -130,7 +130,7 @@ export default function ConnectionMobileMenuBar({
           {/* Active Section Indicator Badge */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-700 rounded-xl min-w-0">
             <CurrentIcon className={`w-3.5 h-3.5 shrink-0 ${currentItem.colorClass}`} />
-            <span className="text-xs font-serif font-medium text-slate-700 dark:text-slate-300 truncate max-w-[140px] sm:max-w-none">
+            <span className="text-xs font-sans font-medium text-slate-700 dark:text-slate-300 truncate max-w-[140px] sm:max-w-none">
               {currentItem.label}
             </span>
             <span className="px-1.5 py-0.2 rounded-full text-[10px] font-sans font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 ml-0.5">
@@ -161,7 +161,7 @@ export default function ConnectionMobileMenuBar({
                     <button
                       type="button"
                       onClick={() => handleSelect('my-connections')}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs font-serif transition-all cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs font-sans font-semibold transition-all cursor-pointer ${
                         isMyConnActive
                           ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold shadow-xs'
                           : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'
@@ -212,7 +212,7 @@ export default function ConnectionMobileMenuBar({
                       key={item.id}
                       type="button"
                       onClick={() => handleSelect(item.id)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs font-serif transition-all cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs font-sans font-semibold transition-all cursor-pointer ${
                         isActive
                           ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-bold shadow-xs'
                           : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80'

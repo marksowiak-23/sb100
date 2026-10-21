@@ -98,11 +98,13 @@ export default function MemberConnectionCard({
             }`}
           >
             <option value="">None (No Group)</option>
-            {groups.map(grp => (
-              <option key={grp.grpId} value={grp.grpId}>
-                {grp.grpName} {grp.isCustom ? '(Custom)' : ''}
-              </option>
-            ))}
+            {groups
+              .filter(grp => (grp.grpName || '').trim().toLowerCase() !== 'public')
+              .map(grp => (
+                <option key={grp.grpId} value={grp.grpId}>
+                  {grp.grpName} {grp.isCustom ? '(Custom)' : ''}
+                </option>
+              ))}
           </select>
         </div>
       </div>

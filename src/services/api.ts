@@ -1011,6 +1011,7 @@ export const taskApi = {
     proximity_lat?: number;
     proximity_lng?: number;
     public_only?: boolean;
+    viewer_mbr_id?: string;
     limit?: number;
     skip?: number;
   }): Promise<any[]> {
@@ -1022,6 +1023,7 @@ export const taskApi = {
     if (params?.proximity_lat !== undefined && params?.proximity_lat !== null) searchParams.append('proximity_lat', params.proximity_lat.toString());
     if (params?.proximity_lng !== undefined && params?.proximity_lng !== null) searchParams.append('proximity_lng', params.proximity_lng.toString());
     if (params?.public_only !== undefined) searchParams.append('public_only', params.public_only.toString());
+    if (params?.viewer_mbr_id) searchParams.append('viewer_mbr_id', params.viewer_mbr_id);
     if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
     if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
     searchParams.append('t', Date.now().toString());
@@ -3864,6 +3866,8 @@ export const eventApi = {
     eventCd?: string;
     eventActorId?: string;
     eventSiteCd?: string;
+    email?: string;
+    search?: string;
   }): Promise<EventRecord[]> {
     const query = new URLSearchParams();
     if (params?.skip !== undefined) query.set('skip', params.skip.toString());
@@ -3871,6 +3875,8 @@ export const eventApi = {
     if (params?.eventCd) query.set('eventCd', params.eventCd);
     if (params?.eventActorId) query.set('eventActorId', params.eventActorId);
     if (params?.eventSiteCd) query.set('eventSiteCd', params.eventSiteCd);
+    if (params?.email) query.set('email', params.email);
+    if (params?.search) query.set('search', params.search);
 
     const response = await fetch(`${API_BASE_URL}/events?${query.toString()}`, {
       method: 'GET',
@@ -3892,6 +3898,19 @@ export const eventApi = {
       },
     });
     return handleResponse<EventRecord>(response);
+  },
+
+  /**
+   * Delete all event records from the database table.
+   */
+  async deleteAllEvents(): Promise<{ status: string; message: string; count: number }> {
+    const response = await fetch(`${API_BASE_URL}/events`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<{ status: string; message: string; count: number }>(response);
   }
 };
 

@@ -50,7 +50,8 @@ export default function AcceptInvitationModal({
     : 'SB';
 
   const handleConfirm = () => {
-    onConfirmAccept(invitation.contact.mbrContactId, chosenGrpId);
+    const finalGrpId = chosenGrpId || assignableGroups[0]?.grpId || '';
+    onConfirmAccept(invitation.contact.mbrContactId, finalGrpId);
     onClose();
   };
 
@@ -171,33 +172,6 @@ export default function AcceptInvitationModal({
                   </label>
                 );
               })}
-
-              {/* Option for No Group / Unassigned */}
-              <label
-                onClick={() => setChosenGrpId('')}
-                className={`flex items-start justify-between p-3 rounded-2xl border cursor-pointer transition-all ${
-                  chosenGrpId === ''
-                    ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 text-blue-950 dark:text-blue-200 ring-2 ring-blue-500/20 shadow-xs'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                <div className="space-y-0.5 min-w-0 pr-2">
-                  <span className="text-xs font-serif font-bold text-slate-900 dark:text-white">
-                    None (Unassigned)
-                  </span>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif leading-tight">
-                    Connect without assigning to a specific group.
-                  </p>
-                </div>
-
-                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                  chosenGrpId === ''
-                    ? 'border-blue-600 bg-blue-600 text-white'
-                    : 'border-slate-300 dark:border-slate-600'
-                }`}>
-                  {chosenGrpId === '' && <Check className="w-2.5 h-2.5 stroke-[3]" />}
-                </div>
-              </label>
             </div>
           </div>
 

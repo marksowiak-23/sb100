@@ -961,12 +961,12 @@ export default function StoryPageStoryPanel({
       )}
 
       {/* Story Body Text / Full Narrative */}
-      <div className="prose prose-slate dark:prose-invert max-w-none">
+      <div className="prose prose-slate dark:prose-invert max-w-prose">
         {paragraphs.length > 0 ? (
           paragraphs.map((para, index) => (
             <p
               key={index}
-              className="font-serif text-base sm:text-lg text-slate-700 dark:text-slate-200 leading-relaxed mb-6 font-normal"
+              className="font-serif text-base sm:text-[17px] text-slate-700 dark:text-slate-200 leading-[1.8] mb-6 font-normal"
             >
               {para}
             </p>

@@ -39,7 +39,7 @@ export default function ManageConnectionsMenu({
         <button
           type="button"
           onClick={() => onSelectSection('my-connections')}
-          className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-serif font-bold transition-all cursor-pointer text-left ${
+          className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-sans font-semibold transition-all cursor-pointer text-left ${
             activeSection === 'my-connections'
               ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
@@ -84,7 +84,7 @@ export default function ManageConnectionsMenu({
         <button
           type="button"
           onClick={() => onSelectSection('groups')}
-          className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-serif font-bold transition-all cursor-pointer text-left ${
+          className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-sans font-semibold transition-all cursor-pointer text-left ${
             activeSection === 'groups' || activeSection === 'connections'
               ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
@@ -118,7 +118,7 @@ export default function ManageConnectionsMenu({
         <button
           type="button"
           onClick={() => onSelectSection('invitations')}
-          className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-serif font-bold transition-all cursor-pointer text-left ${
+          className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-sans font-semibold transition-all cursor-pointer text-left ${
             activeSection === 'invitations'
               ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
@@ -159,7 +159,7 @@ export default function ManageConnectionsMenu({
         <button
           type="button"
           onClick={() => onSelectSection('requests')}
-          className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-serif font-bold transition-all cursor-pointer text-left ${
+          className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-sans font-semibold transition-all cursor-pointer text-left ${
             activeSection === 'requests'
               ? 'bg-amber-50/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
