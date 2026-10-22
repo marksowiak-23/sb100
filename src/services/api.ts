@@ -58,6 +58,10 @@ export interface MbrStory {
   mbrStoryUpdatedAt: string;
   mbrStoryThreadID?: string;
   mbrStoryTopicName?: string;
+  mbrStoryLayoutCd?: string;
+  mbrStoryHeaderPhotoUrl?: string;
+  mbrStoryHeaderPhotoCaption?: string;
+  mbrStoryHeaderPhotoStyleCd?: string;
   mbrStorySubordinateId?: string;
   mbrMbrId: string;
   mbrId?: string;

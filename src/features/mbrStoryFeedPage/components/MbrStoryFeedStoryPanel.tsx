@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   BookOpen, Calendar, MapPin, Sparkles, ChevronRight, ChevronDown, User, Users, UserCheck,
   Bookmark, CheckCircle2, ThumbsUp, MessageSquare, Send, CornerDownRight, 
-  X, MessageCircle, Loader2, Clock, Reply, Pencil, Trash2, Check
+  X, MessageCircle, Loader2, Clock, Reply, Pencil, Trash2, Check, Camera, Image as ImageIcon
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { resolveMediaUrl, taskApi, MbrStoryLikes, MbrStoryComments } from '@/src/services/api';
@@ -24,6 +24,10 @@ export interface FeedStoryItem {
   mbrStoryUpdatedAt?: string;
   mbrStoryTypeCd?: string;
   mbrStoryTopicName?: string;
+  mbrStoryLayoutCd?: string;
+  mbrStoryHeaderPhotoUrl?: string;
+  mbrStoryHeaderPhotoCaption?: string;
+  mbrStoryHeaderPhotoStyleCd?: string;
   authorMbrId: string;
   authorName: string;
   authorLocation?: string;
@@ -32,6 +36,48 @@ export interface FeedStoryItem {
   connectionGrpName?: string;
   isConnection?: boolean;
   isDirectShared?: boolean;
+}
+
+export interface ParsedFeedStoryLayout {
+  layout: 'default' | 'news_header';
+  photoUrl: string;
+  caption: string;
+  style: 'banner' | 'split';
+  cleanContent: string;
+}
+
+export function parseFeedStoryLayout(content?: string, storyObj?: Partial<FeedStoryItem>): ParsedFeedStoryLayout {
+  let layout: 'default' | 'news_header' = (storyObj?.mbrStoryLayoutCd === 'news_header' || storyObj?.mbrStoryLayoutCd === 'default')
+    ? storyObj.mbrStoryLayoutCd
+    : 'default';
+  let photoUrl = storyObj?.mbrStoryHeaderPhotoUrl || '';
+  let caption = storyObj?.mbrStoryHeaderPhotoCaption || '';
+  let style: 'banner' | 'split' = (storyObj?.mbrStoryHeaderPhotoStyleCd === 'split' || storyObj?.mbrStoryHeaderPhotoStyleCd === 'banner')
+    ? storyObj.mbrStoryHeaderPhotoStyleCd
+    : 'banner';
+  let cleanContent = content || '';
+
+  const match = cleanContent.match(/^<!--story-layout:([\s\S]*?)-->\s*/);
+  if (match) {
+    try {
+      const meta = JSON.parse(match[1]);
+      if (!storyObj?.mbrStoryLayoutCd && (meta.layout === 'news_header' || meta.layout === 'default')) {
+        layout = meta.layout;
+      }
+      if (!photoUrl && (meta.headerPhotoUrl || meta.photoUrl)) {
+        photoUrl = meta.headerPhotoUrl || meta.photoUrl;
+      }
+      if (!caption && (meta.headerPhotoCaption || meta.caption)) {
+        caption = meta.headerPhotoCaption || meta.caption;
+      }
+      if (!storyObj?.mbrStoryHeaderPhotoStyleCd && (meta.headerPhotoStyle === 'banner' || meta.headerPhotoStyle === 'split' || meta.style === 'banner' || meta.style === 'split')) {
+        style = meta.headerPhotoStyle || meta.style;
+      }
+    } catch {}
+    cleanContent = cleanContent.slice(match[0].length);
+  }
+
+  return { layout, photoUrl, caption, style, cleanContent };
 }
 
 export interface MbrStoryFeedStoryPanelProps {
@@ -548,6 +594,17 @@ export default function MbrStoryFeedStoryPanel({
   const displayTopic = formatTopicName(story.mbrStoryTypeCd, story.mbrStoryTopicName);
   const formattedDate = formatDate(story.mbrStoryPublishedDate || story.mbrStoryUpdatedAt || story.mbrStoryCreatedAt);
 
+  // Compute story layout configuration (Banner / Split Photo Layout vs Default Manuscript)
+  const layoutInfo = useMemo(() => {
+    return parseFeedStoryLayout(story.mbrStoryContent, story);
+  }, [
+    story.mbrStoryContent,
+    story.mbrStoryLayoutCd,
+    story.mbrStoryHeaderPhotoUrl,
+    story.mbrStoryHeaderPhotoCaption,
+    story.mbrStoryHeaderPhotoStyleCd
+  ]);
+
   // --- Reaction / Likes State ---
   const [likes, setLikes] = useState<MbrStoryLikes[]>([]);
   const [userReaction, setUserReaction] = useState<MbrStoryLikes | null>(null);
@@ -958,19 +1015,108 @@ export default function MbrStoryFeedStoryPanel({
         </div>
       </div>
 
-      {/* Story Title */}
-      <h3
-        onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
-        className="font-serif text-lg sm:text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors cursor-pointer mb-2.5 leading-snug tracking-tight"
-      >
-        {story.mbrStoryTitle}
-      </h3>
+      {/* --- STORY PRESENTATION: PHOTO LAYOUT (BANNER OR SPLIT) vs DEFAULT MANUSCRIPT --- */}
+      {layoutInfo.layout === 'news_header' && layoutInfo.photoUrl ? (
+        layoutInfo.style === 'banner' ? (
+          /* HERO BANNER PHOTO LAYOUT */
+          <div className="flex flex-col gap-3 mb-3.5">
+            {/* Hero Image */}
+            <div 
+              onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+              className="relative w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-900 shadow-sm max-h-[320px] sm:max-h-[380px] group/photo cursor-pointer"
+            >
+              <img
+                src={resolveMediaUrl(layoutInfo.photoUrl)}
+                alt={layoutInfo.caption || story.mbrStoryTitle}
+                className="w-full h-[200px] sm:h-[280px] md:h-[320px] object-cover transition-transform duration-500 group-hover/photo:scale-[1.02]"
+              />
+              {layoutInfo.caption && (
+                <div className="px-3.5 py-2 bg-slate-900/85 backdrop-blur-xs text-white text-xs font-sans flex items-center justify-between border-t border-white/10">
+                  <span className="italic flex items-center gap-1.5 text-slate-200 truncate">
+                    <Camera className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="truncate">{layoutInfo.caption}</span>
+                  </span>
+                  <span className="text-[10px] text-amber-300 font-mono font-bold uppercase tracking-wider shrink-0 ml-2">
+                    Photo Layout
+                  </span>
+                </div>
+              )}
+            </div>
 
-      {/* Story Content / Narrative Excerpt */}
-      {story.mbrStoryContent && (
-        <p className="text-slate-700 dark:text-slate-200 font-serif text-[15px] sm:text-base leading-[1.75] line-clamp-4 sm:line-clamp-5 mb-3.5 whitespace-pre-line font-normal">
-          {story.mbrStoryContent}
-        </p>
+            {/* Story Title */}
+            <h3
+              onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+              className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer leading-snug tracking-tight"
+            >
+              {story.mbrStoryTitle}
+            </h3>
+
+            {/* Narrative Excerpt */}
+            {layoutInfo.cleanContent && (
+              <p className="text-slate-700 dark:text-slate-200 font-serif text-[15px] sm:text-base leading-[1.75] line-clamp-3 sm:line-clamp-4 whitespace-pre-line font-normal">
+                {layoutInfo.cleanContent}
+              </p>
+            )}
+          </div>
+        ) : (
+          /* SIDE-BY-SIDE SPLIT PHOTO LAYOUT */
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 mb-3.5 items-start">
+            <div className="md:col-span-7 flex flex-col justify-start gap-2.5">
+              <h3
+                onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+                className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer leading-snug tracking-tight"
+              >
+                {story.mbrStoryTitle}
+              </h3>
+
+              {layoutInfo.caption && (
+                <div className="p-2.5 bg-amber-50/70 dark:bg-amber-950/30 border-l-2 border-amber-500 rounded-r-lg text-xs font-serif italic text-amber-900 dark:text-amber-200">
+                  “{layoutInfo.caption}”
+                </div>
+              )}
+
+              {layoutInfo.cleanContent && (
+                <p className="text-slate-700 dark:text-slate-200 font-serif text-[14.5px] sm:text-[15px] leading-[1.7] line-clamp-4 whitespace-pre-line font-normal">
+                  {layoutInfo.cleanContent}
+                </p>
+              )}
+            </div>
+
+            <div 
+              onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+              className="md:col-span-5 flex flex-col gap-1.5 cursor-pointer group/split"
+            >
+              <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 shadow-sm max-h-[240px]">
+                <img
+                  src={resolveMediaUrl(layoutInfo.photoUrl)}
+                  alt={layoutInfo.caption || story.mbrStoryTitle}
+                  className="w-full h-full max-h-[220px] object-cover transition-transform duration-500 group-hover/split:scale-[1.02]"
+                />
+              </div>
+              {layoutInfo.caption && (
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif italic px-1 text-center truncate">
+                  {layoutInfo.caption}
+                </p>
+              )}
+            </div>
+          </div>
+        )
+      ) : (
+        /* DEFAULT CLASSIC MANUSCRIPT LAYOUT */
+        <>
+          <h3
+            onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+            className="font-serif text-lg sm:text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors cursor-pointer mb-2.5 leading-snug tracking-tight"
+          >
+            {story.mbrStoryTitle}
+          </h3>
+
+          {layoutInfo.cleanContent && (
+            <p className="text-slate-700 dark:text-slate-200 font-serif text-[15px] sm:text-base leading-[1.75] line-clamp-4 sm:line-clamp-5 mb-3.5 whitespace-pre-line font-normal">
+              {layoutInfo.cleanContent}
+            </p>
+          )}
+        </>
       )}
 
       {/* Read Full Story Button (Above the line, right-justified) */}
@@ -1122,10 +1268,10 @@ export default function MbrStoryFeedStoryPanel({
         </div>
 
         {/* Right Side: Audio Narration */}
-        {story.mbrStoryContent && (
+        {layoutInfo.cleanContent && (
           <div className="flex items-center gap-2">
             <StoryAudioPlayer
-              text={`${story.mbrStoryTitle}. ${story.mbrStoryContent}`}
+              text={`${story.mbrStoryTitle}. ${layoutInfo.cleanContent}`}
               storyId={story.mbrStoryId}
               title={story.mbrStoryTitle}
               variant="inline-button"
@@ -1199,9 +1345,9 @@ export default function MbrStoryFeedStoryPanel({
                     <h2 className="font-serif text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">
                       {story.mbrStoryTitle}
                     </h2>
-                    {story.mbrStoryContent && (
+                    {layoutInfo.cleanContent && (
                       <StoryAudioPlayer
-                        text={`${story.mbrStoryTitle}. ${story.mbrStoryContent}`}
+                        text={`${story.mbrStoryTitle}. ${layoutInfo.cleanContent}`}
                         storyId={story.mbrStoryId}
                         title={story.mbrStoryTitle}
                         variant="inline-button"
@@ -1209,9 +1355,9 @@ export default function MbrStoryFeedStoryPanel({
                     )}
                   </div>
 
-                  {story.mbrStoryContent ? (
+                  {layoutInfo.cleanContent ? (
                     <div className="font-sans text-[11.5px] text-slate-700 dark:text-slate-200 leading-snug whitespace-pre-line line-clamp-3">
-                      {story.mbrStoryContent}
+                      {layoutInfo.cleanContent}
                     </div>
                   ) : (
                     <p className="text-[10.5px] italic text-slate-400 dark:text-slate-500">

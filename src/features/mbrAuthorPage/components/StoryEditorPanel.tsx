@@ -5,8 +5,8 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark } from '@/src/services/api';
+import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer, ArrowUpDown, ArrowUp, ArrowDown, Layout, Newspaper, Camera, Image as ImageIcon, Upload } from 'lucide-react';
+import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark, resolveMediaUrl } from '@/src/services/api';
 import { FALLBACK_PERSONAS, WriterPersona } from '@/src/features/mbrPreferencesPage/types';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
@@ -673,6 +673,70 @@ const resolveCurrentMbrId = async (
   return '9edb4311-a4bc-428a-8317-833f0f08fea1';
 };
 
+export type StoryLayoutType = 'default' | 'news_header';
+export type HeaderPhotoStyle = 'banner' | 'split';
+
+export const SAMPLE_HEADER_PHOTOS = [
+  { url: '/carousel_life_book.jpg', label: 'Archival Memories & Photos' },
+  { url: '/carousel_your_story.jpg', label: 'Vintage Writing Desk' },
+  { url: '/carousel_shared_memories.jpg', label: 'Family Hearthside Gathering' },
+  { url: '/carousel_shared_history.jpg', label: 'Kitchen Conversations' },
+  { url: '/carousel_legacy_wisdom.jpg', label: 'Grandparent & Storybook' },
+  { url: '/storybook_splash_collage.jpg', label: 'StoryBook Life Collage' },
+  { url: '/storybook_friends_connection.jpg', label: 'Friends & Connections' }
+];
+
+export function parseStoryLayout(rawContent: string, storyId?: string | null, storyObj?: Partial<MbrStory>): {
+  layout: StoryLayoutType;
+  photoUrl: string;
+  caption: string;
+  style: HeaderPhotoStyle;
+  bodyContent: string;
+} {
+  let layout: StoryLayoutType = 'default';
+  let photoUrl = '';
+  let caption = '';
+  let style: HeaderPhotoStyle = 'banner';
+  let bodyContent = rawContent || '';
+
+  // Check database columns on storyObj first
+  if (storyObj?.mbrStoryLayoutCd) {
+    if (storyObj.mbrStoryLayoutCd === 'news_header' || storyObj.mbrStoryLayoutCd === 'default') {
+      layout = storyObj.mbrStoryLayoutCd as StoryLayoutType;
+    }
+    if (storyObj.mbrStoryHeaderPhotoUrl) photoUrl = storyObj.mbrStoryHeaderPhotoUrl;
+    if (storyObj.mbrStoryHeaderPhotoCaption) caption = storyObj.mbrStoryHeaderPhotoCaption;
+    if (storyObj.mbrStoryHeaderPhotoStyleCd === 'banner' || storyObj.mbrStoryHeaderPhotoStyleCd === 'split') {
+      style = storyObj.mbrStoryHeaderPhotoStyleCd as HeaderPhotoStyle;
+    }
+  }
+
+  const match = bodyContent.match(/^<!--story-layout:([\s\S]*?)-->\s*/);
+  if (match) {
+    try {
+      const meta = JSON.parse(match[1]);
+      if (!storyObj?.mbrStoryLayoutCd && (meta.layout === 'news_header' || meta.layout === 'default')) layout = meta.layout;
+      if (!storyObj?.mbrStoryHeaderPhotoUrl && (meta.headerPhotoUrl || meta.photoUrl)) photoUrl = meta.headerPhotoUrl || meta.photoUrl;
+      if (!storyObj?.mbrStoryHeaderPhotoCaption && (meta.headerPhotoCaption || meta.caption)) caption = meta.headerPhotoCaption || meta.caption;
+      if (!storyObj?.mbrStoryHeaderPhotoStyleCd && (meta.headerPhotoStyle === 'banner' || meta.headerPhotoStyle === 'split' || meta.style === 'banner' || meta.style === 'split')) {
+        style = meta.headerPhotoStyle || meta.style;
+      }
+      bodyContent = bodyContent.slice(match[0].length);
+    } catch {}
+  } else if (storyId && !storyObj?.mbrStoryLayoutCd) {
+    const savedLayout = sessionStorage.getItem(`story_layout_${storyId}`);
+    if (savedLayout === 'news_header' || savedLayout === 'default') layout = savedLayout;
+    const savedPhoto = sessionStorage.getItem(`story_header_photo_${storyId}`);
+    if (savedPhoto) photoUrl = savedPhoto;
+    const savedCaption = sessionStorage.getItem(`story_header_caption_${storyId}`);
+    if (savedCaption) caption = savedCaption;
+    const savedStyle = sessionStorage.getItem(`story_header_style_${storyId}`);
+    if (savedStyle === 'banner' || savedStyle === 'split') style = savedStyle;
+  }
+
+  return { layout, photoUrl, caption, style, bodyContent };
+}
+
 export default function StoryEditorPanel({
   topicTitle = 'Section',
   topicId = 'general',
@@ -719,6 +783,15 @@ export default function StoryEditorPanel({
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [status, setStatus] = useState('Draft');
+
+  // Story Layout & Header Photo state
+  const [storyLayout, setStoryLayout] = useState<StoryLayoutType>('default');
+  const [headerPhotoUrl, setHeaderPhotoUrl] = useState<string>('');
+  const [headerPhotoCaption, setHeaderPhotoCaption] = useState<string>('');
+  const [headerPhotoStyle, setHeaderPhotoStyle] = useState<HeaderPhotoStyle>('banner');
+  const [showPhotoSelectorModal, setShowPhotoSelectorModal] = useState<boolean>(false);
+  const [availableStoryPhotos, setAvailableStoryPhotos] = useState<MbrMedia[]>([]);
+  const headerPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -890,6 +963,7 @@ export default function StoryEditorPanel({
           try {
             const list: MbrMedia[] = JSON.parse(savedMedia);
             if (Array.isArray(list)) {
+              setAvailableStoryPhotos(list);
               list.forEach((m) => {
                 if (m.mbrMediaSubordinateId) {
                   counts[m.mbrMediaSubordinateId] = (counts[m.mbrMediaSubordinateId] || 0) + 1;
@@ -901,6 +975,7 @@ export default function StoryEditorPanel({
       } else {
         const list = await taskApi.getMemberMedia(mbr).catch(() => []);
         if (Array.isArray(list)) {
+          setAvailableStoryPhotos(list);
           list.forEach((m) => {
             if (m.mbrMediaSubordinateId) {
               counts[m.mbrMediaSubordinateId] = (counts[m.mbrMediaSubordinateId] || 0) + 1;
@@ -1115,6 +1190,10 @@ Output Rules:
     setActiveStoryId(newId);
     setTitle(derivedStoryTitle);
     setContent(immediateFirstPerson);
+    setStoryLayout('default');
+    setHeaderPhotoUrl('');
+    setHeaderPhotoCaption('');
+    setHeaderPhotoStyle('banner');
     setStatus('Draft');
     setActiveIntentId(otherIntentId);
     setIsEditing(true);
@@ -1469,7 +1548,12 @@ Output Rules:
   const selectStory = (story: Partial<MbrStory>) => {
     setActiveStoryId(story.mbrStoryId || null);
     setTitle(story.mbrStoryTitle || '');
-    setContent(story.mbrStoryContent || '');
+    const parsed = parseStoryLayout(story.mbrStoryContent || '', story.mbrStoryId, story);
+    setStoryLayout(parsed.layout);
+    setHeaderPhotoUrl(parsed.photoUrl);
+    setHeaderPhotoCaption(parsed.caption);
+    setHeaderPhotoStyle(parsed.style);
+    setContent(parsed.bodyContent);
     setStatus(story.mbrStoryPublishStatusCd || 'Draft');
     setActiveThreadId(story.mbrStoryThreadID);
     setActiveIntentId(story.chIntentId || resolvedChIntentId);
@@ -1907,6 +1991,10 @@ Output Rules:
     setActiveStoryId(newId);
     setTitle(newStory.mbrStoryTitle!);
     setContent('');
+    setStoryLayout('default');
+    setHeaderPhotoUrl('');
+    setHeaderPhotoCaption('');
+    setHeaderPhotoStyle('banner');
     setStatus('Draft');
     setActiveIntentId(newStory.chIntentId);
     setIsEditing(true);
@@ -1950,6 +2038,29 @@ Output Rules:
       const derivedTopicStr = activeStory?.mbrStoryTopicName || subordinateName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined) || 'Other';
       const cleanTopicName = derivedTopicStr ? derivedTopicStr.slice(0, 40) : undefined;
 
+      // Prepare content with layout metadata if custom layout or header photo is configured
+      let finalContent = content.replace(/^<!--story-layout:[\s\S]*?-->\s*/, '');
+      if (storyLayout === 'news_header' && headerPhotoUrl) {
+        const meta = {
+          layout: storyLayout,
+          headerPhotoUrl,
+          headerPhotoCaption,
+          headerPhotoStyle
+        };
+        finalContent = `<!--story-layout:${JSON.stringify(meta)}-->\n\n${finalContent}`;
+        if (activeStoryId) {
+          sessionStorage.setItem(`story_layout_${activeStoryId}`, storyLayout);
+          sessionStorage.setItem(`story_header_photo_${activeStoryId}`, headerPhotoUrl);
+          sessionStorage.setItem(`story_header_caption_${activeStoryId}`, headerPhotoCaption);
+          sessionStorage.setItem(`story_header_style_${activeStoryId}`, headerPhotoStyle);
+        }
+      } else if (activeStoryId) {
+        sessionStorage.setItem(`story_layout_${activeStoryId}`, 'default');
+        sessionStorage.removeItem(`story_header_photo_${activeStoryId}`);
+        sessionStorage.removeItem(`story_header_caption_${activeStoryId}`);
+        sessionStorage.removeItem(`story_header_style_${activeStoryId}`);
+      }
+
       // Check if user is publishing a draft story that has an original published story reference
       const isPublishingDraftWithOriginal = (status || '').toLowerCase() === 'published' && activeStory && activeStory.mbrStoryOriginalId && isUuid(activeStory.mbrStoryOriginalId);
 
@@ -1957,7 +2068,11 @@ Output Rules:
         const originalId = activeStory.mbrStoryOriginalId!;
         const updatedOriginalStory: Partial<MbrStory> = {
           mbrStoryTitle: title.trim().slice(0, 240),
-          mbrStoryContent: content,
+          mbrStoryContent: finalContent,
+          mbrStoryLayoutCd: storyLayout,
+          mbrStoryHeaderPhotoUrl: headerPhotoUrl || undefined,
+          mbrStoryHeaderPhotoCaption: headerPhotoCaption || undefined,
+          mbrStoryHeaderPhotoStyleCd: headerPhotoStyle || 'banner',
           mbrStoryPublishStatusCd: 'Published',
           mbrStoryPublishedDate: activeStory.mbrStoryPublishedDate || todayDateStr,
           mbrStoryTypeCd: finalStoryTypeCd.slice(0, 40),
@@ -2010,7 +2125,11 @@ Output Rules:
       const updatedStory: Partial<MbrStory> = {
         mbrStoryId: (activeStoryId && !activeStoryId.startsWith('temp_')) ? activeStoryId : undefined,
         mbrStoryTitle: title.trim().slice(0, 240),
-        mbrStoryContent: content,
+        mbrStoryContent: finalContent,
+        mbrStoryLayoutCd: storyLayout,
+        mbrStoryHeaderPhotoUrl: headerPhotoUrl || undefined,
+        mbrStoryHeaderPhotoCaption: headerPhotoCaption || undefined,
+        mbrStoryHeaderPhotoStyleCd: headerPhotoStyle || 'banner',
         mbrStoryPublishStatusCd: status,
         mbrStoryPublishedDate: (status || '').toLowerCase() === 'published' ? (activeStory?.mbrStoryPublishedDate || todayDateStr) : activeStory?.mbrStoryPublishedDate,
         mbrStoryTypeCd: finalStoryTypeCd.slice(0, 40),
@@ -2046,6 +2165,12 @@ Output Rules:
           savedResult = await taskApi.updateStory(activeStoryId, updatedStory);
         } else {
           savedResult = await taskApi.createStory(updatedStory);
+          if (storyLayout === 'news_header' && headerPhotoUrl && savedResult?.mbrStoryId) {
+            sessionStorage.setItem(`story_layout_${savedResult.mbrStoryId}`, storyLayout);
+            sessionStorage.setItem(`story_header_photo_${savedResult.mbrStoryId}`, headerPhotoUrl);
+            sessionStorage.setItem(`story_header_caption_${savedResult.mbrStoryId}`, headerPhotoCaption);
+            sessionStorage.setItem(`story_header_style_${savedResult.mbrStoryId}`, headerPhotoStyle);
+          }
         }
         
         // Update local state stories list
@@ -2146,12 +2271,28 @@ Output Rules:
       const derivedTopicStr = activeStory?.mbrStoryTopicName || subordinateName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined) || 'Other';
       const cleanTopicName = derivedTopicStr ? derivedTopicStr.slice(0, 40) : undefined;
 
+      // Preserve layout metadata when publishing
+      let publishContent = content.replace(/^<!--story-layout:[\s\S]*?-->\s*/, '');
+      if (storyLayout === 'news_header' && headerPhotoUrl) {
+        const meta = {
+          layout: storyLayout,
+          headerPhotoUrl,
+          headerPhotoCaption,
+          headerPhotoStyle
+        };
+        publishContent = `<!--story-layout:${JSON.stringify(meta)}-->\n\n${publishContent}`;
+      }
+
       // Check if publishing a draft story that references an original published story
       if (activeStory && activeStory.mbrStoryOriginalId && isUuid(activeStory.mbrStoryOriginalId)) {
         const originalId = activeStory.mbrStoryOriginalId;
         const updatedOriginalStory: Partial<MbrStory> = {
           mbrStoryTitle: (title.trim() || 'Untitled Story').slice(0, 240),
-          mbrStoryContent: content,
+          mbrStoryContent: publishContent,
+          mbrStoryLayoutCd: storyLayout,
+          mbrStoryHeaderPhotoUrl: headerPhotoUrl || undefined,
+          mbrStoryHeaderPhotoCaption: headerPhotoCaption || undefined,
+          mbrStoryHeaderPhotoStyleCd: headerPhotoStyle || 'banner',
           mbrStoryPublishStatusCd: 'Published',
           mbrStoryPublishedDate: todayDateStr,
           mbrStoryTypeCd: finalStoryTypeCd.slice(0, 40),
@@ -2201,7 +2342,11 @@ Output Rules:
         const updatedStory: Partial<MbrStory> = {
           mbrStoryId: (!activeStoryId.startsWith('temp_')) ? activeStoryId : undefined,
           mbrStoryTitle: (title.trim() || 'Untitled Story').slice(0, 240),
-          mbrStoryContent: content,
+          mbrStoryContent: publishContent,
+          mbrStoryLayoutCd: storyLayout,
+          mbrStoryHeaderPhotoUrl: headerPhotoUrl || undefined,
+          mbrStoryHeaderPhotoCaption: headerPhotoCaption || undefined,
+          mbrStoryHeaderPhotoStyleCd: headerPhotoStyle || 'banner',
           mbrStoryPublishStatusCd: 'Published',
           mbrStoryPublishedDate: todayDateStr,
           mbrStoryTypeCd: finalStoryTypeCd.slice(0, 40),
@@ -2282,6 +2427,87 @@ Output Rules:
         selectStory(activeStory);
       }
     }
+  };
+
+  const handleToggleStoryLayout = async (newLayout: StoryLayoutType) => {
+    setStoryLayout(newLayout);
+    let activePhoto = headerPhotoUrl;
+    if (newLayout === 'news_header' && !activePhoto) {
+      activePhoto = availableStoryPhotos[0]?.mbrMediaUrl || SAMPLE_HEADER_PHOTOS[0].url;
+      setHeaderPhotoUrl(activePhoto);
+    }
+
+    if (activeStoryId) {
+      sessionStorage.setItem(`story_layout_${activeStoryId}`, newLayout);
+      if (activePhoto) {
+        sessionStorage.setItem(`story_header_photo_${activeStoryId}`, activePhoto);
+        sessionStorage.setItem(`story_header_caption_${activeStoryId}`, headerPhotoCaption);
+        sessionStorage.setItem(`story_header_style_${activeStoryId}`, headerPhotoStyle);
+      }
+      const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
+      if (activeStory) {
+        let updatedContent = content.replace(/^<!--story-layout:[\s\S]*?-->\s*/, '');
+        if (newLayout === 'news_header' && activePhoto) {
+          const meta = {
+            layout: newLayout,
+            headerPhotoUrl: activePhoto,
+            headerPhotoCaption,
+            headerPhotoStyle
+          };
+          updatedContent = `<!--story-layout:${JSON.stringify(meta)}-->\n\n${updatedContent}`;
+        }
+        const updated = {
+          ...activeStory,
+          mbrStoryContent: updatedContent,
+          mbrStoryLayoutCd: newLayout,
+          mbrStoryHeaderPhotoUrl: activePhoto || '',
+          mbrStoryHeaderPhotoCaption: headerPhotoCaption || '',
+          mbrStoryHeaderPhotoStyleCd: headerPhotoStyle || 'banner'
+        };
+        setStories((prev) => prev.map((s) => (s.mbrStoryId === activeStoryId ? updated : s)));
+
+        if (!isSandbox && !activeStoryId.startsWith('temp_')) {
+          taskApi.updateStory(activeStoryId, {
+            mbrStoryContent: updatedContent,
+            mbrStoryLayoutCd: newLayout,
+            mbrStoryHeaderPhotoUrl: activePhoto || '',
+            mbrStoryHeaderPhotoCaption: headerPhotoCaption || '',
+            mbrStoryHeaderPhotoStyleCd: headerPhotoStyle || 'banner'
+          }).catch((e) => {
+            console.warn('Could not save layout change to DB:', e);
+          });
+        } else if (isSandbox) {
+          const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId?.toLowerCase()] || topicId || 'sbMbrStryCustom');
+          const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
+          const currentList = stories.map((s) => (s.mbrStoryId === activeStoryId ? updated : s));
+          sessionStorage.setItem(sandboxKey, JSON.stringify(currentList));
+        }
+      }
+    }
+  };
+
+  const handleHeaderPhotoFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError('File size exceeds 10MB limit.');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      if (result) {
+        setHeaderPhotoUrl(result);
+        setStoryLayout('news_header');
+        setShowPhotoSelectorModal(false);
+        setSuccessMsg('Selected new photo for story header!');
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handlePrivacyClick = () => {
@@ -2538,6 +2764,190 @@ Output Rules:
             />
           </div>
 
+          {/* Story Layout & Header Photo Customizer */}
+          <div className="bg-[#FAF8F5] border border-[#EFECE7] rounded-2xl p-3 sm:p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Layout className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-serif font-bold text-slate-800 tracking-tight">
+                  Story Layout & Presentation Format
+                </span>
+              </div>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                Author Style
+              </span>
+            </div>
+
+            {/* Layout options */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setStoryLayout('default')}
+                className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  storyLayout === 'default'
+                    ? 'bg-white border-blue-500 shadow-xs ring-1 ring-blue-500/20'
+                    : 'bg-white/60 border-slate-200 hover:bg-white hover:border-slate-300'
+                }`}
+              >
+                <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
+                  storyLayout === 'default' ? 'bg-blue-50 text-blue-600' : 'bg-slate-100 text-slate-400'
+                }`}>
+                  <FileText className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800">Default Layout</span>
+                    {storyLayout === 'default' && <Check className="w-3.5 h-3.5 text-blue-600" />}
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-tight mt-1">
+                    Classic title & uninterrupted story text, ideal for book chapters and memoirs.
+                  </p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStoryLayout('news_header');
+                  if (!headerPhotoUrl) {
+                    const fallback = availableStoryPhotos[0]?.mbrMediaUrl || SAMPLE_HEADER_PHOTOS[0].url;
+                    setHeaderPhotoUrl(fallback);
+                  }
+                }}
+                className={`flex items-start gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                  storyLayout === 'news_header'
+                    ? 'bg-white border-amber-500 shadow-xs ring-1 ring-amber-500/20'
+                    : 'bg-white/60 border-slate-200 hover:bg-white hover:border-slate-300'
+                }`}
+              >
+                <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 ${
+                  storyLayout === 'news_header' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-400'
+                }`}>
+                  <Newspaper className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-800">Photo Layout</span>
+                    {storyLayout === 'news_header' && <Check className="w-3.5 h-3.5 text-amber-600" />}
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-tight mt-1">
+                    Story presentation with hero photograph, caption & credit.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            {/* Header Photo controls when News Header layout is selected */}
+            {storyLayout === 'news_header' && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="pt-2 border-t border-[#EFECE7] flex flex-col gap-3"
+              >
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Story Header Photo & Caption</span>
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowPhotoSelectorModal(true)}
+                      className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>{headerPhotoUrl ? 'Change Photo' : 'Select Photo'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => headerPhotoInputRef.current?.click()}
+                      className="text-[11px] font-bold text-slate-600 hover:text-slate-800 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>Upload New</span>
+                    </button>
+                  </div>
+                </div>
+
+                {headerPhotoUrl ? (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white p-3 rounded-xl border border-slate-200">
+                    <div className="relative w-full sm:w-36 h-28 sm:h-24 rounded-lg overflow-hidden shrink-0 border border-slate-100 bg-slate-100 shadow-2xs">
+                      <img
+                        src={resolveMediaUrl(headerPhotoUrl)}
+                        alt="Header preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setHeaderPhotoUrl('')}
+                        title="Remove photo"
+                        className="absolute top-1.5 right-1.5 p-1 bg-black/60 hover:bg-black text-white rounded-full transition-colors cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    <div className="flex-1 w-full flex flex-col gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-bold text-slate-700">Display Layout:</span>
+                        <div className="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => setHeaderPhotoStyle('banner')}
+                            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                              headerPhotoStyle === 'banner'
+                                ? 'bg-white text-slate-800 shadow-2xs font-bold'
+                                : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                          >
+                            Hero Banner (Top)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setHeaderPhotoStyle('split')}
+                            className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                              headerPhotoStyle === 'split'
+                                ? 'bg-white text-slate-800 shadow-2xs font-bold'
+                                : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                          >
+                            Split Headline (Side-by-Side)
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1">
+                        <input
+                          type="text"
+                          value={headerPhotoCaption}
+                          onChange={(e) => setHeaderPhotoCaption(e.target.value)}
+                          placeholder="Photo caption or attribution (e.g. Grandma Rose in her garden, June 1974)..."
+                          className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 placeholder:text-slate-400 outline-none focus:border-slate-500 transition-colors"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => setShowPhotoSelectorModal(true)}
+                    className="flex flex-col items-center justify-center p-4 border border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-50/90 rounded-xl cursor-pointer transition-colors text-center gap-1.5"
+                  >
+                    <div className="p-2 bg-amber-100 text-amber-700 rounded-full">
+                      <Camera className="w-4 h-4" />
+                    </div>
+                    <p className="text-xs font-bold text-amber-900">
+                      Choose or upload a photo for the story header
+                    </p>
+                    <p className="text-[11px] text-amber-700">
+                      Select from your gallery or choose one of our archival presets to give your story a news editorial look.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </div>
+
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
@@ -2632,11 +3042,9 @@ Output Rules:
         /* VIEW MODE */
         <div className="flex flex-col gap-4">
           <div className="bg-white border border-[#EFECE7] rounded-2xl py-3.5 sm:py-4 px-2.5 sm:px-3.5 flex flex-col gap-3">
-            <div className="flex items-start justify-between gap-3">
+            {/* Top Toolbar / Header Controls */}
+            <div className="flex items-start justify-between gap-3 pb-2 border-b border-slate-100 flex-wrap">
               <div className="flex items-center gap-2.5 flex-wrap">
-                <h4 className="font-serif text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 leading-snug tracking-tight">
-                  {title || 'Untitled Story'}
-                </h4>
                 <span className={`px-2 py-0.5 rounded-full border text-[9px] font-bold font-mono uppercase ${
                   (status || '').toLowerCase() === 'published'
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
@@ -2644,7 +3052,11 @@ Output Rules:
                 }`}>
                   {status || 'Draft'}
                 </span>
+                <span className="text-[11px] font-serif font-bold text-amber-700 bg-amber-50/70 border border-amber-200/60 px-2 py-0.5 rounded-md">
+                  {topicTitle}
+                </span>
               </div>
+
               {!readOnly && (() => {
                 const isStoryPublished = (status || '').toLowerCase() === 'published';
                 return (
@@ -2715,7 +3127,7 @@ Output Rules:
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.12 }}
-                            className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-2xl shadow-xl py-1.5 min-w-[175px] text-left divide-y divide-slate-100 font-sans"
+                            className="absolute right-0 top-full mt-1.5 z-40 bg-white border border-[#EFECE7] rounded-2xl shadow-xl py-1.5 min-w-[190px] text-left divide-y divide-slate-100 font-sans"
                           >
                             <div className="py-1">
                               {/* Edit Story */}
@@ -2730,6 +3142,28 @@ Output Rules:
                               >
                                 <Edit3 className="w-4 h-4 text-blue-600 shrink-0" />
                                 <span>Edit Story</span>
+                              </button>
+
+                              {/* Toggle Story Layout */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowActionMenu(false);
+                                  handleToggleStoryLayout(storyLayout === 'news_header' ? 'default' : 'news_header');
+                                }}
+                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 transition-colors cursor-pointer text-left"
+                              >
+                                {storyLayout === 'news_header' ? (
+                                  <>
+                                    <FileText className="w-4 h-4 text-slate-500 shrink-0" />
+                                    <span>Switch to Default Layout</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Newspaper className="w-4 h-4 text-amber-600 shrink-0" />
+                                    <span>Switch to Photo Layout</span>
+                                  </>
+                                )}
                               </button>
 
                               {/* Publish Story */}
@@ -2839,21 +3273,131 @@ Output Rules:
               })()}
             </div>
 
-            {content ? (
-              <div className="text-slate-700 dark:text-slate-200 font-serif text-base sm:text-[17px] leading-[1.8] max-w-prose space-y-4 whitespace-pre-line font-normal pt-2 border-t border-slate-100 dark:border-slate-800">
-                {content}
+            {/* --- STORY PRESENTATION: NEWS HEADER WITH PHOTO vs. DEFAULT --- */}
+            {storyLayout === 'news_header' && headerPhotoUrl ? (
+              /* NEWS HEADER WITH PHOTO EDITORIAL PRESENTATION */
+              <div className="flex flex-col gap-4">
+                {headerPhotoStyle === 'banner' ? (
+                  /* HERO BANNER STYLE */
+                  <div className="flex flex-col gap-3">
+                    <div className="relative w-full rounded-2xl overflow-hidden border border-[#EFECE7] bg-slate-900 shadow-sm max-h-[360px] sm:max-h-[420px] group/hero">
+                      <img
+                        src={resolveMediaUrl(headerPhotoUrl)}
+                        alt={headerPhotoCaption || title || 'Story hero photograph'}
+                        className="w-full h-[220px] sm:h-[320px] md:h-[350px] object-cover transition-transform duration-500 group-hover/hero:scale-[1.01]"
+                      />
+                      {headerPhotoCaption && (
+                        <div className="px-3 py-2 bg-slate-900/85 backdrop-blur-xs text-white text-xs font-sans flex items-center justify-between border-t border-white/10">
+                          <span className="italic flex items-center gap-1.5 text-slate-200">
+                            <Camera className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                            {headerPhotoCaption}
+                          </span>
+                          <span className="text-[10px] text-slate-400 uppercase tracking-widest hidden sm:inline">
+                            Editorial Photo
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-1 pb-2 border-b border-slate-100 flex flex-col gap-1.5">
+                      <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-snug">
+                        {title || 'Untitled Story'}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs font-serif text-slate-500 italic">
+                        <span>By {authorName}</span>
+                        {authorLocation && (
+                          <>
+                            <span>•</span>
+                            <span>{authorLocation}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* SIDE-BY-SIDE SPLIT STYLE */
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-5 pt-1 pb-3 border-b border-slate-100 items-start">
+                    <div className="md:col-span-7 flex flex-col justify-center gap-2.5">
+                      <h3 className="font-serif text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight leading-tight">
+                        {title || 'Untitled Story'}
+                      </h3>
+                      <div className="flex items-center gap-2 text-xs font-serif text-slate-500 italic">
+                        <span>By {authorName}</span>
+                        {authorLocation && (
+                          <>
+                            <span>•</span>
+                            <span>{authorLocation}</span>
+                          </>
+                        )}
+                      </div>
+                      {headerPhotoCaption && (
+                        <div className="p-2.5 bg-amber-50/60 border-l-2 border-amber-500 rounded-r-lg text-xs font-serif italic text-amber-900 mt-1">
+                          “{headerPhotoCaption}”
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-5 flex flex-col gap-1.5">
+                      <div className="rounded-2xl overflow-hidden border border-[#EFECE7] bg-slate-100 shadow-sm max-h-[250px]">
+                        <img
+                          src={resolveMediaUrl(headerPhotoUrl)}
+                          alt={headerPhotoCaption || title || 'Story headline photograph'}
+                          className="w-full h-full max-h-[240px] object-cover"
+                        />
+                      </div>
+                      {headerPhotoCaption && (
+                        <p className="text-[11px] text-slate-500 font-serif italic px-1 text-center">
+                          {headerPhotoCaption}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Narrative Body */}
+                {content ? (
+                  <div className="text-slate-800 dark:text-slate-200 font-serif text-base sm:text-[17px] leading-[1.85] max-w-prose space-y-4 whitespace-pre-line font-normal pt-1">
+                    {content}
+                  </div>
+                ) : (
+                  <div className="py-6 text-center text-slate-400 font-serif italic text-sm">
+                    No narrative text written for this story yet. Click the edit icon to start writing.
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="py-6 text-center text-slate-400 font-serif italic text-sm">
-                No content written for this story yet. Click the edit icon to start writing.
+              /* DEFAULT CLASSIC MANUSCRIPT PRESENTATION */
+              <div className="flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-3">
+                  <h4 className="font-serif text-xl sm:text-2xl font-bold text-slate-800 dark:text-slate-100 leading-snug tracking-tight">
+                    {title || 'Untitled Story'}
+                  </h4>
+                </div>
+
+                {content ? (
+                  <div className="text-slate-700 dark:text-slate-200 font-serif text-base sm:text-[17px] leading-[1.8] max-w-prose space-y-4 whitespace-pre-line font-normal pt-2 border-t border-slate-100 dark:border-slate-800">
+                    {content}
+                  </div>
+                ) : (
+                  <div className="py-6 text-center text-slate-400 font-serif italic text-sm">
+                    No content written for this story yet. Click the edit icon to start writing.
+                  </div>
+                )}
               </div>
             )}
 
+            {/* Footer with Metadata & Print CTA */}
             <div className="flex items-center justify-between pt-3 border-t border-slate-100 flex-wrap gap-2">
               <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 font-bold">
                 <span>Topic: {topicTitle}</span>
                 <span>•</span>
                 <span>{wordCount} words</span>
+                {storyLayout === 'news_header' && headerPhotoUrl && (
+                  <>
+                    <span>•</span>
+                    <span className="text-amber-600">Photo Layout</span>
+                  </>
+                )}
               </div>
 
               <button
@@ -3311,6 +3855,187 @@ Output Rules:
         onClose={() => setShowSparkModal(false)}
         onSelectQuestion={handleSelectSparkQuestion}
       />
+
+      {/* Hidden file input for story header photo upload */}
+      <input
+        type="file"
+        ref={headerPhotoInputRef}
+        onChange={handleHeaderPhotoFileSelected}
+        accept="image/*"
+        className="hidden"
+      />
+
+      {/* Story Header Photo Selector Modal */}
+      <AnimatePresence>
+        {showPhotoSelectorModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div className="absolute inset-0 cursor-default" onClick={() => setShowPhotoSelectorModal(false)} />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-slate-100 rounded-3xl shadow-2xl max-w-2xl w-full z-10 p-5 sm:p-6 flex flex-col gap-4 relative overflow-hidden max-h-[90vh]"
+            >
+              <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center shrink-0">
+                    <Newspaper className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-slate-850">
+                      Choose Story Header Photo
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Select an archival preset or choose from your uploaded photos to style the story header.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowPhotoSelectorModal(false)}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto space-y-5 pr-1 scrollbar-thin max-h-[60vh]">
+                {/* Section 1: Upload Custom Photo */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                    Upload from Device
+                  </span>
+                  <div
+                    onClick={() => headerPhotoInputRef.current?.click()}
+                    className="flex items-center justify-center gap-2 p-3.5 border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/40 hover:bg-blue-50 rounded-2xl cursor-pointer transition-colors text-center group"
+                  >
+                    <Upload className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                    <span className="text-xs font-bold text-blue-700">
+                      Upload an Image from Your Computer
+                    </span>
+                  </div>
+                </div>
+
+                {/* Section 2: Member / Story Uploaded Photos */}
+                {availableStoryPhotos.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                      Your Gallery Photos ({availableStoryPhotos.length})
+                    </span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                      {availableStoryPhotos.map((photo, pIdx) => {
+                        const url = photo.mbrMediaUrl || photo.mbrMediaPath || '';
+                        const isSelected = headerPhotoUrl === url;
+                        return (
+                          <div
+                            key={photo.mbrMediaId || pIdx}
+                            onClick={() => {
+                              setHeaderPhotoUrl(url);
+                              setStoryLayout('news_header');
+                              if (photo.mbrMediaDesc && !headerPhotoCaption) {
+                                setHeaderPhotoCaption(photo.mbrMediaDesc);
+                              }
+                              setShowPhotoSelectorModal(false);
+                            }}
+                            className={`group relative rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
+                              isSelected
+                                ? 'border-amber-500 shadow-md ring-2 ring-amber-500/30'
+                                : 'border-slate-200 hover:border-slate-400'
+                            }`}
+                          >
+                            <img
+                              src={resolveMediaUrl(url)}
+                              alt={photo.mbrMediaDesc || 'Member photo'}
+                              className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-200"
+                            />
+                            {isSelected && (
+                              <div className="absolute top-1.5 right-1.5 p-1 bg-amber-500 text-white rounded-full">
+                                <Check className="w-3 h-3" />
+                              </div>
+                            )}
+                            {photo.mbrMediaDesc && (
+                              <div className="absolute bottom-0 inset-x-0 bg-black/60 backdrop-blur-2xs p-1 text-[10px] text-white truncate px-1.5">
+                                {photo.mbrMediaDesc}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Section 3: Archival Presets */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
+                    Archival Presets & Kept Memories
+                  </span>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {SAMPLE_HEADER_PHOTOS.map((item, idx) => {
+                      const isSelected = headerPhotoUrl === item.url;
+                      return (
+                        <div
+                          key={idx}
+                          onClick={() => {
+                            setHeaderPhotoUrl(item.url);
+                            setStoryLayout('news_header');
+                            if (!headerPhotoCaption) {
+                              setHeaderPhotoCaption(item.label);
+                            }
+                            setShowPhotoSelectorModal(false);
+                          }}
+                          className={`group relative rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
+                            isSelected
+                              ? 'border-amber-500 shadow-md ring-2 ring-amber-500/30'
+                              : 'border-slate-200 hover:border-slate-400'
+                          }`}
+                        >
+                          <img
+                            src={resolveMediaUrl(item.url)}
+                            alt={item.label}
+                            className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-200"
+                          />
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5 p-1 bg-amber-500 text-white rounded-full">
+                              <Check className="w-3 h-3" />
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 pt-4 text-[10px] font-sans font-medium text-white truncate">
+                            {item.label}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowPhotoSelectorModal(false)}
+                  className="px-4 py-2 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Close
+                </button>
+                {headerPhotoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setHeaderPhotoUrl('');
+                      setShowPhotoSelectorModal(false);
+                    }}
+                    className="px-3 py-2 text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline cursor-pointer"
+                  >
+                    Remove Current Photo
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <AdminComponentTag name="StoryEditorPanel" />
     </div>

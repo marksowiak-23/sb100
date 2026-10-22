@@ -365,6 +365,10 @@ export default function SbStoryPageFeature({
             storyTitle={story?.mbrStoryTitle}
             storyContent={story?.mbrStoryContent}
             storyTopic={story?.mbrStoryTypeCd}
+            mbrStoryLayoutCd={story?.mbrStoryLayoutCd}
+            mbrStoryHeaderPhotoUrl={story?.mbrStoryHeaderPhotoUrl}
+            mbrStoryHeaderPhotoCaption={story?.mbrStoryHeaderPhotoCaption}
+            mbrStoryHeaderPhotoStyleCd={story?.mbrStoryHeaderPhotoStyleCd}
             publishedDate={story?.mbrStoryPublishedDate || story?.mbrStoryCreatedAt}
             authorName={authorName}
             authorLocation={authorLocation}

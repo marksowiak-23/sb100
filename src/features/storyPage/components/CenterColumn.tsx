@@ -19,6 +19,10 @@ interface CenterColumnProps {
   authorAvatarUrl?: string;
   authorInitials?: string;
   connectionGrpName?: string;
+  mbrStoryLayoutCd?: 'default' | 'news_header' | string | null;
+  mbrStoryHeaderPhotoUrl?: string | null;
+  mbrStoryHeaderPhotoCaption?: string | null;
+  mbrStoryHeaderPhotoStyleCd?: 'banner' | 'split' | string | null;
   isLoading?: boolean;
   isRestricted?: boolean;
   onClickBack?: () => void;
@@ -30,6 +34,10 @@ export default function CenterColumn({
   storyTitle = 'Untitled Story',
   storyContent = '',
   storyTopic,
+  mbrStoryLayoutCd,
+  mbrStoryHeaderPhotoUrl,
+  mbrStoryHeaderPhotoCaption,
+  mbrStoryHeaderPhotoStyleCd,
   publishedDate,
   authorName = 'Author',
   authorLocation,
@@ -138,6 +146,10 @@ export default function CenterColumn({
         storyTitle={storyTitle}
         storyContent={storyContent}
         storyTopic={storyTopic}
+        mbrStoryLayoutCd={mbrStoryLayoutCd}
+        mbrStoryHeaderPhotoUrl={mbrStoryHeaderPhotoUrl}
+        mbrStoryHeaderPhotoCaption={mbrStoryHeaderPhotoCaption}
+        mbrStoryHeaderPhotoStyleCd={mbrStoryHeaderPhotoStyleCd}
         publishedDate={publishedDate}
         authorName={authorName}
         authorLocation={authorLocation}

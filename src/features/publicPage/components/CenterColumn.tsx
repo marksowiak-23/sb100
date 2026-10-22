@@ -25,6 +25,8 @@ interface CenterColumnProps {
   proximityEnabled?: boolean;
   setProximityEnabled?: (val: boolean) => void;
   onRefreshLocation?: () => void;
+  setActiveTab?: (tab: any) => void;
+  onSelectLogonType?: (type: 'Google' | 'Apple') => void;
 }
 
 export default function CenterColumn({
@@ -39,7 +41,9 @@ export default function CenterColumn({
   userLocation,
   proximityEnabled = true,
   setProximityEnabled,
-  onRefreshLocation
+  onRefreshLocation,
+  setActiveTab,
+  onSelectLogonType
 }: CenterColumnProps) {
   return (
     <div className="space-y-8 flex flex-col relative">
@@ -71,6 +75,8 @@ export default function CenterColumn({
         onClickReadStory={onClickReadStory}
         userLocation={userLocation}
         searchQuery={searchQuery}
+        setActiveTab={setActiveTab}
+        onSelectLogonType={onSelectLogonType}
       />
 
       <AdminComponentTag name="CenterColumn" />

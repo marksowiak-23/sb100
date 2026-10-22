@@ -10,27 +10,27 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 const SLIDES = [
   {
-    image: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&auto=format&fit=crop&q=80',
+    image: '/carousel_your_story.jpg',
     title: 'Your Story. Finally Written.',
     subtitle: 'Author, organize, and share the chapters of your life — on your terms.'
   },
   {
-    image: 'https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?w=800&auto=format&fit=crop&q=80',
+    image: '/carousel_shared_memories.jpg',
     title: 'Connect Through Shared Memories.',
     subtitle: 'Read life stories from friends, family, and a global community of authors.'
   },
   {
-    image: 'https://images.unsplash.com/photo-1471107340929-a87cd0f5b5f3?w=800&auto=format&fit=crop&q=80',
+    image: '/carousel_life_book.jpg',
     title: 'Every Life is a Book Worth Reading.',
     subtitle: 'Uncover the wisdom of your ancestors and document your personal journey.'
   },
   {
-    image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&auto=format&fit=crop&q=80',
+    image: '/carousel_shared_history.jpg',
     title: 'Co-Author Your Shared History.',
     subtitle: 'Collaborate with family members to write chapters of shared events and experiences.'
   },
   {
-    image: 'https://images.unsplash.com/photo-1543269865-cbf427effbad?w=800&auto=format&fit=crop&q=80',
+    image: '/carousel_legacy_wisdom.jpg',
     title: 'Create a Legacy of Wisdom.',
     subtitle: 'Pass down lessons, advice, and values in a beautiful, structured format.'
   }
@@ -90,12 +90,12 @@ export default function HeroCarousel() {
           }}
           className="absolute inset-0 w-full h-full"
         >
-          {/* Slide image overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/50 to-slate-950/20 z-10" />
+          {/* Slide image overlay with warm dark gradient */}
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950/85 via-stone-900/35 to-stone-950/15 z-10" />
           <img
             src={SLIDES[index].image}
             alt={SLIDES[index].title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center"
           />
 
           {/* --- CONTENT CAPTION --- */}

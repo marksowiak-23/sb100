@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Bookmark, Calendar, Clock, MapPin, Users, ArrowLeft, BookOpen, Sparkles,
   ThumbsUp, MessageSquare, Send, CornerDownRight, X, MessageCircle, Loader2,
-  Reply, Pencil, Trash2, Check, ChevronDown
+  Reply, Pencil, Trash2, Check, ChevronDown, Camera
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { resolveMediaUrl, taskApi, MbrStoryLikes, MbrStoryComments } from '@/src/services/api';
@@ -19,6 +19,10 @@ export interface StoryPageStoryPanelProps {
   storyTitle?: string;
   storyContent?: string;
   storyTopic?: string;
+  mbrStoryLayoutCd?: 'default' | 'news_header' | string | null;
+  mbrStoryHeaderPhotoUrl?: string | null;
+  mbrStoryHeaderPhotoCaption?: string | null;
+  mbrStoryHeaderPhotoStyleCd?: 'banner' | 'split' | string | null;
   publishedDate?: string;
   authorName?: string;
   authorLocation?: string;
@@ -27,6 +31,54 @@ export interface StoryPageStoryPanelProps {
   connectionGrpName?: string;
   onClickBack?: () => void;
   onClickViewAuthorStorybook?: () => void;
+}
+
+export interface ParsedStoryPageLayout {
+  layout: 'default' | 'news_header';
+  photoUrl: string;
+  caption: string;
+  style: 'banner' | 'split';
+  cleanContent: string;
+}
+
+export function parseStoryPageLayout(
+  rawContent: string,
+  layoutCd?: string | null,
+  photoUrlProp?: string | null,
+  photoCaptionProp?: string | null,
+  photoStyleCd?: string | null
+): ParsedStoryPageLayout {
+  let layout: 'default' | 'news_header' = (layoutCd === 'news_header' || layoutCd === 'default')
+    ? layoutCd
+    : 'default';
+  let photoUrl = photoUrlProp || '';
+  let caption = photoCaptionProp || '';
+  let style: 'banner' | 'split' = (photoStyleCd === 'split' || photoStyleCd === 'banner')
+    ? photoStyleCd
+    : 'banner';
+  let cleanContent = rawContent || '';
+
+  const match = cleanContent.match(/^<!--story-layout:([\s\S]*?)-->\s*/);
+  if (match) {
+    try {
+      const meta = JSON.parse(match[1]);
+      if (!layoutCd && (meta.layout === 'news_header' || meta.layout === 'default')) {
+        layout = meta.layout;
+      }
+      if (!photoUrl && (meta.headerPhotoUrl || meta.photoUrl)) {
+        photoUrl = meta.headerPhotoUrl || meta.photoUrl;
+      }
+      if (!caption && (meta.headerPhotoCaption || meta.caption)) {
+        caption = meta.headerPhotoCaption || meta.caption;
+      }
+      if (!photoStyleCd && (meta.headerPhotoStyle === 'banner' || meta.headerPhotoStyle === 'split' || meta.style === 'banner' || meta.style === 'split')) {
+        style = meta.headerPhotoStyle || meta.style;
+      }
+    } catch {}
+    cleanContent = cleanContent.slice(match[0].length);
+  }
+
+  return { layout, photoUrl, caption, style, cleanContent };
 }
 
 const topicBadgeColors: Record<string, { bg: string; text: string; border: string }> = {
@@ -527,6 +579,10 @@ export default function StoryPageStoryPanel({
   storyTitle = 'Untitled Story',
   storyContent = '',
   storyTopic,
+  mbrStoryLayoutCd,
+  mbrStoryHeaderPhotoUrl,
+  mbrStoryHeaderPhotoCaption,
+  mbrStoryHeaderPhotoStyleCd,
   publishedDate,
   authorName = 'Author',
   authorLocation,
@@ -543,15 +599,29 @@ export default function StoryPageStoryPanel({
     border: 'border-slate-200 dark:border-slate-700'
   };
 
+  const layoutInfo = useMemo(() => {
+    return parseStoryPageLayout(
+      storyContent || '',
+      mbrStoryLayoutCd,
+      mbrStoryHeaderPhotoUrl,
+      mbrStoryHeaderPhotoCaption,
+      mbrStoryHeaderPhotoStyleCd
+    );
+  }, [storyContent, mbrStoryLayoutCd, mbrStoryHeaderPhotoUrl, mbrStoryHeaderPhotoCaption, mbrStoryHeaderPhotoStyleCd]);
+
+  const resolvedPhotoUrl = useMemo(() => {
+    return layoutInfo.photoUrl ? resolveMediaUrl(layoutInfo.photoUrl) : '';
+  }, [layoutInfo.photoUrl]);
+
   const displayTopic = formatTopicName(storyTopic);
   const formattedDate = formatDate(publishedDate);
 
-  // Calculate approximate reading time
-  const wordCount = (storyContent || '').trim().split(/\s+/).filter(Boolean).length;
+  // Calculate approximate reading time using clean content
+  const wordCount = (layoutInfo.cleanContent || '').trim().split(/\s+/).filter(Boolean).length;
   const readTimeMinutes = Math.max(1, Math.ceil(wordCount / 200));
 
   // Split into paragraphs for rich reading experience
-  const paragraphs = (storyContent || '')
+  const paragraphs = (layoutInfo.cleanContent || '')
     .split(/\n+/)
     .map(p => p.trim())
     .filter(Boolean);
@@ -870,12 +940,20 @@ export default function StoryPageStoryPanel({
 
       {/* Header Metadata */}
       <div className="flex items-center justify-between gap-4 flex-wrap mb-6 pb-5 border-b border-slate-100 dark:border-slate-800">
-        <span
-          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}
-        >
-          <Bookmark className="w-3.5 h-3.5" />
-          {displayTopic}
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border}`}
+          >
+            <Bookmark className="w-3.5 h-3.5" />
+            {displayTopic}
+          </span>
+          {layoutInfo.layout === 'news_header' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/40">
+              <Camera className="w-3 h-3 text-amber-600 dark:text-amber-400" />
+              Photo Layout
+            </span>
+          )}
+        </div>
 
         <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
           <span className="flex items-center gap-1">
@@ -948,11 +1026,66 @@ export default function StoryPageStoryPanel({
         )}
       </div>
 
+      {/* Photo Layout: Hero Banner Style */}
+      {layoutInfo.layout === 'news_header' && resolvedPhotoUrl && layoutInfo.style === 'banner' && (
+        <div className="mb-8 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700/80 bg-slate-900 relative group shadow-sm">
+          <div className="aspect-[16/9] sm:aspect-[21/9] max-h-96 w-full overflow-hidden bg-slate-950">
+            <img
+              src={resolvedPhotoUrl}
+              alt={layoutInfo.caption || storyTitle}
+              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          </div>
+          {layoutInfo.caption && (
+            <div className="p-3 bg-gradient-to-t from-black/85 via-black/50 to-transparent sm:absolute sm:bottom-0 sm:left-0 sm:right-0 text-white flex items-center justify-between gap-3 text-xs backdrop-blur-xs">
+              <span className="font-serif italic tracking-wide">{layoutInfo.caption}</span>
+              <span className="shrink-0 text-[10px] tracking-wider uppercase px-2 py-0.5 rounded bg-white/20 font-sans font-semibold">
+                Feature Photo
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Photo Layout: Split Side-by-Side Style */}
+      {layoutInfo.layout === 'news_header' && resolvedPhotoUrl && layoutInfo.style === 'split' && (
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
+          <div className="md:col-span-5 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700/80 bg-slate-900 shadow-sm flex flex-col justify-between">
+            <div className="aspect-[4/3] md:aspect-auto md:h-full w-full overflow-hidden bg-slate-950">
+              <img
+                src={resolvedPhotoUrl}
+                alt={layoutInfo.caption || storyTitle}
+                className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-700 ease-out"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            </div>
+            {layoutInfo.caption && (
+              <div className="p-2.5 bg-slate-900/95 border-t border-slate-800 text-slate-300 text-xs font-serif italic text-center">
+                {layoutInfo.caption}
+              </div>
+            )}
+          </div>
+          <div className="md:col-span-7 flex flex-col justify-center bg-slate-50 dark:bg-slate-850/60 p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2">
+              Featured Excerpt
+            </span>
+            <p className="font-serif text-slate-700 dark:text-slate-200 italic text-base sm:text-lg leading-relaxed">
+              "{paragraphs[0] || layoutInfo.cleanContent.slice(0, 240)}..."
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Audiobook Narration Player */}
-      {storyContent && (
+      {layoutInfo.cleanContent && (
         <div className="mb-8">
           <StoryAudioPlayer
-            text={`${storyTitle}. ${storyContent}`}
+            text={`${storyTitle}. ${layoutInfo.cleanContent}`}
             storyId={storyTitle}
             title={storyTitle}
             variant="full"
@@ -1195,9 +1328,9 @@ export default function StoryPageStoryPanel({
                     <h2 className="font-serif text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">
                       {storyTitle}
                     </h2>
-                    {storyContent && (
+                    {layoutInfo.cleanContent && (
                       <StoryAudioPlayer
-                        text={`${storyTitle}. ${storyContent}`}
+                        text={`${storyTitle}. ${layoutInfo.cleanContent}`}
                         storyId={storyId || storyTitle}
                         title={storyTitle}
                         variant="inline-button"
@@ -1205,9 +1338,9 @@ export default function StoryPageStoryPanel({
                     )}
                   </div>
 
-                  {storyContent ? (
+                  {layoutInfo.cleanContent ? (
                     <div className="font-sans text-[11.5px] text-slate-700 dark:text-slate-200 leading-snug whitespace-pre-line line-clamp-3">
-                      {storyContent}
+                      {layoutInfo.cleanContent}
                     </div>
                   ) : (
                     <p className="text-[10.5px] italic text-slate-400 dark:text-slate-500">

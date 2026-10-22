@@ -218,6 +218,8 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
             proximityEnabled={proximityEnabled}
             setProximityEnabled={handleToggleProximity}
             onRefreshLocation={handleRefreshLocation}
+            setActiveTab={setActiveTab}
+            onSelectLogonType={onSelectLogonType}
           />
         </div>
 

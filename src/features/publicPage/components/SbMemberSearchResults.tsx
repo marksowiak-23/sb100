@@ -6,8 +6,8 @@
 import React from 'react';
 import { Info, Loader2, ChevronDown } from 'lucide-react';
 import MbrProfilePanel from '@/src/components/mbrProfilePanel';
+import SbStorybookAdPanel from './SbStorybookAdPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-
 import { UserLocation } from '@/src/utils/userLocation';
 
 interface SbMemberSearchResultsProps {
@@ -19,6 +19,31 @@ interface SbMemberSearchResultsProps {
   onClickReadStory?: (memberId: string) => void;
   userLocation?: UserLocation | null;
   searchQuery?: string;
+  setActiveTab?: (tab: any) => void;
+  onSelectLogonType?: (type: 'Google' | 'Apple') => void;
+}
+
+/**
+ * Returns the ad sequence index if an advertising panel should be displayed
+ * after member index `idx` (0-indexed).
+ * 
+ * Spacing cadence alternates in between every 2 or 3 member profile panels:
+ * - After idx = 1 (2nd member): Ad #0 (StoryBook Vision Collage)
+ * - After idx = 4 (5th member, +3): Ad #1 (Hardcover Book Keepsake)
+ * - After idx = 6 (7th member, +2): Ad #2 (Sharing Stories Across Generations)
+ * - After idx = 9 (10th member, +3): Ad #3 (StoryMate AI Co-Writer)
+ * - After idx = 11 (12th member, +2): Ad #4 (Friends & Connections "What's Your Story?")
+ * - Cycles: idx = 14 (+3), 16 (+2), 19 (+3), 21 (+2), 24 (+3)...
+ */
+function getAdIndexForMember(idx: number): number | null {
+  const rem = idx % 5;
+  if (rem === 1) {
+    return Math.floor(idx / 5) * 2;
+  }
+  if (rem === 4) {
+    return Math.floor(idx / 5) * 2 + 1;
+  }
+  return null;
 }
 
 export default function SbMemberSearchResults({
@@ -29,7 +54,9 @@ export default function SbMemberSearchResults({
   onLoadMore,
   onClickReadStory,
   userLocation,
-  searchQuery
+  searchQuery,
+  setActiveTab,
+  onSelectLogonType
 }: SbMemberSearchResultsProps) {
   const uniqueMembers = Array.from(new Map(members.map(m => [m.mbrId || m.id, m])).values())
     .filter(m => {
@@ -37,6 +64,23 @@ export default function SbMemberSearchResults({
       if (m.mbrSettingsAllowPublicFlag !== undefined) return m.mbrSettingsAllowPublicFlag === true;
       return true;
     });
+
+  const handleAdAction = (adIndex: number) => {
+    if (setActiveTab) {
+      setActiveTab('mbrRegistrationPage');
+    }
+  };
+
+  const handleAdSecondary = (adIndex: number) => {
+    if (setActiveTab) {
+      if (adIndex % 4 === 3) {
+        // StoryMate AI card secondary action tries author studio
+        setActiveTab('mbrAuthorPage');
+      } else {
+        setActiveTab('mbrRegistrationPage');
+      }
+    }
+  };
 
   return (
     <div className="space-y-5 relative">
@@ -76,19 +120,42 @@ export default function SbMemberSearchResults({
           </p>
         </div>
       ) : (
-        /* Render member cards using mbrProfilePanel */
+        /* Render member cards and intercalated advertising panels */
         <div className="flex flex-col gap-6">
-          {uniqueMembers.map((member, idx) => (
-            <MbrProfilePanel
-              key={`${member.mbrId || member.id}-${idx}`}
-              profile={member}
-              isSandbox={false}
-              showConnectButton={false}
-              onClickReadStory={onClickReadStory}
-              clampIntroduction={true}
-              maxIntroLines={8}
+          {uniqueMembers.map((member, idx) => {
+            const adIndexToRender = getAdIndexForMember(idx);
+
+            return (
+              <React.Fragment key={`${member.mbrId || member.id}-${idx}`}>
+                <MbrProfilePanel
+                  profile={member}
+                  isSandbox={false}
+                  showConnectButton={false}
+                  onClickReadStory={onClickReadStory}
+                  clampIntroduction={true}
+                  maxIntroLines={8}
+                />
+
+                {/* Render StoryBook advertising panel between every 2 or 3 member cards */}
+                {adIndexToRender !== null && (
+                  <SbStorybookAdPanel
+                    adIndex={adIndexToRender}
+                    onActionClick={() => handleAdAction(adIndexToRender)}
+                    onSecondaryClick={() => handleAdSecondary(adIndexToRender)}
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
+
+          {/* Fallback advertising panel if only 1 member is returned in results */}
+          {uniqueMembers.length === 1 && (
+            <SbStorybookAdPanel
+              adIndex={0}
+              onActionClick={() => handleAdAction(0)}
+              onSecondaryClick={() => handleAdSecondary(0)}
             />
-          ))}
+          )}
 
           {/* Loading indicator while fetching more items */}
           {loadingMore && (
