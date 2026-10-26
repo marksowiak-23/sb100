@@ -47,7 +47,7 @@ const DISPLAY_SETTINGS_SCHEMA: DisplaySettingItem[] = [
   {
     key: 'mbrSettingsAllowPublicFlag',
     title: 'Public Profile Visibility',
-    description: 'Allow visitors to search and view your public profile and stories.',
+    description: 'Allow visitors to view your profile on the public page.',
     icon: Globe,
     category: 'public',
     recommended: true

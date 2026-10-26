@@ -4,14 +4,19 @@
  */
 
 import React from 'react';
-import { BookOpen, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { ReadFilterMode } from './StoryFeedSubHeaderPanel';
 
 export interface StoryFeedMobileSubHeaderPanelProps {
   storiesCount?: number;
   connectionsOnly?: boolean;
   setConnectionsOnly?: (val: boolean) => void;
   onToggleConnectionsOnly?: (val: boolean) => void;
+  readFilterMode?: ReadFilterMode;
+  onReadFilterModeChange?: (mode: ReadFilterMode) => void;
+  hiddenReadCount?: number;
+  totalReadCount?: number;
   className?: string;
 }
 
@@ -29,7 +34,7 @@ export default function StoryFeedMobileSubHeaderPanel({
 
   return (
     <div className={`sm:hidden bg-transparent -mt-2 sm:mt-0 py-0.5 px-3 space-y-1.5 relative ${className}`}>
-      {/* Mobile Filter & Status Bar (looks like background, no card/shadow/Member Stories title) */}
+      {/* Mobile Filter & Status Bar */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <label className="inline-flex items-center gap-2 cursor-pointer select-none">
           <input
@@ -45,16 +50,11 @@ export default function StoryFeedMobileSubHeaderPanel({
             </span>
           </div>
         </label>
-
-        <div className="flex items-center gap-1 text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-          <BookOpen className="w-3 h-3 text-blue-500" />
-          <span>{storiesCount} loaded</span>
-        </div>
       </div>
 
       {connectionsOnly && (
         <div className="flex items-center pt-0.5">
-          <span className="text-[11px] font-sans font-medium text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/40 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
+          <span className="text-[10px] font-sans font-medium text-blue-600 dark:text-blue-400 bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/50 dark:border-blue-800/40 px-2 py-0.5 rounded-full flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
             Showing connected members only
           </span>

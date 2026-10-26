@@ -6,12 +6,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  BookOpen, Calendar, MapPin, Sparkles, ChevronRight, ChevronDown, User, Users, UserCheck,
+  BookOpen, Calendar, MapPin, Sparkles, ChevronLeft, ChevronRight, ChevronDown, User, Users, UserCheck,
   Bookmark, CheckCircle2, ThumbsUp, MessageSquare, Send, CornerDownRight, 
-  X, MessageCircle, Loader2, Clock, Reply, Pencil, Trash2, Check, Camera, Image as ImageIcon
+  X, MessageCircle, Loader2, Clock, Reply, Pencil, Trash2, Check, Camera, Images, Image as ImageIcon
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
-import { resolveMediaUrl, taskApi, MbrStoryLikes, MbrStoryComments } from '@/src/services/api';
+import { resolveMediaUrl, taskApi, MbrStoryLikes, MbrStoryComments, MbrMedia } from '@/src/services/api';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
 
 export interface FeedStoryItem {
@@ -57,7 +57,7 @@ export function parseFeedStoryLayout(content?: string, storyObj?: Partial<FeedSt
     : 'banner';
   let cleanContent = content || '';
 
-  const match = cleanContent.match(/^<!--story-layout:([\s\S]*?)-->\s*/);
+  const match = cleanContent.match(/<!--story-layout:([\s\S]*?)-->/);
   if (match) {
     try {
       const meta = JSON.parse(match[1]);
@@ -74,8 +74,9 @@ export function parseFeedStoryLayout(content?: string, storyObj?: Partial<FeedSt
         style = meta.headerPhotoStyle || meta.style;
       }
     } catch {}
-    cleanContent = cleanContent.slice(match[0].length);
   }
+  // Thoroughly strip all layout comment blocks anywhere in the content
+  cleanContent = cleanContent.replace(/<!--story-layout:[\s\S]*?-->\s*/g, '').trim();
 
   return { layout, photoUrl, caption, style, cleanContent };
 }
@@ -117,8 +118,9 @@ const formatTopicName = (typeCd?: string, topicName?: string): string => {
   if (clean === 'education') return 'Education';
   if (clean === 'employment' || clean === 'career') return 'Employment';
   if (clean === 'activity' || clean === 'activities' || clean === 'hobbies') return 'Hobbies & Activities';
+  if (clean === 'sports' || clean === 'sport' || clean === 'athletics') return 'Sports';
   if (clean === 'custom' || clean === 'other') return 'Custom Topic';
-  return typeCd.charAt(0).toUpperCase() + typeCd.slice(1);
+  return clean.charAt(0).toUpperCase() + clean.slice(1);
 };
 
 const formatDate = (dateStr?: string | null): string => {
@@ -605,6 +607,109 @@ export default function MbrStoryFeedStoryPanel({
     story.mbrStoryHeaderPhotoStyleCd
   ]);
 
+  // Associated story media & carousel state for photo layout
+  const [storyMedia, setStoryMedia] = useState<MbrMedia[]>([]);
+  const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
+
+  useEffect(() => {
+    let isCancelled = false;
+    const loadMedia = async () => {
+      const list: MbrMedia[] = [];
+      const sId = story.mbrStoryId;
+      // 1. Sandbox media
+      const saved = sessionStorage.getItem('sandbox_media');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            list.push(...parsed.filter((m: MbrMedia) => m.mbrMediaSubordinateId === sId));
+          }
+        } catch {}
+      }
+      // 2. Live DB media if authorMbrId is available
+      if (story.authorMbrId) {
+        try {
+          const apiMedia = await taskApi.getMemberMedia(story.authorMbrId);
+          if (Array.isArray(apiMedia)) {
+            const matching = apiMedia.filter(m => m.mbrMediaSubordinateId === sId);
+            matching.forEach(m => {
+              const mPath = m.mbrMediaPath || (m as any).mbrMediaUrl;
+              if (!list.some(existing => (existing.mbrMediaId && existing.mbrMediaId === m.mbrMediaId) || (existing.mbrMediaPath && existing.mbrMediaPath === mPath))) {
+                list.push(m);
+              }
+            });
+          }
+        } catch {}
+      }
+      if (!isCancelled) {
+        setStoryMedia(list);
+      }
+    };
+    loadMedia();
+    return () => { isCancelled = true; };
+  }, [story.mbrStoryId, story.authorMbrId]);
+
+  // Combined carousel photos: primary photo first, followed by other associated story photos
+  const carouselPhotos = useMemo<{ url: string; caption?: string }[]>(() => {
+    const items: { url: string; caption?: string }[] = [];
+    const seenUrls = new Set<string>();
+
+    const cleanDesc = (desc?: string) => {
+      if (!desc) return '';
+      return desc.trim().toLowerCase() === 'enter a description' ? '' : desc;
+    };
+
+    const primaryUrl = layoutInfo.photoUrl;
+    if (primaryUrl) {
+      seenUrls.add(primaryUrl);
+      const matchingMedia = storyMedia.find(m => (m.mbrMediaPath || (m as any).mbrMediaUrl) === primaryUrl);
+      items.push({
+        url: primaryUrl,
+        caption: layoutInfo.caption || cleanDesc(matchingMedia?.mbrMediaDescription) || (matchingMedia as any)?.mbrMediaDesc || ''
+      });
+    }
+
+    for (const m of storyMedia) {
+      const u = m.mbrMediaPath || (m as any).mbrMediaUrl || '';
+      if (u && !seenUrls.has(u)) {
+        seenUrls.add(u);
+        items.push({
+          url: u,
+          caption: cleanDesc(m.mbrMediaDescription) || (m as any)?.mbrMediaDesc || ''
+        });
+      }
+    }
+
+    return items;
+  }, [layoutInfo.photoUrl, layoutInfo.caption, storyMedia]);
+
+  const activePhoto = useMemo(() => {
+    if (carouselPhotos.length === 0) {
+      return { url: layoutInfo.photoUrl, caption: layoutInfo.caption };
+    }
+    const safeIdx = (currentPhotoIdx >= 0 && currentPhotoIdx < carouselPhotos.length) ? currentPhotoIdx : 0;
+    return carouselPhotos[safeIdx];
+  }, [carouselPhotos, currentPhotoIdx, layoutInfo.photoUrl, layoutInfo.caption]);
+
+  const handlePrevPhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (carouselPhotos.length <= 1) return;
+    setCurrentPhotoIdx(prev => (prev > 0 ? prev - 1 : carouselPhotos.length - 1));
+  };
+
+  const handleNextPhoto = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (carouselPhotos.length <= 1) return;
+    setCurrentPhotoIdx(prev => (prev < carouselPhotos.length - 1 ? prev + 1 : 0));
+  };
+
+  const handleSelectCarouselIndex = (targetIdx: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (targetIdx >= 0 && targetIdx < carouselPhotos.length) {
+      setCurrentPhotoIdx(targetIdx);
+    }
+  };
+
   // --- Reaction / Likes State ---
   const [likes, setLikes] = useState<MbrStoryLikes[]>([]);
   const [userReaction, setUserReaction] = useState<MbrStoryLikes | null>(null);
@@ -867,19 +972,6 @@ export default function MbrStoryFeedStoryPanel({
     ? REACTION_CONFIGS[userReaction.mbrStoryLikesCd] || REACTION_CONFIGS.Like
     : null;
 
-  // Distinct top emojis for the summary badge
-  const uniqueReactionEmojis = useMemo(() => {
-    const emojis: string[] = [];
-    for (const like of likes) {
-      const emoji = REACTION_CONFIGS[like.mbrStoryLikesCd]?.emoji || '👍';
-      if (!emojis.includes(emoji)) {
-        emojis.push(emoji);
-      }
-      if (emojis.length >= 3) break;
-    }
-    return emojis;
-  }, [likes]);
-
   // Organize comments into a lookup map and hierarchical tree
   const commentMap = useMemo(() => {
     const map = new Map<string, MbrStoryComments>();
@@ -1016,7 +1108,7 @@ export default function MbrStoryFeedStoryPanel({
       </div>
 
       {/* --- STORY PRESENTATION: PHOTO LAYOUT (BANNER OR SPLIT) vs DEFAULT MANUSCRIPT --- */}
-      {layoutInfo.layout === 'news_header' && layoutInfo.photoUrl ? (
+      {layoutInfo.layout === 'news_header' && (activePhoto.url || layoutInfo.photoUrl) ? (
         layoutInfo.style === 'banner' ? (
           /* HERO BANNER PHOTO LAYOUT */
           <div className="flex flex-col gap-3 mb-3.5">
@@ -1026,18 +1118,64 @@ export default function MbrStoryFeedStoryPanel({
               className="relative w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-900 shadow-sm max-h-[320px] sm:max-h-[380px] group/photo cursor-pointer"
             >
               <img
-                src={resolveMediaUrl(layoutInfo.photoUrl)}
-                alt={layoutInfo.caption || story.mbrStoryTitle}
+                src={resolveMediaUrl(activePhoto.url || layoutInfo.photoUrl)}
+                alt={activePhoto.caption || layoutInfo.caption || story.mbrStoryTitle}
                 className="w-full h-[200px] sm:h-[280px] md:h-[320px] object-cover transition-transform duration-500 group-hover/photo:scale-[1.02]"
               />
-              {layoutInfo.caption && (
-                <div className="px-3.5 py-2 bg-slate-900/85 backdrop-blur-xs text-white text-xs font-sans flex items-center justify-between border-t border-white/10">
+
+              {/* Carousel controls if more than 1 picture associated with story */}
+              {carouselPhotos.length > 1 && (
+                <>
+                  {/* Previous Button */}
+                  <button
+                    type="button"
+                    onClick={handlePrevPhoto}
+                    aria-label="Previous photo"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/photo:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  {/* Next Button */}
+                  <button
+                    type="button"
+                    onClick={handleNextPhoto}
+                    aria-label="Next photo"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/photo:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+
+                  {/* Indicator badge */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-[11px] font-mono text-white font-bold shadow-xs z-10">
+                    <Images className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{currentPhotoIdx + 1} / {carouselPhotos.length}</span>
+                  </div>
+
+                  {/* Dot navigation */}
+                  <div className={`absolute ${activePhoto.caption ? 'bottom-11' : 'bottom-3'} left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10`}>
+                    {carouselPhotos.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={(e) => handleSelectCarouselIndex(idx, e)}
+                        className={`rounded-full transition-all cursor-pointer ${
+                          idx === currentPhotoIdx
+                            ? 'bg-amber-400 w-4 h-1.5 shadow-xs'
+                            : 'bg-white/60 hover:bg-white w-1.5 h-1.5'
+                        }`}
+                        aria-label={`Go to photo ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {activePhoto.caption && (
+                <div className="px-3.5 py-2 bg-slate-900/85 backdrop-blur-xs text-white text-xs font-sans flex items-center border-t border-white/10">
                   <span className="italic flex items-center gap-1.5 text-slate-200 truncate">
                     <Camera className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span className="truncate">{layoutInfo.caption}</span>
-                  </span>
-                  <span className="text-[10px] text-amber-300 font-mono font-bold uppercase tracking-wider shrink-0 ml-2">
-                    Photo Layout
+                    <span className="truncate">{activePhoto.caption}</span>
                   </span>
                 </div>
               )}
@@ -1069,9 +1207,9 @@ export default function MbrStoryFeedStoryPanel({
                 {story.mbrStoryTitle}
               </h3>
 
-              {layoutInfo.caption && (
+              {activePhoto.caption && (
                 <div className="p-2.5 bg-amber-50/70 dark:bg-amber-950/30 border-l-2 border-amber-500 rounded-r-lg text-xs font-serif italic text-amber-900 dark:text-amber-200">
-                  “{layoutInfo.caption}”
+                  “{activePhoto.caption}”
                 </div>
               )}
 
@@ -1086,16 +1224,59 @@ export default function MbrStoryFeedStoryPanel({
               onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
               className="md:col-span-5 flex flex-col gap-1.5 cursor-pointer group/split"
             >
-              <div className="rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 shadow-sm max-h-[240px]">
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 shadow-sm max-h-[240px]">
                 <img
-                  src={resolveMediaUrl(layoutInfo.photoUrl)}
-                  alt={layoutInfo.caption || story.mbrStoryTitle}
+                  src={resolveMediaUrl(activePhoto.url || layoutInfo.photoUrl)}
+                  alt={activePhoto.caption || layoutInfo.caption || story.mbrStoryTitle}
                   className="w-full h-full max-h-[220px] object-cover transition-transform duration-500 group-hover/split:scale-[1.02]"
                 />
+
+                {/* Carousel controls if more than 1 picture associated with story */}
+                {carouselPhotos.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handlePrevPhoto}
+                      aria-label="Previous photo"
+                      className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/split:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleNextPhoto}
+                      aria-label="Next photo"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/split:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+
+                    <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[10px] font-mono text-white font-bold z-10">
+                      <span>{currentPhotoIdx + 1} / {carouselPhotos.length}</span>
+                    </div>
+
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                      {carouselPhotos.map((_, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={(e) => handleSelectCarouselIndex(idx, e)}
+                          className={`rounded-full transition-all cursor-pointer ${
+                            idx === currentPhotoIdx
+                              ? 'bg-amber-400 w-3.5 h-1.5 shadow-xs'
+                              : 'bg-white/60 hover:bg-white w-1.5 h-1.5'
+                          }`}
+                          aria-label={`Go to photo ${idx + 1}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
-              {layoutInfo.caption && (
+              {activePhoto.caption && (
                 <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif italic px-1 text-center truncate">
-                  {layoutInfo.caption}
+                  {activePhoto.caption}
                 </p>
               )}
             </div>
@@ -1212,43 +1393,29 @@ export default function MbrStoryFeedStoryPanel({
               onClick={handleMainButtonClick}
               disabled={isLiking}
               aria-label={activeReactionConfig ? activeReactionConfig.label : 'Like'}
-              className={`inline-flex items-center justify-center px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                 activeReactionConfig
                   ? `${activeReactionConfig.bgColor} ${activeReactionConfig.color} border-slate-200 dark:border-slate-700 shadow-xs font-bold`
-                  : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80'
+                  : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs'
               }`}
-              title={activeReactionConfig ? `Reacted with ${activeReactionConfig.label} (Click to undo)` : 'Like this story (Hover for more reactions)'}
+              title={
+                activeReactionConfig
+                  ? `Reacted with ${activeReactionConfig.label} (Click to undo)${likes.length > 0 ? ` • Liked by: ${likes.map(l => l.mbrLikesMbrName || 'Member').join(', ')}` : ''}`
+                  : `Like this story (Hover for more reactions)${likes.length > 0 ? ` • Liked by: ${likes.map(l => l.mbrLikesMbrName || 'Member').join(', ')}` : ''}`
+              }
             >
               {activeReactionConfig ? (
                 <span className="text-base leading-none">{activeReactionConfig.emoji}</span>
               ) : (
                 <ThumbsUp className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 transition-colors" />
               )}
+              {likes.length > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
+                  {likes.length}
+                </span>
+              )}
             </button>
           </div>
-
-          {/* Reactions Count & Summary Icons */}
-          {likes.length > 0 && (
-            <div 
-              className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400"
-              title={`Liked by: ${likes.map(l => l.mbrLikesMbrName || 'Member').join(', ')}`}
-            >
-              {/* Overlapping top reaction emojis */}
-              <div className="flex -space-x-1 items-center">
-                {uniqueReactionEmojis.map((emoji, idx) => (
-                  <span 
-                    key={idx} 
-                    className="w-4 h-4 text-xs flex items-center justify-center rounded-full bg-white dark:bg-slate-850 shadow-2xs border border-white dark:border-slate-800"
-                  >
-                    {emoji}
-                  </span>
-                ))}
-              </div>
-              <span className="font-semibold text-slate-700 dark:text-slate-300">
-                {likes.length}
-              </span>
-            </div>
-          )}
 
           {/* Comment Trigger Button */}
           <button
@@ -1299,7 +1466,7 @@ export default function MbrStoryFeedStoryPanel({
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="relative w-full max-w-lg sm:max-w-xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] z-10 overflow-hidden"
+              className="relative w-full max-w-xl sm:max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] z-10 overflow-hidden"
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between px-3.5 py-2 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-850/90 backdrop-blur-sm shrink-0">
@@ -1338,25 +1505,18 @@ export default function MbrStoryFeedStoryPanel({
               </div>
 
               {/* Scrollable Modal Body: Full Story View + Scrollable Comments Window */}
-              <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-2 space-y-2 custom-scrollbar">
-                {/* 1. Story View Summary Card */}
-                <div className="bg-slate-50/70 dark:bg-slate-850/60 rounded-lg p-2 sm:p-2.5 border border-slate-200/70 dark:border-slate-800/80 space-y-1 shadow-2xs">
-                  <div className="flex items-start justify-between gap-2">
-                    <h2 className="font-serif text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight">
+              <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-2.5 space-y-3 custom-scrollbar">
+                {/* 1. Story View Summary Card - Scrollable Story Section */}
+                <div className="bg-slate-50/80 dark:bg-slate-850/70 rounded-xl p-3 sm:p-3.5 border border-slate-200/80 dark:border-slate-800 space-y-2 shadow-2xs">
+                  <div className="flex items-center gap-2 pb-1.5 border-b border-slate-200/60 dark:border-slate-800/60 min-w-0">
+                    <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <h2 className="font-serif text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">
                       {story.mbrStoryTitle}
                     </h2>
-                    {layoutInfo.cleanContent && (
-                      <StoryAudioPlayer
-                        text={`${story.mbrStoryTitle}. ${layoutInfo.cleanContent}`}
-                        storyId={story.mbrStoryId}
-                        title={story.mbrStoryTitle}
-                        variant="inline-button"
-                      />
-                    )}
                   </div>
 
                   {layoutInfo.cleanContent ? (
-                    <div className="font-sans text-[11.5px] text-slate-700 dark:text-slate-200 leading-snug whitespace-pre-line line-clamp-3">
+                    <div className="font-serif text-xs sm:text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line max-h-48 sm:max-h-60 overflow-y-auto pr-2 custom-scrollbar select-text">
                       {layoutInfo.cleanContent}
                     </div>
                   ) : (

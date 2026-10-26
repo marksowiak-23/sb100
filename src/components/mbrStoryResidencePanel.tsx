@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   MapPin, Trash2, Edit3, Save, X, Plus, Loader2, 
   AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, 
-  BookOpen, Images, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical 
+  Images, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical 
 } from 'lucide-react';
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -650,22 +650,6 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
               )}
             </button>
 
-            {/* Storybook Icon Button with Count Badge */}
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
-                detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' }
-              }))}
-              className="relative p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title={readOnly ? `View Member Stories${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}` : `Story Editor${headerStoryCount > 0 ? ` (${headerStoryCount} stories)` : ''}`}
-            >
-              <BookOpen className="w-4 h-4 text-blue-500" />
-              {headerStoryCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 px-1.5 min-w-[16px] h-4 flex items-center justify-center text-[9px] font-bold bg-amber-500 text-white rounded-full leading-none shadow-xs">
-                  {headerStoryCount}
-                </span>
-              )}
-            </button>
-
             {!readOnly && (
               <button
                 onClick={() => setShowPrivacyModal(true)}
@@ -694,7 +678,7 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
               aria-label="More options"
             >
               <MoreVertical className="w-4 h-4" />
-              {(headerPhotoCount > 0 || headerStoryCount > 0) && (
+              {headerPhotoCount > 0 && (
                 <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
               )}
             </button>
@@ -724,26 +708,6 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
                       {headerPhotoCount > 0 && (
                         <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-700">
                           {headerPhotoCount}
-                        </span>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowHeaderMenu(false);
-                        window.dispatchEvent(new CustomEvent('open-story-editor', {
-                          detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Residencies', componentName: 'sbMbrStryResidence' }
-                        }));
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer text-left"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <BookOpen className="w-4 h-4 text-blue-500 shrink-0" />
-                        <span>{readOnly ? 'View Stories' : 'Story Editor'}</span>
-                      </div>
-                      {headerStoryCount > 0 && (
-                        <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800">
-                          {headerStoryCount}
                         </span>
                       )}
                     </button>
@@ -1392,6 +1356,7 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
         onClose={() => setShowPrivacyModal(false)}
         mbrId={mbrId}
         topicName="Residencies"
+        topicItems={residenceList}
         isSandbox={isSandbox}
       />
 

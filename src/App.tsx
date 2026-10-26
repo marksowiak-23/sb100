@@ -14,8 +14,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AlertTriangle, X } from 'lucide-react';
 
-// Import our custom API helper client.
 import { taskApi, HealthCheckResponse } from '@/src/services/api';
+import { userManager } from '@/src/services/userManager';
 
 // Import our layouts and feature components.
 import MainLayout from '@/src/layouts/MainLayout';
@@ -414,20 +414,31 @@ export default function App() {
         });
     }, 3000);
 
-    // Synchronize application color theme (Default, Dark, Ocean, Forest)
+    // Synchronize application color theme (Default, Dark, Ocean, Forest, etc.)
     const applyGlobalTheme = () => {
       const savedTheme = sessionStorage.getItem('mbrPrefTheme') || sessionStorage.getItem('theme') || 'Default';
       document.documentElement.setAttribute('data-theme', savedTheme);
+      document.documentElement.classList.toggle('dark', ['Dark', 'Rustic', 'Luxury', 'Tech'].includes(savedTheme));
     };
 
     applyGlobalTheme();
+    // Fetch and apply the authenticated user's workspace theme preference from backend/session
+    userManager.applyUserThemePreference();
+
+    const handleUserSwitched = () => {
+      applyGlobalTheme();
+      userManager.applyUserThemePreference();
+    };
+
     window.addEventListener('theme-changed', applyGlobalTheme);
     window.addEventListener('storage', applyGlobalTheme);
+    window.addEventListener('user-switched', handleUserSwitched);
     return () => {
       clearInterval(healthInterval);
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('theme-changed', applyGlobalTheme);
       window.removeEventListener('storage', applyGlobalTheme);
+      window.removeEventListener('user-switched', handleUserSwitched);
     };
   }, []);
 

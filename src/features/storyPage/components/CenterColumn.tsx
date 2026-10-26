@@ -15,6 +15,7 @@ interface CenterColumnProps {
   storyTopic?: string;
   publishedDate?: string;
   authorName?: string;
+  authorMbrId?: string;
   authorLocation?: string;
   authorAvatarUrl?: string;
   authorInitials?: string;
@@ -40,6 +41,7 @@ export default function CenterColumn({
   mbrStoryHeaderPhotoStyleCd,
   publishedDate,
   authorName = 'Author',
+  authorMbrId,
   authorLocation,
   authorAvatarUrl,
   authorInitials = 'SB',
@@ -152,6 +154,7 @@ export default function CenterColumn({
         mbrStoryHeaderPhotoStyleCd={mbrStoryHeaderPhotoStyleCd}
         publishedDate={publishedDate}
         authorName={authorName}
+        authorMbrId={authorMbrId}
         authorLocation={authorLocation}
         authorAvatarUrl={authorAvatarUrl}
         authorInitials={authorInitials}

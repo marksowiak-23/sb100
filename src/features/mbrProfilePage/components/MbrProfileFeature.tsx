@@ -545,7 +545,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
           mbrMediaOriginalFilename: file.name,
           mbrMediaMimeType: file.type,
           mbrMediaCategoryCd: 'Profile',
-          mbrMediaDescription: 'Member Profile Gallery Photo'
+          mbrMediaDescription: ''
         });
 
         setGalleryItems((prev) => [newMediaRecord, ...prev]);

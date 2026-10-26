@@ -698,13 +698,15 @@ export default function MbrStoryFamilyPanel({
             </button>
 
             {/* Privacy Modal Button */}
-            <button
-              onClick={() => setShowPrivacyModal(true)}
-              className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title="Family Privacy Settings"
-            >
-              <ShieldAlert className="w-4 h-4 text-slate-500" />
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => setShowPrivacyModal(true)}
+                className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                title="Family Privacy Settings"
+              >
+                <ShieldAlert className="w-4 h-4 text-slate-500" />
+              </button>
+            )}
           </div>
 
           {/* Mobile Actions Dropdown Trigger */}
@@ -1283,6 +1285,7 @@ export default function MbrStoryFamilyPanel({
         onClose={() => setShowPrivacyModal(false)}
         mbrId={mbrId}
         topicName="Family"
+        familyMembers={familyList}
         isSandbox={isSandbox}
       />
 

@@ -567,13 +567,15 @@ export default function MbrStoryRelationshipsPanel({
             </button>
 
             {/* Privacy Modal Button */}
-            <button
-              onClick={() => setShowPrivacyModal(true)}
-              className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
-              title="Relationships Privacy Settings"
-            >
-              <ShieldAlert className="w-4 h-4 text-slate-500" />
-            </button>
+            {!readOnly && (
+              <button
+                onClick={() => setShowPrivacyModal(true)}
+                className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl cursor-pointer transition-colors"
+                title="Relationships Privacy Settings"
+              >
+                <ShieldAlert className="w-4 h-4 text-slate-500" />
+              </button>
+            )}
           </div>
 
           {/* Mobile Actions Dropdown Trigger */}
@@ -1241,6 +1243,7 @@ export default function MbrStoryRelationshipsPanel({
             mbrId={mbrId}
             topicId={topicId}
             topicName="Relationships"
+            relationships={relationshipList}
             isSandbox={isSandbox}
             isOpen={showPrivacyModal}
             onClose={() => setShowPrivacyModal(false)}

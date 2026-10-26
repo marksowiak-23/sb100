@@ -590,6 +590,117 @@ export interface MbrStoryConnectionPrivs {
   privUpdatedAt?: string;
 }
 
+export interface MbrTopicAchievementsConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrAchievementId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrTopicActivityConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrActivityId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrTopicEducationConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrEducationId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrTopicEmploymentConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrEmploymentId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrTopicFamilyConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrFamilyId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrTopicHealthConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrHealthId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrTopicRelationshipsConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrRelationshipId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrTopicResidenceConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrResidenceId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrTopicSpecialEventsConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrSpecialEventId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrTopicTripsConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  mbrTripId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrTopicConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  topicId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+
 export interface MbrProfileGroupPrivs {
   privId: string;
   mbrId: string;
@@ -597,6 +708,16 @@ export interface MbrProfileGroupPrivs {
   privValueCd: string;
   privCreatedAt?: string;
   privUpdatedAt?: string;
+}
+
+
+export interface MbrStoryRead {
+  mbrStoryReadId: string;
+  mbrStoryId: string;
+  mbrId: string;
+  mbrStoryReadDt?: string;
+  mbrStoryReadLastDt?: string;
+  mbrStoryReadCount?: number;
 }
 
 export interface MbrStoryLikes {
@@ -2292,6 +2413,766 @@ export const taskApi = {
   },
 
   /**
+   * Fetch TopicAchievementsConnectionPriv records.
+   */
+  async getMemberTopicAchievementsConnectionPrivs(params?: { mbrId?: string; mbrAchievementId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicAchievementsConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrAchievementId) searchParams.append('mbr_achievement_id', params.mbrAchievementId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-achievements-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicAchievementsConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicAchievementsConnectionPriv record.
+   */
+  async createMemberTopicAchievementsConnectionPriv(priv: Partial<MbrTopicAchievementsConnectionPrivs>): Promise<MbrTopicAchievementsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-achievements-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicAchievementsConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicAchievementsConnectionPriv record.
+   */
+  async updateMemberTopicAchievementsConnectionPriv(privId: string, priv: Partial<MbrTopicAchievementsConnectionPrivs>): Promise<MbrTopicAchievementsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-achievements-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicAchievementsConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicAchievementsConnectionPriv record.
+   */
+  async deleteMemberTopicAchievementsConnectionPriv(privId: string): Promise<MbrTopicAchievementsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-achievements-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicAchievementsConnectionPrivs>(response);
+  },
+
+  /**
+   * Fetch TopicActivityConnectionPriv records.
+   */
+  async getMemberTopicActivityConnectionPrivs(params?: { mbrId?: string; mbrActivityId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicActivityConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrActivityId) searchParams.append('mbr_activity_id', params.mbrActivityId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-activity-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicActivityConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicActivityConnectionPriv record.
+   */
+  async createMemberTopicActivityConnectionPriv(priv: Partial<MbrTopicActivityConnectionPrivs>): Promise<MbrTopicActivityConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-activity-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicActivityConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicActivityConnectionPriv record.
+   */
+  async updateMemberTopicActivityConnectionPriv(privId: string, priv: Partial<MbrTopicActivityConnectionPrivs>): Promise<MbrTopicActivityConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-activity-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicActivityConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicActivityConnectionPriv record.
+   */
+  async deleteMemberTopicActivityConnectionPriv(privId: string): Promise<MbrTopicActivityConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-activity-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicActivityConnectionPrivs>(response);
+  },
+
+  /**
+   * Fetch TopicEducationConnectionPriv records.
+   */
+  async getMemberTopicEducationConnectionPrivs(params?: { mbrId?: string; mbrEducationId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicEducationConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrEducationId) searchParams.append('mbr_education_id', params.mbrEducationId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-education-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicEducationConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicEducationConnectionPriv record.
+   */
+  async createMemberTopicEducationConnectionPriv(priv: Partial<MbrTopicEducationConnectionPrivs>): Promise<MbrTopicEducationConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-education-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicEducationConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicEducationConnectionPriv record.
+   */
+  async updateMemberTopicEducationConnectionPriv(privId: string, priv: Partial<MbrTopicEducationConnectionPrivs>): Promise<MbrTopicEducationConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-education-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicEducationConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicEducationConnectionPriv record.
+   */
+  async deleteMemberTopicEducationConnectionPriv(privId: string): Promise<MbrTopicEducationConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-education-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicEducationConnectionPrivs>(response);
+  },
+
+  /**
+   * Fetch TopicEmploymentConnectionPriv records.
+   */
+  async getMemberTopicEmploymentConnectionPrivs(params?: { mbrId?: string; mbrEmploymentId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicEmploymentConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrEmploymentId) searchParams.append('mbr_employment_id', params.mbrEmploymentId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-employment-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicEmploymentConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicEmploymentConnectionPriv record.
+   */
+  async createMemberTopicEmploymentConnectionPriv(priv: Partial<MbrTopicEmploymentConnectionPrivs>): Promise<MbrTopicEmploymentConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-employment-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicEmploymentConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicEmploymentConnectionPriv record.
+   */
+  async updateMemberTopicEmploymentConnectionPriv(privId: string, priv: Partial<MbrTopicEmploymentConnectionPrivs>): Promise<MbrTopicEmploymentConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-employment-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicEmploymentConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicEmploymentConnectionPriv record.
+   */
+  async deleteMemberTopicEmploymentConnectionPriv(privId: string): Promise<MbrTopicEmploymentConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-employment-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicEmploymentConnectionPrivs>(response);
+  },
+
+  /**
+   * Fetch TopicFamilyConnectionPriv records.
+   */
+  async getMemberTopicFamilyConnectionPrivs(params?: { mbrId?: string; mbrFamilyId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicFamilyConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrFamilyId) searchParams.append('mbr_family_id', params.mbrFamilyId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-family-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicFamilyConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicFamilyConnectionPriv record.
+   */
+  async createMemberTopicFamilyConnectionPriv(priv: Partial<MbrTopicFamilyConnectionPrivs>): Promise<MbrTopicFamilyConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-family-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicFamilyConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicFamilyConnectionPriv record.
+   */
+  async updateMemberTopicFamilyConnectionPriv(privId: string, priv: Partial<MbrTopicFamilyConnectionPrivs>): Promise<MbrTopicFamilyConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-family-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicFamilyConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicFamilyConnectionPriv record.
+   */
+  async deleteMemberTopicFamilyConnectionPriv(privId: string): Promise<MbrTopicFamilyConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-family-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicFamilyConnectionPrivs>(response);
+  },
+
+  /**
+   * Fetch TopicHealthConnectionPriv records.
+   */
+  async getMemberTopicHealthConnectionPrivs(params?: { mbrId?: string; mbrHealthId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicHealthConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrHealthId) searchParams.append('mbr_health_id', params.mbrHealthId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-health-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicHealthConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicHealthConnectionPriv record.
+   */
+  async createMemberTopicHealthConnectionPriv(priv: Partial<MbrTopicHealthConnectionPrivs>): Promise<MbrTopicHealthConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-health-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicHealthConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicHealthConnectionPriv record.
+   */
+  async updateMemberTopicHealthConnectionPriv(privId: string, priv: Partial<MbrTopicHealthConnectionPrivs>): Promise<MbrTopicHealthConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-health-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicHealthConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicHealthConnectionPriv record.
+   */
+  async deleteMemberTopicHealthConnectionPriv(privId: string): Promise<MbrTopicHealthConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-health-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicHealthConnectionPrivs>(response);
+  },
+
+  /**
+   * Fetch TopicRelationshipsConnectionPriv records.
+   */
+  async getMemberTopicRelationshipsConnectionPrivs(params?: { mbrId?: string; mbrRelationshipId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicRelationshipsConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrRelationshipId) searchParams.append('mbr_relationship_id', params.mbrRelationshipId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-relationships-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicRelationshipsConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicRelationshipsConnectionPriv record.
+   */
+  async createMemberTopicRelationshipsConnectionPriv(priv: Partial<MbrTopicRelationshipsConnectionPrivs>): Promise<MbrTopicRelationshipsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-relationships-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicRelationshipsConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicRelationshipsConnectionPriv record.
+   */
+  async updateMemberTopicRelationshipsConnectionPriv(privId: string, priv: Partial<MbrTopicRelationshipsConnectionPrivs>): Promise<MbrTopicRelationshipsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-relationships-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicRelationshipsConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicRelationshipsConnectionPriv record.
+   */
+  async deleteMemberTopicRelationshipsConnectionPriv(privId: string): Promise<MbrTopicRelationshipsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-relationships-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicRelationshipsConnectionPrivs>(response);
+  },
+
+  /**
+   * Fetch TopicResidenceConnectionPriv records.
+   */
+  async getMemberTopicResidenceConnectionPrivs(params?: { mbrId?: string; mbrResidenceId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicResidenceConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrResidenceId) searchParams.append('mbr_residence_id', params.mbrResidenceId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-residence-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicResidenceConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicResidenceConnectionPriv record.
+   */
+  async createMemberTopicResidenceConnectionPriv(priv: Partial<MbrTopicResidenceConnectionPrivs>): Promise<MbrTopicResidenceConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-residence-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicResidenceConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicResidenceConnectionPriv record.
+   */
+  async updateMemberTopicResidenceConnectionPriv(privId: string, priv: Partial<MbrTopicResidenceConnectionPrivs>): Promise<MbrTopicResidenceConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-residence-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicResidenceConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicResidenceConnectionPriv record.
+   */
+  async deleteMemberTopicResidenceConnectionPriv(privId: string): Promise<MbrTopicResidenceConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-residence-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicResidenceConnectionPrivs>(response);
+  },
+
+  /**
+   * Fetch TopicSpecialEventsConnectionPriv records.
+   */
+  async getMemberTopicSpecialEventsConnectionPrivs(params?: { mbrId?: string; mbrSpecialEventId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicSpecialEventsConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrSpecialEventId) searchParams.append('mbr_special_event_id', params.mbrSpecialEventId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-special-events-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicSpecialEventsConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicSpecialEventsConnectionPriv record.
+   */
+  async createMemberTopicSpecialEventsConnectionPriv(priv: Partial<MbrTopicSpecialEventsConnectionPrivs>): Promise<MbrTopicSpecialEventsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-special-events-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicSpecialEventsConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicSpecialEventsConnectionPriv record.
+   */
+  async updateMemberTopicSpecialEventsConnectionPriv(privId: string, priv: Partial<MbrTopicSpecialEventsConnectionPrivs>): Promise<MbrTopicSpecialEventsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-special-events-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicSpecialEventsConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicSpecialEventsConnectionPriv record.
+   */
+  async deleteMemberTopicSpecialEventsConnectionPriv(privId: string): Promise<MbrTopicSpecialEventsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-special-events-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicSpecialEventsConnectionPrivs>(response);
+  },
+
+  /**
+   * Fetch TopicTripsConnectionPriv records.
+   */
+  async getMemberTopicTripsConnectionPrivs(params?: { mbrId?: string; mbrTripId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicTripsConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrTripId) searchParams.append('mbr_trip_id', params.mbrTripId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-trips-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicTripsConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicTripsConnectionPriv record.
+   */
+  async createMemberTopicTripsConnectionPriv(priv: Partial<MbrTopicTripsConnectionPrivs>): Promise<MbrTopicTripsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-trips-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicTripsConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicTripsConnectionPriv record.
+   */
+  async updateMemberTopicTripsConnectionPriv(privId: string, priv: Partial<MbrTopicTripsConnectionPrivs>): Promise<MbrTopicTripsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-trips-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicTripsConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicTripsConnectionPriv record.
+   */
+  async deleteMemberTopicTripsConnectionPriv(privId: string): Promise<MbrTopicTripsConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-trips-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicTripsConnectionPrivs>(response);
+  },
+
+  /**
+   * Fetch TopicConnectionPriv records.
+   */
+  async getMemberTopicConnectionPrivs(params?: { mbrId?: string; topicId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.topicId) searchParams.append('topic_id', params.topicId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-topic-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrTopicConnectionPrivs[]>(response);
+  },
+
+  /**
+   * Create TopicConnectionPriv record.
+   */
+  async createMemberTopicConnectionPriv(priv: Partial<MbrTopicConnectionPrivs>): Promise<MbrTopicConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicConnectionPrivs>(response);
+  },
+
+  /**
+   * Update TopicConnectionPriv record.
+   */
+  async updateMemberTopicConnectionPriv(privId: string, priv: Partial<MbrTopicConnectionPrivs>): Promise<MbrTopicConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrTopicConnectionPrivs>(response);
+  },
+
+  /**
+   * Delete TopicConnectionPriv record.
+   */
+  async deleteMemberTopicConnectionPriv(privId: string): Promise<MbrTopicConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-topic-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrTopicConnectionPrivs>(response);
+  },
+
+
+  /**
    * Update a member story connection privilege record.
    */
   async updateMemberStoryConnectionPriv(privId: string, priv: Partial<MbrStoryConnectionPrivs>): Promise<MbrStoryConnectionPrivs> {
@@ -2770,6 +3651,38 @@ export const taskApi = {
       })
     });
     return handleResponse<MbrStoryComments>(response);
+  },
+
+  /**
+   * Fetch member story read history.
+   */
+  async getMemberStoryReads(mbrId?: string): Promise<MbrStoryRead[]> {
+    const url = mbrId ? `${API_BASE_URL}/mbr-story-reads/member/${mbrId}` : `${API_BASE_URL}/mbr-story-reads`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryRead[]>(response);
+  },
+
+  /**
+   * Record a persistent story read in Live DB mode.
+   */
+  async recordStoryRead(read: { mbrStoryId: string; mbrId: string }): Promise<MbrStoryRead> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-reads`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(read),
+    });
+    return handleResponse<MbrStoryRead>(response);
   }
 };
 
@@ -2780,6 +3693,16 @@ export const mbrStoryLikesApi = {
   updateMemberStoryLike: (likeId: string, like: Partial<MbrStoryLikes>) => taskApi.updateMemberStoryLike(likeId, like),
   deleteMemberStoryLike: (likeId: string) => taskApi.deleteMemberStoryLike(likeId),
 };
+
+export const mbrStoryReadApi = {
+  async getMemberReads(mbrId?: string): Promise<MbrStoryRead[]> {
+    return taskApi.getMemberStoryReads(mbrId);
+  },
+  async recordRead(read: { mbrStoryId: string; mbrId: string }): Promise<MbrStoryRead> {
+    return taskApi.recordStoryRead(read);
+  }
+};
+
 
 export const mbrStoryCommentsApi = {
   getStoryComments: (params?: { mbrStoryId?: string; mbrCommentsParentId?: string; skip?: number; limit?: number }) => taskApi.getStoryComments(params),
@@ -3289,6 +4212,172 @@ export const mbrStoryConnectionPrivsApi = {
     return taskApi.deleteMemberStoryConnectionPriv(privId);
   }
 };
+
+export const mbrTopicAchievementsConnectionPrivsApi = {
+  async getTopicAchievementsConnectionPrivs(params?: { mbrId?: string; mbrAchievementId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicAchievementsConnectionPrivs[]> {
+    return taskApi.getMemberTopicAchievementsConnectionPrivs(params);
+  },
+  async createTopicAchievementsConnectionPriv(priv: Partial<MbrTopicAchievementsConnectionPrivs>): Promise<MbrTopicAchievementsConnectionPrivs> {
+    return taskApi.createMemberTopicAchievementsConnectionPriv(priv);
+  },
+  async updateTopicAchievementsConnectionPriv(privId: string, priv: Partial<MbrTopicAchievementsConnectionPrivs>): Promise<MbrTopicAchievementsConnectionPrivs> {
+    return taskApi.updateMemberTopicAchievementsConnectionPriv(privId, priv);
+  },
+  async deleteTopicAchievementsConnectionPriv(privId: string): Promise<MbrTopicAchievementsConnectionPrivs> {
+    return taskApi.deleteMemberTopicAchievementsConnectionPriv(privId);
+  }
+};
+
+export const mbrTopicActivityConnectionPrivsApi = {
+  async getTopicActivityConnectionPrivs(params?: { mbrId?: string; mbrActivityId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicActivityConnectionPrivs[]> {
+    return taskApi.getMemberTopicActivityConnectionPrivs(params);
+  },
+  async createTopicActivityConnectionPriv(priv: Partial<MbrTopicActivityConnectionPrivs>): Promise<MbrTopicActivityConnectionPrivs> {
+    return taskApi.createMemberTopicActivityConnectionPriv(priv);
+  },
+  async updateTopicActivityConnectionPriv(privId: string, priv: Partial<MbrTopicActivityConnectionPrivs>): Promise<MbrTopicActivityConnectionPrivs> {
+    return taskApi.updateMemberTopicActivityConnectionPriv(privId, priv);
+  },
+  async deleteTopicActivityConnectionPriv(privId: string): Promise<MbrTopicActivityConnectionPrivs> {
+    return taskApi.deleteMemberTopicActivityConnectionPriv(privId);
+  }
+};
+
+export const mbrTopicEducationConnectionPrivsApi = {
+  async getTopicEducationConnectionPrivs(params?: { mbrId?: string; mbrEducationId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicEducationConnectionPrivs[]> {
+    return taskApi.getMemberTopicEducationConnectionPrivs(params);
+  },
+  async createTopicEducationConnectionPriv(priv: Partial<MbrTopicEducationConnectionPrivs>): Promise<MbrTopicEducationConnectionPrivs> {
+    return taskApi.createMemberTopicEducationConnectionPriv(priv);
+  },
+  async updateTopicEducationConnectionPriv(privId: string, priv: Partial<MbrTopicEducationConnectionPrivs>): Promise<MbrTopicEducationConnectionPrivs> {
+    return taskApi.updateMemberTopicEducationConnectionPriv(privId, priv);
+  },
+  async deleteTopicEducationConnectionPriv(privId: string): Promise<MbrTopicEducationConnectionPrivs> {
+    return taskApi.deleteMemberTopicEducationConnectionPriv(privId);
+  }
+};
+
+export const mbrTopicEmploymentConnectionPrivsApi = {
+  async getTopicEmploymentConnectionPrivs(params?: { mbrId?: string; mbrEmploymentId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicEmploymentConnectionPrivs[]> {
+    return taskApi.getMemberTopicEmploymentConnectionPrivs(params);
+  },
+  async createTopicEmploymentConnectionPriv(priv: Partial<MbrTopicEmploymentConnectionPrivs>): Promise<MbrTopicEmploymentConnectionPrivs> {
+    return taskApi.createMemberTopicEmploymentConnectionPriv(priv);
+  },
+  async updateTopicEmploymentConnectionPriv(privId: string, priv: Partial<MbrTopicEmploymentConnectionPrivs>): Promise<MbrTopicEmploymentConnectionPrivs> {
+    return taskApi.updateMemberTopicEmploymentConnectionPriv(privId, priv);
+  },
+  async deleteTopicEmploymentConnectionPriv(privId: string): Promise<MbrTopicEmploymentConnectionPrivs> {
+    return taskApi.deleteMemberTopicEmploymentConnectionPriv(privId);
+  }
+};
+
+export const mbrTopicFamilyConnectionPrivsApi = {
+  async getTopicFamilyConnectionPrivs(params?: { mbrId?: string; mbrFamilyId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicFamilyConnectionPrivs[]> {
+    return taskApi.getMemberTopicFamilyConnectionPrivs(params);
+  },
+  async createTopicFamilyConnectionPriv(priv: Partial<MbrTopicFamilyConnectionPrivs>): Promise<MbrTopicFamilyConnectionPrivs> {
+    return taskApi.createMemberTopicFamilyConnectionPriv(priv);
+  },
+  async updateTopicFamilyConnectionPriv(privId: string, priv: Partial<MbrTopicFamilyConnectionPrivs>): Promise<MbrTopicFamilyConnectionPrivs> {
+    return taskApi.updateMemberTopicFamilyConnectionPriv(privId, priv);
+  },
+  async deleteTopicFamilyConnectionPriv(privId: string): Promise<MbrTopicFamilyConnectionPrivs> {
+    return taskApi.deleteMemberTopicFamilyConnectionPriv(privId);
+  }
+};
+
+export const mbrTopicHealthConnectionPrivsApi = {
+  async getTopicHealthConnectionPrivs(params?: { mbrId?: string; mbrHealthId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicHealthConnectionPrivs[]> {
+    return taskApi.getMemberTopicHealthConnectionPrivs(params);
+  },
+  async createTopicHealthConnectionPriv(priv: Partial<MbrTopicHealthConnectionPrivs>): Promise<MbrTopicHealthConnectionPrivs> {
+    return taskApi.createMemberTopicHealthConnectionPriv(priv);
+  },
+  async updateTopicHealthConnectionPriv(privId: string, priv: Partial<MbrTopicHealthConnectionPrivs>): Promise<MbrTopicHealthConnectionPrivs> {
+    return taskApi.updateMemberTopicHealthConnectionPriv(privId, priv);
+  },
+  async deleteTopicHealthConnectionPriv(privId: string): Promise<MbrTopicHealthConnectionPrivs> {
+    return taskApi.deleteMemberTopicHealthConnectionPriv(privId);
+  }
+};
+
+export const mbrTopicRelationshipsConnectionPrivsApi = {
+  async getTopicRelationshipsConnectionPrivs(params?: { mbrId?: string; mbrRelationshipId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicRelationshipsConnectionPrivs[]> {
+    return taskApi.getMemberTopicRelationshipsConnectionPrivs(params);
+  },
+  async createTopicRelationshipsConnectionPriv(priv: Partial<MbrTopicRelationshipsConnectionPrivs>): Promise<MbrTopicRelationshipsConnectionPrivs> {
+    return taskApi.createMemberTopicRelationshipsConnectionPriv(priv);
+  },
+  async updateTopicRelationshipsConnectionPriv(privId: string, priv: Partial<MbrTopicRelationshipsConnectionPrivs>): Promise<MbrTopicRelationshipsConnectionPrivs> {
+    return taskApi.updateMemberTopicRelationshipsConnectionPriv(privId, priv);
+  },
+  async deleteTopicRelationshipsConnectionPriv(privId: string): Promise<MbrTopicRelationshipsConnectionPrivs> {
+    return taskApi.deleteMemberTopicRelationshipsConnectionPriv(privId);
+  }
+};
+
+export const mbrTopicResidenceConnectionPrivsApi = {
+  async getTopicResidenceConnectionPrivs(params?: { mbrId?: string; mbrResidenceId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicResidenceConnectionPrivs[]> {
+    return taskApi.getMemberTopicResidenceConnectionPrivs(params);
+  },
+  async createTopicResidenceConnectionPriv(priv: Partial<MbrTopicResidenceConnectionPrivs>): Promise<MbrTopicResidenceConnectionPrivs> {
+    return taskApi.createMemberTopicResidenceConnectionPriv(priv);
+  },
+  async updateTopicResidenceConnectionPriv(privId: string, priv: Partial<MbrTopicResidenceConnectionPrivs>): Promise<MbrTopicResidenceConnectionPrivs> {
+    return taskApi.updateMemberTopicResidenceConnectionPriv(privId, priv);
+  },
+  async deleteTopicResidenceConnectionPriv(privId: string): Promise<MbrTopicResidenceConnectionPrivs> {
+    return taskApi.deleteMemberTopicResidenceConnectionPriv(privId);
+  }
+};
+
+export const mbrTopicSpecialEventsConnectionPrivsApi = {
+  async getTopicSpecialEventsConnectionPrivs(params?: { mbrId?: string; mbrSpecialEventId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicSpecialEventsConnectionPrivs[]> {
+    return taskApi.getMemberTopicSpecialEventsConnectionPrivs(params);
+  },
+  async createTopicSpecialEventsConnectionPriv(priv: Partial<MbrTopicSpecialEventsConnectionPrivs>): Promise<MbrTopicSpecialEventsConnectionPrivs> {
+    return taskApi.createMemberTopicSpecialEventsConnectionPriv(priv);
+  },
+  async updateTopicSpecialEventsConnectionPriv(privId: string, priv: Partial<MbrTopicSpecialEventsConnectionPrivs>): Promise<MbrTopicSpecialEventsConnectionPrivs> {
+    return taskApi.updateMemberTopicSpecialEventsConnectionPriv(privId, priv);
+  },
+  async deleteTopicSpecialEventsConnectionPriv(privId: string): Promise<MbrTopicSpecialEventsConnectionPrivs> {
+    return taskApi.deleteMemberTopicSpecialEventsConnectionPriv(privId);
+  }
+};
+
+export const mbrTopicTripsConnectionPrivsApi = {
+  async getTopicTripsConnectionPrivs(params?: { mbrId?: string; mbrTripId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicTripsConnectionPrivs[]> {
+    return taskApi.getMemberTopicTripsConnectionPrivs(params);
+  },
+  async createTopicTripsConnectionPriv(priv: Partial<MbrTopicTripsConnectionPrivs>): Promise<MbrTopicTripsConnectionPrivs> {
+    return taskApi.createMemberTopicTripsConnectionPriv(priv);
+  },
+  async updateTopicTripsConnectionPriv(privId: string, priv: Partial<MbrTopicTripsConnectionPrivs>): Promise<MbrTopicTripsConnectionPrivs> {
+    return taskApi.updateMemberTopicTripsConnectionPriv(privId, priv);
+  },
+  async deleteTopicTripsConnectionPriv(privId: string): Promise<MbrTopicTripsConnectionPrivs> {
+    return taskApi.deleteMemberTopicTripsConnectionPriv(privId);
+  }
+};
+
+export const mbrTopicConnectionPrivsApi = {
+  async getTopicConnectionPrivs(params?: { mbrId?: string; topicId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrTopicConnectionPrivs[]> {
+    return taskApi.getMemberTopicConnectionPrivs(params);
+  },
+  async createTopicConnectionPriv(priv: Partial<MbrTopicConnectionPrivs>): Promise<MbrTopicConnectionPrivs> {
+    return taskApi.createMemberTopicConnectionPriv(priv);
+  },
+  async updateTopicConnectionPriv(privId: string, priv: Partial<MbrTopicConnectionPrivs>): Promise<MbrTopicConnectionPrivs> {
+    return taskApi.updateMemberTopicConnectionPriv(privId, priv);
+  },
+  async deleteTopicConnectionPriv(privId: string): Promise<MbrTopicConnectionPrivs> {
+    return taskApi.deleteMemberTopicConnectionPriv(privId);
+  }
+};
+
 
 export const mbrProfileGroupPrivsApi = {
   async getProfileGroupPrivs(params?: { mbrId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrProfileGroupPrivs[]> {

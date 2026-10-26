@@ -517,6 +517,20 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrStoryRead',
+    name: 'mbrStoryRead',
+    endpoint: '/mbr-story-reads',
+    primaryKey: 'mbrStoryReadId',
+    searchField: 'mbrStoryId',
+    fields: [
+      { name: 'mbrStoryId', label: 'Story ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrId', label: 'Reader Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrStoryReadDt', label: 'First Read Date / Time', type: 'date', required: false },
+      { name: 'mbrStoryReadLastDt', label: 'Last Read Date / Time', type: 'date', required: false },
+      { name: 'mbrStoryReadCount', label: 'Read Count', type: 'number', required: true, placeholder: '1' }
+    ]
+  },
+  {
     id: 'mbrStoryComments',
     name: 'mbrStoryComments',
     endpoint: '/mbr-story-comments',
@@ -615,6 +629,150 @@ const TABLES: TableDefinition[] = [
       { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
     ]
   },
+  {
+    id: 'mbrTopicAchievementsConnectionPrivs',
+    name: 'mbrTopicAchievementsConnectionPrivs',
+    endpoint: '/mbr-topic-achievements-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrAchievementId', label: 'Achievement ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrTopicActivityConnectionPrivs',
+    name: 'mbrTopicActivityConnectionPrivs',
+    endpoint: '/mbr-topic-activity-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrActivityId', label: 'Activity ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrTopicEducationConnectionPrivs',
+    name: 'mbrTopicEducationConnectionPrivs',
+    endpoint: '/mbr-topic-education-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrEducationId', label: 'Education ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrTopicEmploymentConnectionPrivs',
+    name: 'mbrTopicEmploymentConnectionPrivs',
+    endpoint: '/mbr-topic-employment-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrEmploymentId', label: 'Employment ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrTopicFamilyConnectionPrivs',
+    name: 'mbrTopicFamilyConnectionPrivs',
+    endpoint: '/mbr-topic-family-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrFamilyId', label: 'Family ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrTopicHealthConnectionPrivs',
+    name: 'mbrTopicHealthConnectionPrivs',
+    endpoint: '/mbr-topic-health-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrHealthId', label: 'Health ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrTopicRelationshipsConnectionPrivs',
+    name: 'mbrTopicRelationshipsConnectionPrivs',
+    endpoint: '/mbr-topic-relationships-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrRelationshipId', label: 'Relationship ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrTopicResidenceConnectionPrivs',
+    name: 'mbrTopicResidenceConnectionPrivs',
+    endpoint: '/mbr-topic-residence-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrResidenceId', label: 'Residence ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrTopicSpecialEventsConnectionPrivs',
+    name: 'mbrTopicSpecialEventsConnectionPrivs',
+    endpoint: '/mbr-topic-special-events-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrSpecialEventId', label: 'Special Event ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrTopicTripsConnectionPrivs',
+    name: 'mbrTopicTripsConnectionPrivs',
+    endpoint: '/mbr-topic-trips-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrTripId', label: 'Trip ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+  {
+    id: 'mbrTopicConnectionPrivs',
+    name: 'mbrTopicConnectionPrivs',
+    endpoint: '/mbr-topic-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'topicId', label: 'Topic ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE' }
+    ]
+  },
+
   {
     id: 'mbrProfileGroupPrivs',
     name: 'mbrProfileGroupPrivs',
@@ -845,6 +1003,17 @@ const getInitialMockData = (tableId: string): any[] => {
           mbrStoryLikesUpdatedAt: now
         }
       ];
+    case 'mbrStoryRead':
+      return [
+        {
+          mbrStoryReadId: 'read-mock-01',
+          mbrStoryId: 'st_fam_1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrStoryReadDt: now,
+          mbrStoryReadLastDt: now,
+          mbrStoryReadCount: 3
+        }
+      ];
     case 'mbrStoryComments':
       return [
         {
@@ -959,6 +1128,139 @@ const getInitialMockData = (tableId: string): any[] => {
           privUpdatedAt: now
         }
       ];
+    case 'mbrTopicAchievementsConnectionPrivs':
+      return [
+        {
+          privId: 'priv-achieve-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrAchievementId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+    case 'mbrTopicActivityConnectionPrivs':
+      return [
+        {
+          privId: 'priv-act-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrActivityId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+    case 'mbrTopicEducationConnectionPrivs':
+      return [
+        {
+          privId: 'priv-edu-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrEducationId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+    case 'mbrTopicEmploymentConnectionPrivs':
+      return [
+        {
+          privId: 'priv-emp-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrEmploymentId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+    case 'mbrTopicFamilyConnectionPrivs':
+      return [
+        {
+          privId: 'priv-fam-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrFamilyId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+    case 'mbrTopicHealthConnectionPrivs':
+      return [
+        {
+          privId: 'priv-health-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrHealthId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+    case 'mbrTopicRelationshipsConnectionPrivs':
+      return [
+        {
+          privId: 'priv-rel-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrRelationshipId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+    case 'mbrTopicResidenceConnectionPrivs':
+      return [
+        {
+          privId: 'priv-res-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrResidenceId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+    case 'mbrTopicSpecialEventsConnectionPrivs':
+      return [
+        {
+          privId: 'priv-spec-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrSpecialEventId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+    case 'mbrTopicTripsConnectionPrivs':
+      return [
+        {
+          privId: 'priv-trip-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          mbrTripId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+    case 'mbrTopicConnectionPrivs':
+      return [
+        {
+          privId: 'priv-topic-conn-1',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          topicId: '0aae45b5-822e-4301-acad-482d5c78ef10',
+          mbrConnectionMbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341',
+          privValueCd: 'READ',
+          privCreatedAt: now,
+          privUpdatedAt: now
+        }
+      ];
+
     case 'mbrProfileGroupPrivs':
       return [
         { privId: 'priv-profile-1', mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', grpId: 'gg-1', privValueCd: 'READ', privCreatedAt: now, privUpdatedAt: now }

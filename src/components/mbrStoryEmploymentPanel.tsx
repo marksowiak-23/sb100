@@ -1492,6 +1492,7 @@ export default function MbrStoryEmploymentPanel({
         onClose={() => setShowPrivacyModal(false)}
         mbrId={mbrId}
         topicName="Employment & Career"
+        topicItems={employmentList}
         isSandbox={isSandbox}
       />
 

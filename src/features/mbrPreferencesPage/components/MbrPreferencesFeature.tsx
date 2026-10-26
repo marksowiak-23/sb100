@@ -251,6 +251,7 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         sessionStorage.setItem('mbrPrefTheme', newTheme);
         sessionStorage.setItem('theme', newTheme);
         document.documentElement.setAttribute('data-theme', newTheme);
+        document.documentElement.classList.toggle('dark', ['Dark', 'Rustic', 'Luxury', 'Tech'].includes(newTheme));
         window.dispatchEvent(new Event('theme-changed'));
       }
 

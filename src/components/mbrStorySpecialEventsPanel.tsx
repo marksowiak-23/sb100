@@ -1335,6 +1335,7 @@ export default function MbrStorySpecialEventsPanel({
             mbrId={mbrId}
             topicId={resolvedTopicId}
             topicName="Special Events"
+            topicItems={eventsList}
             isSandbox={Boolean(isSandbox)}
           />
         )}

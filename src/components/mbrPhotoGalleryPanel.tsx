@@ -139,8 +139,35 @@ export default function MbrPhotoGalleryPanel({
           setMediaItems([]);
         }
       } else {
-        // Sandbox mode initial list
-        setMediaItems([]);
+        // Sandbox mode initial list from sessionStorage
+        const savedMedia = sessionStorage.getItem('sandbox_media');
+        if (savedMedia) {
+          try {
+            const list: MbrMedia[] = JSON.parse(savedMedia);
+            if (Array.isArray(list)) {
+              const filtered = list.filter((m) => {
+                const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
+                const targetCat = categoryCd.toLowerCase();
+                const catMatch =
+                  cat === targetCat ||
+                  (targetCat.startsWith('activ') && (cat.startsWith('activ') || cat.startsWith('hobb'))) ||
+                  (targetCat.startsWith('hobb') && (cat.startsWith('activ') || cat.startsWith('hobb'))) ||
+                  (targetCat.startsWith('residen') && (cat.startsWith('residen') || cat === 'home')) ||
+                  (targetCat.startsWith('cust') && (cat.startsWith('cust') || cat.startsWith('other'))) ||
+                  (targetCat.startsWith('other') && (cat.startsWith('cust') || cat.startsWith('other')));
+                if (subordinateId) {
+                  return catMatch && m.mbrMediaSubordinateId === subordinateId;
+                }
+                return catMatch;
+              });
+              setMediaItems(filtered);
+            }
+          } catch {
+            setMediaItems([]);
+          }
+        } else {
+          setMediaItems([]);
+        }
       }
     } catch (err: any) {
       console.warn(`Could not load ${categoryTitle} photos:`, err);
@@ -198,7 +225,7 @@ export default function MbrPhotoGalleryPanel({
           mbrMediaOriginalFilename: file.name,
           mbrMediaMimeType: file.type,
           mbrMediaCategoryCd: categoryCd,
-          mbrMediaDescription: 'Enter a Description'
+          mbrMediaDescription: ''
         });
         setMediaItems((prev) => [newMediaRecord, ...prev]);
       } else {
@@ -210,9 +237,17 @@ export default function MbrPhotoGalleryPanel({
           mbrMediaOriginalFilename: file.name,
           mbrMediaMimeType: file.type,
           mbrMediaCategoryCd: categoryCd,
-          mbrMediaDescription: 'Enter a Description',
+          mbrMediaDescription: '',
           mbrMediaCreatedAt: new Date().toISOString()
         };
+        const existingStr = sessionStorage.getItem('sandbox_media');
+        let existingList: MbrMedia[] = [];
+        if (existingStr) {
+          try {
+            existingList = JSON.parse(existingStr);
+          } catch {}
+        }
+        sessionStorage.setItem('sandbox_media', JSON.stringify([mockItem, ...existingList]));
         setMediaItems((prev) => [mockItem, ...prev]);
       }
 
@@ -236,6 +271,14 @@ export default function MbrPhotoGalleryPanel({
     try {
       if (!isSandbox && !mbrMediaId.includes('-mock-')) {
         await taskApi.deleteMemberMedia(mbrMediaId);
+      } else {
+        const existingStr = sessionStorage.getItem('sandbox_media');
+        if (existingStr) {
+          try {
+            const existingList: MbrMedia[] = JSON.parse(existingStr);
+            sessionStorage.setItem('sandbox_media', JSON.stringify(existingList.filter(item => item.mbrMediaId !== mbrMediaId)));
+          } catch {}
+        }
       }
       setMediaItems((prev) => prev.filter((item) => item.mbrMediaId !== mbrMediaId));
       setCurrentIndex(0);
@@ -256,11 +299,31 @@ export default function MbrPhotoGalleryPanel({
     setSuccessMsg(null);
 
     try {
-      const updatedDesc = editDescriptionInput.trim();
+      let updatedDesc = editDescriptionInput.trim();
+      if (updatedDesc.toLowerCase() === 'enter a description') {
+        updatedDesc = '';
+      }
       if (!isSandbox && !currentItem.mbrMediaId.includes('-mock-')) {
         await taskApi.updateMemberMedia(currentItem.mbrMediaId, {
           mbrMediaDescription: updatedDesc
         });
+      } else {
+        const existingStr = sessionStorage.getItem('sandbox_media');
+        if (existingStr) {
+          try {
+            const existingList: MbrMedia[] = JSON.parse(existingStr);
+            sessionStorage.setItem(
+              'sandbox_media',
+              JSON.stringify(
+                existingList.map((item) =>
+                  item.mbrMediaId === currentItem.mbrMediaId
+                    ? { ...item, mbrMediaDescription: updatedDesc }
+                    : item
+                )
+              )
+            );
+          } catch {}
+        }
       }
       setMediaItems((prev) =>
         prev.map((item) =>
@@ -569,20 +632,27 @@ export default function MbrPhotoGalleryPanel({
                         ) : canUpload ? (
                           <div
                             onClick={() => {
-                              setEditDescriptionInput(currentPhoto.mbrMediaDescription || '');
+                              const existingDesc = currentPhoto.mbrMediaDescription?.trim() || '';
+                              setEditDescriptionInput(
+                                existingDesc.toLowerCase() === 'enter a description' ? '' : existingDesc
+                              );
                               setIsEditingDescription(true);
                             }}
                             className="group flex items-center justify-center gap-2 bg-slate-900/70 hover:bg-slate-900/90 text-slate-300 hover:text-white px-4 py-1.5 rounded-full border border-slate-800 hover:border-slate-700 cursor-pointer transition-all mx-auto text-center"
                             title="Click to edit photo description"
                           >
                             <span className="text-xs md:text-sm font-serif truncate max-w-md">
-                              {currentPhoto.mbrMediaDescription || (
+                              {currentPhoto.mbrMediaDescription?.trim() &&
+                              currentPhoto.mbrMediaDescription.trim().toLowerCase() !== 'enter a description' ? (
+                                currentPhoto.mbrMediaDescription
+                              ) : (
                                 <span className="italic text-slate-400 group-hover:text-slate-300">Enter a Description</span>
                               )}
                             </span>
                             <Edit3 className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-400 shrink-0 transition-colors" />
                           </div>
-                        ) : currentPhoto.mbrMediaDescription ? (
+                        ) : currentPhoto.mbrMediaDescription?.trim() &&
+                          currentPhoto.mbrMediaDescription.trim().toLowerCase() !== 'enter a description' ? (
                           <div className="flex items-center justify-center bg-slate-900/70 text-slate-300 px-4 py-1.5 rounded-full border border-slate-800 mx-auto text-center">
                             <span className="text-xs md:text-sm font-serif truncate max-w-md">
                               {currentPhoto.mbrMediaDescription}

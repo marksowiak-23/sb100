@@ -1236,6 +1236,7 @@ export default function MbrStoryHealthPanel({
             mbrId={mbrId}
             topicId={topicId}
             topicName="Health"
+            topicItems={healthList}
             isSandbox={isSandbox}
             isOpen={showPrivacyModal}
             onClose={() => setShowPrivacyModal(false)}

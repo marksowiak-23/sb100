@@ -1435,6 +1435,7 @@ export default function MbrStoryEducationPanel({
         onClose={() => setShowPrivacyModal(false)}
         mbrId={mbrId}
         topicName="Education & Training"
+        topicItems={educationList}
         isSandbox={isSandbox}
       />
 

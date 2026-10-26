@@ -5,8 +5,8 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer, ArrowUpDown, ArrowUp, ArrowDown, Layout, Newspaper, Camera, Image as ImageIcon, Upload } from 'lucide-react';
-import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark, resolveMediaUrl } from '@/src/services/api';
+import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer, ArrowUpDown, ArrowUp, ArrowDown, Layout, Newspaper, Camera, Image as ImageIcon, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
+import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark, resolveMediaUrl, mediaApi, MEDIA_API_BASE_URL } from '@/src/services/api';
 import { FALLBACK_PERSONAS, WriterPersona } from '@/src/features/mbrPreferencesPage/types';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
@@ -24,6 +24,7 @@ interface StoryEditorPanelProps {
   subordinateId?: string;
   subordinateName?: string;
   memberId?: string;
+  viewerMbrId?: string | null;
   readOnly?: boolean;
   isSandbox?: boolean;
   onClose: () => void;
@@ -745,6 +746,7 @@ export default function StoryEditorPanel({
   subordinateId,
   subordinateName,
   memberId,
+  viewerMbrId: propViewerMbrId,
   readOnly = false,
   isSandbox = true,
   onClose
@@ -777,6 +779,7 @@ export default function StoryEditorPanel({
 
   const [stories, setStories] = useState<Partial<MbrStory>[]>([]);
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
+  const activeStory = useMemo(() => stories.find((s) => s.mbrStoryId === activeStoryId), [stories, activeStoryId]);
   const [isEditing, setIsEditing] = useState(false);
   
   // Form state
@@ -791,7 +794,84 @@ export default function StoryEditorPanel({
   const [headerPhotoStyle, setHeaderPhotoStyle] = useState<HeaderPhotoStyle>('banner');
   const [showPhotoSelectorModal, setShowPhotoSelectorModal] = useState<boolean>(false);
   const [availableStoryPhotos, setAvailableStoryPhotos] = useState<MbrMedia[]>([]);
+  const [uploadingHeaderPhoto, setUploadingHeaderPhoto] = useState<boolean>(false);
   const headerPhotoInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Photos associated with this specific story via the photo gallery
+  const storyGalleryPhotos = useMemo(() => {
+    if (!activeStoryId) return [];
+    return availableStoryPhotos.filter((m) => m.mbrMediaSubordinateId === activeStoryId);
+  }, [availableStoryPhotos, activeStoryId]);
+
+  // Active photo and index for Photo Layout carousel
+  const displayPhotoUrl = headerPhotoUrl || storyGalleryPhotos[0]?.mbrMediaUrl || storyGalleryPhotos[0]?.mbrMediaPath || '';
+  const currentPhotoIdx = useMemo(() => {
+    if (storyGalleryPhotos.length === 0) return 0;
+    const idx = storyGalleryPhotos.findIndex((p) => (p.mbrMediaUrl || p.mbrMediaPath) === displayPhotoUrl);
+    return idx >= 0 ? idx : 0;
+  }, [storyGalleryPhotos, displayPhotoUrl]);
+
+  const currentPhotoObj = storyGalleryPhotos[currentPhotoIdx];
+  const displayCaption = headerPhotoCaption || currentPhotoObj?.mbrMediaDesc || '';
+
+  const handlePrevPhoto = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (storyGalleryPhotos.length <= 1) return;
+    const nextIdx = currentPhotoIdx > 0 ? currentPhotoIdx - 1 : storyGalleryPhotos.length - 1;
+    const nextPhoto = storyGalleryPhotos[nextIdx];
+    const nextUrl = nextPhoto?.mbrMediaUrl || nextPhoto?.mbrMediaPath || '';
+    if (nextUrl) {
+      setHeaderPhotoUrl(nextUrl);
+      if (nextPhoto.mbrMediaDesc) {
+        setHeaderPhotoCaption(nextPhoto.mbrMediaDesc);
+      }
+      if (activeStoryId) {
+        sessionStorage.setItem(`story_header_photo_${activeStoryId}`, nextUrl);
+        if (nextPhoto.mbrMediaDesc) {
+          sessionStorage.setItem(`story_header_caption_${activeStoryId}`, nextPhoto.mbrMediaDesc);
+        }
+      }
+    }
+  };
+
+  const handleNextPhoto = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (storyGalleryPhotos.length <= 1) return;
+    const nextIdx = (currentPhotoIdx < storyGalleryPhotos.length - 1) ? currentPhotoIdx + 1 : 0;
+    const nextPhoto = storyGalleryPhotos[nextIdx];
+    const nextUrl = nextPhoto?.mbrMediaUrl || nextPhoto?.mbrMediaPath || '';
+    if (nextUrl) {
+      setHeaderPhotoUrl(nextUrl);
+      if (nextPhoto.mbrMediaDesc) {
+        setHeaderPhotoCaption(nextPhoto.mbrMediaDesc);
+      }
+      if (activeStoryId) {
+        sessionStorage.setItem(`story_header_photo_${activeStoryId}`, nextUrl);
+        if (nextPhoto.mbrMediaDesc) {
+          sessionStorage.setItem(`story_header_caption_${activeStoryId}`, nextPhoto.mbrMediaDesc);
+        }
+      }
+    }
+  };
+
+  const handleSelectCarouselIndex = (targetIdx: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (targetIdx < 0 || targetIdx >= storyGalleryPhotos.length) return;
+    const nextPhoto = storyGalleryPhotos[targetIdx];
+    const nextUrl = nextPhoto?.mbrMediaUrl || nextPhoto?.mbrMediaPath || '';
+    if (nextUrl) {
+      setHeaderPhotoUrl(nextUrl);
+      if (nextPhoto.mbrMediaDesc) {
+        setHeaderPhotoCaption(nextPhoto.mbrMediaDesc);
+      }
+      if (activeStoryId) {
+        sessionStorage.setItem(`story_header_photo_${activeStoryId}`, nextUrl);
+        if (nextPhoto.mbrMediaDesc) {
+          sessionStorage.setItem(`story_header_caption_${activeStoryId}`, nextPhoto.mbrMediaDesc);
+        }
+      }
+    }
+  };
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -1290,6 +1370,7 @@ Output Rules:
             }
           ]).map(s => ({
             ...s,
+            mbrStoryTopicName: s.mbrStoryTopicName || subordinateName || (topicTitle && topicTitle !== 'Section' ? topicTitle : undefined) || matchedTopic?.topicFullName || matchedTopic?.topicName || 'Story',
             mbrStoryTypeCd: finalStoryTypeCd,
             mbrStorySubordinateId: subordinateId || undefined,
             mbrStoryVersion: s.mbrStoryVersion || 1,
@@ -1405,10 +1486,12 @@ Output Rules:
 
           try {
             // Fetch viewer's assigned group and global Public group
-            let viewerMbrId: string | null = null;
-            const storedMbr = sessionStorage.getItem('sb_current_mbr');
-            if (storedMbr) {
-              try { viewerMbrId = JSON.parse(storedMbr).mbrId; } catch {}
+            let viewerMbrId: string | null = propViewerMbrId || null;
+            if (!viewerMbrId) {
+              const storedMbr = sessionStorage.getItem('sb_current_mbr');
+              if (storedMbr) {
+                try { viewerMbrId = JSON.parse(storedMbr).mbrId; } catch {}
+              }
             }
             if (!viewerMbrId) {
               const userStr = sessionStorage.getItem('user');
@@ -1445,8 +1528,14 @@ Output Rules:
             if (pub) publicGrpId = pub.grpId;
             if (!publicGrpId) publicGrpId = '13efcbad-d840-44ad-9b50-d6d2218e5cac';
 
-            // Fetch all story group privs
-            const allStoryPrivs = await taskApi.getMemberStoryGroupPrivs().catch(() => []);
+            // Fetch both story group privs AND individual connection privs for the viewer
+            const [allStoryPrivs, allStoryConnPrivs] = await Promise.all([
+              taskApi.getMemberStoryGroupPrivs().catch(() => []),
+              viewerMbrId
+                ? taskApi.getMemberStoryConnectionPrivs({ mbrConnectionMbrId: viewerMbrId }).catch(() => [])
+                : Promise.resolve([])
+            ]);
+
             const privsByStoryId = new Map<string, any[]>();
             for (const sp of (allStoryPrivs || [])) {
               if (sp.mbrStoryId) {
@@ -1456,48 +1545,90 @@ Output Rules:
               }
             }
 
-            // Filter by story group privileges (user must be in a group with view or view & comment privs)
+            const connPrivsByStoryId = new Map<string, any[]>();
+            for (const cp of (allStoryConnPrivs || [])) {
+              if (cp.mbrStoryId) {
+                const list = connPrivsByStoryId.get(cp.mbrStoryId) || [];
+                list.push(cp);
+                connPrivsByStoryId.set(cp.mbrStoryId, list);
+              }
+            }
+
+            const isPrivAllow = (val?: string) => {
+              if (!val) return false;
+              const upper = val.toUpperCase().trim();
+              return upper === 'READ' || upper === 'WRITE' || upper === 'VIEW' || upper.includes('VIEW') || upper.includes('COMMENT') || upper === 'ALLOW';
+            };
+
+            const isPrivDeny = (val?: string) => {
+              if (!val) return false;
+              const upper = val.toUpperCase().trim();
+              return upper === 'NONE' || upper === 'HIDE' || upper === 'DENY' || upper === 'RESTRICTED';
+            };
+
+            // Filter by story group privileges AND individual connection privileges:
+            // "if you don't find privs for the member, assume no access.
+            // It is super critical that we don't give access to member story and panels if not if group or member privs don't align."
             candidateList = candidateList.filter(story => {
-              const storyPrivs = story.mbrStoryId ? (privsByStoryId.get(story.mbrStoryId) || []) : [];
-              if (storyPrivs.length === 0) {
-                return true;
+              const sId = story.mbrStoryId;
+              if (!sId) return false;
+
+              const storyGrpPrivs = privsByStoryId.get(sId) || [];
+              const storyConnPrivs = connPrivsByStoryId.get(sId) || [];
+
+              // 1. If no privileges at all exist for this story: assume no access!
+              if (storyGrpPrivs.length === 0 && storyConnPrivs.length === 0) {
+                return false;
               }
 
-              let hasAccess = false;
-              let hasDenial = false;
-
-              const isPrivAllow = (val?: string) => {
-                if (!val) return false;
-                const upper = val.toUpperCase().trim();
-                return upper === 'READ' || upper === 'WRITE' || upper === 'VIEW' || upper.includes('VIEW') || upper.includes('COMMENT') || upper === 'ALLOW';
-              };
+              let grpAllow = false;
+              let grpDeny = false;
 
               if (assignedGrpId) {
-                const assignedPriv = storyPrivs.find(p => p.grpId === assignedGrpId);
+                const assignedPriv = storyGrpPrivs.find(p => p.grpId === assignedGrpId);
                 if (assignedPriv) {
-                  const val = (assignedPriv.privValueCd || '').toUpperCase();
-                  if (isPrivAllow(val)) {
-                    hasAccess = true;
-                  } else if (val === 'NONE' || val === 'HIDE') {
-                    hasDenial = true;
+                  if (isPrivAllow(assignedPriv.privValueCd)) {
+                    grpAllow = true;
+                  } else if (isPrivDeny(assignedPriv.privValueCd)) {
+                    grpDeny = true;
                   }
                 }
               }
 
-              if (!hasAccess && !hasDenial && publicGrpId) {
-                const pubPriv = storyPrivs.find(p => p.grpId === publicGrpId);
+              if (!grpAllow && !grpDeny && publicGrpId) {
+                const pubPriv = storyGrpPrivs.find(p => p.grpId === publicGrpId);
                 if (pubPriv) {
-                  const val = (pubPriv.privValueCd || '').toUpperCase();
-                  if (isPrivAllow(val)) {
-                    hasAccess = true;
+                  if (isPrivAllow(pubPriv.privValueCd)) {
+                    grpAllow = true;
+                  } else if (isPrivDeny(pubPriv.privValueCd)) {
+                    grpDeny = true;
                   }
                 }
               }
 
-              return hasAccess;
+              let memberAllow = false;
+              let memberDeny = false;
+
+              if (viewerMbrId) {
+                const memberPriv = storyConnPrivs.find(p => p.mbrConnectionMbrId === viewerMbrId);
+                if (memberPriv) {
+                  if (isPrivAllow(memberPriv.privValueCd)) {
+                    memberAllow = true;
+                  } else if (isPrivDeny(memberPriv.privValueCd)) {
+                    memberDeny = true;
+                  }
+                }
+              }
+
+              // Strict alignment:
+              // - Must have at least one allow (group or member)
+              // - Must have ZERO denials (neither group nor member can be denied)
+              if (grpDeny || memberDeny) return false;
+              return grpAllow || memberAllow;
             });
           } catch (e) {
-            console.warn("Error evaluating story group privileges in StoryEditorPanel:", e);
+            console.warn("Error evaluating story privileges in StoryEditorPanel:", e);
+            candidateList = [];
           }
           accessibleStories = candidateList;
         }
@@ -1974,10 +2105,10 @@ Output Rules:
 
     const newId = `temp_${Date.now()}`;
     const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly') ? 'sbMbrStryFamly' : (componentName || componentNameMap[topicId?.toLowerCase()] || topicId);
-    const resolvedTopicName = customTopicName || subordinateName || (isOtherOrCustom ? (subordinateName || topicTitle) : undefined);
+    const resolvedTopicName = customTopicName || subordinateName || (topicTitle && topicTitle !== 'Section' ? topicTitle : undefined) || matchedTopic?.topicFullName || matchedTopic?.topicName || 'Story';
     const newStory: Partial<MbrStory> = {
       mbrStoryId: newId,
-      mbrStoryTitle: customTopicName ? `Story of ${customTopicName}` : (subordinateName ? `Story of ${subordinateName}` : (isOtherOrCustom ? 'New Custom Topic Story' : `New ${topicTitle} Story`)),
+      mbrStoryTitle: customTopicName ? `Story of ${customTopicName}` : (subordinateName ? `Story of ${subordinateName}` : (isOtherOrCustom ? 'New Custom Topic Story' : `New ${topicTitle && topicTitle !== 'Section' ? topicTitle : 'Story'} Story`)),
       mbrStoryContent: '',
       mbrStoryPublishStatusCd: 'Draft',
       mbrStoryTypeCd: finalStoryTypeCd,
@@ -2035,7 +2166,12 @@ Output Rules:
       const validTopicId = isUuid(activeStory?.topicId) ? activeStory?.topicId : (isUuid(resolvedTopicId) ? resolvedTopicId : fallbackTopicId);
       const validChIntentId = isUuid(activeIntentId) ? activeIntentId : (isUuid(activeStory?.chIntentId) ? activeStory?.chIntentId : (isUuid(resolvedChIntentId) ? resolvedChIntentId : fallbackChIntentId));
 
-      const derivedTopicStr = activeStory?.mbrStoryTopicName || subordinateName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined) || 'Other';
+      const isTopicOtherOrCustom = (topicId || '').toLowerCase() === 'other' || (topicId || '').toLowerCase() === 'custom' || (topicTitle || '').toLowerCase() === 'other' || (topicTitle || '').toLowerCase() === 'custom';
+      const effectiveStoryTopic = (activeStory?.mbrStoryTopicName && (isTopicOtherOrCustom || activeStory.mbrStoryTopicName !== 'Other'))
+        ? activeStory.mbrStoryTopicName
+        : undefined;
+
+      const derivedTopicStr = effectiveStoryTopic || subordinateName || (topicTitle && topicTitle !== 'Section' ? topicTitle : undefined) || matchedTopic?.topicFullName || matchedTopic?.topicName || 'Other';
       const cleanTopicName = derivedTopicStr ? derivedTopicStr.slice(0, 40) : undefined;
 
       // Prepare content with layout metadata if custom layout or header photo is configured
@@ -2268,7 +2404,12 @@ Output Rules:
       const validTopicId = isUuid(activeStory?.topicId) ? activeStory?.topicId : (isUuid(resolvedTopicId) ? resolvedTopicId : fallbackTopicId);
       const validChIntentId = isUuid(activeIntentId) ? activeIntentId : (isUuid(activeStory?.chIntentId) ? activeStory?.chIntentId : (isUuid(resolvedChIntentId) ? resolvedChIntentId : fallbackChIntentId));
 
-      const derivedTopicStr = activeStory?.mbrStoryTopicName || subordinateName || (topicId?.toLowerCase() === 'other' ? (subordinateName || topicTitle) : undefined) || 'Other';
+      const isTopicOtherOrCustom = (topicId || '').toLowerCase() === 'other' || (topicId || '').toLowerCase() === 'custom' || (topicTitle || '').toLowerCase() === 'other' || (topicTitle || '').toLowerCase() === 'custom';
+      const effectiveStoryTopic = (activeStory?.mbrStoryTopicName && (isTopicOtherOrCustom || activeStory.mbrStoryTopicName !== 'Other'))
+        ? activeStory.mbrStoryTopicName
+        : undefined;
+
+      const derivedTopicStr = effectiveStoryTopic || subordinateName || (topicTitle && topicTitle !== 'Section' ? topicTitle : undefined) || matchedTopic?.topicFullName || matchedTopic?.topicName || 'Other';
       const cleanTopicName = derivedTopicStr ? derivedTopicStr.slice(0, 40) : undefined;
 
       // Preserve layout metadata when publishing
@@ -2433,7 +2574,7 @@ Output Rules:
     setStoryLayout(newLayout);
     let activePhoto = headerPhotoUrl;
     if (newLayout === 'news_header' && !activePhoto) {
-      activePhoto = availableStoryPhotos[0]?.mbrMediaUrl || SAMPLE_HEADER_PHOTOS[0].url;
+      activePhoto = storyGalleryPhotos[0]?.mbrMediaUrl || storyGalleryPhotos[0]?.mbrMediaPath || '';
       setHeaderPhotoUrl(activePhoto);
     }
 
@@ -2486,7 +2627,7 @@ Output Rules:
     }
   };
 
-  const handleHeaderPhotoFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleHeaderPhotoFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -2496,18 +2637,128 @@ Output Rules:
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setHeaderPhotoUrl(result);
-        setStoryLayout('news_header');
-        setShowPhotoSelectorModal(false);
-        setSuccessMsg('Selected new photo for story header!');
+    const validMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+    const validExtensions = /\.(jpg|jpeg|png|gif|webp|svg)$/i;
+    if (!validMimeTypes.includes(file.type) && !validExtensions.test(file.name)) {
+      setError('Invalid file format. Please upload an image file.');
+      e.target.value = '';
+      return;
+    }
+
+    setUploadingHeaderPhoto(true);
+    setError(null);
+
+    try {
+      // 1. Ensure we have an active story ID. If activeStoryId is temporary in live DB mode, persist draft first
+      let currentStoryId = activeStoryId;
+      if (!isSandbox && currentStoryId && currentStoryId.startsWith('temp_')) {
+        try {
+          const draftPayload: Partial<MbrStory> = {
+            mbrMbrId: resolvedMbrId,
+            mbrStoryTitle: (title.trim() || 'Untitled Story').slice(0, 240),
+            mbrStoryContent: content || '',
+            mbrStoryPublishStatusCd: 'Draft',
+            mbrStoryTypeCd: componentName || componentNameMap[topicId?.toLowerCase()] || 'sbMbrStryCustom',
+            mbrStoryLayoutCd: 'news_header',
+            topicId: resolvedTopicId || undefined,
+            chIntentId: resolvedChIntentId || undefined,
+          };
+          const createdStory = await taskApi.createStory(draftPayload);
+          currentStoryId = createdStory.mbrStoryId;
+          setActiveStoryId(currentStoryId);
+          setStories((prev) => prev.map((s) => s.mbrStoryId === activeStoryId ? createdStory : s));
+        } catch (storyErr) {
+          console.warn('Could not auto-create draft story before photo upload:', storyErr);
+        }
       }
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
+
+      // 2. Upload file to media service in same folder structure as MbrPhotoGalleryPanel
+      const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const targetSubordinateId = (currentStoryId && isUuid(currentStoryId)) ? currentStoryId : (currentStoryId || undefined);
+      const destinationPath = targetSubordinateId
+        ? `member/${resolvedMbrId}/${resolvedCategoryCd.toLowerCase()}/${targetSubordinateId}/${cleanFileName}`
+        : `member/${resolvedMbrId}/${resolvedCategoryCd.toLowerCase()}/${cleanFileName}`;
+
+      const uploadRes = await mediaApi.uploadMedia(file, destinationPath);
+      const mediaBase = MEDIA_API_BASE_URL;
+      const rawUrl = uploadRes.data?.name
+        ? `${mediaBase}/media/read/${uploadRes.data.name}`
+        : `${mediaBase}/media/read/${destinationPath}`;
+      const storageUrl = resolveMediaUrl(rawUrl);
+
+      // 3. Store photo record associated with the story in the same way the photo gallery works
+      if (!isSandbox) {
+        const newMediaRecord = await taskApi.createMemberMedia({
+          mbrId: resolvedMbrId,
+          mbrMediaSubordinateId: (targetSubordinateId && isUuid(targetSubordinateId)) ? targetSubordinateId : undefined,
+          mbrMediaPath: storageUrl,
+          mbrMediaOriginalFilename: file.name,
+          mbrMediaMimeType: file.type,
+          mbrMediaCategoryCd: resolvedCategoryCd,
+          mbrMediaDescription: title || `${topicTitle} Story Photo`
+        });
+        setAvailableStoryPhotos((prev) => [newMediaRecord, ...prev]);
+        if (targetSubordinateId) {
+          setStoryPhotosCountMap((prev) => ({
+            ...prev,
+            [targetSubordinateId]: (prev[targetSubordinateId] || 0) + 1
+          }));
+        }
+      } else {
+        const mockItem: MbrMedia = {
+          mbrMediaId: `${resolvedCategoryCd.toLowerCase()}-mock-${Date.now()}`,
+          mbrId: resolvedMbrId,
+          mbrMediaSubordinateId: targetSubordinateId,
+          mbrMediaPath: storageUrl,
+          mbrMediaOriginalFilename: file.name,
+          mbrMediaMimeType: file.type,
+          mbrMediaCategoryCd: resolvedCategoryCd,
+          mbrMediaDescription: title || `${topicTitle} Story Photo`,
+          mbrMediaCreatedAt: new Date().toISOString()
+        };
+        const existingStr = sessionStorage.getItem('sandbox_media');
+        let existingList: MbrMedia[] = [];
+        if (existingStr) {
+          try {
+            existingList = JSON.parse(existingStr);
+          } catch {}
+        }
+        sessionStorage.setItem('sandbox_media', JSON.stringify([mockItem, ...existingList]));
+        setAvailableStoryPhotos((prev) => [mockItem, ...prev]);
+        if (targetSubordinateId) {
+          setStoryPhotosCountMap((prev) => ({
+            ...prev,
+            [targetSubordinateId]: (prev[targetSubordinateId] || 0) + 1
+          }));
+        }
+      }
+
+      // 4. Set as active hero photo for story
+      setHeaderPhotoUrl(storageUrl);
+      setStoryLayout('news_header');
+      if (!headerPhotoCaption) {
+        setHeaderPhotoCaption(title || '');
+      }
+      setShowPhotoSelectorModal(false);
+      setSuccessMsg('Photo uploaded and associated with story successfully!');
+    } catch (err: any) {
+      console.error('Error uploading story header photo:', err);
+      // Local preview fallback in case of offline/network issue
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        if (result) {
+          setHeaderPhotoUrl(result);
+          setStoryLayout('news_header');
+          setShowPhotoSelectorModal(false);
+          setSuccessMsg('Selected local photo for story header.');
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setUploadingHeaderPhoto(false);
+      e.target.value = '';
+    }
   };
 
   const handlePrivacyClick = () => {
@@ -2751,6 +3002,24 @@ Output Rules:
       ) : isEditing ? (
         /* EDIT MODE */
         <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 text-xs text-slate-600 font-sans">
+              <span className="font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">Topic:</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/80">
+                {activeStory?.mbrStoryTopicName || (subordinateName ? `${topicTitle} (${subordinateName})` : topicTitle)}
+              </span>
+            </div>
+            {status && (
+              <span className={`text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full border ${
+                status.toLowerCase() === 'published'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
+              }`}>
+                {status}
+              </span>
+            )}
+          </div>
+
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
               Story Title
@@ -2810,7 +3079,7 @@ Output Rules:
                 onClick={() => {
                   setStoryLayout('news_header');
                   if (!headerPhotoUrl) {
-                    const fallback = availableStoryPhotos[0]?.mbrMediaUrl || SAMPLE_HEADER_PHOTOS[0].url;
+                    const fallback = storyGalleryPhotos[0]?.mbrMediaUrl || storyGalleryPhotos[0]?.mbrMediaPath || '';
                     setHeaderPhotoUrl(fallback);
                   }
                 }}
@@ -2853,7 +3122,10 @@ Output Rules:
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => setShowPhotoSelectorModal(true)}
+                      onClick={() => {
+                        loadStoryPhotoCounts();
+                        setShowPhotoSelectorModal(true);
+                      }}
                       className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <ImageIcon className="w-3.5 h-3.5" />
@@ -2870,14 +3142,37 @@ Output Rules:
                   </div>
                 </div>
 
-                {headerPhotoUrl ? (
+                {displayPhotoUrl ? (
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 bg-white p-3 rounded-xl border border-slate-200">
-                    <div className="relative w-full sm:w-36 h-28 sm:h-24 rounded-lg overflow-hidden shrink-0 border border-slate-100 bg-slate-100 shadow-2xs">
+                    <div className="relative w-full sm:w-36 h-28 sm:h-24 rounded-lg overflow-hidden shrink-0 border border-slate-100 bg-slate-100 shadow-2xs group/thumb">
                       <img
-                        src={resolveMediaUrl(headerPhotoUrl)}
+                        src={resolveMediaUrl(displayPhotoUrl)}
                         alt="Header preview"
                         className="w-full h-full object-cover"
                       />
+                      {storyGalleryPhotos.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handlePrevPhoto}
+                            title="Previous story photo"
+                            className="absolute left-1 top-1/2 -translate-y-1/2 p-1 bg-black/60 hover:bg-black text-white rounded-full transition-colors cursor-pointer"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleNextPhoto}
+                            title="Next story photo"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 p-1 bg-black/60 hover:bg-black text-white rounded-full transition-colors cursor-pointer"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                          <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-black/60 text-[9px] font-mono text-white font-bold">
+                            {currentPhotoIdx + 1}/{storyGalleryPhotos.length}
+                          </div>
+                        </>
+                      )}
                       <button
                         type="button"
                         onClick={() => setHeaderPhotoUrl('')}
@@ -2930,7 +3225,10 @@ Output Rules:
                   </div>
                 ) : (
                   <div
-                    onClick={() => setShowPhotoSelectorModal(true)}
+                    onClick={() => {
+                      loadStoryPhotoCounts();
+                      setShowPhotoSelectorModal(true);
+                    }}
                     className="flex flex-col items-center justify-center p-4 border border-dashed border-amber-300 bg-amber-50/50 hover:bg-amber-50/90 rounded-xl cursor-pointer transition-colors text-center gap-1.5"
                   >
                     <div className="p-2 bg-amber-100 text-amber-700 rounded-full">
@@ -2940,7 +3238,7 @@ Output Rules:
                       Choose or upload a photo for the story header
                     </p>
                     <p className="text-[11px] text-amber-700">
-                      Select from your gallery or choose one of our archival presets to give your story a news editorial look.
+                      Select a photo from your story gallery or upload an image to give your story a news editorial look.
                     </p>
                   </div>
                 )}
@@ -3036,6 +3334,21 @@ Output Rules:
                 <span>{saving ? 'Saving...' : 'Save'}</span>
               </button>
             </div>
+          </div>
+        </div>
+      ) : readOnly && stories.length === 0 ? (
+        /* NO ACCESSIBLE STORIES STATE */
+        <div className="bg-white border border-[#EFECE7] rounded-2xl py-12 px-6 text-center flex flex-col items-center justify-center gap-3.5 shadow-xs">
+          <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200/60 shadow-2xs">
+            <ShieldAlert className="w-6 h-6" />
+          </div>
+          <div className="space-y-1.5 max-w-sm">
+            <h4 className="font-serif text-base font-bold text-slate-800">
+              No Accessible Stories
+            </h4>
+            <p className="text-xs text-slate-500 font-sans leading-relaxed">
+              No stories in this topic have been shared with your connection group or individual account. Group and individual privacy settings must align to grant access.
+            </p>
           </div>
         </div>
       ) : (
@@ -3186,17 +3499,19 @@ Output Rules:
                               </button>
 
                               {/* Privacy Settings */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowActionMenu(false);
-                                  handlePrivacyClick();
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer text-left"
-                              >
-                                <ShieldAlert className="w-4 h-4 text-slate-500 shrink-0" />
-                                <span>Privacy Settings</span>
-                              </button>
+                              {!readOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowActionMenu(false);
+                                    handlePrivacyClick();
+                                  }}
+                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer text-left"
+                                >
+                                  <ShieldAlert className="w-4 h-4 text-slate-500 shrink-0" />
+                                  <span>Privacy Settings</span>
+                                </button>
+                              )}
 
                               {/* Print to PDF */}
                               <button
@@ -3274,7 +3589,7 @@ Output Rules:
             </div>
 
             {/* --- STORY PRESENTATION: NEWS HEADER WITH PHOTO vs. DEFAULT --- */}
-            {storyLayout === 'news_header' && headerPhotoUrl ? (
+            {storyLayout === 'news_header' && (displayPhotoUrl || storyGalleryPhotos.length > 0) ? (
               /* NEWS HEADER WITH PHOTO EDITORIAL PRESENTATION */
               <div className="flex flex-col gap-4">
                 {headerPhotoStyle === 'banner' ? (
@@ -3282,17 +3597,66 @@ Output Rules:
                   <div className="flex flex-col gap-3">
                     <div className="relative w-full rounded-2xl overflow-hidden border border-[#EFECE7] bg-slate-900 shadow-sm max-h-[360px] sm:max-h-[420px] group/hero">
                       <img
-                        src={resolveMediaUrl(headerPhotoUrl)}
-                        alt={headerPhotoCaption || title || 'Story hero photograph'}
+                        src={resolveMediaUrl(displayPhotoUrl)}
+                        alt={displayCaption || title || 'Story hero photograph'}
                         className="w-full h-[220px] sm:h-[320px] md:h-[350px] object-cover transition-transform duration-500 group-hover/hero:scale-[1.01]"
                       />
-                      {headerPhotoCaption && (
+
+                      {/* Carousel controls if more than 1 picture associated with story */}
+                      {storyGalleryPhotos.length > 1 && (
+                        <>
+                          {/* Previous Button */}
+                          <button
+                            type="button"
+                            onClick={handlePrevPhoto}
+                            aria-label="Previous photo"
+                            className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/hero:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                          </button>
+
+                          {/* Next Button */}
+                          <button
+                            type="button"
+                            onClick={handleNextPhoto}
+                            aria-label="Next photo"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/hero:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
+                          >
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+
+                          {/* Indicator badge */}
+                          <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-[11px] font-mono text-white font-bold shadow-xs z-10">
+                            <Images className="w-3.5 h-3.5 text-amber-400" />
+                            <span>{currentPhotoIdx + 1} / {storyGalleryPhotos.length}</span>
+                          </div>
+
+                          {/* Dot navigation */}
+                          <div className="absolute bottom-11 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                            {storyGalleryPhotos.map((_, idx) => (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={(e) => handleSelectCarouselIndex(idx, e)}
+                                className={`rounded-full transition-all cursor-pointer ${
+                                  idx === currentPhotoIdx
+                                    ? 'bg-amber-400 w-4 h-1.5 shadow-xs'
+                                    : 'bg-white/60 hover:bg-white w-1.5 h-1.5'
+                                }`}
+                                aria-label={`Go to photo ${idx + 1}`}
+                              />
+                            ))}
+                          </div>
+                        </>
+                      )}
+
+                      {displayCaption && (
                         <div className="px-3 py-2 bg-slate-900/85 backdrop-blur-xs text-white text-xs font-sans flex items-center justify-between border-t border-white/10">
-                          <span className="italic flex items-center gap-1.5 text-slate-200">
+                          <span className="italic flex items-center gap-1.5 text-slate-200 truncate">
                             <Camera className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                            {headerPhotoCaption}
+                            <span className="truncate">{displayCaption}</span>
                           </span>
-                          <span className="text-[10px] text-slate-400 uppercase tracking-widest hidden sm:inline">
+                          <span className="text-[10px] text-slate-400 uppercase tracking-widest hidden sm:inline shrink-0 ml-2">
                             Editorial Photo
                           </span>
                         </div>
@@ -3330,24 +3694,69 @@ Output Rules:
                           </>
                         )}
                       </div>
-                      {headerPhotoCaption && (
+                      {displayCaption && (
                         <div className="p-2.5 bg-amber-50/60 border-l-2 border-amber-500 rounded-r-lg text-xs font-serif italic text-amber-900 mt-1">
-                          “{headerPhotoCaption}”
+                          “{displayCaption}”
                         </div>
                       )}
                     </div>
 
                     <div className="md:col-span-5 flex flex-col gap-1.5">
-                      <div className="rounded-2xl overflow-hidden border border-[#EFECE7] bg-slate-100 shadow-sm max-h-[250px]">
+                      <div className="relative rounded-2xl overflow-hidden border border-[#EFECE7] bg-slate-900 shadow-sm max-h-[250px] group/split">
                         <img
-                          src={resolveMediaUrl(headerPhotoUrl)}
-                          alt={headerPhotoCaption || title || 'Story headline photograph'}
+                          src={resolveMediaUrl(displayPhotoUrl)}
+                          alt={displayCaption || title || 'Story headline photograph'}
                           className="w-full h-full max-h-[240px] object-cover"
                         />
+
+                        {/* Carousel controls if more than 1 picture associated with story */}
+                        {storyGalleryPhotos.length > 1 && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={handlePrevPhoto}
+                              aria-label="Previous photo"
+                              className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/split:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
+                            >
+                              <ChevronLeft className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleNextPhoto}
+                              aria-label="Next photo"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/split:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
+                            >
+                              <ChevronRight className="w-4 h-4" />
+                            </button>
+
+                            {/* Indicator badge */}
+                            <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[10px] font-mono text-white font-bold z-10">
+                              <span>{currentPhotoIdx + 1} / {storyGalleryPhotos.length}</span>
+                            </div>
+
+                            {/* Dot navigation */}
+                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10">
+                              {storyGalleryPhotos.map((_, idx) => (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={(e) => handleSelectCarouselIndex(idx, e)}
+                                  className={`rounded-full transition-all cursor-pointer ${
+                                    idx === currentPhotoIdx
+                                      ? 'bg-amber-400 w-3.5 h-1.5 shadow-xs'
+                                      : 'bg-white/60 hover:bg-white w-1.5 h-1.5'
+                                  }`}
+                                  aria-label={`Go to photo ${idx + 1}`}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
                       </div>
-                      {headerPhotoCaption && (
+                      {displayCaption && (
                         <p className="text-[11px] text-slate-500 font-serif italic px-1 text-center">
-                          {headerPhotoCaption}
+                          {displayCaption}
                         </p>
                       )}
                     </div>
@@ -3389,10 +3798,10 @@ Output Rules:
             {/* Footer with Metadata & Print CTA */}
             <div className="flex items-center justify-between pt-3 border-t border-slate-100 flex-wrap gap-2">
               <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 font-bold">
-                <span>Topic: {topicTitle}</span>
+                <span>Topic: {activeStory?.mbrStoryTopicName || (subordinateName ? `${topicTitle} (${subordinateName})` : topicTitle)}</span>
                 <span>•</span>
                 <span>{wordCount} words</span>
-                {storyLayout === 'news_header' && headerPhotoUrl && (
+                {storyLayout === 'news_header' && displayPhotoUrl && (
                   <>
                     <span>•</span>
                     <span className="text-amber-600">Photo Layout</span>
@@ -3887,7 +4296,7 @@ Output Rules:
                       Choose Story Header Photo
                     </h3>
                     <p className="text-xs text-slate-500 font-medium">
-                      Select an archival preset or choose from your uploaded photos to style the story header.
+                      Select a photo from your story gallery or upload an image to style the story header.
                     </p>
                   </div>
                 </div>
@@ -3906,25 +4315,52 @@ Output Rules:
                   <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
                     Upload from Device
                   </span>
-                  <div
+                  <button
+                    type="button"
+                    disabled={uploadingHeaderPhoto}
                     onClick={() => headerPhotoInputRef.current?.click()}
-                    className="flex items-center justify-center gap-2 p-3.5 border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/40 hover:bg-blue-50 rounded-2xl cursor-pointer transition-colors text-center group"
+                    className="w-full flex items-center justify-center gap-2 p-3.5 border-2 border-dashed border-blue-200 hover:border-blue-400 bg-blue-50/40 hover:bg-blue-50 rounded-2xl cursor-pointer transition-colors text-center group disabled:opacity-60"
                   >
-                    <Upload className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
-                    <span className="text-xs font-bold text-blue-700">
-                      Upload an Image from Your Computer
-                    </span>
-                  </div>
+                    {uploadingHeaderPhoto ? (
+                      <>
+                        <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                        <span className="text-xs font-bold text-blue-700">
+                          Uploading and associating photo with story gallery...
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-bold text-blue-700">
+                          Upload an Image from Your Computer
+                        </span>
+                      </>
+                    )}
+                  </button>
                 </div>
 
-                {/* Section 2: Member / Story Uploaded Photos */}
-                {availableStoryPhotos.length > 0 && (
-                  <div className="flex flex-col gap-2">
+                {/* Section 2: Photos Associated with this Story via Photo Gallery */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                      Your Gallery Photos ({availableStoryPhotos.length})
+                      Story Gallery Photos ({storyGalleryPhotos.length})
                     </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPhotoSelectorModal(false);
+                        setShowPhotoGalleryModal(true);
+                      }}
+                      className="text-[11px] font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Images className="w-3.5 h-3.5" />
+                      <span>Open Photo Gallery</span>
+                    </button>
+                  </div>
+
+                  {storyGalleryPhotos.length > 0 ? (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                      {availableStoryPhotos.map((photo, pIdx) => {
+                      {storyGalleryPhotos.map((photo, pIdx) => {
                         const url = photo.mbrMediaUrl || photo.mbrMediaPath || '';
                         const isSelected = headerPhotoUrl === url;
                         return (
@@ -3946,7 +4382,7 @@ Output Rules:
                           >
                             <img
                               src={resolveMediaUrl(url)}
-                              alt={photo.mbrMediaDesc || 'Member photo'}
+                              alt={photo.mbrMediaDesc || 'Story photo'}
                               className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-200"
                             />
                             {isSelected && (
@@ -3963,51 +4399,24 @@ Output Rules:
                         );
                       })}
                     </div>
-                  </div>
-                )}
-
-                {/* Section 3: Archival Presets */}
-                <div className="flex flex-col gap-2">
-                  <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest">
-                    Archival Presets & Kept Memories
-                  </span>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {SAMPLE_HEADER_PHOTOS.map((item, idx) => {
-                      const isSelected = headerPhotoUrl === item.url;
-                      return (
-                        <div
-                          key={idx}
-                          onClick={() => {
-                            setHeaderPhotoUrl(item.url);
-                            setStoryLayout('news_header');
-                            if (!headerPhotoCaption) {
-                              setHeaderPhotoCaption(item.label);
-                            }
-                            setShowPhotoSelectorModal(false);
-                          }}
-                          className={`group relative rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
-                            isSelected
-                              ? 'border-amber-500 shadow-md ring-2 ring-amber-500/30'
-                              : 'border-slate-200 hover:border-slate-400'
-                          }`}
-                        >
-                          <img
-                            src={resolveMediaUrl(item.url)}
-                            alt={item.label}
-                            className="w-full h-24 object-cover group-hover:scale-105 transition-transform duration-200"
-                          />
-                          {isSelected && (
-                            <div className="absolute top-1.5 right-1.5 p-1 bg-amber-500 text-white rounded-full">
-                              <Check className="w-3 h-3" />
-                            </div>
-                          )}
-                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-1.5 pt-4 text-[10px] font-sans font-medium text-white truncate">
-                            {item.label}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  ) : (
+                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <Images className="w-4 h-4 text-slate-400 shrink-0" />
+                        <span>No photos associated with this story yet.</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPhotoSelectorModal(false);
+                          setShowPhotoGalleryModal(true);
+                        }}
+                        className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                      >
+                        Add to Gallery
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 

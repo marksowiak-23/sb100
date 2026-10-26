@@ -1209,6 +1209,7 @@ export default function MbrStoryActivityPanel({
         onClose={() => setShowPrivacyModal(false)}
         mbrId={mbrId}
         topicName="Activities & Hobbies"
+        topicItems={activityList}
         isSandbox={isSandbox}
       />
 

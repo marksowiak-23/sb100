@@ -128,7 +128,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
         className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 md:p-8 shadow-sm relative overflow-hidden"
       >
         {/* Top bar */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 mb-6">
           <button
             type="button"
             onClick={() => setActiveTab('publicPage')}
@@ -193,7 +193,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
         {/* --- STANDARD IDLE / FORM STATE --- */}
         {statusState !== 'authenticating' && statusState !== 'success' && (
           <>
-            <div className="text-center space-y-1">
+            <div className="text-center space-y-1 mb-6">
               <h2 className="font-serif text-2xl font-black text-slate-800 tracking-tight">
                 Welcome Back
               </h2>
@@ -207,7 +207,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
               <motion.div
                 initial={{ opacity: 0, y: -6 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-3.5 bg-rose-50 border border-rose-150 rounded-2xl flex items-start gap-2.5 text-rose-700 text-xs"
+                className="mb-4 p-3.5 bg-rose-50 border border-rose-150 rounded-2xl flex items-start gap-2.5 text-rose-700 text-xs"
               >
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span className="font-medium leading-relaxed">{errorMessage}</span>

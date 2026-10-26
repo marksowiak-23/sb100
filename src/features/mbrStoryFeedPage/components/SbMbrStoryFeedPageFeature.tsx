@@ -8,6 +8,7 @@ import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import { FeedStoryItem } from './MbrStoryFeedStoryPanel';
+import { ReadFilterMode } from './StoryFeedSubHeaderPanel';
 import { MEMBER_STORIES } from '@/src/features/publicPage/constants/memberData';
 import { taskApi, resolveMediaUrl, MbrStory } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -242,6 +243,23 @@ export default function SbMbrStoryFeedPageFeature({
     } catch {}
     return new Set();
   });
+  const [readFilterMode, setReadFilterMode] = useState<ReadFilterMode>(() => {
+    try {
+      const saved = localStorage.getItem('sb_feed_read_mode') || sessionStorage.getItem('sb_feed_read_mode');
+      if (saved === 'move_to_end' || saved === 'hide' || saved === 'all') {
+        return saved as ReadFilterMode;
+      }
+    } catch {}
+    return 'move_to_end'; // Default as requested: read stories moved to end
+  });
+
+  const handleReadFilterModeChange = useCallback((mode: ReadFilterMode) => {
+    setReadFilterMode(mode);
+    try {
+      localStorage.setItem('sb_feed_read_mode', mode);
+      sessionStorage.setItem('sb_feed_read_mode', mode);
+    } catch {}
+  }, []);
   const [loading, setLoading] = useState<boolean>(() => {
     try {
       const cached = sessionStorage.getItem('sb_cached_feed_stories');
@@ -379,7 +397,8 @@ export default function SbMbrStoryFeedPageFeature({
           allStoryPrivs,
           groupsGlobal,
           groupsCustom,
-          connPrivsForViewer
+          connPrivsForViewer,
+          memberStoryReads
         ] = await Promise.all([
           taskApi.getMemberConnections({ mbrId: resolvedViewerId }).catch(() => []),
           taskApi.getMemberConnections({ connectedMbrId: resolvedViewerId }).catch(() => []),
@@ -390,10 +409,29 @@ export default function SbMbrStoryFeedPageFeature({
           taskApi.getMemberStoryGroupPrivs({ limit: 1000 }).catch(() => []),
           taskApi.getGroupsGlobal().catch(() => []),
           taskApi.getGroupsCustom(resolvedViewerId).catch(() => []),
-          taskApi.getMemberStoryConnectionPrivs({ mbrConnectionMbrId: resolvedViewerId, limit: 1000 }).catch(() => [])
+          taskApi.getMemberStoryConnectionPrivs({ mbrConnectionMbrId: resolvedViewerId, limit: 1000 }).catch(() => []),
+          taskApi.getMemberStoryReads(resolvedViewerId).catch(() => [])
         ]);
 
         if (isCancelled) return;
+
+        // Populate read stories set from database and merge with sessionStorage
+        const loadedReadSet = new Set<string>();
+        if (Array.isArray(memberStoryReads)) {
+          memberStoryReads.forEach((r: any) => {
+            if (r.mbrStoryId) loadedReadSet.add(r.mbrStoryId);
+          });
+        }
+        try {
+          const raw = sessionStorage.getItem('sb_read_stories');
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+              parsed.forEach((id: string) => loadedReadSet.add(id));
+            }
+          }
+        } catch {}
+        setReadStoryIds(loadedReadSet);
 
         // Group Name Lookup Map
         const allGroups = [
@@ -757,16 +795,56 @@ export default function SbMbrStoryFeedPageFeature({
     } catch {}
   }, []);
 
-  // Filtered stories based on connectionsOnly toggle
-  const filteredStories = useMemo(() => {
-    if (!connectionsOnly) return allStories;
-    return allStories.filter(story => {
-      if (typeof story.isConnection === 'boolean') {
-        return story.isConnection;
-      }
-      return story.connectionGrpName && story.connectionGrpName.toLowerCase() !== 'public';
-    });
-  }, [allStories, connectionsOnly]);
+  // Filtered and sorted stories based on connectionsOnly toggle and readFilterMode
+  const { filteredStories, totalReadCount, hiddenReadCount } = useMemo(() => {
+    const baseList = connectionsOnly
+      ? allStories.filter(story => {
+          if (typeof story.isConnection === 'boolean') {
+            return story.isConnection;
+          }
+          return story.connectionGrpName && story.connectionGrpName.toLowerCase() !== 'public';
+        })
+      : allStories;
+
+    const readCount = baseList.filter(s => readStoryIds.has(s.mbrStoryId)).length;
+
+    if (readFilterMode === 'hide') {
+      const unreadList = baseList.filter(story => !readStoryIds.has(story.mbrStoryId));
+      return {
+        filteredStories: unreadList,
+        totalReadCount: readCount,
+        hiddenReadCount: readCount
+      };
+    }
+
+    if (readFilterMode === 'move_to_end') {
+      // Place unread stories first, and read stories at the end (User default)
+      const sorted = [...baseList].sort((a, b) => {
+        const aRead = readStoryIds.has(a.mbrStoryId) ? 1 : 0;
+        const bRead = readStoryIds.has(b.mbrStoryId) ? 1 : 0;
+        if (aRead !== bRead) {
+          return aRead - bRead; // 0 (unread) before 1 (read)
+        }
+        // Preserve chronological sort (newest published first)
+        const aTime = new Date(a.mbrStoryPublishDt || a.mbrStoryPublishedDate || a.mbrStoryCreatedAt || 0).getTime();
+        const bTime = new Date(b.mbrStoryPublishDt || b.mbrStoryPublishedDate || b.mbrStoryCreatedAt || 0).getTime();
+        return bTime - aTime;
+      });
+
+      return {
+        filteredStories: sorted,
+        totalReadCount: readCount,
+        hiddenReadCount: 0
+      };
+    }
+
+    // 'all': Default chronological order
+    return {
+      filteredStories: baseList,
+      totalReadCount: readCount,
+      hiddenReadCount: 0
+    };
+  }, [allStories, connectionsOnly, readStoryIds, readFilterMode]);
 
   // Sliced top stories based on visibleCount
   const visibleStories = useMemo(() => {
@@ -808,7 +886,7 @@ export default function SbMbrStoryFeedPageFeature({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [handleLoadMore, loading, loadingMore, hasMore]);
 
-  // Handle clicking to read story with scroll position saving and session read marking
+  // Handle clicking to read story with scroll position saving and persistent read marking
   const handleReadStory = useCallback((storyId: string, memberId: string) => {
     try {
       sessionStorage.setItem('sb_feed_scroll_pos', window.scrollY.toString());
@@ -819,10 +897,18 @@ export default function SbMbrStoryFeedPageFeature({
         list.push(storyId);
         sessionStorage.setItem('sb_read_stories', JSON.stringify(list));
       }
-      setReadStoryIds(new Set(list));
+      setReadStoryIds(prev => new Set(prev).add(storyId));
     } catch {}
+
+    // Record persistent story read in Live DB mode
+    if (!isSandbox && viewerMbrId) {
+      taskApi.recordStoryRead({ mbrStoryId: storyId, mbrId: viewerMbrId }).catch(err => {
+        console.warn('Could not record story read in feed:', err);
+      });
+    }
+
     onClickReadStory?.(storyId, memberId);
-  }, [visibleCount, onClickReadStory]);
+  }, [visibleCount, isSandbox, viewerMbrId, onClickReadStory]);
 
   return (
     <div className="w-full relative">
@@ -853,6 +939,10 @@ export default function SbMbrStoryFeedPageFeature({
             readStoryIds={readStoryIds}
             connectionsOnly={connectionsOnly}
             setConnectionsOnly={handleToggleConnectionsOnly}
+            readFilterMode={readFilterMode}
+            onReadFilterModeChange={handleReadFilterModeChange}
+            hiddenReadCount={hiddenReadCount}
+            totalReadCount={totalReadCount}
             onLoadMore={handleLoadMore}
             onClickReadStory={handleReadStory}
             onClickViewAuthor={onClickViewAuthor}

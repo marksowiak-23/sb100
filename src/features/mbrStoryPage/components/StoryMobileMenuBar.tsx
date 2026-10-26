@@ -26,7 +26,8 @@ import {
   Laptop, 
   PartyPopper,
   Compass,
-  Check
+  Check,
+  Lock
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -249,6 +250,25 @@ export default function StoryMobileMenuBar({
     }));
   };
 
+  const isTopicCardLocked = (topic: Topic): boolean => {
+    const normName = (topic.topicName || '').trim().toLowerCase();
+    if (normName === 'profile') return false;
+    if (!lockedTopicIds || lockedTopicIds.length === 0) return false;
+    const normFullName = (topic.topicFullName || '').trim().toLowerCase();
+    const topicId = (topic.topicId || '').trim().toLowerCase();
+    return lockedTopicIds.some((lid) => {
+      if (typeof lid !== 'string') return false;
+      const lower = lid.trim().toLowerCase();
+      return (
+        lower === normName ||
+        lower === normFullName ||
+        (topicId && lower === topicId) ||
+        (normName.includes(lower) && lower.length > 3) ||
+        (normFullName.includes(lower) && lower.length > 3)
+      );
+    });
+  };
+
   const handleSelectTopic = (topic: Topic) => {
     const topicKey = topic.topicName || topic.topicFullName || topic.topicId;
     setActiveSection(topicKey);
@@ -372,9 +392,14 @@ export default function StoryMobileMenuBar({
                                   }`} />
                                   <span className="truncate">{topicFullName}</span>
                                 </div>
-                                {isActive && (
-                                  <Check className="w-3.5 h-3.5 text-amber-400 dark:text-amber-600 shrink-0 ml-2" />
-                                )}
+                                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                                  {isTopicCardLocked(topic) && (
+                                    <Lock className="w-3.5 h-3.5 text-slate-400" />
+                                  )}
+                                  {isActive && (
+                                    <Check className="w-3.5 h-3.5 text-amber-400 dark:text-amber-600" />
+                                  )}
+                                </div>
                               </button>
                             );
                           })}

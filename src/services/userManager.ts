@@ -1,4 +1,4 @@
-import { User, API_BASE_URL } from './api';
+import { User, API_BASE_URL, taskApi } from './api';
 
 export interface LogonResult {
   success: boolean;
@@ -43,6 +43,63 @@ export const userManager = {
     }
   },
 
+  /**
+   * Reads the user's workspace theme preference from backend or session and applies it to the DOM.
+   */
+  async applyUserThemePreference(mbrId?: string): Promise<string> {
+    try {
+      let resolvedMbrId = mbrId;
+      if (!resolvedMbrId) {
+        const storedMbr = this.getStoredMember();
+        if (storedMbr?.mbrId) {
+          resolvedMbrId = storedMbr.mbrId;
+        }
+      }
+      if (!resolvedMbrId) {
+        try {
+          const userStr = sessionStorage.getItem('user');
+          if (userStr) {
+            const u = JSON.parse(userStr);
+            if (u.mbr_id || u.mbrId) {
+              resolvedMbrId = u.mbr_id || u.mbrId;
+            } else if (u.user_id || u.id) {
+              const profile = await taskApi.getMemberByUserId(u.user_id || u.id).catch(() => null);
+              if (profile?.mbrId) resolvedMbrId = profile.mbrId;
+            }
+          }
+        } catch {}
+      }
+
+      let theme = 'Default';
+      if (resolvedMbrId) {
+        try {
+          const pref = await taskApi.getMemberPreferences(resolvedMbrId).catch(() => null);
+          if (pref?.mbrPrefTheme) {
+            theme = pref.mbrPrefTheme;
+          } else {
+            const sandboxPref = sessionStorage.getItem('sandbox_mbr_preferences');
+            if (sandboxPref) {
+              const parsed = JSON.parse(sandboxPref);
+              if (parsed?.mbrPrefTheme) theme = parsed.mbrPrefTheme;
+            }
+          }
+        } catch (e) {
+          console.warn('Could not load member preferences for theme:', e);
+        }
+      }
+
+      const activeTheme = (theme === 'System' || theme === 'Light' || !theme) ? 'Default' : theme;
+      sessionStorage.setItem('mbrPrefTheme', activeTheme);
+      sessionStorage.setItem('theme', activeTheme);
+      document.documentElement.setAttribute('data-theme', activeTheme);
+      document.documentElement.classList.toggle('dark', ['Dark', 'Rustic', 'Luxury', 'Tech'].includes(activeTheme));
+      window.dispatchEvent(new Event('theme-changed'));
+      return activeTheme;
+    } catch (err) {
+      console.warn('Error applying user theme preference:', err);
+      return 'Default';
+    }
+  },
 
   /**
    * Generates authorization headers with Bearer token if present.
@@ -78,6 +135,16 @@ export const userManager = {
         if (data.member) {
           sessionStorage.setItem('sb_current_mbr', JSON.stringify(data.member));
         }
+        if (data.user) {
+          sessionStorage.setItem('user', JSON.stringify(data.user));
+        }
+
+        // Apply user's workspace theme preference immediately upon logging in
+        const targetMbrId = data.member?.mbrId || data.member?.id;
+        if (targetMbrId) {
+          await this.applyUserThemePreference(targetMbrId);
+        }
+
         return {
           success: true,
           user: data.user,
@@ -149,6 +216,16 @@ export const userManager = {
         if (data.member) {
           sessionStorage.setItem('sb_current_mbr', JSON.stringify(data.member));
         }
+        if (data.user) {
+          sessionStorage.setItem('user', JSON.stringify(data.user));
+        }
+
+        // Apply user's workspace theme preference immediately upon registering/logging in
+        const targetMbrId = data.member?.mbrId || data.member?.id;
+        if (targetMbrId) {
+          await this.applyUserThemePreference(targetMbrId);
+        }
+
         return {
           success: true,
           user: data.user,
@@ -191,6 +268,12 @@ export const userManager = {
       });
       if (response.ok) {
         const data = await response.json();
+        if (data.member) {
+          sessionStorage.setItem('sb_current_mbr', JSON.stringify(data.member));
+        }
+        if (data.user) {
+          sessionStorage.setItem('user', JSON.stringify(data.user));
+        }
         return { success: true, user: data.user, member: data.member };
       } else {
         return { success: false, error: 'Invalid or expired session token' };
@@ -214,7 +297,20 @@ export const userManager = {
       
       if (response.ok) {
         const user = await response.json();
-        return { success: true, user };
+        sessionStorage.setItem('user', JSON.stringify(user));
+
+        let member: any = null;
+        try {
+          member = await taskApi.getMemberByUserId(user.user_id);
+          if (member) {
+            sessionStorage.setItem('sb_current_mbr', JSON.stringify(member));
+            await this.applyUserThemePreference(member.mbrId);
+          }
+        } catch (e) {
+          console.warn('Could not load member record during userLogon:', e);
+        }
+
+        return { success: true, user, member };
       } else {
         if (email === 'mark.sowiak@gmail.com' || email === 'msowiak') {
           return {

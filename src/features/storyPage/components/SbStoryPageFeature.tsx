@@ -162,6 +162,12 @@ export default function SbStoryPageFeature({
               sessionStorage.setItem('sb_read_stories', JSON.stringify(list));
             }
           } catch {}
+
+          if (!isSandbox && resolvedViewerId) {
+            taskApi.recordStoryRead({ mbrStoryId: loadedStory.mbrStoryId, mbrId: resolvedViewerId }).catch(err => {
+              console.warn('Could not record story read:', err);
+            });
+          }
         }
 
         // If storyId wasn't direct, try fetching member's published stories
@@ -371,6 +377,7 @@ export default function SbStoryPageFeature({
             mbrStoryHeaderPhotoStyleCd={story?.mbrStoryHeaderPhotoStyleCd}
             publishedDate={story?.mbrStoryPublishedDate || story?.mbrStoryCreatedAt}
             authorName={authorName}
+            authorMbrId={story?.mbrMbrId || story?.authorMbrId}
             authorLocation={authorLocation}
             authorAvatarUrl={authorAvatarUrl}
             authorInitials={authorInitials}

@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Check, Copy, Mail, Clock, ArrowRightLeft, Loader2 } from 'lucide-react';
 import { User, taskApi } from '@/src/services/api';
+import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface UserCardProps {
@@ -71,6 +72,7 @@ const UserCard: React.FC<UserCardProps> = ({
             if (member.mbrProfilePic) {
               sessionStorage.setItem(`session_pic_${member.mbrId}`, member.mbrProfilePic);
             }
+            await userManager.applyUserThemePreference(member.mbrId);
           } else {
             sessionStorage.removeItem('sb_current_mbr');
           }

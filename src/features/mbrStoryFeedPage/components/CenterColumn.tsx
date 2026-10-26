@@ -6,7 +6,7 @@
 import React from 'react';
 import StoriesHeader from './StoriesHeader';
 import MbrStoryFeedStoryPanel, { FeedStoryItem } from './MbrStoryFeedStoryPanel';
-import StoryFeedSubHeaderPanel from './StoryFeedSubHeaderPanel';
+import StoryFeedSubHeaderPanel, { ReadFilterMode } from './StoryFeedSubHeaderPanel';
 import StoryFeedMobileSubHeaderPanel from './StoryFeedMobileSubHeaderPanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { BookOpen, Loader2, CheckCircle2, ArrowDown } from 'lucide-react';
@@ -19,6 +19,10 @@ interface CenterColumnProps {
   readStoryIds?: Set<string>;
   connectionsOnly?: boolean;
   setConnectionsOnly?: (val: boolean) => void;
+  readFilterMode?: ReadFilterMode;
+  onReadFilterModeChange?: (mode: ReadFilterMode) => void;
+  hiddenReadCount?: number;
+  totalReadCount?: number;
   onLoadMore?: () => void;
   onClickReadStory?: (storyId: string, memberId: string) => void;
   onClickViewAuthor?: (memberId: string) => void;
@@ -34,6 +38,10 @@ export default function CenterColumn({
   readStoryIds,
   connectionsOnly = true,
   setConnectionsOnly,
+  readFilterMode = 'move_to_end',
+  onReadFilterModeChange,
+  hiddenReadCount = 0,
+  totalReadCount = 0,
   onLoadMore,
   onClickReadStory,
   onClickViewAuthor,
@@ -54,11 +62,19 @@ export default function CenterColumn({
           storiesCount={stories.length}
           connectionsOnly={connectionsOnly}
           setConnectionsOnly={setConnectionsOnly}
+          readFilterMode={readFilterMode}
+          onReadFilterModeChange={onReadFilterModeChange}
+          hiddenReadCount={hiddenReadCount}
+          totalReadCount={totalReadCount}
         />
         <StoryFeedMobileSubHeaderPanel
           storiesCount={stories.length}
           connectionsOnly={connectionsOnly}
           setConnectionsOnly={setConnectionsOnly}
+          readFilterMode={readFilterMode}
+          onReadFilterModeChange={onReadFilterModeChange}
+          hiddenReadCount={hiddenReadCount}
+          totalReadCount={totalReadCount}
         />
       </div>
 

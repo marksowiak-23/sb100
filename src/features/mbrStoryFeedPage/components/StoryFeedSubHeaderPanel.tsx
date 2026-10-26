@@ -4,8 +4,10 @@
  */
 
 import React from 'react';
-import { BookOpen, Sparkles, Users } from 'lucide-react';
+import { Sparkles, Users } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+
+export type ReadFilterMode = 'move_to_end' | 'hide' | 'all';
 
 export interface StoryFeedSubHeaderPanelProps {
   storiesCount?: number;
@@ -14,6 +16,10 @@ export interface StoryFeedSubHeaderPanelProps {
   connectionsOnly?: boolean;
   setConnectionsOnly?: (val: boolean) => void;
   onToggleConnectionsOnly?: (val: boolean) => void;
+  readFilterMode?: ReadFilterMode;
+  onReadFilterModeChange?: (mode: ReadFilterMode) => void;
+  hiddenReadCount?: number;
+  totalReadCount?: number;
   className?: string;
 }
 
@@ -47,36 +53,33 @@ export default function StoryFeedSubHeaderPanel({
             {subtitle}
           </p>
         </div>
-
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-slate-50 dark:bg-slate-800 rounded-full border border-slate-200/60 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 font-medium">
-          <BookOpen className="w-3.5 h-3.5 text-blue-500" />
-          <span>{storiesCount} Loaded</span>
-        </div>
       </div>
 
-      {/* Filter Row: My Connections Only */}
+      {/* Filter Row: Connections */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
-        <label className="inline-flex items-center gap-2.5 cursor-pointer select-none group">
-          <input
-            type="checkbox"
-            checked={connectionsOnly}
-            onChange={(e) => handleCheckboxChange(e.target.checked)}
-            className="w-4 h-4 rounded-md border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500/20 focus:ring-2 cursor-pointer transition-all accent-blue-600"
-          />
-          <div className="flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors" />
-            <span className="text-xs font-serif font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-              My Connections Only
-            </span>
-          </div>
-        </label>
+        <div className="flex items-center gap-3">
+          <label className="inline-flex items-center gap-2.5 cursor-pointer select-none group">
+            <input
+              type="checkbox"
+              checked={connectionsOnly}
+              onChange={(e) => handleCheckboxChange(e.target.checked)}
+              className="w-4 h-4 rounded-md border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500/20 focus:ring-2 cursor-pointer transition-all accent-blue-600"
+            />
+            <div className="flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors" />
+              <span className="text-xs font-serif font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                My Connections Only
+              </span>
+            </div>
+          </label>
 
-        {connectionsOnly && (
-          <span className="text-[11px] font-sans font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-            Showing connected members only
-          </span>
-        )}
+          {connectionsOnly && (
+            <span className="text-[11px] font-sans font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 px-2 py-0.5 rounded-full flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+              Connections
+            </span>
+          )}
+        </div>
       </div>
 
       <AdminComponentTag name="StoryFeedSubHeaderPanel" />

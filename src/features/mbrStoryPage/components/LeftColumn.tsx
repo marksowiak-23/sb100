@@ -13,6 +13,8 @@ interface LeftColumnProps {
   setActiveSection: (sec: string) => void;
   memberName: string;
   memberId?: string;
+  viewerMbrId?: string | null;
+  lockedPanelIds?: string[];
   lockedTopicIds?: string[];
   onClickBack?: () => void;
 }
@@ -22,6 +24,8 @@ export default function LeftColumn({
   setActiveSection,
   memberName,
   memberId,
+  viewerMbrId,
+  lockedPanelIds = [],
   lockedTopicIds = []
 }: LeftColumnProps) {
   return (
@@ -41,6 +45,8 @@ export default function LeftColumn({
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         memberId={memberId}
+        viewerMbrId={viewerMbrId}
+        lockedPanelIds={lockedPanelIds}
         lockedTopicIds={lockedTopicIds}
         showEditControls={false}
         isStoryPage={true}

@@ -626,15 +626,17 @@ export default function MbrStoryCustomPanel({
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={() => setShowPrivacyModal(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs font-serif font-semibold bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
-              title="Privacy Settings"
-            >
-              <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
-              <span>Privacy</span>
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => setShowPrivacyModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:py-2 rounded-xl text-xs font-serif font-semibold bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 transition-colors shadow-xs cursor-pointer"
+                title="Privacy Settings"
+              >
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
+                <span>Privacy</span>
+              </button>
+            )}
           </div>
         </div>
 

@@ -45,6 +45,8 @@ export type StorySection = StoryTopic;
 
 export interface MbrStoryIndexPanelProps {
   memberId?: string;
+  viewerMbrId?: string | null;
+  lockedPanelIds?: string[];
   activeSection?: string;
   activeTopic?: string;
   setActiveSection?: (topicId: string) => void;
@@ -249,6 +251,8 @@ const isUuid = (id?: string | null): boolean => {
 
 export default function MbrStoryIndexPanel({
   memberId,
+  viewerMbrId,
+  lockedPanelIds = [],
   activeSection,
   activeTopic,
   setActiveSection,
@@ -336,9 +340,171 @@ export default function MbrStoryIndexPanel({
             }
           } catch {}
         }
+        setStories(allStories);
+        return;
       }
 
-      setStories(allStories);
+      // When viewing a member's story page (isStoryPage = true):
+      // Reflect the published stories the logged-in user has permission to view
+      let effectiveViewerId = viewerMbrId || null;
+      if (!effectiveViewerId) {
+        const storedMbr = sessionStorage.getItem('sb_current_mbr');
+        if (storedMbr) {
+          try {
+            const parsed = JSON.parse(storedMbr);
+            if (parsed.mbrId) effectiveViewerId = parsed.mbrId;
+          } catch {}
+        }
+      }
+      if (!effectiveViewerId) {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
+          try {
+            const u = JSON.parse(userStr);
+            if (u.mbr_id) effectiveViewerId = u.mbr_id;
+            else if (u.mbrId) effectiveViewerId = u.mbrId;
+            else if (u.user_id || u.id) {
+              const profile = await taskApi.getMemberByUserId(u.user_id || u.id).catch(() => null);
+              if (profile?.mbrId) effectiveViewerId = profile.mbrId;
+            }
+          } catch {}
+        }
+      }
+
+      // If viewer is author themselves: all published stories are viewable
+      if (effectiveViewerId && resolvedMbrId && effectiveViewerId.toLowerCase() === resolvedMbrId.toLowerCase()) {
+        const pubStories = allStories.filter(s => (s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published');
+        setStories(pubStories);
+        return;
+      }
+
+      // Filter candidate published stories based on story-level privileges
+      const candidateList = allStories.filter(s => (s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published');
+
+      try {
+        let assignedGrpId: string | null = null;
+        if (effectiveViewerId && resolvedMbrId) {
+          const authorConns = await taskApi.getMemberConnections({
+            mbrId: resolvedMbrId,
+            connectedMbrId: effectiveViewerId
+          }).catch(() => []);
+          if (authorConns.length > 0) {
+            const connGrps = await taskApi.getMemberConnectionGrps({
+              connectionId: authorConns[0].mbrConnectionId
+            }).catch(() => []);
+            if (connGrps && connGrps.length > 0) {
+              assignedGrpId = connGrps[0].grpId;
+            }
+          } else {
+            // Also check reciprocal connection
+            const viewerConns = await taskApi.getMemberConnections({
+              mbrId: effectiveViewerId,
+              connectedMbrId: resolvedMbrId
+            }).catch(() => []);
+            if (viewerConns.length > 0) {
+              const connGrps = await taskApi.getMemberConnectionGrps({
+                connectionId: viewerConns[0].mbrConnectionId
+              }).catch(() => []);
+              if (connGrps && connGrps.length > 0) {
+                assignedGrpId = connGrps[0].grpId;
+              }
+            }
+          }
+        }
+
+        let publicGrpId: string | null = null;
+        const globals = await taskApi.getGroupsGlobal().catch(() => []);
+        const pub = globals.find(g => g.grpName?.toLowerCase() === 'public');
+        if (pub) publicGrpId = pub.grpId;
+        if (!publicGrpId) publicGrpId = '13efcbad-d840-44ad-9b50-d6d2218e5cac';
+
+        const [allStoryPrivs, allStoryConnPrivs] = await Promise.all([
+          taskApi.getMemberStoryGroupPrivs({ limit: 1000 }).catch(() => []),
+          effectiveViewerId
+            ? taskApi.getMemberStoryConnectionPrivs({ mbrConnectionMbrId: effectiveViewerId, limit: 1000 }).catch(() => [])
+            : Promise.resolve([])
+        ]);
+
+        const privsByStoryId = new Map<string, any[]>();
+        for (const sp of (allStoryPrivs || [])) {
+          if (sp.mbrStoryId) {
+            const list = privsByStoryId.get(sp.mbrStoryId) || [];
+            list.push(sp);
+            privsByStoryId.set(sp.mbrStoryId, list);
+          }
+        }
+
+        const connPrivsByStoryId = new Map<string, any[]>();
+        for (const cp of (allStoryConnPrivs || [])) {
+          if (cp.mbrStoryId) {
+            const list = connPrivsByStoryId.get(cp.mbrStoryId) || [];
+            list.push(cp);
+            connPrivsByStoryId.set(cp.mbrStoryId, list);
+          }
+        }
+
+        const isPrivAllow = (val?: string) => {
+          if (!val) return false;
+          const upper = val.toUpperCase().trim();
+          return upper === 'READ' || upper === 'WRITE' || upper === 'VIEW' || upper.includes('VIEW') || upper.includes('COMMENT') || upper === 'ALLOW';
+        };
+
+        const isPrivDeny = (val?: string) => {
+          if (!val) return false;
+          const upper = val.toUpperCase().trim();
+          return upper === 'NONE' || upper === 'HIDE' || upper === 'DENY' || upper === 'RESTRICTED';
+        };
+
+        const permittedStories = candidateList.filter(story => {
+          const sId = story.mbrStoryId;
+          if (!sId) return false;
+
+          const storyGrpPrivs = privsByStoryId.get(sId) || [];
+          const storyConnPrivs = connPrivsByStoryId.get(sId) || [];
+
+          if (storyGrpPrivs.length === 0 && storyConnPrivs.length === 0) {
+            return false;
+          }
+
+          let grpAllow = false;
+          let grpDeny = false;
+
+          if (assignedGrpId) {
+            const ap = storyGrpPrivs.find(p => p.grpId === assignedGrpId);
+            if (ap) {
+              if (isPrivAllow(ap.privValueCd)) grpAllow = true;
+              else if (isPrivDeny(ap.privValueCd)) grpDeny = true;
+            }
+          }
+
+          if (!grpAllow && !grpDeny && publicGrpId) {
+            const pp = storyGrpPrivs.find(p => p.grpId === publicGrpId);
+            if (pp) {
+              if (isPrivAllow(pp.privValueCd)) grpAllow = true;
+              else if (isPrivDeny(pp.privValueCd)) grpDeny = true;
+            }
+          }
+
+          let memberAllow = false;
+          let memberDeny = false;
+
+          if (effectiveViewerId) {
+            const cp = storyConnPrivs.find(p => p.mbrConnectionMbrId === effectiveViewerId);
+            if (cp) {
+              if (isPrivAllow(cp.privValueCd)) memberAllow = true;
+              else if (isPrivDeny(cp.privValueCd)) memberDeny = true;
+            }
+          }
+
+          if (grpDeny || memberDeny) return false;
+          return grpAllow || memberAllow;
+        });
+
+        setStories(permittedStories);
+      } catch (err) {
+        console.warn("Could not evaluate story permissions for story index:", err);
+        setStories([]);
+      }
     } catch (err) {
       console.warn("Could not fetch stories in MbrStoryIndexPanel:", err);
     }
@@ -395,7 +561,7 @@ export default function MbrStoryIndexPanel({
       window.removeEventListener('refresh-stories', handleRefresh);
       window.removeEventListener('user-switched', handleRefresh);
     };
-  }, [memberId]);
+  }, [memberId, viewerMbrId, isStoryPage, showEditControls, lockedPanelIds]);
 
   const currentActive = (activeTopic || activeSection || 'Profile').toLowerCase();
 
@@ -510,13 +676,14 @@ export default function MbrStoryIndexPanel({
 
   const isStoryPageView = isStoryPage || showEditControls === false;
 
-  const isTopicCardLocked = (topic: Topic): boolean => {
+  const isTopicPanelLocked = (topic: Topic): boolean => {
     const normName = (topic.topicName || '').trim().toLowerCase();
-    if (normName === 'profile' || normName === 'other' || normName === 'custom') return false;
-    if (!lockedTopicIds || lockedTopicIds.length === 0) return false;
+    if (normName === 'profile') return false; // Profile panel is always universally accessible
+    const locks = (lockedPanelIds && lockedPanelIds.length > 0) ? lockedPanelIds : (lockedTopicIds || []);
+    if (!locks || locks.length === 0) return false;
     const normFullName = (topic.topicFullName || '').trim().toLowerCase();
     const topicId = (topic.topicId || '').trim().toLowerCase();
-    return lockedTopicIds.some((lid) => {
+    return locks.some((lid) => {
       if (typeof lid !== 'string') return false;
       const lower = lid.trim().toLowerCase();
       return (
@@ -530,19 +697,22 @@ export default function MbrStoryIndexPanel({
   };
 
   const getStoryCountsForTopic = (topic: Topic) => {
-    const isLocked = isTopicCardLocked(topic);
-    // When viewing another member's story page and the topic is locked,
-    // the viewer cannot view any stories or panels for this topic.
-    if (isStoryPageView && isLocked) {
-      return { total: 0, published: 0 };
-    }
-
     const matching = stories.filter(s => matchStoryToTopic(s, topic));
     const publishedStories = matching.filter(s => (s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published').length;
 
     if (isStoryPageView) {
-      // On the Story Page (member reading view), display published story count
-      return { total: publishedStories, published: publishedStories };
+      // Reflect the number of published stories the logged-in user has permission to view for this topic
+      let count = publishedStories;
+
+      // Also, if the user has access to the associated topic panel, increment the count. Don't count the storyEditorPanel for that.
+      if (hasTopicCard(topic)) {
+        const isPanelLocked = isTopicPanelLocked(topic);
+        if (!isPanelLocked) {
+          count += 1;
+        }
+      }
+
+      return { total: count, published: count };
     }
 
     // On the Author Page (workspace), display published / total authored stories

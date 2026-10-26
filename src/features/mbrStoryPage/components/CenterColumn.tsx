@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ShieldAlert } from 'lucide-react';
 import { MemberStory } from '@/src/features/publicPage/constants/memberData';
 import MbrProfilePanel from '@/src/components/mbrProfilePanel';
 import MbrProfileBriefPanel from '@/src/components/mbrProfileBriefPanel';
@@ -22,10 +22,12 @@ interface CenterColumnProps {
   activeSection: string;
   activeContent: string[];
   lockedTopicIds?: string[];
+  lockedPanelIds?: string[];
   onClickBack: () => void;
   connectionGrpName?: string;
   isConnected?: boolean;
   viewerMbrId?: string | null;
+  storyAuthorMbrId?: string;
   previousTab?: string | null;
   backLabel?: string;
 }
@@ -100,10 +102,12 @@ export default function CenterColumn({
   activeSection,
   activeContent,
   lockedTopicIds = [],
+  lockedPanelIds = [],
   onClickBack,
   connectionGrpName,
   isConnected,
   viewerMbrId,
+  storyAuthorMbrId,
   previousTab,
   backLabel
 }: CenterColumnProps) {
@@ -178,11 +182,18 @@ export default function CenterColumn({
     };
   }, [activeSection]);
 
-  const isOwner = !viewerMbrId || (Boolean(effectiveMemberId) && viewerMbrId === effectiveMemberId);
+  const isOwner = Boolean(
+    viewerMbrId &&
+    (
+      (effectiveMemberId && viewerMbrId.toLowerCase() === effectiveMemberId.toLowerCase()) ||
+      (storyAuthorMbrId && viewerMbrId.toLowerCase() === storyAuthorMbrId.toLowerCase())
+    )
+  );
   const isReadOnly = !isOwner;
 
-  const isTopicLocked = isReadOnly && (
-    lockedTopicIds.some((lid) => 
+  const panelLocks = (lockedPanelIds && lockedPanelIds.length > 0) ? lockedPanelIds : (lockedTopicIds || []);
+  const isPanelLocked = isReadOnly && (
+    panelLocks.some((lid) => 
       typeof lid === 'string' && (
         lid.toLowerCase() === topicId ||
         lid.toLowerCase() === currentTopicId.toLowerCase() ||
@@ -267,8 +278,8 @@ export default function CenterColumn({
         />
       )}
 
-      {/* --- TOPIC DIRECTORY PANEL (When permitted) --- */}
-      {!isTopicLocked && (
+      {/* --- TOPIC DIRECTORY PANEL (Protected by Story Panel Privacy) --- */}
+      {!isPanelLocked && (
         <>
           {/* --- FAMILY DIRECTORY PANEL --- */}
           {(topicId === 'family') && (
@@ -382,26 +393,28 @@ export default function CenterColumn({
         </>
       )}
 
-          {/* --- MEMBER STORIES VIEW PANEL (Displayed for standard topics) --- */}
-          {isStandardTopic && (
-            <div id="story-editor-panel">
-              <StoryEditorPanel
-                topicId={currentTopicId}
-                chIntentId={currentChIntentId}
-                topicTitle={currentTopicTitle}
-                componentName={componentNameMap[topicId] || `sbMbrStry${safeActiveSection}`}
-                subordinateId={subordinateId || undefined}
-                subordinateName={subordinateName}
-                memberId={effectiveMemberId}
-                readOnly={isReadOnly}
-                isSandbox={false}
-                onClose={() => {
-                  setSubordinateId(null);
-                  setSubordinateName(undefined);
-                }}
-              />
-            </div>
-          )}
+
+      {/* --- MEMBER STORIES VIEW PANEL (Always unlocked by default for standard topics) --- */}
+      {isStandardTopic && (
+        <div id="story-editor-panel">
+          <StoryEditorPanel
+            topicId={currentTopicId}
+            chIntentId={currentChIntentId}
+            topicTitle={currentTopicTitle}
+            componentName={componentNameMap[topicId] || `sbMbrStry${safeActiveSection}`}
+            subordinateId={subordinateId || undefined}
+            subordinateName={subordinateName}
+            memberId={effectiveMemberId}
+            viewerMbrId={viewerMbrId}
+            readOnly={isReadOnly}
+            isSandbox={false}
+            onClose={() => {
+              setSubordinateId(null);
+              setSubordinateName(undefined);
+            }}
+          />
+        </div>
+      )}
 
       <AdminComponentTag name="CenterColumn" />
     </div>
