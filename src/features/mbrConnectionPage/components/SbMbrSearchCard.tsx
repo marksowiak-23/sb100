@@ -60,7 +60,7 @@ export default function SbMbrSearchCard({
           )}
           <HelpCircle
             className="w-4 h-4 text-slate-350 dark:text-slate-500 cursor-pointer hover:text-slate-400 dark:hover:text-slate-300 transition-colors shrink-0"
-            title="Search by name, location, or tag (prioritizes proximity & recent published stories)"
+            title="Search by name, location, school, or workplace (prioritizes proximity & recent published stories)"
           />
         </div>
       </div>
@@ -72,7 +72,7 @@ export default function SbMbrSearchCard({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by name, location, tags..."
+            placeholder="Search by name, location, school, work..."
             className="w-full bg-slate-50/70 hover:bg-slate-50 focus:bg-white dark:bg-slate-800 dark:hover:bg-slate-800/90 dark:focus:bg-slate-800 text-slate-800 dark:text-white placeholder-slate-400 text-xs sm:text-sm rounded-xl sm:rounded-2xl border border-[#EFECE7] dark:border-slate-700 outline-none py-3 sm:py-3.5 pl-10 sm:pl-11 pr-3 sm:pr-4 transition-all duration-150 shadow-sm focus:border-slate-800 dark:focus:border-slate-500 focus:ring-1 focus:ring-slate-800 dark:focus:ring-slate-500"
           />
           <Search className="absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 shrink-0" />
@@ -84,6 +84,12 @@ export default function SbMbrSearchCard({
           Search
         </button>
       </form>
+
+      {searchQuery.trim().length === 1 && (
+        <div className="text-[11px] font-sans text-amber-600 dark:text-amber-400 -mt-1 pl-1">
+          Type at least 2 characters to search by name, location, school, or work
+        </div>
+      )}
 
       {/* Connection Filter Option & Location Status */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-1 border-t border-slate-100 dark:border-slate-800/80">

@@ -84,9 +84,11 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     const timer = setTimeout(async () => {
       try {
         const queryTrimmed = searchQuery.trim();
+        // Guardrail: single-character searches are deferred until at least 2 characters are entered
+        const effectiveQuery = queryTrimmed.length === 1 ? undefined : (queryTrimmed || undefined);
         const useProximity = proximityEnabled && userLocation;
         const result = await taskApi.getMembers({
-          query: queryTrimmed || undefined,
+          query: effectiveQuery,
           proximity: useProximity ? userLocation?.label : undefined,
           proximity_lat: useProximity ? userLocation?.latitude : undefined,
           proximity_lng: useProximity ? userLocation?.longitude : undefined,
@@ -111,7 +113,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
           setLoading(false);
         }
       }
-    }, 250);
+    }, 350);
 
     return () => {
       isCancelled = true;
@@ -125,10 +127,11 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     setLoadingMore(true);
     try {
       const queryTrimmed = searchQuery.trim();
+      const effectiveQuery = queryTrimmed.length === 1 ? undefined : (queryTrimmed || undefined);
       const currentSkip = members.length;
       const useProximity = proximityEnabled && userLocation;
       const nextBatch = await taskApi.getMembers({
-        query: queryTrimmed || undefined,
+        query: effectiveQuery,
         proximity: useProximity ? userLocation?.label : undefined,
         proximity_lat: useProximity ? userLocation?.latitude : undefined,
         proximity_lng: useProximity ? userLocation?.longitude : undefined,

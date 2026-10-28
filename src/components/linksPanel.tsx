@@ -5,6 +5,8 @@
 
 import React, { useState } from 'react';
 import AboutModelPanel from './aboutModelPanel';
+import TermsModelPanel from './termsModelPanel';
+import PrivacyModelPanel from './privacyModelPanel';
 import { AdminComponentTag } from './AdminComponentTag';
 
 export interface LinksPanelProps {
@@ -15,13 +17,13 @@ export type SbFooterLinksCardProps = LinksPanelProps;
 
 export default function LinksPanel({ className = '' }: LinksPanelProps) {
   const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
 
   const footerLinks = [
-    { text: 'Privacy', action: 'Privacy Policy' },
-    { text: 'Terms', action: 'Terms of Service' },
-    { text: 'Help', action: 'Help Center' },
-    { text: 'About', action: 'About Storybook', isAbout: true },
-    { text: 'Careers', action: 'Careers Page' }
+    { text: 'Privacy', action: 'Privacy Policy', isPrivacy: true },
+    { text: 'Terms', action: 'Terms of Service', isTerms: true },
+    { text: 'About', action: 'About Storybook', isAbout: true }
   ];
 
   const handleAction = (link: typeof footerLinks[0]) => {
@@ -29,7 +31,14 @@ export default function LinksPanel({ className = '' }: LinksPanelProps) {
       setIsAboutOpen(true);
       return;
     }
-    alert(`Opening page for ${link.action}...`);
+    if (link.isTerms || link.text.toLowerCase() === 'terms') {
+      setIsTermsOpen(true);
+      return;
+    }
+    if (link.isPrivacy || link.text.toLowerCase() === 'privacy') {
+      setIsPrivacyOpen(true);
+      return;
+    }
   };
 
   return (
@@ -51,6 +60,12 @@ export default function LinksPanel({ className = '' }: LinksPanelProps) {
 
       {/* About Modal Dialog */}
       <AboutModelPanel isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+
+      {/* Terms of Service Modal Dialog */}
+      <TermsModelPanel isOpen={isTermsOpen} onClose={() => setIsTermsOpen(false)} />
+
+      {/* Privacy Policy Modal Dialog */}
+      <PrivacyModelPanel isOpen={isPrivacyOpen} onClose={() => setIsPrivacyOpen(false)} />
 
       <AdminComponentTag name="linksPanel" />
     </div>

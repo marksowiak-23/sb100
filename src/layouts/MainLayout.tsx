@@ -9,6 +9,9 @@ import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import SessionTimeoutPanel from '@/src/components/sessionTimeoutPanel';
+import TermsModelPanel from '@/src/components/termsModelPanel';
+import AboutModelPanel from '@/src/components/aboutModelPanel';
+import PrivacyModelPanel from '@/src/components/privacyModelPanel';
 import { useSessionTimeout } from '@/src/hooks/useSessionTimeout';
 
 // Restrict values for the tab parameter.
@@ -90,6 +93,9 @@ export default function MainLayout({
   const [isMobileMessagingOpen, setIsMobileMessagingOpen] = React.useState(false);
   const [isMobileAccountOpen, setIsMobileAccountOpen] = React.useState(false);
   const [isMobileAdminOpen, setIsMobileAdminOpen] = React.useState(false);
+  const [isTermsOpen, setIsTermsOpen] = React.useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = React.useState(false);
+  const [isAboutOpen, setIsAboutOpen] = React.useState(false);
   const [profilePic, setProfilePic] = React.useState<string | null>(null);
   const [userName, setUserName] = React.useState<string>('StoryBook Member');
   const [invitationCount, setInvitationCount] = React.useState<number>(0);
@@ -1153,8 +1159,34 @@ export default function MainLayout({
           isMemberLoggedIn ? 'hidden lg:flex' : 'flex'
         }`}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <span>&copy; {new Date().getFullYear()} StoryBook</span>
+          <div className="flex items-center gap-3 border-l border-slate-700 pl-4 text-[11px]">
+            <button
+              type="button"
+              id="footer-terms-btn"
+              onClick={() => setIsTermsOpen(true)}
+              className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Terms
+            </button>
+            <button
+              type="button"
+              id="footer-privacy-btn"
+              onClick={() => setIsPrivacyOpen(true)}
+              className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Privacy
+            </button>
+            <button
+              type="button"
+              id="footer-about-btn"
+              onClick={() => setIsAboutOpen(true)}
+              className="text-slate-400 hover:text-white transition-colors cursor-pointer"
+            >
+              About
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <span>localhost:3000</span>
@@ -1417,6 +1449,24 @@ export default function MainLayout({
         remainingSeconds={remainingSeconds}
         onRenew={renewSession}
         onLogout={handleSessionTimeout}
+      />
+
+      {/* Terms of Service Modal Dialog */}
+      <TermsModelPanel
+        isOpen={isTermsOpen}
+        onClose={() => setIsTermsOpen(false)}
+      />
+
+      {/* Privacy Policy Modal Dialog */}
+      <PrivacyModelPanel
+        isOpen={isPrivacyOpen}
+        onClose={() => setIsPrivacyOpen(false)}
+      />
+
+      {/* About Modal Dialog */}
+      <AboutModelPanel
+        isOpen={isAboutOpen}
+        onClose={() => setIsAboutOpen(false)}
       />
 
       <AdminComponentTag name="MainLayout" />

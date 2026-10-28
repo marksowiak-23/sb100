@@ -509,7 +509,9 @@ export default function MbrStoryHealthPanel({
   };
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-4 sm:p-6 shadow-xs relative">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] hover:border-slate-300/80 rounded-3xl p-4 sm:p-6 shadow-[0_8px_20px_rgba(0,0,0,0.01)] hover:shadow-[0_12px_28px_rgba(0,0,0,0.06)] transition-all duration-300 relative overflow-hidden group">
+      {/* Top Accent Line */}
+      <div className="absolute top-0 left-0 right-0 h-1 group-hover:h-1.5 bg-gradient-to-r from-rose-500 via-pink-500 to-amber-500 opacity-60 group-hover:opacity-100 transition-all duration-300" />
       <AdminComponentTag name="mbrStoryHealthPanel" />
 
       {/* --- PANEL HEADER --- */}
@@ -766,7 +768,7 @@ export default function MbrStoryHealthPanel({
                   return (
                     <tr
                       key={record.mbrHealthId}
-                      className="hover:bg-slate-50/80 transition-colors group"
+                      className="hover:bg-rose-50/60 transition-colors duration-150 group"
                     >
                       {/* Title & Category Details */}
                       <td className="py-2 sm:py-2.5 pl-2 sm:pl-3 pr-1 sm:pr-2">

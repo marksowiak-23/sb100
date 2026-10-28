@@ -561,9 +561,9 @@ export default function MbrStoryActivityPanel({
   }, [activityList, sortColumn, sortDirection]);
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl py-4 sm:py-5 px-2.5 sm:px-4 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-4 sm:gap-5 relative overflow-hidden group">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] hover:border-slate-300/80 rounded-3xl py-4 sm:py-5 px-2.5 sm:px-4 shadow-[0_8px_20px_rgba(0,0,0,0.01)] hover:shadow-[0_12px_28px_rgba(0,0,0,0.06)] transition-all duration-300 flex flex-col gap-4 sm:gap-5 relative overflow-hidden group">
       {/* Top Accent Line */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute top-0 left-0 right-0 h-1 group-hover:h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover:opacity-100 transition-all duration-300" />
 
       {/* --- PANEL HEADER --- */}
       <div className="flex items-center justify-between gap-2 sm:gap-4 pb-3 sm:pb-4 border-b border-[#EFECE7]">
@@ -806,7 +806,7 @@ export default function MbrStoryActivityPanel({
               return (
                 <div
                   key={act.mbrActivityId}
-                  className="p-2.5 sm:p-3.5 hover:bg-indigo-50/20 transition-colors group/row flex items-start gap-2 sm:gap-2.5"
+                  className="p-2.5 sm:p-3.5 hover:bg-indigo-50/70 transition-colors duration-150 group/row flex items-start gap-2 sm:gap-2.5"
                 >
                   {/* Sparkles Icon Badge */}
                   <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0 border border-indigo-100/80 mt-0.5">

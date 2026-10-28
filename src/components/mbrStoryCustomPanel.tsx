@@ -592,9 +592,9 @@ export default function MbrStoryCustomPanel({
   };
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl shadow-[0_8px_20px_rgba(0,0,0,0.02)] overflow-hidden relative">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] hover:border-slate-300/80 rounded-3xl shadow-[0_8px_20px_rgba(0,0,0,0.02)] hover:shadow-[0_12px_28px_rgba(0,0,0,0.06)] transition-all duration-300 overflow-hidden relative group">
       {/* Rainbow / Golden Top Decorative Border */}
-      <div className="h-1 bg-gradient-to-r from-amber-400 via-rose-400 to-indigo-500 w-full" />
+      <div className="h-1 group-hover:h-1.5 bg-gradient-to-r from-amber-400 via-rose-400 to-indigo-500 w-full opacity-70 group-hover:opacity-100 transition-all duration-300" />
 
       {/* Header Section */}
       <div className="p-4 sm:p-5 md:p-6 border-b border-[#EFECE7] flex flex-col gap-2.5">
@@ -737,7 +737,7 @@ export default function MbrStoryCustomPanel({
                 return (
                   <div
                     key={topicId}
-                    className="p-2.5 sm:p-3.5 hover:bg-indigo-50/20 rounded-2xl transition-colors group/row flex items-start gap-2.5"
+                    className="p-2.5 sm:p-3.5 hover:bg-indigo-50/70 rounded-2xl transition-colors duration-150 group/row flex items-start gap-2.5"
                   >
                     {/* Custom Topic Icon */}
                     <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg shrink-0 border border-indigo-100/80 mt-0.5">

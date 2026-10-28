@@ -2424,6 +2424,12 @@ Output Rules:
         publishContent = `<!--story-layout:${JSON.stringify(meta)}-->\n\n${publishContent}`;
       }
 
+      // Sandbox moderation validation
+      const OVERT_PROFANITY_PATTERN = /\b(?:fuck|shit|bitch|cunt|asshole|nigger|kike|faggot|chink|wetback)\b/i;
+      if (isSandbox && OVERT_PROFANITY_PATTERN.test(`${title} ${publishContent}`)) {
+        throw new Error("Publication rejected: Content contains vulgar language or profanity prohibited by community standards.");
+      }
+
       // Check if publishing a draft story that references an original published story
       if (activeStory && activeStory.mbrStoryOriginalId && isUuid(activeStory.mbrStoryOriginalId)) {
         const originalId = activeStory.mbrStoryOriginalId;
@@ -2532,7 +2538,13 @@ Output Rules:
       }
       setShowPublishModal(false);
     } catch (err: any) {
-      setError(`Failed to publish story: ${err.message}`);
+      const rawMsg = err.message || '';
+      if (rawMsg.includes('Publication rejected') || rawMsg.includes('community standards') || rawMsg.includes('violates')) {
+        const cleanMsg = rawMsg.replace(/^HTTP error! status: \d+[,:]?\s*/, '');
+        setError(`⚠️ Community Guidelines Notice: ${cleanMsg}`);
+      } else {
+        setError(`Failed to publish story: ${err.message}`);
+      }
     } finally {
       setPublishing(false);
     }

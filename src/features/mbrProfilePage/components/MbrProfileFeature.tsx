@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Camera, User, Calendar, Save, Loader2, 
   CheckCircle2, AlertCircle, Image as ImageIcon, Sparkles, Upload,
-  AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Mail, Plus, Trash2, Check,
+  AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Plus, Trash2, Check,
   Sliders, ShieldCheck, Eye, RotateCcw
 } from 'lucide-react';
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, API_BASE_URL, MEDIA_API_BASE_URL } from '@/src/services/api';
@@ -1126,17 +1126,6 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                         placeholder="e.g. University of Washington"
                         value={formData.mbrStudiedAt}
                         onChange={(e) => setFormData((prev) => ({ ...prev, mbrStudiedAt: e.target.value }))}
-                        className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
-                      />
-                    </div>
-
-                    <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">Email Address</label>
-                      <input 
-                        type="email" 
-                        placeholder="e.g. eleanor.hartwell@example.com"
-                        value={formData.mbrEmailAddress}
-                        onChange={(e) => setFormData((prev) => ({ ...prev, mbrEmailAddress: e.target.value }))}
                         className="w-full text-xs font-serif bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-all"
                       />
                     </div>

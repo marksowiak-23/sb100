@@ -987,12 +987,14 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
     const timer = setTimeout(async () => {
       try {
         const queryTrimmed = mbrSearchQuery.trim();
+        // Guardrail: single-character searches are deferred until at least 2 characters are entered
+        const effectiveQuery = queryTrimmed.length === 1 ? undefined : (queryTrimmed || undefined);
         const fetchLimit = connectionsOnly ? 200 : SEARCH_PAGE_SIZE;
 
         let result: any[] = [];
         if (!isSandbox) {
           result = await taskApi.getMembers({
-            query: queryTrimmed || undefined,
+            query: effectiveQuery,
             proximity: userLocation?.label || undefined,
             proximity_lat: userLocation?.latitude,
             proximity_lng: userLocation?.longitude,
@@ -1036,7 +1038,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           setSearchLoading(false);
         }
       }
-    }, 250);
+    }, 350);
 
     return () => {
       isMounted = false;
@@ -1049,9 +1051,10 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
     setSearchLoadingMore(true);
     try {
       const queryTrimmed = mbrSearchQuery.trim();
+      const effectiveQuery = queryTrimmed.length === 1 ? undefined : (queryTrimmed || undefined);
       const currentSkip = searchMembers.length;
       const nextBatch = await taskApi.getMembers({
-        query: queryTrimmed || undefined,
+        query: effectiveQuery,
         proximity: userLocation?.label || undefined,
         proximity_lat: userLocation?.latitude,
         proximity_lng: userLocation?.longitude,
