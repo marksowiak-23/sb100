@@ -13,8 +13,9 @@ RUN npm ci
 # Copy project files
 COPY . .
 
-# Build the React/Vite app
-RUN npm run build
+# Build the React/Vite app for the target environment (dev | stage | prod)
+ARG APP_ENV=prod
+RUN npm run build -- --mode ${APP_ENV}
 
 # Expose port (Cloud Run defaults to 8080 or port specified in PORT env var)
 EXPOSE 8080

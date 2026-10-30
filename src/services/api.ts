@@ -1047,6 +1047,22 @@ export function getAuthHeaders(existingHeaders: Record<string, string> = {}): Re
   return headers;
 }
 
+// Global module fetch interceptor to automatically attach Authorization Bearer token
+const _nativeFetch = typeof window !== 'undefined' ? window.fetch.bind(window) : globalThis.fetch;
+const fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const headers = new Headers(init?.headers);
+  try {
+    if (typeof window !== 'undefined') {
+      const token = sessionStorage.getItem('sb_token');
+      if (token && !headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+    }
+  } catch {}
+  return _nativeFetch(input, { ...init, headers });
+};
+
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`;

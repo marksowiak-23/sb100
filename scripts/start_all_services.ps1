@@ -1,15 +1,29 @@
 <#
 .SYNOPSIS
     Starts all StoryBook ecosystem services concurrently and checks health in parallel.
+.PARAMETER Env
+    Target environment configuration: dev (default, Dev/Local), stage, or prod.
 .PARAMETER NoWait
     Do not wait for services to become healthy before exiting.
 .PARAMETER TimeoutSec
-    Maximum time to wait for services to become healthy (default: 10).
+    Maximum time to wait for services to become healthy (default: 20).
 #>
 param (
+    [ValidateSet("dev", "local", "stage", "staging", "prod", "production")]
+    [string]$Env = "dev",
     [switch]$NoWait,
     [int]$TimeoutSec = 20
 )
+
+# Normalize environment alias (dev & local are one unified environment: 'dev')
+$normalizedEnv = switch ($Env.ToLower()) {
+    "local"       { "dev" }
+    "development" { "dev" }
+    "staging"     { "stage" }
+    "production"  { "prod" }
+    default       { $Env.ToLower() }
+}
+$env:SB_ENV = $normalizedEnv
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $scriptDir) { $scriptDir = $PSScriptRoot }
@@ -24,7 +38,8 @@ if (-not $root) {
 
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host " Starting StoryBook Services Ecosystem..." -ForegroundColor Cyan
-Write-Host " Root Directory: $root" -ForegroundColor Gray
+Write-Host " Active Environment : $normalizedEnv (SB_ENV=$normalizedEnv)" -ForegroundColor Yellow
+Write-Host " Root Directory     : $root" -ForegroundColor Gray
 Write-Host "=========================================" -ForegroundColor Cyan
 
 # 1. Fast Port Check (Single Batch Query)
@@ -37,7 +52,10 @@ function Start-DetachedProcess($filePath, $argumentList, $workDir) {
     $fullCmd = "`"$filePath`" $argumentList"
     try {
         $wmi = [wmiclass]"Win32_Process"
-        $result = $wmi.Create($fullCmd, $workDir, $null)
+        $startup = ([wmiclass]"Win32_ProcessStartup").CreateInstance()
+        $startup.ShowWindow = 0
+        # Inherit current process environment (including SB_ENV)
+        $result = $wmi.Create($fullCmd, $workDir, $startup)
         if ($result.ReturnValue -eq 0) {
             return $result.ProcessId
         }
@@ -75,24 +93,24 @@ $services = @(
         Name = "sb-api"
         Port = 8000
         Dir  = $apiDir
-        Exec = (Resolve-PythonExec $apiDir)
-        Args = "-m uvicorn main:app --host 0.0.0.0 --port 8000"
+        Exec = "cmd.exe"
+        Args = "/c set SB_ENV=$normalizedEnv&& `"$(Resolve-PythonExec $apiDir)`" -m uvicorn main:app --host 0.0.0.0 --port 8000"
         Url  = "http://127.0.0.1:8000/health"
     },
     @{
         Name = "sb-api-ai"
         Port = 8002
         Dir  = $aiDir
-        Exec = (Resolve-PythonExec $aiDir)
-        Args = "-m uvicorn main:app --host 0.0.0.0 --port 8002"
+        Exec = "cmd.exe"
+        Args = "/c set SB_ENV=$normalizedEnv&& `"$(Resolve-PythonExec $aiDir)`" -m uvicorn main:app --host 0.0.0.0 --port 8002"
         Url  = "http://127.0.0.1:8002/health"
     },
     @{
         Name = "sb-api-media"
         Port = 8003
         Dir  = $medDir
-        Exec = (Resolve-PythonExec $medDir)
-        Args = "-m uvicorn main:app --host 0.0.0.0 --port 8003"
+        Exec = "cmd.exe"
+        Args = "/c set SB_ENV=$normalizedEnv&& `"$(Resolve-PythonExec $medDir)`" -m uvicorn main:app --host 0.0.0.0 --port 8003"
         Url  = "http://127.0.0.1:8003/health"
     },
     @{
@@ -100,7 +118,7 @@ $services = @(
         Port = 3000
         Dir  = (Join-Path $root "sb100")
         Exec = "cmd.exe"
-        Args = "/c npm run dev"
+        Args = "/c npm run dev -- --mode $normalizedEnv"
         Url  = "http://127.0.0.1:3000"
     },
     @{
@@ -108,7 +126,7 @@ $services = @(
         Port = 3100
         Dir  = (Join-Path $root "sb-admin-web")
         Exec = "cmd.exe"
-        Args = "/c npm run dev"
+        Args = "/c npm run dev -- --mode $normalizedEnv"
         Url  = "http://127.0.0.1:3100"
     }
 )
@@ -118,7 +136,7 @@ $idx = 1
 $totalCount = $services.Count
 foreach ($svc in $services) {
     if (-not $activePorts.ContainsKey($svc.Port)) {
-        Write-Host "[$idx/$totalCount] Starting $($svc.Name) (Port $($svc.Port))..." -ForegroundColor Yellow
+        Write-Host "[$idx/$totalCount] Starting $($svc.Name) (Port $($svc.Port), Env: $normalizedEnv)..." -ForegroundColor Yellow
         $null = Start-DetachedProcess $svc.Exec $svc.Args $svc.Dir
     } else {
         Write-Host "[$idx/$totalCount] $($svc.Name) already running on port $($svc.Port)." -ForegroundColor Green
@@ -179,14 +197,16 @@ foreach ($svc in $services) {
     if ($res) {
         $detail = ""
         if ($svc.Name -eq "sb100" -or $svc.Name -eq "sb-admin-web") {
-            $detail = "HTTP $($res.Code) (Ready at $($svc.Url))"
+            $detail = "HTTP $($res.Code) (Mode: $normalizedEnv, Ready at $($svc.Url))"
         } else {
             try {
                 $json = $res.Data | ConvertFrom-Json
                 $detail = "$($json.status)"
+                if ($json.env) { $detail += " | Env: $($json.env)" }
                 if ($json.database) { $detail += " | Database: $($json.database)" }
+                if ($json.db_name) { $detail += " ($($json.db_name))" }
                 if ($json.bucket) { $detail += " | Bucket: $($json.bucket)" }
-                if ($json.service) { $detail += " ($($json.service))" }
+                if ($json.service) { $detail += " [$($json.service)]" }
             } catch {
                 $detail = "HTTP $($res.Code)"
             }
@@ -199,4 +219,3 @@ foreach ($svc in $services) {
 
 $elapsed = [math]::Round($sw.Elapsed.TotalSeconds, 2)
 Write-Host "`nAll StoryBook services verified in $($elapsed)s!" -ForegroundColor Cyan
-

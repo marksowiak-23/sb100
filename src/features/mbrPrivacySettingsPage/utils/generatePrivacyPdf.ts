@@ -5,26 +5,14 @@
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Topic, Cd } from '@/src/services/api';
-import { UnifiedGroup, PrivilegeCell } from '../types';
-
-interface GeneratePrivacyPdfOptions {
-  mbrId: string;
-  mbrEmail?: string;
-  topics: Topic[];
-  groups: UnifiedGroup[];
-  matrix: Record<string, PrivilegeCell>;
-  privCodes: Cd[];
-}
+import { PrivacyReportData } from '../types';
 
 export function generatePrivacyPdf({
   mbrId,
+  mbrName,
   mbrEmail,
-  topics,
-  groups,
-  matrix,
-  privCodes
-}: GeneratePrivacyPdfOptions): void {
+  enrichedStories
+}: PrivacyReportData): void {
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'pt',
@@ -53,137 +41,89 @@ export function generatePrivacyPdf({
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(203, 213, 225); // Slate-300
-  doc.text('Member Privacy & Permissions Report', 125, 38);
+  doc.text('Member Story Access & Visibility Report', 125, 38);
 
   doc.setFontSize(8.5);
   doc.setTextColor(148, 163, 184); // Slate-400
   doc.text(`Generated: ${timestamp}`, pageWidth - 36, 38, { align: 'right' });
 
-  // --- MEMBER INFO & OVERVIEW SUB-HEADER ---
+  // --- MEMBER INFO SUB-HEADER ---
   doc.setFontSize(9);
   doc.setTextColor(71, 85, 105);
 
-  // Line 1: Member Email (above Member ID line)
   doc.setFont('helvetica', 'bold');
-  doc.text('Member Email: ', 36, 78);
+  doc.text('Member: ', 36, 78);
   doc.setFont('helvetica', 'normal');
-  doc.text(mbrEmail || 'eleanor.vance@storybook.ai', 106, 78);
+  doc.text(`${mbrName} (${mbrEmail || 'eleanor.vance@storybook.ai'})`, 82, 78);
 
-  // Line 2: Member ID & Overview counts
+  const sharedStories = enrichedStories.filter(
+    (s) => s.groupsWithAccess.length > 0 || s.membersWithAccess.length > 0
+  );
+
   doc.setFont('helvetica', 'bold');
   doc.text('Member ID: ', 36, 94);
   doc.setFont('helvetica', 'normal');
   doc.text(mbrId, 96, 94);
 
   doc.setFont('helvetica', 'bold');
-  doc.text('Total Topics: ', 340, 94);
+  doc.text('Shared Stories: ', 340, 94);
   doc.setFont('helvetica', 'normal');
-  doc.text(`${topics.length}`, 405, 94);
+  doc.text(`${sharedStories.length} of ${enrichedStories.length}`, 415, 94);
 
-  doc.setFont('helvetica', 'bold');
-  doc.text('Total Groups: ', 470, 94);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${groups.length}`, 535, 94);
+  const headers = [
+    'Story Title',
+    'Topic',
+    'Status',
+    'Groups with Access',
+    'Connected Members with Access'
+  ];
 
-  // Helper map for code labels
-  const codeLabelMap = new Map<string, string>();
-  for (const c of privCodes) {
-    codeLabelMap.set(c.cdValue, c.cdLabel || c.cdValue);
-  }
+  const tableRows = sharedStories.map((item) => {
+    const grpSummary =
+      item.groupsWithAccess.length > 0
+        ? item.groupsWithAccess
+            .map((g) => `${g.group.grpName} (${g.accessLabel})`)
+            .join(', ')
+        : '—';
 
-  // --- MATRIX TABLE DATA PREPARATION ---
-  const headers = ['Topic Name', ...groups.map(g => `${g.grpName}${g.isCustom ? ' (Custom)' : ''}`)];
-  
-  const tableRows = topics.map(topic => {
-    const row = [topic.topicFullName || topic.topicName];
-    for (const grp of groups) {
-      const key = `${topic.topicId}_${grp.grpId}`;
-      const cell = matrix[key];
-      const privVal = cell?.privValueCd || 'NONE';
-      const label = codeLabelMap.get(privVal) || privVal;
-      row.push(label);
-    }
-    return row;
+    const mbrSummary =
+      item.membersWithAccess.length > 0
+        ? item.membersWithAccess
+            .map((m) => `${m.member.fullName} (${m.accessLabel})`)
+            .join(', ')
+        : '—';
+
+    return [
+      item.story.mbrStoryTitle || 'Untitled Story',
+      item.topicLabel,
+      item.story.mbrStoryPublishStatusCd || 'Draft',
+      grpSummary,
+      mbrSummary
+    ];
   });
 
-  // --- MATRIX TABLE ---
   autoTable(doc, {
     startY: 108,
     head: [headers],
-    body: tableRows,
+    body: tableRows.length > 0 ? tableRows : [['No stories currently shared', '—', '—', '—', '—']],
     theme: 'grid',
     headStyles: {
-      fillColor: [30, 41, 59], // Slate-800
+      fillColor: [30, 41, 59],
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 8.5,
-      halign: 'center'
+      fontSize: 8.5
     },
-    columnStyles: {
-      0: { fontStyle: 'bold', halign: 'left', cellWidth: 140 }
-    },
-    styles: {
+    bodyStyles: {
       fontSize: 8,
-      cellPadding: 6,
-      halign: 'center',
-      valign: 'middle'
+      textColor: [51, 65, 85],
+      cellPadding: 6
     },
     alternateRowStyles: {
-      fillColor: [248, 250, 252] // Slate-50
+      fillColor: [248, 250, 252]
     },
-    didParseCell: (data) => {
-      if (data.section === 'body' && data.column.index > 0) {
-        const text = String(data.cell.raw).toUpperCase();
-        if (text.includes('WRITE') || text.includes('CONTRIBUTE')) {
-          data.cell.styles.textColor = [37, 99, 235]; // Blue-600
-          data.cell.styles.fontStyle = 'bold';
-        } else if (text.includes('READ') || text.includes('VIEW ONLY')) {
-          data.cell.styles.textColor = [16, 185, 129]; // Emerald-600
-          data.cell.styles.fontStyle = 'bold';
-        } else if (text.includes('NONE') || text.includes('NO ACCESS')) {
-          data.cell.styles.textColor = [225, 29, 72]; // Rose-600
-        }
-      }
-    }
+    margin: { left: 36, right: 36, bottom: 40 }
   });
 
-  // --- PERMISSION CODES LEGEND FOOTER ---
-  const lastTableY = (doc as any).lastAutoTable?.finalY || 400;
-  const legendY = Math.min(lastTableY + 24, doc.internal.pageSize.getHeight() - 70);
-
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(51, 65, 85);
-  doc.text('Permission Codes Legend:', 36, legendY);
-
-  const legendItems = [
-    { label: 'WRITE (View & Contribute)', color: [37, 99, 235] as [number, number, number] },
-    { label: 'READ (View Only)', color: [16, 185, 129] as [number, number, number] },
-    { label: 'NONE (No Access / Private)', color: [225, 29, 72] as [number, number, number] }
-  ];
-
-  let currentX = 165;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-
-  for (const item of legendItems) {
-    doc.setFillColor(...item.color);
-    doc.circle(currentX, legendY - 2.5, 3.5, 'F');
-    doc.setTextColor(...item.color);
-    doc.text(item.label, currentX + 7, legendY);
-    currentX += doc.getTextWidth(item.label) + 26;
-  }
-
-  // --- FOOTER COPYRIGHT ---
-  doc.setFontSize(7.5);
-  doc.setTextColor(148, 163, 184);
-  doc.text(
-    'StoryBook Privacy Matrix • Confidential • Keep secure',
-    pageWidth / 2,
-    doc.internal.pageSize.getHeight() - 20,
-    { align: 'center' }
-  );
-
-  // Save the generated PDF
-  doc.save(`storybook-privacy-matrix-${new Date().toISOString().slice(0, 10)}.pdf`);
+  const safeEmail = (mbrEmail || 'member').split('@')[0].replace(/[^a-zA-Z0-9_-]/g, '_');
+  doc.save(`StoryBook_Story_Access_${safeEmail}.pdf`);
 }
