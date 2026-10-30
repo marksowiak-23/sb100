@@ -11,7 +11,7 @@ export interface HealthCheckResponse {
 export interface User {
   user_id: string;
   email: string;
-  password_hash?: string;
+
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -1049,12 +1049,56 @@ export function getAuthHeaders(existingHeaders: Record<string, string> = {}): Re
 
 // Global module fetch interceptor to automatically attach Authorization Bearer token
 const _nativeFetch = typeof window !== 'undefined' ? window.fetch.bind(window) : globalThis.fetch;
+let _tokenRefreshPromise: Promise<string | null> | null = null;
+
+async function ensureSessionToken(): Promise<string | null> {
+  try {
+    if (typeof window === 'undefined') return null;
+    const existing = sessionStorage.getItem('sb_token');
+    if (existing) return existing;
+
+    const userRaw = sessionStorage.getItem('user');
+    if (!userRaw) return null;
+    const parsedUser = JSON.parse(userRaw);
+    const email = parsedUser?.email;
+    if (!email) return null;
+
+    if (!_tokenRefreshPromise) {
+      _tokenRefreshPromise = _nativeFetch(`${API_BASE_URL}/users/social-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ email })
+      })
+        .then(async (res) => {
+          if (!res.ok) return null;
+          const data = await res.json();
+          if (data?.access_token) {
+            sessionStorage.setItem('sb_token', data.access_token);
+            return data.access_token as string;
+          }
+          return null;
+        })
+        .catch(() => null)
+        .finally(() => {
+          _tokenRefreshPromise = null;
+        });
+    }
+    return await _tokenRefreshPromise;
+  } catch {
+    return null;
+  }
+}
+
 const fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const headers = new Headers(init?.headers);
   try {
-    if (typeof window !== 'undefined') {
-      const token = sessionStorage.getItem('sb_token');
-      if (token && !headers.has('Authorization')) {
+    if (typeof window !== 'undefined' && !headers.has('Authorization')) {
+      let token = sessionStorage.getItem('sb_token');
+      const urlStr = typeof input === 'string' ? input : input.toString();
+      if (!token && !urlStr.includes('/users/login') && !urlStr.includes('/users/social-login') && !urlStr.includes('/health')) {
+        token = await ensureSessionToken();
+      }
+      if (token) {
         headers.set('Authorization', `Bearer ${token}`);
       }
     }

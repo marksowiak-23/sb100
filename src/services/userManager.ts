@@ -284,24 +284,32 @@ export const userManager = {
   },
 
   /**
-   * Performs user logon check using the backend GET /users/email/{email} endpoint (legacy / fallback).
+   * Performs social/session user logon via POST /users/social-login and stores JWT access token.
    */
   async userLogon(email: string): Promise<LogonResult> {
     try {
-      const response = await fetch(`${API_BASE_URL}/users/email/${encodeURIComponent(email)}`, {
-        method: 'GET',
+      const response = await fetch(`${API_BASE_URL}/users/social-login`, {
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        body: JSON.stringify({ email: email.trim() }),
       });
       
       if (response.ok) {
-        const user = await response.json();
+        const data = await response.json();
+        const user = data.user || data;
+        if (data.access_token) {
+          sessionStorage.setItem('sb_token', data.access_token);
+        }
         sessionStorage.setItem('user', JSON.stringify(user));
 
-        let member: any = null;
+        let member: any = data.member || null;
         try {
-          member = await taskApi.getMemberByUserId(user.user_id);
+          if (!member && user?.user_id) {
+            member = await taskApi.getMemberByUserId(user.user_id);
+          }
           if (member) {
             sessionStorage.setItem('sb_current_mbr', JSON.stringify(member));
             await this.applyUserThemePreference(member.mbrId);
@@ -310,7 +318,14 @@ export const userManager = {
           console.warn('Could not load member record during userLogon:', e);
         }
 
-        return { success: true, user, member };
+        return {
+          success: true,
+          user,
+          member,
+          access_token: data.access_token,
+          token_type: data.token_type,
+          expires_in: data.expires_in
+        };
       } else {
         if (email === 'mark.sowiak@gmail.com' || email === 'msowiak') {
           return {
