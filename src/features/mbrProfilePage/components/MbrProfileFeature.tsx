@@ -361,6 +361,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         }
       }
 
+      setShowStoryMate(false);
       if (onDirtyChange) {
         onDirtyChange(false);
       }

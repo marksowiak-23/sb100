@@ -10,6 +10,8 @@ interface Message {
   sender: 'cassie' | 'user';
   text: string;
   isDraftSnippet?: boolean;
+  isSystemNotice?: boolean;
+  storyDraft?: string;
 }
 
 interface StoryMatePanelProps {
@@ -463,11 +465,18 @@ export default function StoryMatePanel({
 
   const [messages, setMessages] = useState<Message[]>([]);
 
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = chatContainerRef.current;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [messages, loading]);
 
   // Auto-expand textarea height as user types
@@ -480,11 +489,32 @@ export default function StoryMatePanel({
   }, [chatInput]);
 
   const hasInitializedMessagesRef = useRef<boolean>(false);
+  const [currentStoryContent, setCurrentStoryContent] = useState<string>(storyContent || '');
   const storyContentRef = useRef<string | undefined>(storyContent);
+  const generationCountRef = useRef<number>(0);
 
   useEffect(() => {
-    storyContentRef.current = storyContent;
+    if (storyContent !== undefined) {
+      storyContentRef.current = storyContent;
+      setCurrentStoryContent(storyContent);
+    }
   }, [storyContent]);
+
+  useEffect(() => {
+    const handleExternalStorySync = (e: any) => {
+      const nextContent = e?.detail?.content;
+      if (typeof nextContent === 'string') {
+        storyContentRef.current = nextContent;
+        setCurrentStoryContent(nextContent);
+      }
+    };
+    window.addEventListener('update-story-editor-content', handleExternalStorySync);
+    window.addEventListener('story-editor-content-changed', handleExternalStorySync);
+    return () => {
+      window.removeEventListener('update-story-editor-content', handleExternalStorySync);
+      window.removeEventListener('story-editor-content-changed', handleExternalStorySync);
+    };
+  }, []);
 
   // Lookup Intent, Hierarchical Instructions, Prompt, and Member chWriter Preference
   useEffect(() => {
@@ -863,8 +893,8 @@ export default function StoryMatePanel({
             ? (trimmedContent.length > 180 ? `${trimmedContent.slice(0, 180)}...` : trimmedContent)
             : '';
           const existingNotice = trimmedContent
-            ? `\n\nI reviewed your current content:\n> "${contentQuote}"\n\nHow would you like to revise, refine, or expand your text today?`
-            : `\n\n*${resolvedPrompt}*`;
+            ? `\n\nI reviewed your current content:\n"${contentQuote}"\n\nHow would you like to revise, refine, or expand your text today?`
+            : `\n\n${resolvedPrompt.replace(/\*/g, '')}`;
 
           const initialGreeting = `Hi ${nameToUse}! I'm ${currentPersonaName}, your StoryMate co-writer. I'm here to help you craft, polish, and preserve your stories in my signature style.${existingNotice}`;
           setMessages([
@@ -893,37 +923,149 @@ export default function StoryMatePanel({
       ...prev,
       {
         sender: 'cassie',
-        text: `✨ Switched co-writer persona to **${persona.chWriterName}** (${persona.chWriterDesc}). I'll now assist and generate stories in this style for this session!`
+        text: `✨ Switched co-writer persona to ${persona.chWriterName} (${persona.chWriterDesc}). I'll now assist and generate stories in this style for this session!`,
+        isSystemNotice: true
       }
     ]);
   };
 
-  // Determine if there is enough conversational context for AI to write a full paragraph or more
+  // Helper to strip asterisks from AI chat responses
+  const stripAsterisks = (text: string): string => {
+    if (!text) return '';
+    return text.replace(/\*+/g, '').trim();
+  };
+
+  // Helper to strip conversational preambles, markdown code fences, or wrapping quotes from AI story output
+  const cleanGeneratedStoryText = (raw: string): string => {
+    if (!raw) return '';
+    let cleaned = raw.trim();
+    cleaned = cleaned.replace(/^```(?:markdown|text)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    cleaned = cleaned.replace(
+      /^(?:Sure!?\s*|Certainly!?\s*|Of course!?\s*|Absolutely!?\s*|Happy to help!?\s*)?(?:Here is|Here's|Below is|I've rewritten|I have rewritten)\s+(?:your|a|the|an)?\s*(?:regenerated|rewritten|revised|updated|new|fresh|polished|drafted)?\s*(?:story|draft|narrative|memoir|version|chapter)[^:\n]*:\s*/i,
+      ''
+    );
+    cleaned = cleaned.replace(/^"(.*)"$/s, '$1').replace(/\*+/g, '').trim();
+    return cleaned;
+  };
+
+  // Helper to build a concise, relevant conversation history without duplicating full story drafts or initial greetings
+  const buildCleanConversationNotes = (): string => {
+    return messages
+      .filter((m, idx) => {
+        if (idx === 0 && m.sender === 'cassie') return false;
+        if (m.isSystemNotice || m.isDraftSnippet || m.text.startsWith('✨')) return false;
+        return true;
+      })
+      .slice(-10)
+      .map((m) => `${m.sender === 'user' ? (displayFirstName || 'Member') : personaName}: ${m.text}`)
+      .join('\n\n')
+      .slice(-4000);
+  };
+
+  // Helper for offline fallback rewrite so even offline mode produces a noticeably rewritten narrative
+  const buildOfflineRewrittenStory = (baseDraft: string, userNote: string, ver: number): string => {
+    const cleanNote = /^(?:generate|regenerate|rewrite|re-write|revise|reword|rephrase|write|update|polish)(?:\s+(?:the\s+|a\s+|my\s+|this\s+)?story)?[.!?]*$/i.test(userNote.trim())
+      ? ''
+      : userNote.trim();
+    const cleanedBase = baseDraft
+      .replace(/^<!--story-layout:[\s\S]*?-->\s*/, '')
+      .replace(/\n\nReflecting on these (?:moments|experiences).*$/s, '')
+      .replace(/\n\nLooking back across.*$/s, '')
+      .trim();
+
+    if (!cleanedBase) {
+      const compiledNotes = [...userMessages.map((m) => m.text), cleanNote].filter(Boolean).join(' ');
+      return `${storyTitle ? `${storyTitle} — ` : ''}${compiledNotes || 'Looking back on this memorable chapter of my life'}, the vivid sights, sounds, and emotions of those days remain etched in my heart. Every moment from that season helped shape the person I became and the story I carry forward today.`;
+    }
+
+    const sentences = cleanedBase
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const openers = [
+      `When I look back on ${storyTitle ? `"${storyTitle}"` : 'this unforgettable chapter of my life'}, one memory rises above the rest.`,
+      `There are certain seasons of life that stay with you forever, and for me, this story is right at the heart of them.`,
+      `Every time I revisit these memories, I am struck by how vividly the details come rushing back.`
+    ];
+    const closers = [
+      `Looking back now in ${personaName}'s style, I realize how deeply these experiences shaped who I am and the legacy I want to share.`,
+      `Even after all these years, the warmth, laughter, and lessons from that time continue to anchor my journey.`,
+      `Those moments may belong to the past, but the gratitude and meaning they brought into my life remain as vibrant as ever.`
+    ];
+
+    const opener = openers[(ver - 1) % openers.length];
+    const closer = closers[(ver - 1) % closers.length];
+    const reorderedBody = sentences.length > 2
+      ? [sentences[1], sentences[0], ...sentences.slice(2)].join(' ')
+      : cleanedBase;
+
+    return cleanNote
+      ? `${opener}\n\n${reorderedBody}\n\n${cleanNote}\n\n${closer}`
+      : `${opener}\n\n${reorderedBody}\n\n${closer}`;
+  };
+
+  // Helper to push generated/regenerated story narrative directly into StoryEditorPanel
+  const applyStoryToEditor = (storyText: string) => {
+    const trimmed = storyText.trim();
+    if (!trimmed) return;
+    storyContentRef.current = trimmed;
+    setCurrentStoryContent(trimmed);
+
+    window.dispatchEvent(new CustomEvent('update-story-editor-content', {
+      detail: {
+        content: trimmed,
+        text: trimmed,
+        threadId,
+        intentId: intentRecord?.chIntentId,
+        mode: 'replace'
+      }
+    }));
+
+    if (onApplyStory) {
+      onApplyStory(trimmed);
+    }
+
+    setAppliedSuccess(true);
+    setTimeout(() => setAppliedSuccess(false), 4000);
+  };
+
+  // Determine if there is enough conversational or existing story context for AI to generate or regenerate
   const userMessages = messages.filter((m) => m.sender === 'user');
   const totalUserChars = userMessages.reduce((acc, m) => acc + m.text.trim().length, 0);
   const hasAiDraft = messages.some((m) => m.sender === 'cassie' && m.isDraftSnippet);
-  const hasExistingStoryWithChat = Boolean(storyContent && storyContent.trim().length >= 20 && userMessages.length >= 1);
-  const hasEnoughContent = totalUserChars >= 25 || userMessages.length >= 2 || hasAiDraft || hasExistingStoryWithChat;
+  const effectiveStoryText = (currentStoryContent || storyContentRef.current || storyContent || '').trim();
+  const hasExistingStory = effectiveStoryText.length >= 10;
+  const hasEnoughContent = totalUserChars >= 10 || userMessages.length >= 1 || hasAiDraft || hasExistingStory;
 
   const handleWriteStoryToField = async () => {
     if (!hasEnoughContent || isWritingStory || loading) return;
     setIsWritingStory(true);
     setAppliedSuccess(false);
     const startTime = performance.now();
+    generationCountRef.current += 1;
+    const isRegenerating = effectiveStoryText.length >= 10;
 
-    // Compile conversation notes for AI synthesis
-    const conversationSummary = messages
-      .map((m) => `${m.sender === 'user' ? (displayFirstName || 'Member') : personaName}: ${m.text}`)
-      .join('\n\n');
+    // Compile conversation notes for AI synthesis (excluding UI status notices and old drafts)
+    const conversationSummary = buildCleanConversationNotes();
+    const trimmedInst = (instructionText || '').slice(0, 15000);
+    const trimmedPrompt = (promptText || '').slice(0, 2000);
+    const trimmedDraft = effectiveStoryText.slice(0, 12000);
 
-    const personaInstruction = writerPersona?.chWriterPrompt ? ` [Writing Persona Style: ${writerPersona.chWriterPrompt}]` : '';
-    const currentContentInstruction = storyContent?.trim() ? ` [Existing Draft to incorporate or expand: "${storyContent.trim()}"]` : '';
+    const personaInstruction = writerPersona?.chWriterPrompt ? ` [Writing Persona Style (${personaName}): ${writerPersona.chWriterPrompt}]` : '';
+    const currentContentInstruction = isRegenerating
+      ? ` [Existing Story Draft to Rewrite & Replace: "${trimmedDraft}"]`
+      : '';
 
-    const writePrompt = `[Instruction: ${instructionText}] [Prompt: ${promptText}]${personaInstruction}${currentContentInstruction}
-[Task: Based on all the details, reflections, notes, and conversation below, write a cohesive, engaging, and expressive story paragraph (or multi-paragraph chapter) in first-person perspective. Match the persona style: ${personaName}. Output ONLY the final polished story narrative ready to be inserted directly into the memoir story field. Do not include introductory remarks, quotes, markdown code fences, or conversational filler.]
+    const taskClause = isRegenerating
+      ? `[Task: Completely REWRITE and REPLACE the Existing Story Draft above (Revision #${generationCountRef.current}) in first-person perspective ("I", "my", "we") using the ${personaName} persona style. Do NOT repeat the existing draft verbatim—craft a fresh opening hook, restructure the paragraphs and sentences, enrich the sensory and emotional storytelling, and weave in all details and feedback from the conversation notes below. Output ONLY the final rewritten story narrative ready to replace the contents of the Story Editor field. Do not include introductory remarks, quotes, markdown code fences, follow-up questions, or conversational filler.]`
+      : `[Task: Based on all the details, reflections, notes, and conversation below, write a cohesive, engaging, and expressive story narrative in first-person perspective ("I", "my", "we") matching the ${personaName} persona style. Output ONLY the final polished story narrative ready to be inserted directly into the Story Editor field. Do not include introductory remarks, quotes, markdown code fences, follow-up questions, or conversational filler.]`;
+
+    const writePrompt = `[Instruction: ${trimmedInst}] [Prompt: ${trimmedPrompt}]${personaInstruction}${currentContentInstruction}
+${taskClause}
 
 Conversation Notes:
-${conversationSummary}`;
+${conversationSummary || 'Rewrite the existing story draft with fresh, engaging phrasing in the active persona voice.'}`;
 
     try {
       const result = await chatApi.sendMessage(
@@ -932,15 +1074,10 @@ ${conversationSummary}`;
         displayFirstName
       );
 
-      let generatedStory = result.response || '';
-      // Clean any accidental quotes or preambles
-      generatedStory = generatedStory
-        .replace(/^Here is (your|a) (story|draft|narrative|revised draft)[^:\n]*:\s*/i, '')
-        .replace(/^"(.*)"$/s, '$1')
-        .trim();
+      let generatedStory = cleanGeneratedStoryText(result.response || '');
 
-      if (!generatedStory && storyContent) {
-        generatedStory = storyContent;
+      if (!generatedStory && effectiveStoryText) {
+        generatedStory = effectiveStoryText;
       }
 
       const addedTokens = result.tokens_used || Math.ceil((writePrompt.length + generatedStory.length) / 4);
@@ -957,33 +1094,21 @@ ${conversationSummary}`;
         null
       );
 
-      // 1. Dispatch standard application event for story fields (StoryEditorPanel, MbrProfileFeature, etc.)
-      window.dispatchEvent(new CustomEvent('update-story-editor-content', {
-        detail: {
-          content: generatedStory,
-          text: generatedStory,
-          threadId,
-          intentId: intentRecord?.chIntentId,
-          mode: 'replace'
-        }
-      }));
+      // Push generated/regenerated story directly into StoryEditorPanel
+      applyStoryToEditor(generatedStory);
 
-      // 2. Call callback prop if provided
-      if (onApplyStory) {
-        onApplyStory(generatedStory);
-      }
-
-      // 3. Add confirmation message in chat feed
+      // Add confirmation message in chat feed
       setMessages((prev) => [
         ...prev,
         {
           sender: 'cassie',
-          text: `✨ I've written your story draft and inserted it directly into your story text field above!\n\nFeel free to review it or ask me for any additions or tone tweaks.`
+          text: isRegenerating
+            ? `✨ I've regenerated your story in the ${personaName} style and updated it directly in the Story Editor panel above!\n\nFeel free to review it there or tell me any other adjustments you'd like.`
+            : `✨ I've written your story draft and inserted it directly into the Story Editor panel above!\n\nFeel free to review it or ask me for any additions or tone tweaks.`,
+          isSystemNotice: true,
+          storyDraft: generatedStory
         }
       ]);
-
-      setAppliedSuccess(true);
-      setTimeout(() => setAppliedSuccess(false), 4000);
     } catch (err) {
       console.warn("AI API offline, using intelligent story synthesis:", err);
 
@@ -998,44 +1123,27 @@ ${conversationSummary}`;
         String(err)
       );
 
-      // Simulation fallback
+      // Simulation fallback with distinct rewrite variations
       setTimeout(() => {
-        const compiledUserNotes = userMessages.map((m) => m.text).join(' ');
-        let synthesized = '';
-
-        if (storyContent?.trim()) {
-          synthesized = `${storyContent.trim()}\n\n${compiledUserNotes}. Reflecting on these moments gives deeper context to my journey, capturing both where I have been and the memories I carry forward.`;
-        } else {
-          synthesized = `${storyTitle ? `${storyTitle}: ` : ''}${compiledUserNotes}. Looking back, these vivid memories remain deeply meaningful, capturing the essence of the experiences and people that shaped this chapter of my life.`;
-        }
+        const synthesized = buildOfflineRewrittenStory(effectiveStoryText, '', generationCountRef.current);
 
         const simTokens = Math.ceil((writePrompt.length + synthesized.length) / 4);
         setTotalTokensUsed((prev) => prev + simTokens);
 
-        window.dispatchEvent(new CustomEvent('update-story-editor-content', {
-          detail: {
-            content: synthesized,
-            text: synthesized,
-            threadId,
-            intentId: intentRecord?.chIntentId,
-            mode: 'replace'
-          }
-        }));
-
-        if (onApplyStory) {
-          onApplyStory(synthesized);
-        }
+        applyStoryToEditor(synthesized);
 
         setMessages((prev) => [
           ...prev,
           {
             sender: 'cassie',
-            text: `✨ I've synthesized our conversation into a complete story narrative and updated the story text field above! Feel free to review it or continue chatting with me to refine any section.`
+            text: isRegenerating
+              ? `✨ I've rewritten your story narrative and replaced the contents in the Story Editor panel above! Feel free to review it or continue chatting with me to refine any section.`
+              : `✨ I've synthesized our conversation into a complete story narrative and updated the Story Editor panel above! Feel free to review it or continue chatting with me to refine any section.`,
+            isSystemNotice: true,
+            storyDraft: synthesized
           }
         ]);
 
-        setAppliedSuccess(true);
-        setTimeout(() => setAppliedSuccess(false), 4000);
         setIsWritingStory(false);
       }, 800);
       return;
@@ -1060,10 +1168,62 @@ ${conversationSummary}`;
     setLoading(true);
     const startTime = performance.now();
 
-    const isWriteRequest = userText.toLowerCase().includes('write') || userText.toLowerCase().includes('draft') || userText.toLowerCase().includes('generate story') || userText.toLowerCase().includes('revise');
-    const personaInstruction = writerPersona?.chWriterPrompt ? ` [Writing Persona Style: ${writerPersona.chWriterPrompt}]` : '';
-    const currentContentInstruction = storyContent?.trim() ? ` [Current Content: "${storyContent.trim()}"]` : '';
-    const fullPrompt = `[Instruction: ${instructionText}] [Prompt: ${promptText}]${personaInstruction}${currentContentInstruction} ${userText}`;
+    const lowerText = userText.toLowerCase();
+    const lastAiMsg = [...messages].reverse().find((m) => m.sender === 'cassie')?.text.toLowerCase() || '';
+    const aiAskedToGenerate =
+      lastAiMsg.includes('would you like me to') &&
+      (lastAiMsg.includes('generate') || lastAiMsg.includes('regenerate') || lastAiMsg.includes('rewrite') || lastAiMsg.includes('draft'));
+    const isAffirmativeToPrompt =
+      aiAskedToGenerate &&
+      /^(?:yes|yeah|yep|sure|ok|okay|please|yes please|go ahead|do it|let's do it|sounds good)[.!]*$/i.test(userText.trim());
+
+    const isExplicitStoryCommand =
+      isAffirmativeToPrompt ||
+      lowerText.includes('generate story') ||
+      lowerText.includes('generate the story') ||
+      lowerText.includes('generate a story') ||
+      lowerText.includes('generate draft') ||
+      lowerText.includes('regenerate') ||
+      lowerText.includes('re-generate') ||
+      lowerText.includes('rewrite the story') ||
+      lowerText.includes('rewrite my story') ||
+      lowerText.includes('rewrite story') ||
+      lowerText.includes('re-write the story') ||
+      lowerText.includes('write story') ||
+      lowerText.includes('write the story') ||
+      lowerText.includes('write my story') ||
+      lowerText.includes('write a story') ||
+      lowerText.includes('draft story') ||
+      lowerText.includes('draft the story') ||
+      lowerText.includes('update the story') ||
+      lowerText.includes('update my story') ||
+      lowerText.includes('replace the story') ||
+      /^(?:generate|regenerate|rewrite|re-write)$/i.test(lowerText.trim());
+
+    const isWriteRequest = isExplicitStoryCommand;
+    const trimmedInst = (instructionText || '').slice(0, 15000);
+    const trimmedPrompt = (promptText || '').slice(0, 2000);
+    const trimmedDraft = effectiveStoryText.slice(0, 12000);
+    const personaInstruction = writerPersona?.chWriterPrompt ? ` [Writing Persona Style (${personaName}): ${writerPersona.chWriterPrompt}]` : '';
+    const currentContentInstruction = trimmedDraft ? ` [Existing Story Draft in Story Editor: "${trimmedDraft}"]` : '';
+
+    // Compile prior conversation notes for context when generating/regenerating via chat
+    const conversationSummary = buildCleanConversationNotes();
+    if (isWriteRequest) {
+      generationCountRef.current += 1;
+    }
+
+    const fullPrompt = isWriteRequest
+      ? `[Instruction: ${trimmedInst}] [Prompt: ${trimmedPrompt}]${personaInstruction}${currentContentInstruction}
+[Task: The user has requested ("${userText}") to REWRITE and REPLACE their memoir story in the Story Editor (Revision #${generationCountRef.current}). Substantially rewrite and transform the story narrative from start to finish in first-person perspective ("I", "my", "we") matching the ${personaName} persona style and incorporating the conversation history and user's specific feedback. Do NOT repeat the existing draft verbatim or just append a sentence—use fresh opening phrasing, restructured paragraphs, and vivid sensory storytelling so the rewritten story meaningfully replaces the existing story. Output ONLY the final polished story narrative ready to replace the contents of the Story Editor field. Do not include introductory remarks, quotes, markdown code fences, asterisks (*), follow-up questions, or conversational filler.]
+
+Conversation History:
+${conversationSummary}
+${displayFirstName || 'Member'}: ${userText}`
+      : `[Instruction: ${trimmedInst}] [Prompt: ${trimmedPrompt}]${personaInstruction}${currentContentInstruction}
+[Conversational Rules: Respond directly and conversationally in plain text to the user's input ("${userText}"). Do NOT use asterisks (*) or markdown bold/italics formatting anywhere in your response. Do NOT output or write out the full or revised story draft inside the chat response. Instead, acknowledge the user's details or requested changes, ask a brief follow-up question if helpful, or ask if they would like you to regenerate/generate the story draft in the Story Editor panel.]
+
+${userText}`;
 
     try {
       const result = await chatApi.sendMessage(
@@ -1072,7 +1232,7 @@ ${conversationSummary}`;
         displayFirstName
       );
       
-      const aiReply = result.response;
+      const aiReply = stripAsterisks(result.response || '');
       const addedTokens = result.tokens_used || Math.ceil(((instructionText?.length || 0) + (promptText?.length || 0) + userText.length + aiReply.length) / 4);
       setTotalTokensUsed((prev) => prev + addedTokens);
 
@@ -1087,14 +1247,29 @@ ${conversationSummary}`;
         null
       );
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: 'cassie',
-          text: aiReply,
-          isDraftSnippet: isWriteRequest || aiReply.length > 120
+      if (isWriteRequest) {
+        const cleanedStory = cleanGeneratedStoryText(aiReply);
+        if (cleanedStory) {
+          applyStoryToEditor(cleanedStory);
         }
-      ]);
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'cassie',
+            text: `✨ I've regenerated your story in the ${personaName} style and updated it directly in the Story Editor panel above! Feel free to review it there or let me know if you'd like any further adjustments.`,
+            isSystemNotice: true,
+            storyDraft: cleanedStory || aiReply
+          }
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'cassie',
+            text: aiReply
+          }
+        ]);
+      }
     } catch (error) {
       console.warn("AI API offline, using intelligent simulation:", error);
 
@@ -1111,15 +1286,14 @@ ${conversationSummary}`;
 
       setTimeout(() => {
         let aiReply = '';
+        let generatedDraft = '';
         const lowercaseUser = userText.toLowerCase();
         const personaStyleNotice = writerPersona?.chWriterName ? ` (${writerPersona.chWriterName} mode)` : '';
 
         if (isWriteRequest) {
-          if (storyContent?.trim()) {
-            aiReply = `Here is a revised draft incorporating your current text and feedback${personaStyleNotice}:\n\n"${storyContent.trim()}\n\n${userText}. Reflecting on these experiences gives deeper context to my journey, capturing both where I have been and the memories I carry forward."`;
-          } else {
-            aiReply = `Here is a drafted story based on our conversation${personaStyleNotice}:\n\n"${storyTitle || 'Memoir'}: ${userText}. The vivid memories of these days remain clear and meaningful. Looking back, those experiences shaped my journey and taught me lessons that I carry with me to this day."`;
-          }
+          generatedDraft = buildOfflineRewrittenStory(effectiveStoryText, userText, generationCountRef.current);
+          applyStoryToEditor(generatedDraft);
+          aiReply = `✨ I've regenerated your story${personaStyleNotice} and replaced the contents in the Story Editor panel above! Feel free to review it there or let me know if you'd like any further adjustments.`;
         } else if (lowercaseUser.includes('childhood') || lowercaseUser.includes('kid') || lowercaseUser.includes('grow up')) {
           aiReply = `Growing up with those experiences is such a sensory memory, ${displayFirstName}. Applying our ${intentRecord?.chIntentName || 'intent'} focus${personaStyleNotice}: what specific smells, sights, or feelings do you remember most clearly?`;
         } else if (lowercaseUser.includes('family') || lowercaseUser.includes('parent') || lowercaseUser.includes('grandparent')) {
@@ -1138,7 +1312,9 @@ ${conversationSummary}`;
           {
             sender: 'cassie',
             text: aiReply,
-            isDraftSnippet: isWriteRequest || lowercaseUser.includes('write')
+            isDraftSnippet: isWriteRequest || lowercaseUser.includes('write'),
+            isSystemNotice: isWriteRequest,
+            storyDraft: generatedDraft || undefined
           }
         ]);
         setLoading(false);
@@ -1212,7 +1388,7 @@ ${conversationSummary}`;
       </div>
 
       {/* Message Feed (Reduced right margin for AI messages for optimal reading width) */}
-      <div className="space-y-3.5 max-h-80 min-h-[220px] overflow-y-auto pr-1 font-serif text-xs scrollbar-thin">
+      <div ref={chatContainerRef} className="space-y-3.5 max-h-80 min-h-[220px] overflow-y-auto pr-1 font-serif text-xs scrollbar-thin">
         {messages.map((msg, idx) => {
           const isAi = msg.sender === 'cassie';
           return (
@@ -1274,6 +1450,18 @@ ${conversationSummary}`;
                   )}
                 </div>
                 <p className={`leading-relaxed whitespace-pre-line text-xs ${isAi ? 'text-slate-800 dark:text-slate-200 font-serif' : 'text-white font-sans'}`}>{msg.text}</p>
+                {isAi && msg.storyDraft && !msg.isSystemNotice && (
+                  <div className="pt-1.5 mt-1 border-t border-slate-200/70 dark:border-slate-700/70 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => applyStoryToEditor(msg.storyDraft!)}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/50 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200 rounded-lg text-[10px] font-sans font-bold transition-colors cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>Display in Story Editor</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           );

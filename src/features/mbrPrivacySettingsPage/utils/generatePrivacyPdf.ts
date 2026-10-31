@@ -61,14 +61,9 @@ export function generatePrivacyPdf({
   );
 
   doc.setFont('helvetica', 'bold');
-  doc.text('Member ID: ', 36, 94);
+  doc.text('Shared Stories: ', 36, 94);
   doc.setFont('helvetica', 'normal');
-  doc.text(mbrId, 96, 94);
-
-  doc.setFont('helvetica', 'bold');
-  doc.text('Shared Stories: ', 340, 94);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${sharedStories.length} of ${enrichedStories.length}`, 415, 94);
+  doc.text(`${sharedStories.length} of ${enrichedStories.length}`, 110, 94);
 
   const headers = [
     'Story Title',

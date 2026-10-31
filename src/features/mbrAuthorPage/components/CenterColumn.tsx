@@ -126,6 +126,7 @@ export default function CenterColumn({
 }: CenterColumnProps) {
   const [dbTopics, setDbTopics] = useState<Topic[]>([]);
   const [showStoryMate, setShowStoryMate] = useState(false);
+  const [isStoryEditing, setIsStoryEditing] = useState(false);
   const [subordinateId, setSubordinateId] = useState<string | null>(null);
   const [subordinateName, setSubordinateName] = useState<string | undefined>(undefined);
 
@@ -165,6 +166,7 @@ export default function CenterColumn({
   // Reset subordinate filter and StoryMate state whenever active section changes
   useEffect(() => {
     setShowStoryMate(false);
+    setIsStoryEditing(false);
     setStoryMateConfig(null);
     setSubordinateId(null);
     setSubordinateName(undefined);
@@ -228,6 +230,7 @@ export default function CenterColumn({
         topicCustomId: detail.topicCustomId || detail.mbrCustomTopicId || detail.subordinateId,
         subordinateId: detail.subordinateId || detail.mbrStorySubordinateId,
       });
+      setIsStoryEditing(true);
       setShowStoryMate(true);
       setTimeout(() => {
         const el = document.getElementById('story-mate-panel');
@@ -236,8 +239,36 @@ export default function CenterColumn({
         }
       }, 100);
     };
+    const handleCloseStoryMate = () => {
+      setShowStoryMate(false);
+      setStoryMateConfig(null);
+    };
+    const handleEditModeChanged = (e: any) => {
+      const editing = Boolean(e?.detail?.isEditing);
+      setIsStoryEditing(editing);
+      if (!editing) {
+        setShowStoryMate(false);
+        setStoryMateConfig(null);
+      }
+    };
     window.addEventListener('open-story-mate', handleOpen);
-    return () => window.removeEventListener('open-story-mate', handleOpen);
+    window.addEventListener('close-story-mate', handleCloseStoryMate);
+    window.addEventListener('story-editor-edit-mode-changed', handleEditModeChanged);
+    const handleSyncStoryMateContent = (e: any) => {
+      const nextContent = e?.detail?.content;
+      if (typeof nextContent === 'string') {
+        setStoryMateConfig((prev) => (prev ? { ...prev, storyContent: nextContent } : prev));
+      }
+    };
+    window.addEventListener('update-story-editor-content', handleSyncStoryMateContent);
+    window.addEventListener('story-editor-content-changed', handleSyncStoryMateContent);
+    return () => {
+      window.removeEventListener('open-story-mate', handleOpen);
+      window.removeEventListener('close-story-mate', handleCloseStoryMate);
+      window.removeEventListener('story-editor-edit-mode-changed', handleEditModeChanged);
+      window.removeEventListener('update-story-editor-content', handleSyncStoryMateContent);
+      window.removeEventListener('story-editor-content-changed', handleSyncStoryMateContent);
+    };
   }, [activeSection, sec, currentTopicId, currentChIntentId, currentTopicTitle, currentComponentName]);
 
   useEffect(() => {
@@ -454,6 +485,13 @@ export default function CenterColumn({
             subordinateId={subordinateId || undefined}
             subordinateName={subordinateName}
             isSandbox={isSandbox}
+            onEditingChange={(editing) => {
+              setIsStoryEditing(editing);
+              if (!editing) {
+                setShowStoryMate(false);
+                setStoryMateConfig(null);
+              }
+            }}
             onClose={() => {
               setSubordinateId(null);
               setSubordinateName(undefined);
@@ -462,8 +500,8 @@ export default function CenterColumn({
         </div>
       )}
 
-      {/* --- STORY MATE PANEL --- */}
-      {showStoryMate && (
+      {/* --- STORY MATE PANEL (Only visible when story is in edit mode) --- */}
+      {showStoryMate && isStoryEditing && (
         <StoryMatePanel
           key={`${storyMateConfig?.chIntentId || currentChIntentId}_${storyMateConfig?.activeStoryId || 'new'}_${storyMateConfig?.componentName || currentComponentName}`}
           memberName="Eleanor"

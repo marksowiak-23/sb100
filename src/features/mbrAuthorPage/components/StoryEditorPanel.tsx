@@ -28,6 +28,7 @@ interface StoryEditorPanelProps {
   readOnly?: boolean;
   isSandbox?: boolean;
   onClose: () => void;
+  onEditingChange?: (isEditing: boolean) => void;
 }
 
 const componentNameMap: Record<string, string> = {
@@ -749,7 +750,8 @@ export default function StoryEditorPanel({
   viewerMbrId: propViewerMbrId,
   readOnly = false,
   isSandbox = true,
-  onClose
+  onClose,
+  onEditingChange
 }: StoryEditorPanelProps) {
   const [dbTopics, setDbTopics] = useState<Topic[]>([]);
 
@@ -781,6 +783,17 @@ export default function StoryEditorPanel({
   const [activeStoryId, setActiveStoryId] = useState<string | null>(null);
   const activeStory = useMemo(() => stories.find((s) => s.mbrStoryId === activeStoryId), [stories, activeStoryId]);
   const [isEditing, setIsEditing] = useState(false);
+
+  // Notify parent and listeners whenever edit mode changes; hide StoryMate when exiting edit mode
+  useEffect(() => {
+    onEditingChange?.(isEditing);
+    window.dispatchEvent(new CustomEvent('story-editor-edit-mode-changed', {
+      detail: { isEditing }
+    }));
+    if (!isEditing) {
+      window.dispatchEvent(new CustomEvent('close-story-mate'));
+    }
+  }, [isEditing]);
   
   // Form state
   const [title, setTitle] = useState('');
@@ -1109,12 +1122,45 @@ export default function StoryEditorPanel({
         setContent(detail.content);
         if (detail.threadId) setActiveThreadId(detail.threadId);
         if (detail.intentId) setActiveIntentId(detail.intentId);
-        setSuccessMsg('Story content updated from StoryMate AI!');
+        if (!readOnly) {
+          setIsEditing(true);
+        }
+        setStories((prev) => {
+          if (prev.length === 0) {
+            const newId = `temp_${Date.now()}`;
+            const finalStoryTypeCd = (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly')
+              ? 'sbMbrStryFamly'
+              : (componentName || componentNameMap[topicId?.toLowerCase()] || topicId || 'sbMbrStryCustom');
+            const defaultTitle = title || (subordinateName ? `Story of ${subordinateName}` : `${topicTitle && topicTitle !== 'Section' ? topicTitle : 'Memoir'} Story`);
+            const newStory: Partial<MbrStory> = {
+              mbrStoryId: newId,
+              mbrStoryTitle: defaultTitle,
+              mbrStoryContent: detail.content,
+              mbrStoryPublishStatusCd: 'Draft',
+              mbrStoryTypeCd: finalStoryTypeCd,
+              mbrStorySubordinateId: subordinateId || undefined,
+              mbrStoryTopicName: subordinateName || (topicTitle && topicTitle !== 'Section' ? topicTitle : 'Story'),
+              topicId: resolvedTopicId,
+              chIntentId: detail.intentId || resolvedChIntentId
+            };
+            setActiveStoryId(newId);
+            if (!title) setTitle(defaultTitle);
+            return [newStory];
+          }
+          const targetId = activeStoryId || prev[0]?.mbrStoryId || null;
+          if (!activeStoryId && targetId) {
+            setActiveStoryId(targetId);
+          }
+          return prev.map((s) =>
+            s.mbrStoryId === targetId ? { ...s, mbrStoryContent: detail.content } : s
+          );
+        });
+        setSuccessMsg('Story rewritten and replaced by StoryMate AI!');
       }
     };
     window.addEventListener('update-story-editor-content', handleContentUpdate);
     return () => window.removeEventListener('update-story-editor-content', handleContentUpdate);
-  }, []);
+  }, [activeStoryId, readOnly, topicId, topicTitle, componentName, subordinateId, subordinateName, resolvedTopicId, resolvedChIntentId, title]);
 
   const checkIsOtherOrCustom = () => {
     const tId = (topicId || '').toLowerCase();
@@ -2379,6 +2425,67 @@ Output Rules:
     setShowPublishModal(true);
   };
 
+  // Initialize 'NONE' (No Access) group privilege records for each group if a newly published story has none yet
+  const ensureDefaultStoryGroupPrivs = async (targetStoryId: string, currentMbrId: string) => {
+    if (!targetStoryId) return;
+    try {
+      let globals: any[] = [];
+      let customs: any[] = [];
+      try {
+        globals = await taskApi.getGroupsGlobal();
+      } catch {}
+      try {
+        customs = await taskApi.getGroupsCustom(currentMbrId);
+      } catch {}
+
+      if (!globals || globals.length === 0) {
+        globals = [
+          { grpId: 'g1', grpName: 'Family' },
+          { grpId: 'g2', grpName: 'Friends' },
+          { grpId: 'g3', grpName: 'Work' },
+          { grpId: 'g4', grpName: 'Public' }
+        ];
+      }
+
+      const allGroups = [...globals, ...(customs || [])];
+      const uniqueGrpIds = Array.from(new Set(allGroups.map((g) => g.grpId).filter(Boolean)));
+
+      if (isSandbox || targetStoryId.startsWith('temp_')) {
+        const privKey = `sandbox_story_privs_${targetStoryId}`;
+        const existingRaw = sessionStorage.getItem(privKey);
+        let existingList: any[] = [];
+        if (existingRaw) {
+          try { existingList = JSON.parse(existingRaw); } catch {}
+        }
+        if (!Array.isArray(existingList) || existingList.length === 0) {
+          const defaultPrivs = uniqueGrpIds.map((grpId) => ({
+            privId: `priv_${targetStoryId}_${grpId}`,
+            mbrStoryId: targetStoryId,
+            grpId,
+            privValueCd: 'NONE',
+            originalPrivValueCd: 'NONE'
+          }));
+          sessionStorage.setItem(privKey, JSON.stringify(defaultPrivs));
+        }
+      } else {
+        const existingPrivs = await taskApi.getMemberStoryGroupPrivs({ mbrStoryId: targetStoryId }).catch(() => []);
+        if (!Array.isArray(existingPrivs) || existingPrivs.length === 0) {
+          await Promise.all(
+            uniqueGrpIds.map((grpId) =>
+              taskApi.createMemberStoryGroupPriv({
+                mbrStoryId: targetStoryId,
+                grpId,
+                privValueCd: 'NONE'
+              }).catch(() => null)
+            )
+          );
+        }
+      }
+    } catch (e) {
+      console.warn('Could not initialize default No Access story group privileges:', e);
+    }
+  };
+
   const executePublish = async () => {
     if (!activeStoryId) return;
     setPublishing(true);
@@ -2517,6 +2624,7 @@ Output Rules:
           );
           setStories(nextList);
           sessionStorage.setItem(sandboxKey, JSON.stringify(nextList));
+          await ensureDefaultStoryGroupPrivs(activeStoryId, currentMbrId);
           setStatus('Published');
           setSuccessMsg('Story published successfully in Sandbox!');
         } else {
@@ -2526,6 +2634,7 @@ Output Rules:
           } else {
             savedResult = await taskApi.createStory(updatedStory);
           }
+          await ensureDefaultStoryGroupPrivs(savedResult.mbrStoryId, currentMbrId);
           const nextList = stories.map((s) =>
             s.mbrStoryId === activeStoryId ? savedResult : s
           );
@@ -2537,6 +2646,7 @@ Output Rules:
         }
       }
       setShowPublishModal(false);
+      setShowStoryPrivacyModal(true);
     } catch (err: any) {
       const rawMsg = err.message || '';
       if (rawMsg.includes('Publication rejected') || rawMsg.includes('community standards') || rawMsg.includes('violates')) {
@@ -3270,7 +3380,13 @@ Output Rules:
             <textarea
               rows={9}
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={(e) => {
+                const nextVal = e.target.value;
+                setContent(nextVal);
+                window.dispatchEvent(new CustomEvent('story-editor-content-changed', {
+                  detail: { content: nextVal }
+                }));
+              }}
               placeholder="Write your story details here. Share memories, feelings, and reflection..."
               className="w-full bg-white border border-[#EFECE7] rounded-2xl text-base sm:text-[16.5px] font-serif text-slate-700 dark:text-slate-200 p-3.5 sm:p-4 leading-[1.8] outline-none focus:border-slate-800 transition-colors resize-y font-normal placeholder:font-sans placeholder:text-sm placeholder:text-slate-400"
             />

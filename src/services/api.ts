@@ -1051,16 +1051,33 @@ export function getAuthHeaders(existingHeaders: Record<string, string> = {}): Re
 const _nativeFetch = typeof window !== 'undefined' ? window.fetch.bind(window) : globalThis.fetch;
 let _tokenRefreshPromise: Promise<string | null> | null = null;
 
-async function ensureSessionToken(): Promise<string | null> {
+async function ensureSessionToken(forceRefresh = false): Promise<string | null> {
   try {
     if (typeof window === 'undefined') return null;
-    const existing = sessionStorage.getItem('sb_token');
-    if (existing) return existing;
+    if (!forceRefresh) {
+      const existing = sessionStorage.getItem('sb_token');
+      if (existing) return existing;
+    } else {
+      sessionStorage.removeItem('sb_token');
+    }
 
+    let email: string | undefined;
     const userRaw = sessionStorage.getItem('user');
-    if (!userRaw) return null;
-    const parsedUser = JSON.parse(userRaw);
-    const email = parsedUser?.email;
+    if (userRaw) {
+      try {
+        const parsedUser = JSON.parse(userRaw);
+        email = parsedUser?.email;
+      } catch {}
+    }
+    if (!email) {
+      const mbrRaw = sessionStorage.getItem('sb_current_mbr') || sessionStorage.getItem('mbr') || sessionStorage.getItem('sandbox_mbr');
+      if (mbrRaw) {
+        try {
+          const parsedMbr = JSON.parse(mbrRaw);
+          email = parsedMbr?.mbrEmailAddress || parsedMbr?.email;
+        } catch {}
+      }
+    }
     if (!email) return null;
 
     if (!_tokenRefreshPromise) {
@@ -1091,11 +1108,12 @@ async function ensureSessionToken(): Promise<string | null> {
 
 const fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const headers = new Headers(init?.headers);
+  const urlStr = typeof input === 'string' ? input : input.toString();
+  const isAuthOrHealth = urlStr.includes('/users/login') || urlStr.includes('/users/social-login') || urlStr.includes('/health');
   try {
     if (typeof window !== 'undefined' && !headers.has('Authorization')) {
       let token = sessionStorage.getItem('sb_token');
-      const urlStr = typeof input === 'string' ? input : input.toString();
-      if (!token && !urlStr.includes('/users/login') && !urlStr.includes('/users/social-login') && !urlStr.includes('/health')) {
+      if (!token && !isAuthOrHealth) {
         token = await ensureSessionToken();
       }
       if (token) {
@@ -1103,7 +1121,18 @@ const fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Resp
       }
     }
   } catch {}
-  return _nativeFetch(input, { ...init, headers });
+  const response = await _nativeFetch(input, { ...init, headers });
+  if (response.status === 401 && !isAuthOrHealth && typeof window !== 'undefined') {
+    try {
+      const refreshedToken = await ensureSessionToken(true);
+      if (refreshedToken) {
+        const retryHeaders = new Headers(init?.headers);
+        retryHeaders.set('Authorization', `Bearer ${refreshedToken}`);
+        return await _nativeFetch(input, { ...init, headers: retryHeaders });
+      }
+    } catch {}
+  }
+  return response;
 };
 
 

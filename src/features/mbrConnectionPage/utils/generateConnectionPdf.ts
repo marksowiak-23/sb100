@@ -67,27 +67,22 @@ export function generateConnectionPdf({
   doc.setFontSize(9);
   doc.setTextColor(71, 85, 105);
 
-  // Line 1: Member Email (above Member ID line)
+  // Line 1: Member Email
   doc.setFont('helvetica', 'bold');
   doc.text('Member Email: ', 36, 78);
   doc.setFont('helvetica', 'normal');
   doc.text(mbrEmail || 'eleanor.vance@storybook.ai', 106, 78);
 
-  // Line 2: Member ID & Report details
+  // Line 2: Report details
   doc.setFont('helvetica', 'bold');
-  doc.text('Member ID: ', 36, 94);
+  doc.text('Active Filter: ', 36, 94);
   doc.setFont('helvetica', 'normal');
-  doc.text(mbrId, 96, 94);
+  doc.text(filterLabel, 98, 94);
 
   doc.setFont('helvetica', 'bold');
-  doc.text('Active Filter: ', 340, 94);
+  doc.text('Members Listed: ', 280, 94);
   doc.setFont('helvetica', 'normal');
-  doc.text(filterLabel, 400, 94);
-
-  doc.setFont('helvetica', 'bold');
-  doc.text('Members Listed: ', 550, 94);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`${memberList.length}`, 625, 94);
+  doc.text(`${memberList.length}`, 355, 94);
 
   // Map for fast group lookup
   const groupMap = new Map<string, UnifiedGroupOption>();
