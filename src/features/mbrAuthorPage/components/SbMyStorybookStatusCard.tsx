@@ -4,15 +4,16 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Compass, CheckCircle2, Circle } from 'lucide-react';
+import { Compass, CheckCircle2, Circle, BookOpen } from 'lucide-react';
 import { taskApi, mbrStatApi, MbrStat } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface SbMyStorybookStatusCardProps {
   onClickAuthorPage?: () => void;
+  onOpenStoryBookGenerator?: () => void;
 }
 
-export default function SbMyStorybookStatusCard({ onClickAuthorPage }: SbMyStorybookStatusCardProps) {
+export default function SbMyStorybookStatusCard({ onClickAuthorPage, onOpenStoryBookGenerator }: SbMyStorybookStatusCardProps) {
   const [stat, setStat] = useState<MbrStat | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -169,6 +170,22 @@ export default function SbMyStorybookStatusCard({ onClickAuthorPage }: SbMyStory
           Go to Author Workspace
         </button>
       )}
+
+      {/* Launch StoryBook Generator button */}
+      <button
+        type="button"
+        onClick={() => {
+          if (onOpenStoryBookGenerator) {
+            onOpenStoryBookGenerator();
+          } else {
+            window.dispatchEvent(new CustomEvent('open-storybook-generator'));
+          }
+        }}
+        className="w-full mt-1 py-2 px-3 bg-amber-700 hover:bg-amber-800 text-white rounded-xl text-[11px] font-bold font-serif transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+      >
+        <BookOpen className="w-3.5 h-3.5" />
+        <span>Open StoryBook Generator</span>
+      </button>
 
       <AdminComponentTag name="SbMyStorybookStatusCard" />
     </div>

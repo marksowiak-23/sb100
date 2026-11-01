@@ -15,6 +15,7 @@ interface AuthorPageFeatureProps {
   isSandbox: boolean;
   onClickBack: () => void;
   onClickAuthorProfile?: () => void;
+  onOpenStoryBookGenerator?: () => void;
 }
 
 const STORY_CONTENTS: Record<string, string[]> = {
@@ -32,7 +33,7 @@ const STORY_CONTENTS: Record<string, string[]> = {
   ]
 };
 
-export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAuthorProfile }: AuthorPageFeatureProps) {
+export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAuthorProfile, onOpenStoryBookGenerator }: AuthorPageFeatureProps) {
   const [activeSection, setActiveSection] = useState<string>(() => {
     try {
       return sessionStorage.getItem('sb_author_active_section') || 'Profile';
@@ -91,6 +92,7 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
           <LeftColumn
             activeSection={activeSection}
             setActiveSection={handleSetActiveSection}
+            onOpenStoryBookGenerator={onOpenStoryBookGenerator}
           />
         </div>
 

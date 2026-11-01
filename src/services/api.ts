@@ -3773,6 +3773,115 @@ export const taskApi = {
     });
     return handleResponse<MbrStoryRead>(response);
   }
+  ,
+
+  async getMemberStoryBooks(mbrId?: string): Promise<MbrStoryBook[]> {
+    const query = mbrId ? `?mbr_id=${encodeURIComponent(mbrId)}&t=${Date.now()}` : `?t=${Date.now()}`;
+    const response = await fetch(`${API_BASE_URL}/mbr-story-books${query}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryBook[]>(response);
+  },
+
+  async getMemberStoryBook(bookId: string): Promise<MbrStoryBook> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-books/${bookId}?t=${Date.now()}`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryBook>(response);
+  },
+
+  async createMemberStoryBook(book: Partial<MbrStoryBook>): Promise<MbrStoryBook> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-books`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(book)
+    });
+    return handleResponse<MbrStoryBook>(response);
+  },
+
+  async updateMemberStoryBook(bookId: string, book: Partial<MbrStoryBook>): Promise<MbrStoryBook> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-books/${bookId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(book)
+    });
+    return handleResponse<MbrStoryBook>(response);
+  },
+
+  async deleteMemberStoryBook(bookId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/mbr-story-books/${bookId}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+  },
+
+  async getMemberStoryBookItems(bookId: string): Promise<MbrStoryBookItem[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-items?book_id=${encodeURIComponent(bookId)}&t=${Date.now()}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryBookItem[]>(response);
+  },
+
+  async createMemberStoryBookItem(item: Partial<MbrStoryBookItem>): Promise<MbrStoryBookItem> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(item)
+    });
+    return handleResponse<MbrStoryBookItem>(response);
+  },
+
+  async syncMemberStoryBookItems(bookId: string, items: Partial<MbrStoryBookItem>[]): Promise<MbrStoryBookItem[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-items/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ bookId, items })
+    });
+    return handleResponse<MbrStoryBookItem[]>(response);
+  },
+
+  async updateMemberStoryBookItem(bookItemId: string, item: Partial<MbrStoryBookItem>): Promise<MbrStoryBookItem> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-items/${bookItemId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(item)
+    });
+    return handleResponse<MbrStoryBookItem>(response);
+  },
+
+  async deleteMemberStoryBookItem(bookItemId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/mbr-story-book-items/${bookItemId}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+  }
+
 };
 
 export const mbrStoryLikesApi = {
@@ -5519,7 +5628,198 @@ export const mbrTopicTripApi = {
       headers: { 'Accept': 'application/json' }
     });
   }
+  ,
+
+  /**
+   * Fetch all compiled story books (optionally filtered by member).
+   */
+  async getMemberStoryBooks(mbrId?: string): Promise<MbrStoryBook[]> {
+    const query = mbrId ? `?mbr_id=${encodeURIComponent(mbrId)}&t=${Date.now()}` : `?t=${Date.now()}`;
+    const response = await fetch(`${API_BASE_URL}/mbr-story-books${query}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryBook[]>(response);
+  },
+
+  /**
+   * Fetch a single compiled story book by ID.
+   */
+  async getMemberStoryBook(bookId: string): Promise<MbrStoryBook> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-books/${bookId}?t=${Date.now()}`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryBook>(response);
+  },
+
+  /**
+   * Create a new compiled story book configuration.
+   */
+  async createMemberStoryBook(book: Partial<MbrStoryBook>): Promise<MbrStoryBook> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-books`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(book)
+    });
+    return handleResponse<MbrStoryBook>(response);
+  },
+
+  /**
+   * Update an existing compiled story book configuration.
+   */
+  async updateMemberStoryBook(bookId: string, book: Partial<MbrStoryBook>): Promise<MbrStoryBook> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-books/${bookId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(book)
+    });
+    return handleResponse<MbrStoryBook>(response);
+  },
+
+  /**
+   * Delete a compiled story book configuration.
+   */
+  async deleteMemberStoryBook(bookId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/mbr-story-books/${bookId}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+  },
+
+  /**
+   * Fetch story book items for a book.
+   */
+  async getMemberStoryBookItems(bookId: string): Promise<MbrStoryBookItem[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-items?book_id=${encodeURIComponent(bookId)}&t=${Date.now()}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryBookItem[]>(response);
+  },
+
+  /**
+   * Create or upsert a story book item.
+   */
+  async createMemberStoryBookItem(item: Partial<MbrStoryBookItem>): Promise<MbrStoryBookItem> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(item)
+    });
+    return handleResponse<MbrStoryBookItem>(response);
+  },
+
+  /**
+   * Bulk sync all story book items for a book.
+   */
+  async syncMemberStoryBookItems(bookId: string, items: Partial<MbrStoryBookItem>[]): Promise<MbrStoryBookItem[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-items/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ bookId, items })
+    });
+    return handleResponse<MbrStoryBookItem[]>(response);
+  },
+
+  /**
+   * Update a story book item.
+   */
+  async updateMemberStoryBookItem(bookItemId: string, item: Partial<MbrStoryBookItem>): Promise<MbrStoryBookItem> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-items/${bookItemId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(item)
+    });
+    return handleResponse<MbrStoryBookItem>(response);
+  },
+
+  /**
+   * Delete a story book item.
+   */
+  async deleteMemberStoryBookItem(bookItemId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/mbr-story-book-items/${bookItemId}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+  }
 };
 
 
+export interface MbrStoryBook {
+  bookId: string;
+  mbrId: string;
+  bookTitle: string;
+  bookSubtitle?: string | null;
+  bookAuthorDisplayName?: string | null;
+  bookVolumeLabel?: string | null;
+  bookCoverLayoutCd: string;
+  bookCoverThemeCd: string;
+  bookCoverPhotoUrl?: string | null;
+  bookCoverPhotoCaption?: string | null;
+  bookBackCoverBlurb?: string | null;
+  bookSpineTitle?: string | null;
+  bookTrimSizeCd: string;
+  bookFontFamilyCd: string;
+  bookFontSizePt: number;
+  bookIncludeToc: boolean;
+  bookIncludePartDividers: boolean;
+  bookIncludeDropCaps: boolean;
+  bookIncludeStoryPhotos: boolean;
+  bookIncludeCopyrightPage: boolean;
+  bookIncludeColophon: boolean;
+  bookDedicationText?: string | null;
+  bookForewordTitle?: string | null;
+  bookForewordText?: string | null;
+  bookForewordAuthor?: string | null;
+  bookAfterwordTitle?: string | null;
+  bookAfterwordText?: string | null;
+  bookAcknowledgmentsText?: string | null;
+  bookAboutAuthorText?: string | null;
+  bookAboutAuthorPhotoUrl?: string | null;
+  bookCopyrightYear?: number | null;
+  bookIsbn?: string | null;
+  bookStatusCd: string;
+  bookLastGeneratedAt?: string | null;
+  bookCreatedAt: string;
+  bookUpdatedAt: string;
+}
+
+export interface MbrStoryBookItem {
+  bookItemId: string;
+  bookId: string;
+  mbrStoryId: string;
+  bookItemIncluded: boolean;
+  bookPartTitle?: string | null;
+  bookPartSortOrder: number;
+  bookChapterSortOrder: number;
+  bookChapterTitleOverride?: string | null;
+  bookChapterSubtitle?: string | null;
+  bookChapterIncludePhoto: boolean;
+  bookItemCreatedAt: string;
+  bookItemUpdatedAt: string;
+}
 

@@ -28,6 +28,28 @@ const DEFAULT_FALLBACK_CODES: Record<string, { cdValue: string; cdLabel: string;
     { cdValue: 'READ', cdLabel: 'View Content (Read)', cdDesc: 'Allow group members to view content' },
     { cdValue: 'WRITE', cdLabel: 'Comment on Content (Write)', cdDesc: 'Allow group members to view and comment' },
     { cdValue: 'NONE', cdLabel: 'No Access (None)', cdDesc: 'Disallow access for this group' }
+  ],
+  booktrimsizecd: [
+    { cdValue: 'TRADE_6X9', cdLabel: 'Trade Paperback (6"x9")', cdDesc: 'Standard 6" x 9" classic memoir paperback size (KDP/Lulu/Blurb)' },
+    { cdValue: 'ROYAL_614X921', cdLabel: 'Royal Hardcover (6.14x9.21)', cdDesc: 'Classic 6.14" x 9.21" hardcover memoir trim size' },
+    { cdValue: 'DIGEST_55X85', cdLabel: 'Pocket Digest (5.5"x8.5")', cdDesc: 'Compact 5.5" x 8.5" literary gift book format' },
+    { cdValue: 'EXEC_725X105', cdLabel: 'Executive (7.25"x10.5")', cdDesc: 'Refined 7.25" x 10.5" family history journal format' },
+    { cdValue: 'LETTER_85X11', cdLabel: 'US Letter (8.5"x11")', cdDesc: 'Standard 8.5" x 11" home and office edition' },
+    { cdValue: 'A4', cdLabel: 'A4 International', cdDesc: 'International 210mm x 297mm document format' }
+  ],
+  bookcoverlayoutcd: [
+    { cdValue: 'CLASSIC_FRAME', cdLabel: 'Classic Literary Frame', cdDesc: 'Double-ruled ornamental border with centered serif typography' },
+    { cdValue: 'HERO_BLEED', cdLabel: 'Full-Bleed Hero Photo', cdDesc: 'Full-cover hero photograph with translucent title band' },
+    { cdValue: 'PORTRAIT_MEDALLION', cdLabel: 'Portrait Medallion', cdDesc: 'Centered framed photograph with classic book typography' },
+    { cdValue: 'MINIMAL_LINEN', cdLabel: 'Minimalist Linen', cdDesc: 'Clean modern heirloom cloth aesthetic' }
+  ],
+  bookcoverthemecd: [
+    { cdValue: 'AMBER', cdLabel: 'Warm Amber & Cream', cdDesc: 'Warm parchment and amber gold accents' },
+    { cdValue: 'NAVY_GOLD', cdLabel: 'Heirloom Navy & Gold', cdDesc: 'Deep Oxford navy with antique gold foil accents' },
+    { cdValue: 'BURGUNDY', cdLabel: 'Royal Burgundy', cdDesc: 'Classic leather-bound burgundy and ivory' },
+    { cdValue: 'EMERALD', cdLabel: 'Forest Emerald', cdDesc: 'Deep botanical green and warm cream' },
+    { cdValue: 'SLATE', cdLabel: 'Midnight Slate', cdDesc: 'Sophisticated charcoal slate and silver' },
+    { cdValue: 'MONOCHROME', cdLabel: 'Minimalist Ink', cdDesc: 'Crisp black and archival white' }
   ]
 };
 

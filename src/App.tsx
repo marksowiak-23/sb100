@@ -39,11 +39,14 @@ import { AdminMediaManagement, AdminMediaPage } from '@/src/features/adminMediaP
 import { AdminPropertiesFeature, SystemPropertiesFeature } from '@/src/features/adminProperties';
 import { AdminUserAIUsageFeature } from '@/src/features/adminUserAIUsagePage';
 import { AdminTopicSparksFeature, TopicSparksAdmin, AdminTopicSparksPage } from '@/src/features/adminTopicSparksPage';
+import { MbrStoryBookGeneratorFeature } from '@/src/features/mbrStoryBookGenerator';
 
 
 // Define a TypeScript type to restrict activeTab to only these string values.
 type TabType =
   | 'workspace'
+  | 'mbrStoryBookGenerator'
+  | 'sbMbrStoryBookGenerator'
   | 'adminConnectionsPage'
   | 'admin-connections'
   | 'settings'
@@ -495,11 +498,16 @@ export default function App() {
     const handleProfileEvent = () => {
       handleTabChange('mbrProfilePage');
     };
+    const handleStoryBookGeneratorEvent = () => {
+      navigateTo('mbrStoryBookGenerator');
+    };
     window.addEventListener('open-member-story', handleStoryEvent);
     window.addEventListener('open-member-profile', handleProfileEvent);
+    window.addEventListener('open-storybook-generator', handleStoryBookGeneratorEvent);
     return () => {
       window.removeEventListener('open-member-story', handleStoryEvent);
       window.removeEventListener('open-member-profile', handleProfileEvent);
+      window.removeEventListener('open-storybook-generator', handleStoryBookGeneratorEvent);
     };
   }, [activeTab]);
 
@@ -785,6 +793,23 @@ export default function App() {
               isSandbox={isSandbox}
               onClickBack={() => navigateTo('mbrHomePage')}
               onClickAuthorProfile={() => handleTabChange('mbrProfilePage')}
+              onOpenStoryBookGenerator={() => navigateTo('mbrStoryBookGenerator')}
+            />
+          </motion.div>
+        )}
+        {/* If the active tab is 'mbrStoryBookGenerator', render the member StoryBook Generator studio */}
+        {(activeTab === 'mbrStoryBookGenerator' || activeTab === 'sbMbrStoryBookGenerator') && (
+          <motion.div
+            key="mbrStoryBookGenerator-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <MbrStoryBookGeneratorFeature
+              isSandbox={isSandbox}
+              onClickBack={() => navigateTo('mbrAuthorPage')}
             />
           </motion.div>
         )}

@@ -490,6 +490,65 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrStoryBook',
+    name: 'mbrStoryBook',
+    endpoint: '/mbr-story-books',
+    primaryKey: 'bookId',
+    searchField: 'bookTitle',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'bookTitle', label: 'Book Title', type: 'string', required: true, placeholder: 'My Life Stories' },
+      { name: 'bookSubtitle', label: 'Book Subtitle', type: 'string', required: false },
+      { name: 'bookAuthorDisplayName', label: 'Author Display Name', type: 'string', required: false },
+      { name: 'bookVolumeLabel', label: 'Volume Label', type: 'string', required: false, placeholder: 'Volume I' },
+      { name: 'bookCoverLayoutCd', label: 'Cover Layout Code', type: 'string', required: true, placeholder: 'CLASSIC_FRAME | HERO_BLEED | PORTRAIT_MEDALLION | MINIMAL_LINEN' },
+      { name: 'bookCoverThemeCd', label: 'Cover Theme Code', type: 'string', required: true, placeholder: 'AMBER | NAVY_GOLD | BURGUNDY | EMERALD | SLATE | MONOCHROME' },
+      { name: 'bookCoverPhotoUrl', label: 'Cover Photo URL', type: 'string', required: false },
+      { name: 'bookCoverPhotoCaption', label: 'Cover Photo Caption', type: 'string', required: false },
+      { name: 'bookBackCoverBlurb', label: 'Back Cover Blurb', type: 'textarea', required: false },
+      { name: 'bookSpineTitle', label: 'Spine Title', type: 'string', required: false },
+      { name: 'bookTrimSizeCd', label: 'Trim Size Code', type: 'string', required: true, placeholder: 'TRADE_6X9 | ROYAL_614X921 | DIGEST_55X85 | EXEC_725X105 | LETTER_85X11 | A4' },
+      { name: 'bookFontFamilyCd', label: 'Font Family Code', type: 'string', required: true, placeholder: 'times | helvetica | courier' },
+      { name: 'bookFontSizePt', label: 'Font Size (pt)', type: 'number', required: true, placeholder: '11.0' },
+      { name: 'bookIncludeToc', label: 'Include Table of Contents', type: 'boolean', required: true },
+      { name: 'bookIncludePartDividers', label: 'Include Part Dividers', type: 'boolean', required: true },
+      { name: 'bookIncludeDropCaps', label: 'Include Drop Caps', type: 'boolean', required: true },
+      { name: 'bookIncludeStoryPhotos', label: 'Include Story Photos', type: 'boolean', required: true },
+      { name: 'bookIncludeCopyrightPage', label: 'Include Copyright Page', type: 'boolean', required: true },
+      { name: 'bookIncludeColophon', label: 'Include Colophon', type: 'boolean', required: true },
+      { name: 'bookDedicationText', label: 'Dedication Text', type: 'textarea', required: false },
+      { name: 'bookForewordTitle', label: 'Foreword Title', type: 'string', required: false },
+      { name: 'bookForewordText', label: 'Foreword Text', type: 'textarea', required: false },
+      { name: 'bookForewordAuthor', label: 'Foreword Author', type: 'string', required: false },
+      { name: 'bookAfterwordTitle', label: 'Afterword Title', type: 'string', required: false },
+      { name: 'bookAfterwordText', label: 'Afterword Text', type: 'textarea', required: false },
+      { name: 'bookAcknowledgmentsText', label: 'Acknowledgments Text', type: 'textarea', required: false },
+      { name: 'bookAboutAuthorText', label: 'About the Author Text', type: 'textarea', required: false },
+      { name: 'bookAboutAuthorPhotoUrl', label: 'About Author Photo URL', type: 'string', required: false },
+      { name: 'bookCopyrightYear', label: 'Copyright Year', type: 'number', required: false },
+      { name: 'bookIsbn', label: 'ISBN / Edition ID', type: 'string', required: false },
+      { name: 'bookStatusCd', label: 'Status Code', type: 'string', required: true, placeholder: 'DRAFT | READY | PUBLISHED' }
+    ]
+  },
+  {
+    id: 'mbrStoryBookItem',
+    name: 'mbrStoryBookItem',
+    endpoint: '/mbr-story-book-items',
+    primaryKey: 'bookItemId',
+    searchField: 'bookPartTitle',
+    fields: [
+      { name: 'bookId', label: 'Book ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrStoryId', label: 'Story ID (UUID)', type: 'uuid', required: true },
+      { name: 'bookItemIncluded', label: 'Included in Book', type: 'boolean', required: true },
+      { name: 'bookPartTitle', label: 'Part / Category Title', type: 'string', required: false },
+      { name: 'bookPartSortOrder', label: 'Part Sort Order', type: 'number', required: true },
+      { name: 'bookChapterSortOrder', label: 'Chapter Sort Order', type: 'number', required: true },
+      { name: 'bookChapterTitleOverride', label: 'Chapter Title Override', type: 'string', required: false },
+      { name: 'bookChapterSubtitle', label: 'Chapter Subtitle', type: 'string', required: false },
+      { name: 'bookChapterIncludePhoto', label: 'Include Chapter Photo', type: 'boolean', required: true }
+    ]
+  },
+  {
     id: 'mbrStoryStat',
     name: 'mbrStoryStat',
     endpoint: '/mbr-story-stats',
@@ -976,6 +1035,49 @@ const getInitialMockData = (tableId: string): any[] => {
           actDate: now,
           actCreatedAt: now,
           actUpdatedAt: now
+        }
+      ];
+    case 'mbrStoryBook':
+      return [
+        {
+          bookId: 'book-mock-01',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          bookTitle: 'The Collected Stories of Eleanor Ross',
+          bookSubtitle: 'Reflections on Family, Teaching, and Hometown Memories',
+          bookAuthorDisplayName: 'Eleanor Grace Ross',
+          bookVolumeLabel: 'First Family Edition',
+          bookCoverLayoutCd: 'CLASSIC_FRAME',
+          bookCoverThemeCd: 'AMBER',
+          bookTrimSizeCd: 'TRADE_6X9',
+          bookFontFamilyCd: 'times',
+          bookFontSizePt: 11.0,
+          bookIncludeToc: true,
+          bookIncludePartDividers: true,
+          bookIncludeDropCaps: true,
+          bookIncludeStoryPhotos: true,
+          bookIncludeCopyrightPage: true,
+          bookIncludeColophon: true,
+          bookDedicationText: 'For my grandchildren, so you may always know the harbors from which our family sailed.',
+          bookStatusCd: 'READY',
+          bookCreatedAt: now,
+          bookUpdatedAt: now
+        }
+      ];
+    case 'mbrStoryBookItem':
+      return [
+        {
+          bookItemId: 'book-item-mock-01',
+          bookId: 'book-mock-01',
+          mbrStoryId: 'st_fam_1',
+          bookItemIncluded: true,
+          bookPartTitle: 'Family & Heritage',
+          bookPartSortOrder: 1,
+          bookChapterSortOrder: 1,
+          bookChapterTitleOverride: null,
+          bookChapterSubtitle: 'Summer 1965',
+          bookChapterIncludePhoto: true,
+          bookItemCreatedAt: now,
+          bookItemUpdatedAt: now
         }
       ];
     case 'mbrStoryStat':
