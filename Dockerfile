@@ -4,21 +4,16 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install production runner
 COPY package*.json ./
+RUN npm install express --omit=dev
 
-# Install dependencies (including devDependencies to run Vite build)
-RUN npm ci
+# Copy server and built static assets
+COPY server.js ./
+COPY dist ./dist
 
-# Copy project files
-COPY . .
-
-# Build the React/Vite app for the target environment (dev | stage | prod)
-ARG APP_ENV=prod
-RUN npm run build -- --mode ${APP_ENV}
-
-# Expose port (Cloud Run defaults to 8080 or port specified in PORT env var)
+# Expose port (Cloud Run defaults to 8080)
 EXPOSE 8080
 
-# Start the application using Express
+# Start Express server
 CMD ["node", "server.js"]
