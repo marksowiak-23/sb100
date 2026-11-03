@@ -315,19 +315,47 @@ export default function StoryMatePanel({
     latencyMs: number,
     isSuccess: boolean,
     statusCode = 200,
-    errorMessage: string | null = null
+    errorMessage: string | null = null,
+    actualPromptTokens?: number,
+    actualCompletionTokens?: number
   ) => {
     try {
-      const estPromptTokens = Math.max(1, Math.ceil(promptChars / 4));
-      const estCompletionTokens = Math.max(1, Math.ceil(outputChars / 4));
+      const estPromptTokens =
+        actualPromptTokens && actualPromptTokens > 0
+          ? actualPromptTokens
+          : Math.max(1, Math.ceil(promptChars / 4));
+      const estCompletionTokens =
+        actualCompletionTokens && actualCompletionTokens > 0
+          ? actualCompletionTokens
+          : Math.max(1, Math.ceil(outputChars / 4));
       const totalTokens = tokensUsed || (estPromptTokens + estCompletionTokens);
       // Pricing estimate for Gemini 2.5 Flash ($0.075/1M input, $0.30/1M output)
       const estCost = (estPromptTokens * 0.000000075) + (estCompletionTokens * 0.00000030);
 
+      let targetMbrId = resolvedMbrId;
+      let targetUserId = resolvedUserId;
+      try {
+        const storedMbrStr =
+          sessionStorage.getItem('sb_current_mbr') ||
+          sessionStorage.getItem('mbr') ||
+          sessionStorage.getItem('sandbox_mbr');
+        if (storedMbrStr) {
+          const parsedMbr = JSON.parse(storedMbrStr);
+          if (parsedMbr?.mbrId) targetMbrId = parsedMbr.mbrId;
+        }
+        const storedUserStr = sessionStorage.getItem('user');
+        if (storedUserStr) {
+          const parsedUser = JSON.parse(storedUserStr);
+          if (parsedUser?.user_id || parsedUser?.userId) {
+            targetUserId = parsedUser.user_id || parsedUser.userId;
+          }
+        }
+      } catch {}
+
       const sid = getSessionId();
       await mbrAiUsageLogApi.recordUsage({
-        mbrId: resolvedMbrId,
-        userId: resolvedUserId,
+        mbrId: targetMbrId,
+        userId: targetUserId,
         sessionId: sid,
         promptTokens: estPromptTokens,
         completionTokens: estCompletionTokens,
@@ -354,7 +382,8 @@ export default function StoryMatePanel({
     let isMounted = true;
     const resolveLoggedInMemberFirstName = async () => {
       try {
-        const storedMbr = sessionStorage.getItem('mbr');
+        const storedMbr =
+          sessionStorage.getItem('sb_current_mbr') || sessionStorage.getItem('mbr');
         if (storedMbr) {
           try {
             const mbr = JSON.parse(storedMbr);
@@ -1091,7 +1120,9 @@ ${conversationSummary || 'Rewrite the existing story draft with fresh, engaging 
         Math.round(performance.now() - startTime),
         true,
         200,
-        null
+        null,
+        result.prompt_tokens,
+        result.completion_tokens
       );
 
       // Push generated/regenerated story directly into StoryEditorPanel
@@ -1244,7 +1275,9 @@ ${userText}`;
         Math.round(performance.now() - startTime),
         true,
         200,
-        null
+        null,
+        result.prompt_tokens,
+        result.completion_tokens
       );
 
       if (isWriteRequest) {

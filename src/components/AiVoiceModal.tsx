@@ -24,13 +24,16 @@ import {
 } from 'lucide-react';
 import {
   textToSpeechApi,
+  mbrVoiceProfileApi,
   taskApi,
   mediaApi,
   mbrAiUsageLogApi,
   getOrCreateSessionId,
   resolveMediaUrl,
   MEDIA_API_BASE_URL,
-  MbrMedia
+  MbrMedia,
+  MbrVoiceProfile,
+  MbrVoiceAcousticProfile
 } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
@@ -68,7 +71,7 @@ export const VOICE_PROFILES: Record<string, VoiceProfile> = {
     description: 'Natural, gentle memoir and storytelling tone',
     pitch: 1.0,
     rateMultiplier: 1.0,
-    preferredKeywords: ['samantha', 'zira', 'jenny', 'aria', 'female', 'en-us', 'en_us']
+    preferredKeywords: ['samantha', 'zira', 'jenny', 'aria', 'ava', 'emma', 'michelle', 'google us english', 'female']
   },
   'en-US-Standard-B': {
     id: 'en-US-Standard-B',
@@ -79,7 +82,7 @@ export const VOICE_PROFILES: Record<string, VoiceProfile> = {
     description: 'Warm, resonant baritone tone with grounded narrative presence',
     pitch: 0.85,
     rateMultiplier: 0.96,
-    preferredKeywords: ['david', 'george', 'richard', 'daniel', 'guy', 'mark', 'male', 'en-us', 'en_us']
+    preferredKeywords: ['david', 'christopher', 'steffan', 'eric', 'roger', 'mark', 'guy', 'andrew', 'brian', 'george', 'richard', 'daniel', 'male']
   },
   'en-US-Standard-E': {
     id: 'en-US-Standard-E',
@@ -90,7 +93,7 @@ export const VOICE_PROFILES: Record<string, VoiceProfile> = {
     description: 'Expressive, vibrant clarity for vivid reflections',
     pitch: 1.15,
     rateMultiplier: 1.02,
-    preferredKeywords: ['aria', 'victoria', 'jenny', 'samantha', 'female', 'en-us', 'en_us']
+    preferredKeywords: ['aria', 'victoria', 'jenny', 'samantha', 'emma', 'ava', 'zira', 'female']
   },
   'en-US-Standard-D': {
     id: 'en-US-Standard-D',
@@ -101,7 +104,7 @@ export const VOICE_PROFILES: Record<string, VoiceProfile> = {
     description: 'Even-paced, polished and authoritative delivery',
     pitch: 0.95,
     rateMultiplier: 1.0,
-    preferredKeywords: ['guy', 'david', 'male', 'en-us', 'en_us']
+    preferredKeywords: ['guy', 'andrew', 'brian', 'steffan', 'christopher', 'mark', 'david', 'male']
   },
   'en-GB-Standard-A': {
     id: 'en-GB-Standard-A',
@@ -112,7 +115,7 @@ export const VOICE_PROFILES: Record<string, VoiceProfile> = {
     description: 'Clear, modern British accent with crisp pacing',
     pitch: 1.05,
     rateMultiplier: 1.0,
-    preferredKeywords: ['hazel', 'sonia', 'uk english female', 'en-gb', 'en_gb', 'british']
+    preferredKeywords: ['hazel', 'sonia', 'libby', 'maisie', 'uk english female', 'british']
   },
   'en-GB-Standard-B': {
     id: 'en-GB-Standard-B',
@@ -123,11 +126,35 @@ export const VOICE_PROFILES: Record<string, VoiceProfile> = {
     description: 'Warm British storytelling voice with rich depth',
     pitch: 0.82,
     rateMultiplier: 0.96,
-    preferredKeywords: ['george', 'oliver', 'uk english male', 'en-gb', 'en_gb', 'british']
+    preferredKeywords: ['george', 'ryan', 'thomas', 'oliver', 'uk english male', 'daniel', 'british']
   },
 };
 
 const VOICE_MODEL_OPTIONS = Object.values(VOICE_PROFILES);
+
+const KNOWN_FEMALE_VOICE_TOKENS = [
+  'female', 'zira', 'samantha', 'jenny', 'aria', 'ava', 'emma', 'michelle',
+  'ana', 'hazel', 'sonia', 'libby', 'maisie', 'victoria', 'susan', 'catherine',
+  'google us english', 'google uk english female'
+];
+
+const KNOWN_MALE_VOICE_TOKENS = [
+  'david', 'mark', 'guy', 'george', 'daniel', 'richard', 'oliver', 'ryan',
+  'thomas', 'christopher', 'steffan', 'eric', 'roger', 'andrew', 'brian',
+  'google uk english male'
+];
+
+function isDefinitelyFemaleBrowserVoice(v: SpeechSynthesisVoice): boolean {
+  const n = `${v.name} ${v.voiceURI}`.toLowerCase();
+  if (KNOWN_MALE_VOICE_TOKENS.some((m) => n.includes(m))) return false;
+  return KNOWN_FEMALE_VOICE_TOKENS.some((f) => n.includes(f));
+}
+
+function isDefinitelyMaleBrowserVoice(v: SpeechSynthesisVoice): boolean {
+  const n = `${v.name} ${v.voiceURI}`.toLowerCase();
+  if (n.includes('female')) return false;
+  return KNOWN_MALE_VOICE_TOKENS.some((m) => n.includes(m)) || /\bmale\b/.test(n);
+}
 
 /**
  * Match the most suitable browser speech synthesis voice based on model profile.
@@ -136,14 +163,17 @@ function findMatchingBrowserVoice(voices: SpeechSynthesisVoice[], voiceModelId: 
   if (!voices || voices.length === 0) return null;
   const profile = VOICE_PROFILES[voiceModelId] || VOICE_PROFILES['en-US-Standard-C'];
 
-  // 1. Try matching preferred keywords (e.g. david, george, richard, samantha)
+  // 1. Try matching preferred keywords with strict gender filtering
   for (const kw of profile.preferredKeywords) {
-    const found = voices.find(
-      (v) => (v.name.toLowerCase().includes(kw) || v.voiceURI.toLowerCase().includes(kw)) &&
-        (profile.gender === 'Male'
-          ? !v.name.toLowerCase().includes('female') && !v.name.toLowerCase().includes('zira') && !v.name.toLowerCase().includes('samantha') && !v.name.toLowerCase().includes('jenny') && !v.name.toLowerCase().includes('aria')
-          : !v.name.toLowerCase().includes('male') && !v.name.toLowerCase().includes('david') && !v.name.toLowerCase().includes('guy') && !v.name.toLowerCase().includes('george'))
-    );
+    const found = voices.find((v) => {
+      const lower = `${v.name} ${v.voiceURI}`.toLowerCase();
+      if (!lower.includes(kw)) return false;
+      if (profile.gender === 'Male') {
+        return !isDefinitelyFemaleBrowserVoice(v);
+      } else {
+        return !isDefinitelyMaleBrowserVoice(v);
+      }
+    });
     if (found) return found;
   }
 
@@ -152,34 +182,29 @@ function findMatchingBrowserVoice(voices: SpeechSynthesisVoice[], voiceModelId: 
   const langMatches = voices.filter((v) => v.lang.toLowerCase().replace('_', '-').startsWith(langTarget));
   if (langMatches.length > 0) {
     if (profile.gender === 'Male') {
-      const maleVoice = langMatches.find(v =>
-        v.name.toLowerCase().includes('david') ||
-        v.name.toLowerCase().includes('george') ||
-        v.name.toLowerCase().includes('daniel') ||
-        v.name.toLowerCase().includes('guy') ||
-        v.name.toLowerCase().includes('mark') ||
-        v.name.toLowerCase().includes('male')
-      );
+      const maleVoice = langMatches.find(isDefinitelyMaleBrowserVoice);
       if (maleVoice) return maleVoice;
+      const nonFemale = langMatches.find((v) => !isDefinitelyFemaleBrowserVoice(v));
+      if (nonFemale) return nonFemale;
     } else {
-      const femaleVoice = langMatches.find(v =>
-        v.name.toLowerCase().includes('zira') ||
-        v.name.toLowerCase().includes('samantha') ||
-        v.name.toLowerCase().includes('aria') ||
-        v.name.toLowerCase().includes('jenny') ||
-        v.name.toLowerCase().includes('hazel') ||
-        v.name.toLowerCase().includes('female')
-      );
+      const femaleVoice = langMatches.find(isDefinitelyFemaleBrowserVoice);
       if (femaleVoice) return femaleVoice;
+      const nonMale = langMatches.find((v) => !isDefinitelyMaleBrowserVoice(v));
+      if (nonMale) return nonMale;
     }
-    return langMatches[0];
   }
 
-  // 3. Fallback to any English voice
-  const anyEnglish = voices.find((v) => v.lang.toLowerCase().startsWith('en'));
-  if (anyEnglish) return anyEnglish;
+  // 3. Try any English voice matching the requested gender
+  const allEnglish = voices.filter((v) => v.lang.toLowerCase().startsWith('en'));
+  if (profile.gender === 'Male') {
+    const anyMale = allEnglish.find(isDefinitelyMaleBrowserVoice);
+    if (anyMale) return anyMale;
+  } else {
+    const anyFemale = allEnglish.find(isDefinitelyFemaleBrowserVoice);
+    if (anyFemale) return anyFemale;
+  }
 
-  return voices[0] || null;
+  return allEnglish[0] || voices[0] || null;
 }
 
 /**
@@ -250,6 +275,9 @@ export default function AiVoiceModal({
 
   // Native HTML5 Audio element ref for studio playback
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const sampleAudioCacheRef = useRef<Record<string, string>>({});
+  const [generatedVoiceId, setGeneratedVoiceId] = useState<string | null>(null);
+  const [personalVoiceProfile, setPersonalVoiceProfile] = useState<MbrVoiceProfile | null>(null);
 
   // Helper to match voice media record for this story
   const isMatchingStoryAudio = (m: MbrMedia) =>
@@ -322,21 +350,52 @@ export default function AiVoiceModal({
           }
         }
         if (isMounted) {
+          // Load member's personal cloned voice profile if enrolled
+          let loadedPersonalVoice: MbrVoiceProfile | null = null;
+          try {
+            const cacheKey = `sb_voice_profile_${mbrId || 'sandbox-mbr'}`;
+            const cachedStr = sessionStorage.getItem(cacheKey);
+            if (cachedStr) {
+              const parsed = JSON.parse(cachedStr) as MbrVoiceProfile;
+              if (parsed && parsed.isActive) {
+                loadedPersonalVoice = parsed;
+              }
+            }
+            if (!isSandbox && mbrId) {
+              const apiVoice = await mbrVoiceProfileApi.getActiveMemberVoiceProfile(mbrId).catch(() => null);
+              if (apiVoice && apiVoice.isActive) {
+                loadedPersonalVoice = apiVoice;
+                sessionStorage.setItem(cacheKey, JSON.stringify(apiVoice));
+              }
+            }
+          } catch {}
+
+          setPersonalVoiceProfile(loadedPersonalVoice);
+
           const found = list.find(isMatchingStoryAudio);
           if (found) {
             setExistingMedia(found);
             setGeneratedMedia(found);
             // Parse saved voice timbre from description
             const desc = found.mbrMediaDescription || '';
-            for (const vm of VOICE_MODEL_OPTIONS) {
-              if (desc.includes(vm.id) || desc.includes(vm.name)) {
-                setSelectedVoice(vm.id);
-                break;
+            if (loadedPersonalVoice && (desc.includes('mbr-personal-voice') || desc.includes(loadedPersonalVoice.voiceName))) {
+              setSelectedVoice('mbr-personal-voice');
+              setGeneratedVoiceId('mbr-personal-voice');
+            } else {
+              for (const vm of VOICE_MODEL_OPTIONS) {
+                if (desc.includes(vm.id) || desc.includes(vm.name)) {
+                  setSelectedVoice(vm.id);
+                  setGeneratedVoiceId(vm.id);
+                  break;
+                }
               }
             }
           } else {
             setExistingMedia(null);
             setGeneratedMedia(null);
+            if (loadedPersonalVoice) {
+              setSelectedVoice('mbr-personal-voice');
+            }
           }
         }
       } catch (err) {
@@ -363,8 +422,8 @@ export default function AiVoiceModal({
     setSelectedVoice(voiceId);
   };
 
-  // Preview short sample of a specific voice timbre
-  const handlePlayVoiceSample = (voiceId: string, e?: React.MouseEvent) => {
+  // Preview short sample of a specific voice timbre using the real Neural TTS voice (with browser fallback)
+  const handlePlayVoiceSample = async (voiceId: string, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
     }
@@ -376,13 +435,68 @@ export default function AiVoiceModal({
 
     stopAllAudio();
     window.dispatchEvent(new CustomEvent('stop-storybook-tts'));
+    setPlayingSampleVoiceId(voiceId);
 
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+    const isPersonalClone = voiceId === 'mbr-personal-voice' && personalVoiceProfile;
+    const acousticMeta = (personalVoiceProfile?.acousticProfileJson as MbrVoiceAcousticProfile) || {};
+    const profile: VoiceProfile = isPersonalClone
+      ? {
+          id: 'mbr-personal-voice',
+          name: personalVoiceProfile.voiceName || 'My Personal Voice',
+          gender: acousticMeta.detected_gender === 'FEMALE' ? 'Female' : 'Male',
+          accent: (acousticMeta.accent_region || '').toLowerCase().includes('british') ? 'UK' : 'US',
+          timbre: 'Personal AI Voice Clone',
+          description: acousticMeta.timbre_description || 'Your personal cloned voice enrolled with Google Cloud Vertex AI',
+          pitch: acousticMeta.detected_gender === 'FEMALE' ? 1.0 : 0.9,
+          rateMultiplier: 1.0,
+          preferredKeywords: acousticMeta.detected_gender === 'FEMALE' ? ['samantha', 'zira', 'female'] : ['david', 'mark', 'guy', 'male'],
+        }
+      : VOICE_PROFILES[voiceId] || VOICE_PROFILES['en-US-Standard-C'];
+    const sampleText = isPersonalClone
+      ? `Hello! This is ${profile.name}, ready to narrate your StoryBook memories in your own personal AI voice.`
+      : `Hello! Here is a sample of the ${profile.name} voice for your StoryBook memoir narration.`;
 
-    const profile = VOICE_PROFILES[voiceId] || VOICE_PROFILES['en-US-Standard-C'];
-    const sampleText = `Hello! Here is a sample of the ${profile.name} voice. Listen to the tone, accent, and timbre for your story narration.`;
+    // 1. Try playing neural TTS sample from sb-api-ai so the Sample matches the generated voice 100%
+    try {
+      let cachedUrl = sampleAudioCacheRef.current[voiceId];
+      if (!cachedUrl) {
+        const res = await textToSpeechApi.synthesize({
+          text: sampleText,
+          voice_name: voiceId,
+          speed: selectedSpeed,
+          persona: profile.name,
+          is_cloned_voice: Boolean(isPersonalClone),
+          voice_cloning_key: isPersonalClone ? personalVoiceProfile?.vertexVoiceCloningKey || null : null,
+          acoustic_profile: isPersonalClone ? (personalVoiceProfile?.acousticProfileJson as Record<string, any>) || null : null,
+        });
+        if (res.audio_base64) {
+          const blob = base64ToBlob(res.audio_base64, res.mime_type || 'audio/wav');
+          cachedUrl = URL.createObjectURL(blob);
+          sampleAudioCacheRef.current[voiceId] = cachedUrl;
+        }
+      }
+
+      if (cachedUrl) {
+        const audio = new Audio(cachedUrl);
+        audioElementRef.current = audio;
+        audio.playbackRate = selectedSpeed;
+        audio.onended = () => setPlayingSampleVoiceId(null);
+        audio.onpause = () => setPlayingSampleVoiceId(null);
+        audio.onerror = () => setPlayingSampleVoiceId(null);
+        await audio.play();
+        return;
+      }
+    } catch (err) {
+      console.warn('Neural voice sample fallback to browser speechSynthesis:', err);
+    }
+
+    // 2. Fallback to browser speechSynthesis if AI service is unreachable
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      setPlayingSampleVoiceId(null);
+      return;
+    }
+
     const matchedVoice = findMatchingBrowserVoice(browserVoices, voiceId);
-
     const utter = new SpeechSynthesisUtterance(sampleText);
     utter.rate = selectedSpeed * profile.rateMultiplier;
     utter.pitch = profile.pitch;
@@ -409,8 +523,11 @@ export default function AiVoiceModal({
     stopAllAudio();
     window.dispatchEvent(new CustomEvent('stop-storybook-tts'));
 
-    // 1. If we have a genuine synthesized audio URL (local blob or remote path), play it via HTML5 Audio element
-    const activeAudioUrl = localAudioUrl || generatedMedia?.mbrMediaPath || existingMedia?.mbrMediaPath;
+    // 1. If we have a genuine synthesized audio URL matching the selected voice, play it via HTML5 Audio element
+    const matchesSelectedVoice = !generatedVoiceId || generatedVoiceId === selectedVoice;
+    const activeAudioUrl = matchesSelectedVoice
+      ? (localAudioUrl || generatedMedia?.mbrMediaPath || existingMedia?.mbrMediaPath)
+      : localAudioUrl;
     if (activeAudioUrl) {
       const audio = new Audio(activeAudioUrl);
       audioElementRef.current = audio;
@@ -473,16 +590,34 @@ export default function AiVoiceModal({
     setGenerating(true);
     setError(null);
 
-    const activeProfile = VOICE_PROFILES[selectedVoice] || VOICE_PROFILES['en-US-Standard-C'];
+    const isPersonalClone = selectedVoice === 'mbr-personal-voice' && personalVoiceProfile;
+    const acousticMeta = (personalVoiceProfile?.acousticProfileJson as MbrVoiceAcousticProfile) || {};
+    const activeProfile: VoiceProfile = isPersonalClone
+      ? {
+          id: 'mbr-personal-voice',
+          name: personalVoiceProfile.voiceName || 'My Personal Voice',
+          gender: acousticMeta.detected_gender === 'FEMALE' ? 'Female' : 'Male',
+          accent: (acousticMeta.accent_region || '').toLowerCase().includes('british') ? 'UK' : 'US',
+          timbre: 'Personal AI Voice Clone',
+          description: acousticMeta.timbre_description || 'Personal cloned voice enrolled with Google Cloud Vertex AI',
+          pitch: acousticMeta.detected_gender === 'FEMALE' ? 1.0 : 0.9,
+          rateMultiplier: 1.0,
+          preferredKeywords: [],
+        }
+      : VOICE_PROFILES[selectedVoice] || VOICE_PROFILES['en-US-Standard-C'];
 
     try {
       const startTime = performance.now();
 
-      // 1. Call AI Service TTS synthesize endpoint with the selected voice timbre & accent
+      // 1. Call AI Service TTS synthesize endpoint with the selected voice timbre & accent (or personal cloned voice)
       const ttsResult = await textToSpeechApi.synthesize({
         text: fullNarrationText,
         voice_name: selectedVoice,
-        speed: selectedSpeed
+        persona: activeProfile.name,
+        speed: selectedSpeed,
+        is_cloned_voice: Boolean(isPersonalClone),
+        voice_cloning_key: isPersonalClone ? personalVoiceProfile?.vertexVoiceCloningKey || null : null,
+        acoustic_profile: isPersonalClone ? (personalVoiceProfile?.acousticProfileJson as Record<string, any>) || null : null,
       }).catch((e) => {
         console.warn('FastAPI TTS endpoint call note (using fallback synthesizer):', e);
         return {
@@ -510,22 +645,33 @@ export default function AiVoiceModal({
       const totalTokens = ttsResult.total_tokens || (promptTokens + completionTokens);
       const estCostUsd = Number(((promptTokens * 0.00000015) + (completionTokens * 0.00000060)).toFixed(6));
 
-      // Resolve user ID
+      // Resolve user ID & fallback member ID
       let resolvedUserId: string | null = null;
-      const userStr = sessionStorage.getItem('user');
-      if (userStr) {
-        try {
+      let resolvedMbrId = mbrId;
+      try {
+        if (!resolvedMbrId) {
+          const storedMbrStr =
+            sessionStorage.getItem('sb_current_mbr') ||
+            sessionStorage.getItem('mbr') ||
+            sessionStorage.getItem('sandbox_mbr');
+          if (storedMbrStr) {
+            const parsedMbr = JSON.parse(storedMbrStr);
+            if (parsedMbr?.mbrId) resolvedMbrId = parsedMbr.mbrId;
+          }
+        }
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
           const u = JSON.parse(userStr);
           resolvedUserId = u.user_id || u.userId || null;
-        } catch {}
-      }
+        }
+      } catch {}
 
       const sid = getOrCreateSessionId();
 
       // Record AI usage stats to mbrAiUsageLog
       try {
         await mbrAiUsageLogApi.recordUsage({
-          mbrId: mbrId,
+          mbrId: resolvedMbrId,
           userId: resolvedUserId,
           sessionId: sid,
           promptTokens,
@@ -588,6 +734,7 @@ export default function AiVoiceModal({
       }
       const newBlobUrl = URL.createObjectURL(audioBlob);
       setLocalAudioUrl(newBlobUrl);
+      setGeneratedVoiceId(selectedVoice);
 
       const cleanFileName = `narration_${storyId.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.${fileExt}`;
       let storageUrl = '';
@@ -848,9 +995,84 @@ export default function AiVoiceModal({
                 <span>Select Voice Timbre & Accent</span>
               </label>
               <span className="text-[10px] font-mono text-slate-400">
-                {VOICE_MODEL_OPTIONS.length} Available Voices
+                {VOICE_MODEL_OPTIONS.length + (personalVoiceProfile ? 1 : 0)} Available Voices
               </span>
             </div>
+
+            {/* Featured Personal Cloned Voice Option (if enrolled in My Profile -> My Voice Translation) */}
+            {personalVoiceProfile ? (
+              <div
+                onClick={() => handleVoiceTimbreChange('mbr-personal-voice')}
+                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between relative ${
+                  selectedVoice === 'mbr-personal-voice'
+                    ? 'bg-gradient-to-r from-indigo-50/90 via-purple-50/80 to-blue-50/90 border-indigo-500 ring-2 ring-indigo-500/25 shadow-sm'
+                    : 'bg-indigo-50/30 hover:bg-indigo-50/60 border-indigo-200/80 text-slate-700'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-serif text-xs sm:text-sm font-bold text-slate-900">
+                        {personalVoiceProfile.voiceName}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[9.5px] font-mono font-bold uppercase bg-indigo-600 text-white shadow-2xs">
+                        My Cloned Voice • Vertex AI
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-600 mt-1 leading-snug">
+                      {((personalVoiceProfile.acousticProfileJson as MbrVoiceAcousticProfile)?.timbre_description) ||
+                        'Personalized AI voice model cloned from your profile voice translation sample.'}
+                    </p>
+                  </div>
+
+                  {selectedVoice === 'mbr-personal-voice' && (
+                    <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                      <Check className="w-3 h-3 stroke-[3]" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between mt-3 pt-2 border-t border-indigo-200/60">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-mono font-semibold bg-white text-indigo-800 border border-indigo-200">
+                      {((personalVoiceProfile.acousticProfileJson as MbrVoiceAcousticProfile)?.detected_gender) || 'PERSONAL'}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded text-[9.5px] font-mono font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                      {((personalVoiceProfile.acousticProfileJson as MbrVoiceAcousticProfile)?.accent_region) || 'Custom Timbre'}
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handlePlayVoiceSample('mbr-personal-voice', e)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-colors cursor-pointer ${
+                      playingSampleVoiceId === 'mbr-personal-voice'
+                        ? 'bg-indigo-600 text-white shadow-2xs'
+                        : 'bg-white text-indigo-700 hover:bg-indigo-100 border border-indigo-300'
+                    }`}
+                    title="Listen to a sample of your cloned personal voice"
+                  >
+                    {playingSampleVoiceId === 'mbr-personal-voice' ? (
+                      <>
+                        <VolumeX className="w-3 h-3 animate-pulse" />
+                        <span>Stop</span>
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 className="w-3 h-3" />
+                        <span>Sample My Voice</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="px-3.5 py-2.5 rounded-2xl bg-indigo-50/50 border border-indigo-100 text-[11px] text-indigo-900 flex items-center justify-between gap-2">
+                <span>
+                  Want stories narrated in your own voice? Set up <strong>My Voice Translation</strong> under your <strong>Member Profile</strong>.
+                </span>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {VOICE_MODEL_OPTIONS.map((voice) => {
@@ -978,7 +1200,14 @@ export default function AiVoiceModal({
             </div>
             <div className="flex items-center gap-1.5">
               <Volume2 className="w-3.5 h-3.5 text-purple-600 shrink-0" />
-              <span>Voice: <strong>{VOICE_PROFILES[selectedVoice]?.name || selectedVoice} ({VOICE_PROFILES[selectedVoice]?.accent})</strong></span>
+              <span>
+                Voice:{' '}
+                <strong>
+                  {selectedVoice === 'mbr-personal-voice' && personalVoiceProfile
+                    ? `${personalVoiceProfile.voiceName} (Personal Clone)`
+                    : `${VOICE_PROFILES[selectedVoice]?.name || selectedVoice} (${VOICE_PROFILES[selectedVoice]?.accent || 'US'})`}
+                </strong>
+              </span>
             </div>
             <div className="flex items-center gap-1.5">
               <Headphones className="w-3.5 h-3.5 text-purple-600 shrink-0" />

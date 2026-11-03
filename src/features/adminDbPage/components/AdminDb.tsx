@@ -846,6 +846,59 @@ const TABLES: TableDefinition[] = [
   },
 
   {
+    id: 'mbrAlbum',
+    name: 'mbrAlbum',
+    endpoint: '/mbr-albums',
+    primaryKey: 'albumId',
+    searchField: 'albumName',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'albumName', label: 'Album Name', type: 'string', required: true },
+      { name: 'albumDateLabel', label: 'Date Label / Era', type: 'string', required: false, placeholder: 'e.g. 1961 - 1978' },
+      { name: 'albumDesc', label: 'Description', type: 'textarea', required: false },
+      { name: 'albumCoverMediaId', label: 'Cover Media ID (UUID)', type: 'uuid', required: false },
+      { name: 'albumCoverPhotoUrl', label: 'Cover Photo URL', type: 'string', required: false },
+      { name: 'albumSortOrder', label: 'Sort Order', type: 'number', required: false }
+    ]
+  },
+  {
+    id: 'mbrAlbumPhoto',
+    name: 'mbrAlbumPhoto',
+    endpoint: '/mbr-albums',
+    primaryKey: 'albumPhotoId',
+    searchField: 'photoTitle',
+    fields: [
+      { name: 'albumId', label: 'Album ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrMediaId', label: 'Media ID (UUID)', type: 'uuid', required: true },
+      { name: 'photoTitle', label: 'Photo Title', type: 'string', required: false },
+      { name: 'photoCaption', label: 'Caption / Story', type: 'textarea', required: false },
+      { name: 'photoDate', label: 'Photo Date', type: 'string', required: false },
+      { name: 'photoLocation', label: 'Photo Location', type: 'string', required: false },
+      { name: 'photoSortOrder', label: 'Sort Order', type: 'number', required: false },
+      { name: 'isCover', label: 'Is Album Cover', type: 'boolean', required: false }
+    ]
+  },
+  {
+    id: 'mbrVoiceProfile',
+    name: 'mbrVoiceProfile',
+    endpoint: '/mbr-voice-profiles',
+    primaryKey: 'mbrVoiceProfileId',
+    searchField: 'voiceName',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'voiceName', label: 'Voice Display Name', type: 'string', required: true, placeholder: 'My Personal Voice' },
+      { name: 'voiceStatusCd', label: 'Voice Status Code', type: 'string', required: true, placeholder: 'READY' },
+      { name: 'sampleMediaId', label: 'Sample Media ID (UUID)', type: 'uuid', required: false },
+      { name: 'sampleAudioPath', label: 'Sample Audio GCS Path / URL', type: 'string', required: true },
+      { name: 'sampleDurationSec', label: 'Sample Duration (Sec)', type: 'number', required: true },
+      { name: 'scriptId', label: 'Calibration Script ID', type: 'string', required: true, placeholder: 'SCRIPT_MEMOIR_01' },
+      { name: 'scriptText', label: 'Calibration Script Text', type: 'textarea', required: true },
+      { name: 'consentConfirmed', label: 'Consent Confirmed', type: 'boolean', required: true },
+      { name: 'vertexVoiceCloningKey', label: 'Vertex Voice Cloning Key', type: 'textarea', required: false },
+      { name: 'isActive', label: 'Is Active', type: 'boolean', required: true }
+    ]
+  },
+  {
     id: 'sysConfig',
     name: 'sysConfig',
     endpoint: '/sys-configs',
@@ -1078,6 +1131,36 @@ const getInitialMockData = (tableId: string): any[] => {
           bookChapterIncludePhoto: true,
           bookItemCreatedAt: now,
           bookItemUpdatedAt: now
+        }
+      ];
+    case 'mbrAlbum':
+      return [
+        {
+          albumId: 'album-mock-01',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          albumName: 'Family Roots & Ancestry',
+          albumDateLabel: '1961 – 1978',
+          albumDesc: 'Ancestral homes, grandfather Harold on the Coos Bay docks, and Sunday gatherings.',
+          albumCoverPhotoUrl: 'https://images.unsplash.com/photo-1511895426328-dc8714191300',
+          albumSortOrder: 1,
+          albumCreatedAt: now,
+          albumUpdatedAt: now
+        }
+      ];
+    case 'mbrAlbumPhoto':
+      return [
+        {
+          albumPhotoId: 'album-photo-mock-01',
+          albumId: 'album-mock-01',
+          mbrMediaId: 'media-mock-01',
+          photoTitle: 'The Coos Bay Homestead',
+          photoCaption: 'The weather-worn cedar house where four generations gathered every Sunday morning.',
+          photoDate: 'Autumn 1968',
+          photoLocation: 'Coos Bay, Oregon',
+          photoSortOrder: 1,
+          isCover: true,
+          albumPhotoCreatedAt: now,
+          albumPhotoUpdatedAt: now
         }
       ];
     case 'mbrStoryStat':

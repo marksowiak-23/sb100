@@ -1236,7 +1236,8 @@ Output Rules:
 - Do NOT wrap in quotation marks, do NOT include markdown code fences, and do NOT add conversational filler or intros.]`;
 
       const startTime = performance.now();
-      const res = await chatApi.sendMessage(prompt, undefined, authorName || 'Author');
+      const refineThreadId = `trivia-refine-${targetStoryId || Date.now()}`;
+      const res = await chatApi.sendMessage(prompt, refineThreadId, authorName || 'Author');
       if (res && res.response) {
         let polished = res.response
           .replace(/^Here is (your|a) (story|draft|narrative|memoir|revised draft)[^:\n]*:\s*/i, '')
@@ -1254,22 +1255,54 @@ Output Rules:
           });
           setSuccessMsg(`Drafted story in first person using ${activePersona.chWriterName} persona!`);
 
-          // Record telemetry if available
+          // Record telemetry in mbrAiUsageLog
           try {
-            const addedTokens = res.tokens_used || Math.ceil((prompt.length + polished.length) / 4);
-            const durationMs = Math.round(performance.now() - startTime);
+            const promptTokens = res.prompt_tokens || Math.max(1, Math.ceil(prompt.length / 4));
+            const completionTokens = res.completion_tokens || Math.max(1, Math.ceil(polished.length / 4));
+            const addedTokens = res.tokens_used || (promptTokens + completionTokens);
+            const estCostUsd = Number(((promptTokens * 0.000000075) + (completionTokens * 0.00000030)).toFixed(6));
+            const durationMs = Math.max(1, Math.round(performance.now() - startTime));
+
+            let resolvedMbrIdForLog = currentMbrId;
+            let resolvedUserIdForLog: string | null = null;
+            try {
+              const storedMbrStr =
+                sessionStorage.getItem('sb_current_mbr') ||
+                sessionStorage.getItem('mbr') ||
+                sessionStorage.getItem('sandbox_mbr');
+              if (storedMbrStr) {
+                const parsedMbr = JSON.parse(storedMbrStr);
+                if (parsedMbr?.mbrId) resolvedMbrIdForLog = parsedMbr.mbrId;
+              }
+              const storedUserStr = sessionStorage.getItem('user');
+              if (storedUserStr) {
+                const parsedUser = JSON.parse(storedUserStr);
+                resolvedUserIdForLog = parsedUser?.user_id || parsedUser?.userId || null;
+              }
+            } catch {}
+
+            let sid = sessionStorage.getItem('sb_session_id');
+            if (!sid) {
+              sid = 'sess_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
+              sessionStorage.setItem('sb_session_id', sid);
+            }
+
             if (!isSandbox) {
               await mbrAiUsageLogApi.recordUsage({
-                mbrId: currentMbrId,
-                sessionId: 'story-editor-session',
-                promptTokens: Math.ceil(prompt.length / 4),
-                completionTokens: Math.ceil(polished.length / 4),
+                mbrId: resolvedMbrIdForLog,
+                userId: resolvedUserIdForLog,
+                sessionId: sid,
+                promptTokens,
+                completionTokens,
                 totalTokens: addedTokens,
                 latencyMs: durationMs,
-                estimatedCostUsd: 0,
-                modelName: 'gemini-1.5-flash',
+                estimatedCostUsd: estCostUsd,
+                modelName: 'gemini-2.5-flash',
+                statusCode: 200,
+                isSuccess: true,
                 metadataJson: {
                   chIntentId: intentId,
+                  personaName: activePersona.chWriterName,
                   callerComponent: 'StoryEditorPanel:applyTriviaStory'
                 }
               });

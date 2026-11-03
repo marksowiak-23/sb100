@@ -6,7 +6,6 @@
 import React from 'react';
 import { BookOpen, Sparkles } from 'lucide-react';
 import AuthorPageHeaderPanel from './AuthorPageHeaderPanel';
-import SbMyStorybookStatusCard from './SbMyStorybookStatusCard';
 import MbrStoryIndexPanel from '@/src/components/mbrStoryIndexPanel';
 import MbrPhotoBookPanel from '@/src/components/mbrPhotoBookPanel';
 import SbMbrStats from './SbMbrStats';
@@ -16,14 +15,23 @@ interface LeftColumnProps {
   activeSection: string;
   setActiveSection: (sec: string) => void;
   onOpenStoryBookGenerator?: () => void;
+  onOpenPhotoBook?: () => void;
 }
 
-export default function LeftColumn({ activeSection, setActiveSection, onOpenStoryBookGenerator }: LeftColumnProps) {
+export default function LeftColumn({ activeSection, setActiveSection, onOpenStoryBookGenerator, onOpenPhotoBook }: LeftColumnProps) {
   const handleLaunchGenerator = () => {
     if (onOpenStoryBookGenerator) {
       onOpenStoryBookGenerator();
     } else {
       window.dispatchEvent(new CustomEvent('open-storybook-generator'));
+    }
+  };
+
+  const handleLaunchPhotoBook = () => {
+    if (onOpenPhotoBook) {
+      onOpenPhotoBook();
+    } else {
+      window.dispatchEvent(new CustomEvent('open-photo-book'));
     }
   };
 
@@ -66,17 +74,12 @@ export default function LeftColumn({ activeSection, setActiveSection, onOpenStor
 
       {/* --- PHOTO BOOK PANEL (Desktop only) --- */}
       <div className="hidden lg:block">
-        <MbrPhotoBookPanel />
+        <MbrPhotoBookPanel onOpenPhotoBook={handleLaunchPhotoBook} />
       </div>
 
       {/* --- MEMBER STATS CARD (Desktop only) --- */}
       <div className="hidden lg:block">
         <SbMbrStats />
-      </div>
-
-      {/* --- STORYBOOK STATUS CARD (Desktop only) --- */}
-      <div className="hidden lg:block">
-        <SbMyStorybookStatusCard onOpenStoryBookGenerator={handleLaunchGenerator} />
       </div>
 
       <AdminComponentTag name="LeftColumn" />

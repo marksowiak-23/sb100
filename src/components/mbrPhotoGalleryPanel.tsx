@@ -108,6 +108,22 @@ export default function MbrPhotoGalleryPanel({
     }
   }, [isOpen, mbrId, categoryCd, subordinateId]);
 
+  const isAudioOrNarration = (m: MbrMedia) => {
+    const mime = (m.mbrMediaMimeType || '').toLowerCase();
+    const path = (m.mbrMediaPath || '').toLowerCase();
+    const filename = (m.mbrMediaOriginalFilename || '').toLowerCase();
+    const desc = (m.mbrMediaDescription || '').toLowerCase();
+    const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
+    return (
+      mime.startsWith('audio/') ||
+      path.endsWith('.wav') || path.endsWith('.mp3') || path.endsWith('.ogg') || path.endsWith('.m4a') ||
+      filename.endsWith('.wav') || filename.endsWith('.mp3') || filename.endsWith('.ogg') || filename.endsWith('.m4a') ||
+      filename.startsWith('narration_') || filename.startsWith('voice_sample_') ||
+      desc.includes('voice narration') || desc.includes('ai voice narration') ||
+      cat === 'voiceprofile' || cat === 'narration'
+    );
+  };
+
   const loadCategoryPhotos = async () => {
     setLoading(true);
     setError(null);
@@ -117,9 +133,10 @@ export default function MbrPhotoGalleryPanel({
 
     try {
       if (!isSandbox) {
-        const list = await taskApi.getMemberMedia(mbrId);
+        const list = await taskApi.getMemberMedia(mbrId, { excludeAudio: true });
         if (list && Array.isArray(list)) {
           const filtered = list.filter((m) => {
+            if (isAudioOrNarration(m)) return false;
             const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
             const targetCat = categoryCd.toLowerCase();
             const catMatch =
@@ -146,6 +163,7 @@ export default function MbrPhotoGalleryPanel({
             const list: MbrMedia[] = JSON.parse(savedMedia);
             if (Array.isArray(list)) {
               const filtered = list.filter((m) => {
+                if (isAudioOrNarration(m)) return false;
                 const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
                 const targetCat = categoryCd.toLowerCase();
                 const catMatch =

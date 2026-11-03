@@ -1111,6 +1111,16 @@ const fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Resp
   const urlStr = typeof input === 'string' ? input : input.toString();
   const isAuthOrHealth = urlStr.includes('/users/login') || urlStr.includes('/users/social-login') || urlStr.includes('/health');
   try {
+    if (typeof window !== 'undefined' && !headers.has('x-session-id')) {
+      let sid = sessionStorage.getItem('sb_session_id');
+      if (!sid) {
+        sid = 'sess_' + Math.random().toString(36).substring(2, 10) + '_' + Date.now();
+        sessionStorage.setItem('sb_session_id', sid);
+      }
+      headers.set('x-session-id', sid);
+    }
+  } catch {}
+  try {
     if (typeof window !== 'undefined' && !headers.has('Authorization')) {
       let token = sessionStorage.getItem('sb_token');
       if (!token && !isAuthOrHealth) {
@@ -2099,12 +2109,21 @@ export const taskApi = {
   /**
    * Fetch all media records for a specific member ID.
    */
-  async getMemberMedia(mbrId: string): Promise<MbrMedia[]> {
+  async getMemberMedia(
+    mbrId: string,
+    options?: { excludeAudio?: boolean; categoryCd?: string; mediaType?: string }
+  ): Promise<MbrMedia[]> {
     if (!mbrId) return [];
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(mbrId);
     if (!isUuid) return [];
     try {
-      const response = await fetch(`${API_BASE_URL}/mbr-media/member/${mbrId}`, {
+      const params = new URLSearchParams();
+      if (options?.excludeAudio) params.append('exclude_audio', 'true');
+      if (options?.categoryCd) params.append('category_cd', options.categoryCd);
+      if (options?.mediaType) params.append('media_type', options.mediaType);
+      const queryStr = params.toString() ? `?${params.toString()}` : '';
+
+      const response = await fetch(`${API_BASE_URL}/mbr-media/member/${mbrId}${queryStr}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -3875,6 +3894,87 @@ export const taskApi = {
     return handleResponse<MbrStoryBookItem>(response);
   },
 
+  async getMemberAlbums(mbrId?: string): Promise<MbrAlbum[]> {
+    const url = mbrId ? `${API_BASE_URL}/mbr-albums?mbr_id=${encodeURIComponent(mbrId)}` : `${API_BASE_URL}/mbr-albums`;
+    const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    return handleResponse<MbrAlbum[]>(response);
+  },
+
+  async getMemberAlbum(albumId: string): Promise<MbrAlbum> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/${encodeURIComponent(albumId)}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrAlbum>(response);
+  },
+
+  async createMemberAlbum(album: Partial<MbrAlbum>): Promise<MbrAlbum> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(album)
+    });
+    return handleResponse<MbrAlbum>(response);
+  },
+
+  async updateMemberAlbum(albumId: string, album: Partial<MbrAlbum>): Promise<MbrAlbum> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/${encodeURIComponent(albumId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(album)
+    });
+    return handleResponse<MbrAlbum>(response);
+  },
+
+  async deleteMemberAlbum(albumId: string): Promise<MbrAlbum> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/${encodeURIComponent(albumId)}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrAlbum>(response);
+  },
+
+  async getMemberAlbumPhotos(albumId: string): Promise<MbrAlbumPhoto[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/${encodeURIComponent(albumId)}/photos`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrAlbumPhoto[]>(response);
+  },
+
+  async addPhotoToMemberAlbum(albumId: string, photo: Partial<MbrAlbumPhoto>): Promise<MbrAlbumPhoto> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/${encodeURIComponent(albumId)}/photos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(photo)
+    });
+    return handleResponse<MbrAlbumPhoto>(response);
+  },
+
+  async updateMemberAlbumPhoto(albumPhotoId: string, photo: Partial<MbrAlbumPhoto>): Promise<MbrAlbumPhoto> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/photos/${encodeURIComponent(albumPhotoId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(photo)
+    });
+    return handleResponse<MbrAlbumPhoto>(response);
+  },
+
+  async removePhotoFromMemberAlbum(albumPhotoId: string): Promise<MbrAlbumPhoto> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/photos/${encodeURIComponent(albumPhotoId)}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrAlbumPhoto>(response);
+  },
+
+  async bulkSyncMemberAlbumPhotos(albumId: string, photos: Partial<MbrAlbumPhoto>[]): Promise<MbrAlbumPhoto[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/${encodeURIComponent(albumId)}/photos/bulk-sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ albumId, photos })
+    });
+    return handleResponse<MbrAlbumPhoto[]>(response);
+  },
+
   async deleteMemberStoryBookItem(bookItemId: string): Promise<void> {
     await fetch(`${API_BASE_URL}/mbr-story-book-items/${bookItemId}`, {
       method: 'DELETE',
@@ -4661,6 +4761,8 @@ export const adminDbApi = {
 export interface ChatResponse {
   response: string;
   thread_id: string;
+  prompt_tokens?: number;
+  completion_tokens?: number;
   tokens_used?: number;
 }
 
@@ -4670,7 +4772,8 @@ export const chatApi = {
   /**
    * Send a chat message to Cassie the Story Mate via the FastAPI AI service.
    */
-  async sendMessage(message: string, threadId: string, memberName?: string): Promise<ChatResponse> {
+  async sendMessage(message: string, threadId?: string, memberName?: string): Promise<ChatResponse> {
+    const effectiveThreadId = (threadId && threadId.trim()) ? threadId.trim() : getOrCreateSessionId();
     const response = await fetch(`${AI_API_BASE_URL}/chat`, {
       method: 'POST',
       headers: {
@@ -4679,7 +4782,7 @@ export const chatApi = {
       },
       body: JSON.stringify({
         message,
-        thread_id: threadId,
+        thread_id: effectiveThreadId,
         member_name: memberName
       }),
     });
@@ -4782,8 +4885,10 @@ export const mediaApi = {
    */
   async uploadMedia(file: File | Blob, destinationName?: string, contentType?: string): Promise<MediaUploadResponse> {
     const formData = new FormData();
-    formData.append('file', file);
+    const fallbackFilename = destinationName ? destinationName.split('/').pop() || 'upload.bin' : (file instanceof File ? file.name : 'upload.bin');
+    formData.append('file', file, fallbackFilename);
     if (destinationName) {
+      formData.append('destination_path', destinationName);
       formData.append('destination_name', destinationName);
     }
     if (contentType) {
@@ -5376,6 +5481,10 @@ export interface TTSSynthesizePayload {
   voice_name?: string;
   speed?: number;
   persona?: string;
+  is_cloned_voice?: boolean;
+  voice_cloning_key?: string | null;
+  reference_audio_base64?: string | null;
+  acoustic_profile?: Record<string, any> | null;
 }
 
 export interface TTSSynthesizeResponse {
@@ -5395,7 +5504,7 @@ export interface TTSSynthesizeResponse {
 
 export const textToSpeechApi = {
   async synthesize(payload: TTSSynthesizePayload): Promise<TTSSynthesizeResponse> {
-    const AI_API_URL = import.meta.env.VITE_AI_API_URL || 'http://127.0.0.1:8002';
+    const AI_API_URL = AI_API_BASE_URL;
     const response = await fetch(`${AI_API_URL}/tts/synthesize`, {
       method: 'POST',
       headers: {
@@ -5823,3 +5932,193 @@ export interface MbrStoryBookItem {
   bookItemUpdatedAt: string;
 }
 
+
+
+// ==========================================
+// PERSONAL AI VOICE CLONING & VOICE PROFILE API
+// ==========================================
+export interface MbrVoiceAcousticProfile {
+  detected_gender?: 'MALE' | 'FEMALE' | 'NEUTRAL';
+  pitch_register?: string;
+  speaking_rate_wpm?: number;
+  timbre_description?: string;
+  accent_region?: string;
+  recommended_gemini_anchor?: string;
+  director_prompt?: string;
+  enrollment_engine?: string;
+}
+
+
+export interface MbrAlbum {
+  albumId: string;
+  mbrId: string;
+  albumName: string;
+  albumDateLabel?: string | null;
+  albumDesc?: string | null;
+  albumCoverMediaId?: string | null;
+  albumCoverPhotoUrl?: string | null;
+  albumSortOrder?: number;
+  albumCreatedAt?: string;
+  albumUpdatedAt?: string;
+}
+
+export interface MbrAlbumPhoto {
+  albumPhotoId: string;
+  albumId: string;
+  mbrMediaId: string;
+  photoTitle?: string | null;
+  photoCaption?: string | null;
+  photoDate?: string | null;
+  photoLocation?: string | null;
+  photoSortOrder?: number;
+  isCover?: boolean;
+  albumPhotoCreatedAt?: string;
+  albumPhotoUpdatedAt?: string;
+  mbrMediaPath?: string;
+  mbrMediaOriginalFilename?: string;
+  mbrMediaMimeType?: string;
+}
+
+export interface MbrVoiceProfile {
+  mbrVoiceProfileId: string;
+  mbrId: string;
+  voiceName: string;
+  voiceStatusCd: 'RECORDING' | 'ENROLLING' | 'READY' | 'DISABLED' | string;
+  sampleMediaId?: string | null;
+  sampleAudioPath: string;
+  sampleDurationSec: number;
+  scriptId: string;
+  scriptText: string;
+  consentConfirmed: boolean;
+  vertexVoiceCloningKey?: string | null;
+  acousticProfileJson?: MbrVoiceAcousticProfile | Record<string, any> | null;
+  isActive: boolean;
+  voiceCreatedAt: string;
+  voiceUpdatedAt: string;
+}
+
+export interface VoiceCloneEnrollRequest {
+  audio_base64: string;
+  script_text: string;
+  consent_text?: string;
+  voice_name?: string;
+  sample_duration_sec?: number;
+}
+
+export interface VoiceCloneEnrollResponse {
+  status: string;
+  voice_name: string;
+  voice_cloning_key?: string | null;
+  acoustic_profile: MbrVoiceAcousticProfile;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  tokens_used?: number;
+  message: string;
+}
+
+export const mbrVoiceProfileApi = {
+  async getMemberVoiceProfiles(mbrId?: string, isActive?: boolean): Promise<MbrVoiceProfile[]> {
+    const params = new URLSearchParams();
+    if (mbrId) params.set('mbr_id', mbrId);
+    if (isActive !== undefined) params.set('is_active', String(isActive));
+    params.set('t', Date.now().toString());
+    const response = await fetch(`${API_BASE_URL}/mbr-voice-profiles?${params.toString()}`, {
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+      },
+      cache: 'no-cache',
+    });
+    return handleResponse<MbrVoiceProfile[]>(response);
+  },
+
+  async getActiveMemberVoiceProfile(mbrId: string): Promise<MbrVoiceProfile | null> {
+    const profiles = await this.getMemberVoiceProfiles(mbrId, true);
+    return profiles.length > 0 ? profiles[0] : null;
+  },
+
+  async saveMemberVoiceProfile(profile: Partial<MbrVoiceProfile>): Promise<MbrVoiceProfile> {
+    const response = await fetch(`${API_BASE_URL}/mbr-voice-profiles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(profile),
+    });
+    return handleResponse<MbrVoiceProfile>(response);
+  },
+
+  async updateMemberVoiceProfile(voiceProfileId: string, profile: Partial<MbrVoiceProfile>): Promise<MbrVoiceProfile> {
+    const response = await fetch(`${API_BASE_URL}/mbr-voice-profiles/${encodeURIComponent(voiceProfileId)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(profile),
+    });
+    return handleResponse<MbrVoiceProfile>(response);
+  },
+
+  async deleteMemberVoiceProfile(voiceProfileId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/mbr-voice-profiles/${encodeURIComponent(voiceProfileId)}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+  },
+
+
+
+  async addPhotoToMemberAlbum(albumId: string, photo: Partial<MbrAlbumPhoto>): Promise<MbrAlbumPhoto> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/${encodeURIComponent(albumId)}/photos`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(photo)
+    });
+    return handleResponse<MbrAlbumPhoto>(response);
+  },
+
+  async updateMemberAlbumPhoto(albumPhotoId: string, photo: Partial<MbrAlbumPhoto>): Promise<MbrAlbumPhoto> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/photos/${encodeURIComponent(albumPhotoId)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(photo)
+    });
+    return handleResponse<MbrAlbumPhoto>(response);
+  },
+
+  async removePhotoFromMemberAlbum(albumPhotoId: string): Promise<MbrAlbumPhoto> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/photos/${encodeURIComponent(albumPhotoId)}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrAlbumPhoto>(response);
+  },
+
+  async bulkSyncMemberAlbumPhotos(albumId: string, photos: Partial<MbrAlbumPhoto>[]): Promise<MbrAlbumPhoto[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-albums/${encodeURIComponent(albumId)}/photos/bulk-sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ albumId, photos })
+    });
+    return handleResponse<MbrAlbumPhoto[]>(response);
+  },
+};
+
+export const voiceCloneApi = {
+  async enrollVoice(payload: VoiceCloneEnrollRequest): Promise<VoiceCloneEnrollResponse> {
+    const response = await fetch(`${AI_API_BASE_URL}/voice-clone/enroll`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<VoiceCloneEnrollResponse>(response);
+  },
+};

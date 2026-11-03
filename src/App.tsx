@@ -40,6 +40,7 @@ import { AdminPropertiesFeature, SystemPropertiesFeature } from '@/src/features/
 import { AdminUserAIUsageFeature } from '@/src/features/adminUserAIUsagePage';
 import { AdminTopicSparksFeature, TopicSparksAdmin, AdminTopicSparksPage } from '@/src/features/adminTopicSparksPage';
 import { MbrStoryBookGeneratorFeature } from '@/src/features/mbrStoryBookGenerator';
+import { MbrPhotoBookFeature } from '@/src/features/mbrPhotoBook';
 
 
 // Define a TypeScript type to restrict activeTab to only these string values.
@@ -47,6 +48,9 @@ type TabType =
   | 'workspace'
   | 'mbrStoryBookGenerator'
   | 'sbMbrStoryBookGenerator'
+  | 'mbrPhotoBook'
+  | 'sbMbrPhotoBook'
+  | 'photoBook'
   | 'adminConnectionsPage'
   | 'admin-connections'
   | 'settings'
@@ -501,13 +505,18 @@ export default function App() {
     const handleStoryBookGeneratorEvent = () => {
       navigateTo('mbrStoryBookGenerator');
     };
+    const handlePhotoBookEvent = () => {
+      navigateTo('mbrPhotoBook');
+    };
     window.addEventListener('open-member-story', handleStoryEvent);
     window.addEventListener('open-member-profile', handleProfileEvent);
     window.addEventListener('open-storybook-generator', handleStoryBookGeneratorEvent);
+    window.addEventListener('open-photo-book', handlePhotoBookEvent);
     return () => {
       window.removeEventListener('open-member-story', handleStoryEvent);
       window.removeEventListener('open-member-profile', handleProfileEvent);
       window.removeEventListener('open-storybook-generator', handleStoryBookGeneratorEvent);
+      window.removeEventListener('open-photo-book', handlePhotoBookEvent);
     };
   }, [activeTab]);
 
@@ -794,6 +803,7 @@ export default function App() {
               onClickBack={() => navigateTo('mbrHomePage')}
               onClickAuthorProfile={() => handleTabChange('mbrProfilePage')}
               onOpenStoryBookGenerator={() => navigateTo('mbrStoryBookGenerator')}
+              onOpenPhotoBook={() => navigateTo('mbrPhotoBook')}
             />
           </motion.div>
         )}
@@ -808,6 +818,22 @@ export default function App() {
             className="w-full"
           >
             <MbrStoryBookGeneratorFeature
+              isSandbox={isSandbox}
+              onClickBack={() => navigateTo('mbrAuthorPage')}
+            />
+          </motion.div>
+        )}
+        {/* If the active tab is 'mbrPhotoBook', render the member Photo Book studio */}
+        {(activeTab === 'mbrPhotoBook' || activeTab === 'sbMbrPhotoBook' || activeTab === 'photoBook') && (
+          <motion.div
+            key="mbrPhotoBook-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <MbrPhotoBookFeature
               isSandbox={isSandbox}
               onClickBack={() => navigateTo('mbrAuthorPage')}
             />

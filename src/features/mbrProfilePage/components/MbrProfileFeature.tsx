@@ -9,15 +9,16 @@ import {
   Camera, User, Calendar, Save, Loader2, 
   CheckCircle2, AlertCircle, Image as ImageIcon, Sparkles, Upload,
   AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Plus, Trash2, Check,
-  Sliders, ShieldCheck, Eye, RotateCcw
+  Sliders, ShieldCheck, Eye, RotateCcw, Mic
 } from 'lucide-react';
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, API_BASE_URL, MEDIA_API_BASE_URL } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryMatePanel from '@/src/features/mbrAuthorPage/components/StoryMatePanel';
 import ImageCropModal from './ImageCropModal';
 import MbrProfileDisplaySettingsPanel from './MbrProfileDisplaySettingsPanel';
+import MbrVoiceTranslationPanel from './MbrVoiceTranslationPanel';
 import ProfilePageHeaderPanel from './ProfilePageHeaderPanel';
-import ProfileNavigationMenu from './ProfileNavigationMenu';
+import ProfileNavigationMenu, { ProfileSubTab } from './ProfileNavigationMenu';
 
 
 interface MbrProfileFeatureProps {
@@ -31,7 +32,7 @@ interface MbrProfileFeatureProps {
 
 export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChange }: MbrProfileFeatureProps) {
   // --- SUB-TAB STATE ---
-  const [activeSubTab, setActiveSubTab] = useState<'profile' | 'display-settings'>('profile');
+  const [activeSubTab, setActiveSubTab] = useState<ProfileSubTab>('profile');
   const [isSettingsDirty, setIsSettingsDirty] = useState(false);
 
   // --- STATE DEFINITIONS ---
@@ -728,6 +729,9 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif leading-relaxed">
               Use <strong>My Profile Display Settings</strong> to toggle whether individual attributes are displayed on public and shared member views.
             </p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 font-serif leading-relaxed">
+              Use <strong>My Voice Translation</strong> to record a sample script and clone your own voice with Google Cloud Vertex AI for story narration.
+            </p>
           </div>
         </aside>
 
@@ -740,16 +744,28 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
               <div>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white">
-                    {activeSubTab === 'profile' ? <User className="w-5 h-5" /> : <Sliders className="w-5 h-5" />}
+                    {activeSubTab === 'profile' ? (
+                      <User className="w-5 h-5" />
+                    ) : activeSubTab === 'display-settings' ? (
+                      <Sliders className="w-5 h-5" />
+                    ) : (
+                      <Mic className="w-5 h-5" />
+                    )}
                   </div>
                   <div>
                     <h1 className="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">
-                      {activeSubTab === 'profile' ? 'My Profile' : 'My Profile Display Settings'}
+                      {activeSubTab === 'profile'
+                        ? 'My Profile'
+                        : activeSubTab === 'display-settings'
+                        ? 'My Profile Display Settings'
+                        : 'My Voice Translation'}
                     </h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       {activeSubTab === 'profile' 
                         ? 'Your story starts here with knowing your basic demographics and personal introduction.'
-                        : 'Control which attributes and sections of your member profile are visible to visitors and community members.'}
+                        : activeSubTab === 'display-settings'
+                        ? 'Control which attributes and sections of your member profile are visible to visitors and community members.'
+                        : 'Record a guided calibration script so Google Cloud Vertex AI can narrate your stories in your own personal voice.'}
                     </p>
                   </div>
                 </div>
@@ -1226,6 +1242,15 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
               isSandbox={isSandbox}
               mbrId={mbrId}
               onDirtyChange={setIsSettingsDirty}
+            />
+          )}
+
+          {/* TAB 3: MY VOICE TRANSLATION (PERSONAL AI VOICE CLONING) */}
+          {activeSubTab === 'voice-translation' && (
+            <MbrVoiceTranslationPanel
+              isSandbox={isSandbox}
+              mbrId={mbrId}
+              memberFirstName={formData.mbrFirstName}
             />
           )}
         </main>

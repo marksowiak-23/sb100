@@ -3,21 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Play,
   Pause,
   Square,
   Volume2,
-  VolumeX,
-  Sparkles,
   ChevronDown,
   Headphones,
-  RotateCcw,
   Gauge
 } from 'lucide-react';
 import { useTextToSpeech } from '@/src/hooks/useTextToSpeech';
+import { taskApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
 
 export interface StoryAudioPlayerProps {
   text: string;
@@ -38,24 +35,200 @@ export default function StoryAudioPlayer({
 }: StoryAudioPlayerProps) {
   const {
     isSupported,
-    isPlaying,
-    isPaused,
+    isPlaying: ttsPlaying,
+    isPaused: ttsPaused,
     currentId,
     playbackRate,
     voices,
     selectedVoiceURI,
-    progress,
-    togglePlay,
-    stop,
-    setPlaybackRate,
+    progress: ttsProgress,
+    togglePlay: ttsTogglePlay,
+    stop: ttsStop,
+    setPlaybackRate: ttsSetPlaybackRate,
     setSelectedVoiceURI
   } = useTextToSpeech();
 
   const [showVoiceMenu, setShowVoiceMenu] = useState(false);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
-  const isCurrentPlaying = isPlaying && currentId === storyId;
-  const isCurrentPaused = isPaused && currentId === storyId;
+  // Saved AI Voice Studio narration media state (from mbrMedia)
+  const [savedAudioMedia, setSavedAudioMedia] = useState<MbrMedia | null>(null);
+  const [isNativePlaying, setIsNativePlaying] = useState(false);
+  const [isNativePaused, setIsNativePaused] = useState(false);
+  const [nativeProgress, setNativeProgress] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const isMatchingStoryAudio = (m: MbrMedia) =>
+    Boolean(
+      storyId &&
+      m.mbrMediaSubordinateId === storyId &&
+      (
+        (m.mbrMediaMimeType && m.mbrMediaMimeType.toLowerCase().startsWith('audio/')) ||
+        (m.mbrMediaOriginalFilename && (m.mbrMediaOriginalFilename.toLowerCase().endsWith('.mp3') || m.mbrMediaOriginalFilename.toLowerCase().endsWith('.wav'))) ||
+        (m.mbrMediaDescription && m.mbrMediaDescription.toLowerCase().includes('narration'))
+      )
+    );
+
+  // Load any saved AI Voice Narration for this storyId and refresh when 'media-updated' fires
+  useEffect(() => {
+    let isMounted = true;
+    if (!storyId || storyId === 'current-story' || storyId === 'editor-story') {
+      setSavedAudioMedia(null);
+      return;
+    }
+
+    const loadSavedNarration = async () => {
+      try {
+        // 1. Check sandbox_media first if present
+        const sandboxStr = sessionStorage.getItem('sandbox_media');
+        if (sandboxStr) {
+          try {
+            const parsed: MbrMedia[] = JSON.parse(sandboxStr);
+            const foundSandbox = parsed.find(isMatchingStoryAudio);
+            if (foundSandbox && isMounted) {
+              setSavedAudioMedia(foundSandbox);
+              return;
+            }
+          } catch {}
+        }
+
+        // 2. Check live member media
+        let targetMbrId: string | null = null;
+        try {
+          const mbrStr = sessionStorage.getItem('sb_current_mbr') || sessionStorage.getItem('mbr');
+          if (mbrStr) {
+            const parsed = JSON.parse(mbrStr);
+            targetMbrId = parsed?.mbrId || null;
+          }
+        } catch {}
+
+        const mediaList = targetMbrId
+          ? await taskApi.getMemberMedia(targetMbrId).catch(() => [])
+          : [];
+
+        if (isMounted && Array.isArray(mediaList)) {
+          const found = mediaList.find(isMatchingStoryAudio) || null;
+          setSavedAudioMedia(found);
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    loadSavedNarration();
+
+    const handleMediaUpdated = (evt: Event) => {
+      const customEvt = evt as CustomEvent;
+      if (!customEvt.detail?.storyId || customEvt.detail.storyId === storyId) {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+        setIsNativePlaying(false);
+        setIsNativePaused(false);
+        setNativeProgress(0);
+        loadSavedNarration();
+      }
+    };
+
+    const handleGlobalStop = () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setIsNativePlaying(false);
+      setIsNativePaused(false);
+      setNativeProgress(0);
+    };
+
+    window.addEventListener('media-updated', handleMediaUpdated);
+    window.addEventListener('stop-storybook-tts', handleGlobalStop);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('media-updated', handleMediaUpdated);
+      window.removeEventListener('stop-storybook-tts', handleGlobalStop);
+    };
+  }, [storyId]);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const stop = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsNativePlaying(false);
+    setIsNativePaused(false);
+    setNativeProgress(0);
+    ttsStop();
+  };
+
+  const setPlaybackRate = (rate: number) => {
+    ttsSetPlaybackRate(rate);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = rate;
+    }
+  };
+
+  const togglePlay = (narrationText: string, id?: string, narrationTitle?: string) => {
+    const savedUrl = savedAudioMedia?.mbrMediaPath ? resolveMediaUrl(savedAudioMedia.mbrMediaPath) : '';
+    if (savedUrl) {
+      // Stop any browser speechSynthesis
+      ttsStop();
+      if (isNativePlaying) {
+        if (isNativePaused && audioRef.current) {
+          audioRef.current.play().catch(() => {});
+          setIsNativePaused(false);
+        } else if (audioRef.current) {
+          audioRef.current.pause();
+          setIsNativePaused(true);
+        }
+        return;
+      }
+
+      const audio = new Audio(savedUrl);
+      audioRef.current = audio;
+      audio.playbackRate = playbackRate;
+      audio.onplay = () => {
+        setIsNativePlaying(true);
+        setIsNativePaused(false);
+      };
+      audio.ontimeupdate = () => {
+        if (audio.duration && audio.duration > 0) {
+          setNativeProgress(Math.min(100, Math.round((audio.currentTime / audio.duration) * 100)));
+        }
+      };
+      audio.onended = () => {
+        setIsNativePlaying(false);
+        setIsNativePaused(false);
+        setNativeProgress(100);
+      };
+      audio.onerror = () => {
+        setIsNativePlaying(false);
+        setIsNativePaused(false);
+        ttsTogglePlay(narrationText, id, narrationTitle);
+      };
+      audio.play().catch(() => {
+        setIsNativePlaying(false);
+        setIsNativePaused(false);
+        ttsTogglePlay(narrationText, id, narrationTitle);
+      });
+      return;
+    }
+
+    ttsTogglePlay(narrationText, id, narrationTitle);
+  };
+
+  const isCurrentPlaying = isNativePlaying || (ttsPlaying && currentId === storyId);
+  const isCurrentPaused = isNativePaused || (ttsPaused && currentId === storyId);
+  const progress = isNativePlaying ? nativeProgress : ttsProgress;
 
   if (!isSupported || !text || !text.trim()) {
     return null;

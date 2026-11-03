@@ -83,6 +83,9 @@ const TABLE_TITLE_MAP: Record<string, string> = {
   mbrTopicTripsConnectionPrivs: 'Trips Connection Access Privileges (mbrTopicTripsConnectionPrivs)',
   mbrTopicConnectionPrivs: 'Topic Category Connection Access Privileges (mbrTopicConnectionPrivs)',
   mbrProfileGroupPrivs: 'Profile Group Access Privileges (mbrProfileGroupPrivs)',
+  mbrVoiceProfile: 'Member Personal AI Voice Cloning Profiles (mbrVoiceProfile)',
+  mbrAlbum: 'Member Photo Albums (mbrAlbum)',
+  mbrAlbumPhoto: 'Photo Album Mappings & Layouts (mbrAlbumPhoto)',
   sysConfig: 'System Global Configurations (sysConfig)',
   topic: 'Standard Story Topics Directory (topic)',
   user: 'User Authentication & Accounts (user)'
