@@ -7,6 +7,7 @@ import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, X, Sparkles, ShieldCheck, Users, Images, Heart, Compass, Feather } from 'lucide-react';
 import { AdminComponentTag } from './AdminComponentTag';
+import { BUILD_INFO } from '@/src/config/buildInfo';
 
 export interface AboutModelPanelProps {
   isOpen: boolean;
@@ -191,8 +192,16 @@ export default function AboutModelPanel({ isOpen, onClose }: AboutModelPanelProp
 
             {/* Modal Footer */}
             <div className="p-4 px-6 border-t border-[#EFECE7] bg-slate-50/60 flex items-center justify-between">
-              <div className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider">
-                StoryBook Platform • Connect & Inspire
+              <div className="flex flex-col gap-0.5">
+                <div className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider">
+                  StoryBook Platform • Connect & Inspire
+                </div>
+                <div
+                  className="text-[9px] font-mono text-slate-400/80 tracking-tight"
+                  title={BUILD_INFO.buildDate ? `Built on ${new Date(BUILD_INFO.buildDate).toLocaleString()}` : undefined}
+                >
+                  v{BUILD_INFO.version} (Build #{BUILD_INFO.buildNumber} • {BUILD_INFO.commitHash}) [{BUILD_INFO.environment}]
+                </div>
               </div>
               <button
                 onClick={onClose}
