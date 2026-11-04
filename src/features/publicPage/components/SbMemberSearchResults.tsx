@@ -12,6 +12,7 @@ import { UserLocation } from '@/src/utils/userLocation';
 
 interface SbMemberSearchResultsProps {
   members: any[];
+  maxProfiles?: number;
   loading?: boolean;
   loadingMore?: boolean;
   hasMore?: boolean;
@@ -48,6 +49,7 @@ function getAdIndexForMember(idx: number): number | null {
 
 export default function SbMemberSearchResults({
   members,
+  maxProfiles,
   loading = false,
   loadingMore = false,
   hasMore = true,
@@ -58,12 +60,14 @@ export default function SbMemberSearchResults({
   setActiveTab,
   onSelectLogonType
 }: SbMemberSearchResultsProps) {
+  const maxLimit = maxProfiles ?? 80;
   const uniqueMembers = Array.from(new Map(members.map(m => [m.mbrId || m.id, m])).values())
     .filter(m => {
       if (m.mbrSettings) return m.mbrSettings.mbrSettingsAllowPublicFlag === true;
       if (m.mbrSettingsAllowPublicFlag !== undefined) return m.mbrSettingsAllowPublicFlag === true;
       return true;
-    });
+    })
+    .slice(0, maxLimit);
 
   const handleAdAction = (adIndex: number) => {
     if (setActiveTab) {
@@ -165,8 +169,8 @@ export default function SbMemberSearchResults({
             </div>
           )}
 
-          {/* Load More Prompt once 20 or more members are loaded */}
-          {!loadingMore && hasMore && uniqueMembers.length >= 20 && (
+          {/* Load More Prompt once 20 or more members are loaded, before reaching max limit */}
+          {!loadingMore && hasMore && uniqueMembers.length >= 20 && uniqueMembers.length < maxLimit && (
             <div className="pt-2 pb-2 text-center">
               <button
                 type="button"
@@ -179,8 +183,15 @@ export default function SbMemberSearchResults({
             </div>
           )}
 
-          {/* End of list footer */}
-          {!loadingMore && !hasMore && uniqueMembers.length > 0 && (
+          {/* Maximum limit reached footer */}
+          {!loadingMore && uniqueMembers.length >= maxLimit && (
+            <div className="py-4 text-center text-xs font-serif text-slate-500 border-t border-slate-100 flex items-center justify-center gap-1.5">
+              <span>Viewing first {maxLimit} member profiles (public page limit reached)</span>
+            </div>
+          )}
+
+          {/* End of list footer when all matching members are loaded under limit */}
+          {!loadingMore && !hasMore && uniqueMembers.length > 0 && uniqueMembers.length < maxLimit && (
             <div className="py-4 text-center text-xs font-serif text-slate-400 border-t border-slate-100">
               All matching members loaded ({uniqueMembers.length} members)
             </div>

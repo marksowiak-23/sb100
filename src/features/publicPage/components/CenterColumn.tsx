@@ -16,6 +16,7 @@ interface CenterColumnProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   members: any[];
+  maxProfiles?: number;
   loading?: boolean;
   loadingMore?: boolean;
   hasMore?: boolean;
@@ -33,6 +34,7 @@ export default function CenterColumn({
   searchQuery,
   setSearchQuery,
   members,
+  maxProfiles,
   loading = false,
   loadingMore = false,
   hasMore = true,
@@ -68,6 +70,7 @@ export default function CenterColumn({
       {/* --- SEARCH RESULTS & STORIES FEED --- */}
       <SbMemberSearchResults
         members={members}
+        maxProfiles={maxProfiles}
         loading={loading}
         loadingMore={loadingMore}
         hasMore={hasMore}

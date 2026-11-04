@@ -7,7 +7,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
-import { taskApi } from '@/src/services/api';
+import { taskApi, sysConfigApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import PageSeo from '@/src/components/PageSeo';
 import { detectUserLocation, getCachedUserLocation, UserLocation } from '@/src/utils/userLocation';
@@ -20,6 +20,7 @@ interface SbPublicPageFeatureProps {
 
 const PAGE_SIZE = 5;
 const AUTO_SCROLL_LIMIT = 20;
+const DEFAULT_MAX_MEMBER_PROFILES = 80;
 
 export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, onSelectLogonType }: SbPublicPageFeatureProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,9 +34,44 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     }
   });
   const [members, setMembers] = useState<any[]>([]);
+  const [maxProfiles, setMaxProfiles] = useState<number>(DEFAULT_MAX_MEMBER_PROFILES);
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
+
+  // Fetch dynamic system property PUBLIC_PAGE_MAX_MEMBER_PROFILES
+  useEffect(() => {
+    let isMounted = true;
+    sysConfigApi
+      .getSysConfigByTag('PUBLIC_PAGE_MAX_MEMBER_PROFILES')
+      .then((cfg) => {
+        if (isMounted && cfg && cfg.configValue) {
+          const parsed = parseInt(cfg.configValue, 10);
+          if (!isNaN(parsed) && parsed > 0) {
+            setMaxProfiles(parsed);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load PUBLIC_PAGE_MAX_MEMBER_PROFILES config, using fallback:', err);
+      });
+
+    const handleConfigChanged = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.configTag === 'PUBLIC_PAGE_MAX_MEMBER_PROFILES') {
+        const val = parseInt(customEvent.detail?.configValue, 10);
+        if (!isNaN(val) && val > 0) {
+          setMaxProfiles(val);
+        }
+      }
+    };
+
+    window.addEventListener('sysconfig:changed', handleConfigChanged);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('sysconfig:changed', handleConfigChanged);
+    };
+  }, []);
 
   const handleToggleProximity = useCallback((val: boolean) => {
     setProximityEnabled(val);
@@ -75,7 +111,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     }
   }, []);
 
-  // Fetch initial 5 members on load or when searchQuery / userLocation / proximityEnabled changes
+  // Fetch initial batch of members on load or when searchQuery / userLocation / proximityEnabled / maxProfiles changes
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
@@ -87,20 +123,22 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
         // Guardrail: single-character searches are deferred until at least 2 characters are entered
         const effectiveQuery = queryTrimmed.length === 1 ? undefined : (queryTrimmed || undefined);
         const useProximity = proximityEnabled && userLocation;
+        const initialLimit = Math.min(PAGE_SIZE, maxProfiles);
         const result = await taskApi.getMembers({
           query: effectiveQuery,
           proximity: useProximity ? userLocation?.label : undefined,
           proximity_lat: useProximity ? userLocation?.latitude : undefined,
           proximity_lng: useProximity ? userLocation?.longitude : undefined,
           public_only: true,
-          limit: PAGE_SIZE,
+          limit: initialLimit,
           skip: 0
         });
 
         if (!isCancelled) {
           const uniqueList = Array.from(new Map((result || []).map((m: any) => [m.mbrId || m.id, m])).values());
-          setMembers(uniqueList);
-          setHasMore((result || []).length === PAGE_SIZE);
+          const cappedList = uniqueList.slice(0, maxProfiles);
+          setMembers(cappedList);
+          setHasMore((result || []).length === initialLimit && cappedList.length < maxProfiles);
         }
       } catch (err) {
         console.error("Failed to fetch members for public search:", err);
@@ -119,16 +157,25 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [searchQuery, userLocation, proximityEnabled]);
+  }, [searchQuery, userLocation, proximityEnabled, maxProfiles]);
 
-  // Handler to fetch another 5 members
+  // Handler to fetch another batch of members up to maxProfiles
   const handleLoadMore = useCallback(async () => {
     if (loading || loadingMore || !hasMore) return;
+    if (members.length >= maxProfiles) {
+      setHasMore(false);
+      return;
+    }
     setLoadingMore(true);
     try {
       const queryTrimmed = searchQuery.trim();
       const effectiveQuery = queryTrimmed.length === 1 ? undefined : (queryTrimmed || undefined);
       const currentSkip = members.length;
+      const fetchLimit = Math.min(PAGE_SIZE, maxProfiles - currentSkip);
+      if (fetchLimit <= 0) {
+        setHasMore(false);
+        return;
+      }
       const useProximity = proximityEnabled && userLocation;
       const nextBatch = await taskApi.getMembers({
         query: effectiveQuery,
@@ -136,16 +183,22 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
         proximity_lat: useProximity ? userLocation?.latitude : undefined,
         proximity_lng: useProximity ? userLocation?.longitude : undefined,
         public_only: true,
-        limit: PAGE_SIZE,
+        limit: fetchLimit,
         skip: currentSkip
       });
 
       if (nextBatch && nextBatch.length > 0) {
+        let reachedLimit = false;
         setMembers((prev) => {
           const combined = [...prev, ...nextBatch];
-          return Array.from(new Map(combined.map((m: any) => [m.mbrId || m.id, m])).values());
+          const deduplicated = Array.from(new Map(combined.map((m: any) => [m.mbrId || m.id, m])).values());
+          if (deduplicated.length >= maxProfiles) {
+            reachedLimit = true;
+            return deduplicated.slice(0, maxProfiles);
+          }
+          return deduplicated;
         });
-        setHasMore(nextBatch.length === PAGE_SIZE);
+        setHasMore(!reachedLimit && nextBatch.length === fetchLimit && (currentSkip + nextBatch.length) < maxProfiles);
       } else {
         setHasMore(false);
       }
@@ -154,13 +207,14 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     } finally {
       setLoadingMore(false);
     }
-  }, [loading, loadingMore, hasMore, searchQuery, userLocation, proximityEnabled, members.length]);
+  }, [loading, loadingMore, hasMore, searchQuery, userLocation, proximityEnabled, members.length, maxProfiles]);
 
-  // Infinite scroll listener: auto-fetch another 5 members when scrolling to the bottom until 20 are loaded
+  // Infinite scroll listener: auto-fetch another 5 members when scrolling to the bottom until AUTO_SCROLL_LIMIT (or maxProfiles) is reached
   useEffect(() => {
     const handleScroll = () => {
       if (loading || loadingMore || !hasMore) return;
-      if (members.length >= AUTO_SCROLL_LIMIT) return; // Stop auto-scrolling once 20 members are loaded
+      const autoLimit = Math.min(AUTO_SCROLL_LIMIT, maxProfiles);
+      if (members.length >= autoLimit) return; // Stop auto-scrolling once autoLimit is loaded
 
       const scrollPosition = window.innerHeight + window.scrollY;
       const threshold = document.documentElement.scrollHeight - 300;
@@ -172,7 +226,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [handleLoadMore, loading, loadingMore, hasMore, members.length]);
+  }, [handleLoadMore, loading, loadingMore, hasMore, members.length, maxProfiles]);
 
   return (
     <div className="w-full relative">
@@ -212,6 +266,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             members={members}
+            maxProfiles={maxProfiles}
             loading={loading}
             loadingMore={loadingMore}
             hasMore={hasMore}
