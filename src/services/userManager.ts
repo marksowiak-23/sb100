@@ -223,6 +223,11 @@ export const userManager = {
         // Apply user's workspace theme preference immediately upon registering/logging in
         const targetMbrId = data.member?.mbrId || data.member?.id;
         if (targetMbrId) {
+          try {
+            // New registered members default to having the Getting Started card expanded
+            localStorage.setItem(`sb_getting_started_collapsed_${targetMbrId}`, JSON.stringify(false));
+            localStorage.setItem(`sb_getting_started_steps_collapsed_${targetMbrId}`, JSON.stringify([]));
+          } catch {}
           await this.applyUserThemePreference(targetMbrId);
         }
 

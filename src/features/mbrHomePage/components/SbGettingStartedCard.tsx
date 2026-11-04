@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Rocket, 
   Sparkles, 
@@ -95,8 +95,8 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
         }
       } catch {}
     }
-    // Default to true during initial resolution if undetermined, preventing abrupt expanded-then-collapse flash
-    return true;
+    // Default to false (expanded) so newly registered members see the getting started checklist open by default
+    return false;
   });
 
   const [collapsedStepIds, setCollapsedStepIds] = useState<number[]>(() => {
@@ -192,8 +192,13 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
     }
   }, [completedSteps, activeMbrId, isHiddenByPref]);
 
-  // Sync collapsed state to member-scoped localStorage
+  // Sync collapsed state to member-scoped localStorage (skip initial mount to preserve unconfigured/default state)
+  const hasMountedCollapsed = useRef(false);
   useEffect(() => {
+    if (!hasMountedCollapsed.current) {
+      hasMountedCollapsed.current = true;
+      return;
+    }
     if (!activeMbrId || isHiddenByPref) return;
     try {
       localStorage.setItem(`sb_getting_started_collapsed_${activeMbrId}`, JSON.stringify(isCollapsed));
@@ -202,8 +207,13 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
     }
   }, [isCollapsed, activeMbrId, isHiddenByPref]);
 
-  // Sync individual steps collapsed state to member-scoped localStorage
+  // Sync individual steps collapsed state to member-scoped localStorage (skip initial mount)
+  const hasMountedSteps = useRef(false);
   useEffect(() => {
+    if (!hasMountedSteps.current) {
+      hasMountedSteps.current = true;
+      return;
+    }
     if (!activeMbrId || isHiddenByPref) return;
     try {
       localStorage.setItem(`sb_getting_started_steps_collapsed_${activeMbrId}`, JSON.stringify(collapsedStepIds));
