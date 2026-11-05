@@ -36,6 +36,10 @@ export interface FeedStoryItem {
   connectionGrpName?: string;
   isConnection?: boolean;
   isDirectShared?: boolean;
+  initialLikes?: MbrStoryLikes[];
+  initialComments?: MbrStoryComments[];
+  initialMedia?: MbrMedia[];
+  publishedTs?: number;
 }
 
 export interface ParsedFeedStoryLayout {
@@ -580,7 +584,7 @@ function CommentThreadItem({
   );
 }
 
-export default function MbrStoryFeedStoryPanel({
+const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
   story,
   isRead = false,
   onClickReadStory,
@@ -608,7 +612,7 @@ export default function MbrStoryFeedStoryPanel({
   ]);
 
   // Associated story media & carousel state for photo layout
-  const [storyMedia, setStoryMedia] = useState<MbrMedia[]>([]);
+  const [storyMedia, setStoryMedia] = useState<MbrMedia[]>(() => story.initialMedia || []);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
 
   useEffect(() => {
@@ -626,8 +630,21 @@ export default function MbrStoryFeedStoryPanel({
           }
         } catch {}
       }
-      // 2. Live DB media if authorMbrId is available
-      if (story.authorMbrId) {
+      // 2. If pre-fetched initialMedia is provided by the feed endpoint, merge without making a per-card network request
+      if (Array.isArray(story.initialMedia)) {
+        for (const m of story.initialMedia) {
+          const mPath = m.mbrMediaPath || (m as any).mbrMediaUrl;
+          if (!list.some(existing => (existing.mbrMediaId && existing.mbrMediaId === m.mbrMediaId) || (existing.mbrMediaPath && existing.mbrMediaPath === mPath))) {
+            list.push(m);
+          }
+        }
+        if (!isCancelled) {
+          setStoryMedia(list);
+        }
+        return;
+      }
+      // 3. Fallback Live DB media only if story uses photo layout and initialMedia wasn't supplied
+      if (story.authorMbrId && layoutInfo.layout === 'news_header') {
         try {
           const apiMedia = await taskApi.getMemberMedia(story.authorMbrId);
           if (Array.isArray(apiMedia)) {
@@ -647,7 +664,24 @@ export default function MbrStoryFeedStoryPanel({
     };
     loadMedia();
     return () => { isCancelled = true; };
-  }, [story.mbrStoryId, story.authorMbrId]);
+  }, [story.mbrStoryId, story.authorMbrId, story.initialMedia, layoutInfo.layout]);
+
+  // Pre-resolved audio media for StoryAudioPlayer (eliminates per-card audio media request)
+  const storyAudioMedia = useMemo<MbrMedia | null | undefined>(() => {
+    const isAudio = (m: MbrMedia) =>
+      Boolean(
+        m.mbrMediaSubordinateId === story.mbrStoryId &&
+        (
+          (m.mbrMediaMimeType && m.mbrMediaMimeType.toLowerCase().startsWith('audio/')) ||
+          (m.mbrMediaOriginalFilename && (m.mbrMediaOriginalFilename.toLowerCase().endsWith('.mp3') || m.mbrMediaOriginalFilename.toLowerCase().endsWith('.wav'))) ||
+          (m.mbrMediaDescription && m.mbrMediaDescription.toLowerCase().includes('narration'))
+        )
+      );
+    const found = storyMedia.find(isAudio);
+    if (found) return found;
+    if (Array.isArray(story.initialMedia)) return null;
+    return undefined;
+  }, [storyMedia, story.initialMedia, story.mbrStoryId]);
 
   // Combined carousel photos: primary photo first, followed by other associated story photos
   const carouselPhotos = useMemo<{ url: string; caption?: string }[]>(() => {
@@ -670,6 +704,10 @@ export default function MbrStoryFeedStoryPanel({
     }
 
     for (const m of storyMedia) {
+      const isAudio =
+        (m.mbrMediaMimeType && m.mbrMediaMimeType.toLowerCase().startsWith('audio/')) ||
+        (m.mbrMediaOriginalFilename && (m.mbrMediaOriginalFilename.toLowerCase().endsWith('.mp3') || m.mbrMediaOriginalFilename.toLowerCase().endsWith('.wav')));
+      if (isAudio) continue;
       const u = m.mbrMediaPath || (m as any).mbrMediaUrl || '';
       if (u && !seenUrls.has(u)) {
         seenUrls.add(u);
@@ -710,16 +748,23 @@ export default function MbrStoryFeedStoryPanel({
     }
   };
 
+  const { mbrId: loggedInMbrId, mbrName: loggedInMbrName } = useMemo(() => getLoggedInMemberInfo(), []);
+
   // --- Reaction / Likes State ---
-  const [likes, setLikes] = useState<MbrStoryLikes[]>([]);
-  const [userReaction, setUserReaction] = useState<MbrStoryLikes | null>(null);
+  const [likes, setLikes] = useState<MbrStoryLikes[]>(() => story.initialLikes || []);
+  const [userReaction, setUserReaction] = useState<MbrStoryLikes | null>(() => {
+    if (Array.isArray(story.initialLikes)) {
+      return story.initialLikes.find((l) => l.mbrLikesMbrId === loggedInMbrId) || null;
+    }
+    return null;
+  });
   const [showReactionsPopup, setShowReactionsPopup] = useState(false);
   const [hoveredReactionCd, setHoveredReactionCd] = useState<string | null>(null);
   const [isLiking, setIsLiking] = useState(false);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // --- Comments State & Dialog Box ---
-  const [comments, setComments] = useState<MbrStoryComments[]>([]);
+  const [comments, setComments] = useState<MbrStoryComments[]>(() => story.initialComments || []);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
   const [newCommentContent, setNewCommentContent] = useState('');
   const [replyToComment, setReplyToComment] = useState<MbrStoryComments | null>(null);
@@ -727,10 +772,14 @@ export default function MbrStoryFeedStoryPanel({
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
   const commentInputRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const { mbrId: loggedInMbrId, mbrName: loggedInMbrName } = useMemo(() => getLoggedInMemberInfo(), []);
-
-  // Fetch likes on mount
+  // Fetch likes on mount only if not pre-supplied by the feed
   useEffect(() => {
+    if (Array.isArray(story.initialLikes)) {
+      setLikes(story.initialLikes);
+      const mine = story.initialLikes.find((l) => l.mbrLikesMbrId === loggedInMbrId);
+      setUserReaction(mine || null);
+      return;
+    }
     let isCancelled = false;
     const loadLikes = async () => {
       if (!UUID_REGEX.test(story.mbrStoryId)) {
@@ -753,10 +802,14 @@ export default function MbrStoryFeedStoryPanel({
         clearTimeout(hideTimeoutRef.current);
       }
     };
-  }, [story.mbrStoryId, loggedInMbrId]);
+  }, [story.mbrStoryId, story.initialLikes, loggedInMbrId]);
 
-  // Fetch comments on mount
+  // Fetch comments on mount only if not pre-supplied by the feed
   useEffect(() => {
+    if (Array.isArray(story.initialComments)) {
+      setComments(story.initialComments);
+      return;
+    }
     let isCancelled = false;
     const loadComments = async () => {
       if (!UUID_REGEX.test(story.mbrStoryId)) return;
@@ -773,7 +826,7 @@ export default function MbrStoryFeedStoryPanel({
     return () => {
       isCancelled = true;
     };
-  }, [story.mbrStoryId]);
+  }, [story.mbrStoryId, story.initialComments]);
 
   const handleMouseEnter = () => {
     if (hideTimeoutRef.current) {
@@ -1442,6 +1495,8 @@ export default function MbrStoryFeedStoryPanel({
               storyId={story.mbrStoryId}
               title={story.mbrStoryTitle}
               variant="inline-button"
+              initialAudioMedia={storyAudioMedia}
+              authorMbrId={story.authorMbrId}
             />
           </div>
         )}
@@ -1634,6 +1689,7 @@ export default function MbrStoryFeedStoryPanel({
       <AdminComponentTag name="mbrStoryFeedStoryPanel" />
     </motion.article>
   );
-}
+});
 
+export default MbrStoryFeedStoryPanel;
 export { MbrStoryFeedStoryPanel as mbrStoryFeedStoryPanel };

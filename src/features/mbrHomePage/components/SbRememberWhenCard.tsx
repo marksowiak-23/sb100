@@ -432,6 +432,46 @@ const NOSTALGIA_DATABASE: NostalgiaItem[] = [
     badge: '11 Academy Awards · $2B Gross'
   },
   {
+    id: 'n-1998-google-imac',
+    year: 1998,
+    decade: 1990,
+    category: 'TECHNOLOGY',
+    headline: 'Remember When: Translucent Bondi Blue iMacs & The Birth of Google',
+    storyContent: 'In 1998, technology became colorful and friendly as Apple unveiled the translucent Bondi Blue iMac G3—saying goodbye to beige boxes and floppy drives—while two Stanford Ph.D. students officially incorporated a new search engine called Google in a Menlo Park garage.',
+    promptSuggestion: 'Do you remember the colorful see-through iMacs in school computer labs or the earliest days of searching the web?',
+    badge: '1998 Tech Revolution'
+  },
+  {
+    id: 'n-1998-hrchase',
+    year: 1998,
+    decade: 1990,
+    category: 'SPORTS',
+    headline: 'Remember When: The 1998 Summer Home Run Chase & Last Dance Bulls',
+    storyContent: 'In 1998, sports fans were glued to every inning of theGreat Home Run Chase as Mark McGwire and Sammy Sosa pursued Roger Maris’s single-season record of 61, just months after Michael Jordan hit his iconic championship-winning jumper in Game 6 to complete the Chicago Bulls’ second three-peat.',
+    promptSuggestion: 'What is the earliest championship game or sports moment you remember watching with family?',
+    badge: '6-Time Champs & 70 Home Runs'
+  },
+  {
+    id: 'n-1998-pop-trls',
+    year: 1998,
+    decade: 1990,
+    category: 'POP_CULTURE',
+    headline: 'Remember When: TRL Countdowns, Boy Bands & Hit Clips',
+    storyContent: 'In autumn 1998, MTV’s "Total Request Live" (TRL) began broadcasting live from Times Square as crowds cheered outside for the Backstreet Boys, *NSYNC, Britney Spears, and Lauryn Hill. Tiny one-minute "HitClips" keychains and portable CD players were on every wishlist.',
+    promptSuggestion: 'What were the first songs or albums you knew every single lyric to growing up?',
+    badge: 'TRL Times Square Era'
+  },
+  {
+    id: 'n-1998-family-vhs',
+    year: 1998,
+    decade: 1990,
+    category: 'FAMILY_LIFE',
+    headline: 'Remember When: Friday Night Blockbuster Runs & Clamshell VHS Tapes',
+    storyContent: 'In 1998, Friday nights meant piling into the family car to walk the bright blue-and-yellow aisles of Blockbuster Video, hoping a copy of the latest release was still behind the display box, grabbing microwave popcorn, and rewinding puffy white Disney clamshell VHS tapes.',
+    promptSuggestion: 'What was your family’s go-to Friday night movie rental or weekend takeout tradition growing up?',
+    badge: 'Be Kind, Please Rewind'
+  },
+  {
     id: 'n-1999-prices',
     year: 1999,
     decade: 1990,
@@ -806,16 +846,147 @@ const NOSTALGIA_DATABASE: NostalgiaItem[] = [
     storyContent: 'In 2024, regular gas hovered around $3.50 a gallon, a first-class postage stamp reached 68 cents, a standard movie ticket was $10.50, and the median home sales price in the US was $412,000. Digital subscriptions, cloud backups, and smart home tech were staple household budget items.',
     promptSuggestion: 'How has your personal budget or the things you invest in changed compared to when you first started living on your own?',
     badge: 'Gas: $3.50 / gal · Stamp: 68¢'
+  },
+  {
+    id: 'n-2006-wii-family',
+    year: 2006,
+    decade: 2000,
+    category: 'FAMILY_LIFE',
+    headline: 'Remember When: Nintendo Wii Bowling & Family Game Nights',
+    storyContent: 'In November 2006, the Nintendo Wii brought motion-controlled Wii Sports into living rooms everywhere. Kids, parents, and grandparents strapped on wrist straps and swung wireless remotes for virtual bowling, tennis, and boxing matches during lively weekend family game nights.',
+    promptSuggestion: 'What were your favorite family game nights, backyard games, or living room tournaments growing up?',
+    badge: 'Wii Sports Phenomenon'
+  },
+  {
+    id: 'n-2008-phelps-olympics',
+    year: 2008,
+    decade: 2000,
+    category: 'SPORTS',
+    headline: 'Remember When: Michael Phelps & Usain Bolt Electrified the 2008 Beijing Olympics',
+    storyContent: 'In August 2008, families gathered around the TV as swimmer Michael Phelps won a historic 8 gold medals in a single Olympic Games—including the dramatic 4x100m relay comeback—while Usain Bolt shattered world records in the 100m and 200m sprints.',
+    promptSuggestion: 'Which Olympic events or summer sports moments do you remember watching most vividly growing up?',
+    badge: '8 Olympic Gold Medals'
+  },
+  {
+    id: 'n-2007-iphone-tech',
+    year: 2007,
+    decade: 2000,
+    category: 'TECHNOLOGY',
+    headline: 'Remember When: YouTube, Wi-Fi & The First Touchscreen Smartphones',
+    storyContent: 'Between 2006 and 2008, home Wi-Fi routers, early YouTube viral videos, and the debut of the touchscreen iPhone transformed how kids and teens listened to music, shared videos with friends after school, and stayed connected.',
+    promptSuggestion: 'What was the first computer, MP3 player, or phone you remember using on your own?',
+    badge: 'Early Smartphone & YouTube Era'
+  },
+  {
+    id: 'n-2013-vine-smartphones',
+    year: 2013,
+    decade: 2010,
+    category: 'TECHNOLOGY',
+    headline: 'Remember When: Group Chats, 6-Second Videos & High School Smartphones',
+    storyContent: 'During the 2010s teen era, 6-second Vine loops, Snapchat streaks, and after-school group chats defined everyday communication. Friends shared Aux cords in the car to play their favorite Spotify and SoundCloud playlists on road trips.',
+    promptSuggestion: 'What apps, games, or car-ride playlists bring back the strongest memories of your teen years?',
+    badge: 'Aux Cords & Group Chats'
+  },
+  {
+    id: 'n-2015-family-streaming',
+    year: 2015,
+    decade: 2010,
+    category: 'FAMILY_LIFE',
+    headline: 'Remember When: Family Group Texts, Holiday Photo Books & Streaming Nights',
+    storyContent: 'By the mid-2010s, family life blended cherished traditions with new digital habits—parents joining the family group chat with emojis, streaming weekly shows together on smart TVs, and sharing thousands of camera-roll snapshots from school graduations and summer vacations.',
+    promptSuggestion: 'What are some of your favorite family holiday traditions, road trips, or inside jokes from your teen years?',
+    badge: 'Family Group Chat Era'
+  },
+  {
+    id: 'n-2016-cubs-cavs-sports',
+    year: 2016,
+    decade: 2010,
+    category: 'SPORTS',
+    headline: 'Remember When: The 2016 Cubs World Series & Historic 3–1 Comebacks',
+    storyContent: 'In 2016, sports fans witnessed two of the greatest championship comebacks in history: LeBron James and the Cleveland Cavaliers rallying from a 3–1 deficit to win the NBA Finals, followed by the Chicago Cubs winning Game 7 in extra innings to end a 108-year World Series drought.',
+    promptSuggestion: 'Where were you during the biggest sports championships of the 2010s, and who were you cheering with?',
+    badge: 'Historic 2016 Championships'
+  },
+  {
+    id: 'n-2022-worldcup-sports',
+    year: 2022,
+    decade: 2020,
+    category: 'SPORTS',
+    headline: 'Remember When: The Greatest World Cup Final in Soccer History',
+    storyContent: 'In December 2022, Lionel Messi and Kylian Mbappé went head-to-head in a breathtaking 3–3 World Cup Final thriller between Argentina and France, decided on penalty kicks and celebrated by billions of fans watching around the globe.',
+    promptSuggestion: 'What live sporting events, watch parties, or tailgates with friends have been the most fun in your 20s?',
+    badge: '2022 World Cup Classic'
+  },
+  {
+    id: 'n-2023-ai-remote-tech',
+    year: 2023,
+    decade: 2020,
+    category: 'TECHNOLOGY',
+    headline: 'Remember When: Generative AI, Hybrid Work & Ultra-Fast Fiber',
+    storyContent: 'In the 2020s, video calls from home setups, cloud collaboration, and conversational AI assistants transformed how young adults started their careers, learned new skills, and stayed connected with friends across different cities.',
+    promptSuggestion: 'How has technology shaped your daily work routine, creative projects, or staying in touch with friends in your 20s?',
+    badge: 'The AI & Connected Era'
+  },
+  {
+    id: 'n-2022-twenties-life',
+    year: 2022,
+    decade: 2020,
+    category: 'FAMILY_LIFE',
+    headline: 'Remember When: First Apartments, Air Fryers & Friendsgiving Traditions',
+    storyContent: 'In the early 2020s, setting up a first apartment meant countertop air fryers, string lights, houseplants, and hosting annual "Friendsgiving" potlucks and Sunday game-day gatherings with college and hometown friends.',
+    promptSuggestion: 'What is a favorite memory from your first apartment, a Friendsgiving dinner, or hosting family and friends in your 20s?',
+    badge: 'First Apartments & Friendsgiving'
   }
 ];
+
+function parseBirthYear(dateVal: unknown): number | null {
+  if (!dateVal) return null;
+  const currentYear = new Date().getFullYear();
+  if (typeof dateVal === 'number') {
+    return dateVal > 1900 && dateVal <= currentYear ? dateVal : null;
+  }
+  if (typeof dateVal === 'string') {
+    const trimmed = dateVal.trim();
+    const yearMatch = trimmed.match(/^(\d{4})/);
+    if (yearMatch) {
+      const yr = parseInt(yearMatch[1], 10);
+      if (yr > 1900 && yr <= currentYear) return yr;
+    }
+    const d = new Date(trimmed);
+    if (!isNaN(d.getTime())) {
+      const yr = d.getUTCFullYear();
+      if (yr > 1900 && yr <= currentYear) return yr;
+    }
+  }
+  return null;
+}
+
+function getInitialBirthYear(): number {
+  try {
+    const storedMbr = userManager.getStoredMember();
+    const fromStored = parseBirthYear(storedMbr?.mbrBirthDate);
+    if (fromStored) return fromStored;
+
+    const sandboxData = sessionStorage.getItem('sandbox_mbr');
+    if (sandboxData) {
+      const parsed = JSON.parse(sandboxData);
+      const fromSandbox = parseBirthYear(parsed?.mbrBirthDate);
+      if (fromSandbox) return fromSandbox;
+    }
+  } catch {
+    // ignore
+  }
+  return 1961;
+}
 
 interface SbRememberWhenCardProps {
   onClickAuthorPage?: (initialPrompt?: string, section?: string, trivia?: any) => void;
 }
 
 export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhenCardProps) {
-  const [activeMbrId, setActiveMbrId] = useState<string | null>(null);
-  const [birthYear, setBirthYear] = useState<number>(1961);
+  const initialBirthYr = getInitialBirthYear();
+  const [activeMbrId, setActiveMbrId] = useState<string | null>(() => userManager.getStoredMember()?.mbrId || null);
+  const [birthYear, setBirthYear] = useState<number>(initialBirthYr);
   const [activeLifeStage, setActiveLifeStage] = useState<LifeStageKey>('TEEN');
   const [activeCategory, setActiveCategory] = useState<NostalgiaCategory>('POP_CULTURE');
   const [currentItem, setCurrentItem] = useState<NostalgiaItem | null>(null);
@@ -823,7 +994,7 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
   const [historyItems, setHistoryItems] = useState<NostalgiaItem[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
   const [showSettingsPopover, setShowSettingsPopover] = useState<boolean>(false);
-  const [customYearInput, setCustomYearInput] = useState<string>('1961');
+  const [customYearInput, setCustomYearInput] = useState<string>(() => initialBirthYr.toString());
   const [isGeneratingAi, setIsGeneratingAi] = useState<boolean>(false);
   const [isTopicDropdownOpen, setIsTopicDropdownOpen] = useState<boolean>(false);
   const topicDropdownRef = useRef<HTMLDivElement>(null);
@@ -846,68 +1017,82 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
   // Load member details & determine birth year
   useEffect(() => {
     const resolveMemberData = async () => {
-      let resolvedYear = 1961;
+      let resolvedYear: number | null = null;
+      let resolvedMbrId: string | null = null;
 
       // 1. Check session storage stored member
       const storedMbr = userManager.getStoredMember();
       if (storedMbr) {
-        if (storedMbr.mbrId) setActiveMbrId(storedMbr.mbrId);
-        if (storedMbr.mbrBirthDate) {
-          const parsedYear = new Date(storedMbr.mbrBirthDate).getFullYear();
-          if (!isNaN(parsedYear) && parsedYear > 1900 && parsedYear <= new Date().getFullYear()) {
-            resolvedYear = parsedYear;
-          }
-        }
+        if (storedMbr.mbrId) resolvedMbrId = storedMbr.mbrId;
+        const parsedYear = parseBirthYear(storedMbr.mbrBirthDate);
+        if (parsedYear) resolvedYear = parsedYear;
       }
 
-      // 2. Fallback check for session user / sandbox
+      // 2. Check current authenticated user / member profile
       try {
         const u = await userManager.getCurrentUser();
         if (u.success && u.member) {
-          if (u.member.mbrId) setActiveMbrId(u.member.mbrId);
-          if (u.member.mbrBirthDate) {
-            const parsedYear = new Date(u.member.mbrBirthDate).getFullYear();
-            if (!isNaN(parsedYear) && parsedYear > 1900 && parsedYear <= new Date().getFullYear()) {
-              resolvedYear = parsedYear;
-            }
-          }
+          if (u.member.mbrId) resolvedMbrId = u.member.mbrId;
+          const parsedYear = parseBirthYear(u.member.mbrBirthDate);
+          if (parsedYear) resolvedYear = parsedYear;
         } else if (u.user?.user_id) {
           const mbrProfile = await taskApi.getMemberByUserId(u.user.user_id);
           if (mbrProfile) {
-            if (mbrProfile.mbrId) setActiveMbrId(mbrProfile.mbrId);
-            if (mbrProfile.mbrBirthDate) {
-              const parsedYear = new Date(mbrProfile.mbrBirthDate).getFullYear();
-              if (!isNaN(parsedYear) && parsedYear > 1900 && parsedYear <= new Date().getFullYear()) {
-                resolvedYear = parsedYear;
-              }
-            }
-          }
-        }
-      } catch (err) {
-        // use fallback resolvedYear
-      }
-
-      // 3. Check sandbox profile
-      try {
-        const sandboxData = sessionStorage.getItem('sandbox_mbr');
-        if (sandboxData) {
-          const parsed = JSON.parse(sandboxData);
-          if (parsed.mbrBirthDate) {
-            const parsedYear = new Date(parsed.mbrBirthDate).getFullYear();
-            if (!isNaN(parsedYear) && parsedYear > 1900 && parsedYear <= new Date().getFullYear()) {
-              resolvedYear = parsedYear;
-            }
+            if (mbrProfile.mbrId) resolvedMbrId = mbrProfile.mbrId;
+            const parsedYear = parseBirthYear(mbrProfile.mbrBirthDate);
+            if (parsedYear) resolvedYear = parsedYear;
           }
         }
       } catch {
-        // ignore
+        // continue to fallbacks
       }
 
-      setBirthYear(resolvedYear);
-      setCustomYearInput(resolvedYear.toString());
+      // 3. If we have a member ID but still no birth year, fetch full member record by ID
+      if (!resolvedYear && resolvedMbrId) {
+        try {
+          const fullMbr = await taskApi.getMemberById(resolvedMbrId);
+          const parsedYear = parseBirthYear(fullMbr?.mbrBirthDate);
+          if (parsedYear) resolvedYear = parsedYear;
+        } catch {
+          // ignore
+        }
+      }
+
+      // 4. Check sandbox profile
+      if (!resolvedYear) {
+        try {
+          const sandboxData = sessionStorage.getItem('sandbox_mbr');
+          if (sandboxData) {
+            const parsed = JSON.parse(sandboxData);
+            const parsedYear = parseBirthYear(parsed?.mbrBirthDate);
+            if (parsedYear) resolvedYear = parsedYear;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (resolvedMbrId) {
+        setActiveMbrId(resolvedMbrId);
+      }
+      const finalYear = resolvedYear || 1961;
+      setBirthYear(finalYear);
+      setCustomYearInput(finalYear.toString());
     };
 
     resolveMemberData();
+
+    const handleUserChange = () => {
+      resolveMemberData();
+    };
+    window.addEventListener('user-logged-in', handleUserChange);
+    window.addEventListener('profile-updated', handleUserChange);
+    window.addEventListener('storage', handleUserChange);
+    return () => {
+      window.removeEventListener('user-logged-in', handleUserChange);
+      window.removeEventListener('profile-updated', handleUserChange);
+      window.removeEventListener('storage', handleUserChange);
+    };
   }, []);
 
   // Load saved favorites & history from localStorage
@@ -926,12 +1111,13 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
     }
   }, []);
 
-  // Compute the exact target years range for each life stage based on birth year
+  // Compute the exact target years range for each life stage based on birth year,
+  // filtering out future life stages the member has not yet reached.
   const lifeStageRanges = useMemo(() => {
     const currentYear = new Date().getFullYear();
-    const currentAge = currentYear - birthYear;
+    const currentAge = Math.max(0, currentYear - birthYear);
 
-    return LIFE_STAGES.map((stage) => {
+    const mapped = LIFE_STAGES.map((stage) => {
       let startYear: number;
       let endYear: number;
 
@@ -940,7 +1126,10 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
         endYear = birthYear;
       } else {
         startYear = birthYear + stage.minAge;
-        endYear = birthYear + stage.maxAge;
+        endYear = Math.min(birthYear + stage.maxAge, currentYear);
+        if (endYear < startYear) {
+          endYear = startYear;
+        }
       }
 
       const isLived = currentAge >= stage.minAge;
@@ -949,15 +1138,31 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
         ...stage,
         startYear,
         endYear,
-        rangeLabel: stage.key === 'BORN' ? `${birthYear}` : `${startYear}–${endYear}`,
+        rangeLabel: stage.key === 'BORN' || startYear === endYear ? `${startYear}` : `${startYear}–${endYear}`,
         isLived,
       };
     });
+
+    const livedStages = mapped.filter((stage) => stage.isLived);
+    return livedStages.length > 0 ? livedStages : [mapped[0]];
   }, [birthYear]);
+
+  // Ensure activeLifeStage is always a lived stage available for this member's birthYear
+  useEffect(() => {
+    if (!lifeStageRanges.some((s) => s.key === activeLifeStage)) {
+      const fallbackStage =
+        lifeStageRanges.find((s) => s.key === 'TEEN') ||
+        lifeStageRanges[lifeStageRanges.length - 1] ||
+        lifeStageRanges[0];
+      if (fallbackStage) {
+        setActiveLifeStage(fallbackStage.key);
+      }
+    }
+  }, [lifeStageRanges, activeLifeStage]);
 
   // Current active stage range
   const currentStageRange = useMemo(() => {
-    return lifeStageRanges.find((s) => s.key === activeLifeStage) || lifeStageRanges[0];
+    return lifeStageRanges.find((s) => s.key === activeLifeStage) || lifeStageRanges[lifeStageRanges.length - 1] || lifeStageRanges[0];
   }, [lifeStageRanges, activeLifeStage]);
 
   const currentStageIndex = useMemo(() => {
@@ -987,55 +1192,63 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
     return `${startYear}–${endYear}`;
   };
 
-  // Filter items matching the current life stage era & category with accurate proximity matching
+  // Filter items matching the current life stage era & category with accurate proximity matching,
+  // strictly bounded to years the member has actually lived (>= birthYear - 1).
   const matchingItems = useMemo(() => {
+    const currentYear = new Date().getFullYear();
     const startYr = currentStageRange.startYear;
     const endYr = currentStageRange.endYear;
     const midYr = Math.round((startYr + endYr) / 2);
 
+    // Restrict candidate pool to items from the member's lifetime (allow 1 year tolerance around birthYear)
+    const lifetimePool = NOSTALGIA_DATABASE.filter(
+      (item) => item.year >= birthYear - 1 && item.year <= currentYear
+    );
+    const basePool = lifetimePool.length > 0 ? lifetimePool : NOSTALGIA_DATABASE;
+
     // 1. Direct matches: item.year falls within the life stage range (+/- 2 years) and category matches
-    let filtered = NOSTALGIA_DATABASE.filter((item) => {
-      const yearMatch = item.year >= startYr - 2 && item.year <= endYr + 2;
+    let filtered = basePool.filter((item) => {
+      const yearMatch = item.year >= Math.max(birthYear - 1, startYr - 2) && item.year <= endYr + 2;
       const catMatch = activeCategory === 'ALL' || item.category === activeCategory;
       return yearMatch && catMatch;
     });
 
     // 2. If no exact match for this category in narrow window, expand to +/- 5 years with category match
     if (filtered.length === 0) {
-      filtered = NOSTALGIA_DATABASE.filter((item) => {
-        const yearMatch = item.year >= startYr - 5 && item.year <= endYr + 5;
+      filtered = basePool.filter((item) => {
+        const yearMatch = item.year >= Math.max(birthYear - 1, startYr - 5) && item.year <= endYr + 5;
         const catMatch = activeCategory === 'ALL' || item.category === activeCategory;
         return yearMatch && catMatch;
       });
     }
 
-    // 3. If still no match in category, look in the target decade (+/- 10 years) with category match
+    // 3. If still no match in category, look in the target decade (+/- 10 years within lifetime) with category match
     if (filtered.length === 0) {
-      filtered = NOSTALGIA_DATABASE.filter((item) => {
+      filtered = basePool.filter((item) => {
         const yearDiff = Math.abs(item.year - midYr);
         const catMatch = activeCategory === 'ALL' || item.category === activeCategory;
-        return yearDiff <= 12 && catMatch;
+        return yearDiff <= 10 && catMatch;
       });
     }
 
-    // 4. If category has no match near the era, fall back to ANY category from the exact same era (+/- 5 years)
+    // 4. If category has no match near the era, fall back to ANY category from the exact same era (+/- 3 years)
     if (filtered.length === 0) {
-      filtered = NOSTALGIA_DATABASE.filter((item) => {
-        return item.year >= startYr - 5 && item.year <= endYr + 5;
+      filtered = basePool.filter((item) => {
+        return item.year >= Math.max(birthYear - 1, startYr - 3) && item.year <= endYr + 3;
       });
     }
 
-    // 5. Ultimate fallback: find items in the database closest in year to this era's midpoint (within closest decade)
+    // 5. Ultimate fallback: find items in the member's lifetime pool closest in year to this era's midpoint
     if (filtered.length === 0) {
-      const sortedByProximity = [...NOSTALGIA_DATABASE].sort(
+      const sortedByProximity = [...basePool].sort(
         (a, b) => Math.abs(a.year - midYr) - Math.abs(b.year - midYr)
       );
       const closestYear = sortedByProximity[0]?.year || midYr;
-      filtered = sortedByProximity.filter((item) => Math.abs(item.year - closestYear) <= 6);
+      filtered = sortedByProximity.filter((item) => Math.abs(item.year - closestYear) <= 5);
     }
 
-    return filtered.length > 0 ? filtered : NOSTALGIA_DATABASE;
-  }, [currentStageRange, activeCategory]);
+    return filtered.length > 0 ? filtered : basePool;
+  }, [currentStageRange, activeCategory, birthYear]);
 
   // Record item into browsing history
   const recordHistory = (item: NostalgiaItem) => {

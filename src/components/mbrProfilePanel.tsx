@@ -32,6 +32,17 @@ export interface MbrProfilePanelProps {
 export type SbMbrProfilePanelProps = MbrProfilePanelProps;
 export type mbrProfilePanelProps = MbrProfilePanelProps;
 
+let cachedGlobalGroupsPromise: Promise<any[]> | null = null;
+function getCachedGroupsGlobal(): Promise<any[]> {
+  if (!cachedGlobalGroupsPromise) {
+    cachedGlobalGroupsPromise = taskApi.getGroupsGlobal().catch(() => {
+      cachedGlobalGroupsPromise = null;
+      return [];
+    });
+  }
+  return cachedGlobalGroupsPromise;
+}
+
 export default function MbrProfilePanel({
   isSandbox = false,
   profile: propProfile,
@@ -118,6 +129,7 @@ export default function MbrProfilePanel({
   // Direct connection lookup fallback between viewer and profile member
   useEffect(() => {
     const fetchDirectConnection = async () => {
+      if (!showConnectButton && propConnectionGrpName === undefined && propProfile?.isPubliclyAccessible) return;
       const targetMbrId = profile?.mbrId || memberId;
       if (!targetMbrId || !resolvedViewerId || targetMbrId === resolvedViewerId) return;
       if (propConnectionGrpName !== undefined && propIsConnected !== undefined) return;
@@ -147,7 +159,7 @@ export default function MbrProfilePanel({
           if (connGrps && connGrps.length > 0 && connGrps[0].grpId) {
             const grpId = connGrps[0].grpId;
             const [globals, customs] = await Promise.all([
-              taskApi.getGroupsGlobal().catch(() => []),
+              getCachedGroupsGlobal(),
               taskApi.getGroupsCustom(conn.mbrId).catch(() => [])
             ]);
             const matched = [...globals, ...customs].find(g => g.grpId === grpId);
@@ -162,7 +174,7 @@ export default function MbrProfilePanel({
     };
 
     fetchDirectConnection();
-  }, [profile?.mbrId, memberId, resolvedViewerId, propConnectionGrpName, propIsConnected]);
+  }, [profile?.mbrId, memberId, resolvedViewerId, propConnectionGrpName, propIsConnected, showConnectButton, propProfile?.isPubliclyAccessible]);
 
   // Sync isRequestSent prop or detect direct pending connection request to target member
   useEffect(() => {
@@ -170,6 +182,7 @@ export default function MbrProfilePanel({
       setRequestSent(propIsRequestSent);
       return;
     }
+    if (!showConnectButton) return;
 
     const targetMbrId = profile?.mbrId || memberId;
     if (!targetMbrId || !resolvedViewerId || targetMbrId === resolvedViewerId) return;
@@ -245,7 +258,7 @@ export default function MbrProfilePanel({
   // Evaluate mbrProfileGroupPrivs for viewer
   useEffect(() => {
     const targetMbrId = profile?.mbrId || memberId;
-    if (!targetMbrId || isSelf) {
+    if (!targetMbrId || isSelf || (propProfile?.isPubliclyAccessible === true && (!resolvedViewerId || !showConnectButton))) {
       setProfileGroupPrivsAllowed(true);
       return;
     }
@@ -271,7 +284,7 @@ export default function MbrProfilePanel({
 
         let publicGrpId: string | null = null;
         try {
-          const globals = await taskApi.getGroupsGlobal().catch(() => []);
+          const globals = await getCachedGroupsGlobal();
           const pub = globals.find(g => g.grpName?.toLowerCase() === 'public');
           if (pub) publicGrpId = pub.grpId;
         } catch {}
@@ -400,9 +413,22 @@ export default function MbrProfilePanel({
         mbrProfilePic: resolveMediaUrl(cachedPic || propProfile.mbrProfilePic || propProfile.avatarUrl)
       });
       if (propProfile.mbrId) {
-        fetchGallery(propProfile.mbrId);
-        fetchStats(propProfile.mbrId);
-        fetchSettings(propProfile.mbrId);
+        if (Array.isArray(propProfile.mbrProfileMedia)) {
+          setGalleryItems(propProfile.mbrProfileMedia);
+        } else {
+          fetchGallery(propProfile.mbrId);
+        }
+        if (propProfile.mbrStat !== undefined) {
+          setMbrStat(propProfile.mbrStat);
+        } else {
+          fetchStats(propProfile.mbrId);
+        }
+        if (propProfile.mbrSettings !== undefined) {
+          setSettings(propProfile.mbrSettings);
+          setSettingsLoaded(true);
+        } else {
+          fetchSettings(propProfile.mbrId);
+        }
       } else {
         setSettingsLoaded(true);
       }
@@ -618,11 +644,27 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
     }
   };
 
-  // Active gallery list with fallback mock photos if database list is empty
+  // Active gallery list: live user gallery items, or sandbox mock showcase if in sandbox mode
   const activeGalleryItems = useMemo<MbrMedia[]>(() => {
     if (galleryItems.length > 0) {
       return galleryItems;
     }
+    if (!isSandbox) {
+      if (profile?.mbrProfilePic) {
+        return [
+          {
+            mbrMediaId: 'primary-pic',
+            mbrId: profile?.mbrId || '',
+            mbrMediaPath: profile.mbrProfilePic,
+            mbrMediaOriginalFilename: 'Profile_Photo.jpg',
+            mbrMediaDescription: `${profile?.mbrFirstName || 'Member'}'s Profile Picture`,
+            mbrMediaCategoryCd: 'Profile'
+          }
+        ];
+      }
+      return [];
+    }
+    // Only in sandbox mode do we show sample showcase photos
     const mainPic = profile?.mbrProfilePic || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=600&fit=crop';
     return [
       {
@@ -658,7 +700,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
         mbrMediaCategoryCd: 'Profile'
       }
     ];
-  }, [galleryItems, profile]);
+  }, [galleryItems, profile, isSandbox]);
 
   const currentGalleryItem = activeGalleryItems[currentGalleryIndex] || activeGalleryItems[0];
 

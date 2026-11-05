@@ -45,7 +45,27 @@ export default defineConfig(({ mode }) => {
     define: {
       __APP_BUILD_INFO__: JSON.stringify(buildInfo),
     },
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: 'robots-txt-middleware',
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            if (req.url === '/robots.txt') {
+              res.setHeader('Content-Type', 'text/plain');
+              if (appEnv === 'prod') {
+                res.end("User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api/\nSitemap: https://storybook.ai/sitemap.xml\n");
+              } else {
+                res.end("User-agent: *\nDisallow: /\n");
+              }
+              return;
+            }
+            next();
+          });
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

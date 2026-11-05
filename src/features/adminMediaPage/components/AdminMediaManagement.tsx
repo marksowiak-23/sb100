@@ -149,7 +149,7 @@ export default function AdminMediaManagement({ isSandbox = false }: AdminMediaMa
         fetchMediaList();
       }
     } catch (err: any) {
-      console.warn('sb-api-media service offline, using sandbox fallback:', err);
+      console.warn('sb-api-media service offline:', err);
       setIsServiceOnline(false);
       setHealthStatus({
         status: 'offline',
@@ -157,7 +157,8 @@ export default function AdminMediaManagement({ isSandbox = false }: AdminMediaMa
         bucket: 'sb-media-01',
         bucket_status: 'unreachable'
       });
-      setItems(MOCK_MEDIA_ITEMS);
+      setItems([]);
+      setErrorMsg('Media service (sb-api-media) is currently offline or unreachable.');
     } finally {
       setLoadingHealth(false);
     }
@@ -167,20 +168,22 @@ export default function AdminMediaManagement({ isSandbox = false }: AdminMediaMa
     setLoadingItems(true);
     const prefixToUse = overridePrefix !== undefined ? overridePrefix : prefixFilter;
     try {
-      if (isSandbox || !isServiceOnline) {
+      if (isSandbox) {
         // Filter mock items in sandbox mode
         let filtered = MOCK_MEDIA_ITEMS;
         if (prefixToUse) {
           filtered = filtered.filter(item => item.name.toLowerCase().startsWith(prefixToUse.toLowerCase()));
         }
         setItems(filtered);
+      } else if (!isServiceOnline) {
+        setItems([]);
       } else {
         const res = await mediaApi.listMedia(prefixToUse, 100);
         setItems(res.items || []);
       }
     } catch (err: any) {
       setErrorMsg(`Failed to list media from GCS: ${err.message}`);
-      setItems(MOCK_MEDIA_ITEMS);
+      setItems([]);
     } finally {
       setLoadingItems(false);
     }

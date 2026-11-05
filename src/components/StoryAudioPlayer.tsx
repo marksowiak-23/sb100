@@ -23,6 +23,22 @@ export interface StoryAudioPlayerProps {
   variant?: 'compact' | 'full' | 'inline-button' | 'icon-button';
   showLabel?: boolean;
   className?: string;
+  initialAudioMedia?: MbrMedia | null;
+  authorMbrId?: string;
+}
+
+const memberMediaPromiseCache = new Map<string, { ts: number; promise: Promise<MbrMedia[]> }>();
+const MEDIA_CACHE_TTL_MS = 10000;
+
+function fetchCachedMemberMedia(mbrId: string): Promise<MbrMedia[]> {
+  const now = Date.now();
+  const cached = memberMediaPromiseCache.get(mbrId);
+  if (cached && now - cached.ts < MEDIA_CACHE_TTL_MS) {
+    return cached.promise;
+  }
+  const promise = taskApi.getMemberMedia(mbrId).catch(() => []);
+  memberMediaPromiseCache.set(mbrId, { ts: now, promise });
+  return promise;
 }
 
 export default function StoryAudioPlayer({
@@ -31,7 +47,9 @@ export default function StoryAudioPlayer({
   title = 'Story Narration',
   variant = 'compact',
   showLabel = true,
-  className = ''
+  className = '',
+  initialAudioMedia,
+  authorMbrId
 }: StoryAudioPlayerProps) {
   const {
     isSupported,
@@ -52,7 +70,7 @@ export default function StoryAudioPlayer({
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
 
   // Saved AI Voice Studio narration media state (from mbrMedia)
-  const [savedAudioMedia, setSavedAudioMedia] = useState<MbrMedia | null>(null);
+  const [savedAudioMedia, setSavedAudioMedia] = useState<MbrMedia | null>(initialAudioMedia ?? null);
   const [isNativePlaying, setIsNativePlaying] = useState(false);
   const [isNativePaused, setIsNativePaused] = useState(false);
   const [nativeProgress, setNativeProgress] = useState(0);
@@ -77,7 +95,7 @@ export default function StoryAudioPlayer({
       return;
     }
 
-    const loadSavedNarration = async () => {
+    const loadSavedNarration = async (forceFetch = false) => {
       try {
         // 1. Check sandbox_media first if present
         const sandboxStr = sessionStorage.getItem('sandbox_media');
@@ -92,18 +110,32 @@ export default function StoryAudioPlayer({
           } catch {}
         }
 
-        // 2. Check live member media
-        let targetMbrId: string | null = null;
-        try {
-          const mbrStr = sessionStorage.getItem('sb_current_mbr') || sessionStorage.getItem('mbr');
-          if (mbrStr) {
-            const parsed = JSON.parse(mbrStr);
-            targetMbrId = parsed?.mbrId || null;
+        // If caller already supplied pre-resolved initialAudioMedia (even null) and not forced by update event, skip network call
+        if (!forceFetch && initialAudioMedia !== undefined) {
+          if (isMounted) {
+            setSavedAudioMedia(initialAudioMedia);
           }
-        } catch {}
+          return;
+        }
+
+        // 2. Check live member media (prefer authorMbrId if provided, else logged-in member)
+        let targetMbrId: string | null = authorMbrId || null;
+        if (!targetMbrId) {
+          try {
+            const mbrStr = sessionStorage.getItem('sb_current_mbr') || sessionStorage.getItem('mbr');
+            if (mbrStr) {
+              const parsed = JSON.parse(mbrStr);
+              targetMbrId = parsed?.mbrId || null;
+            }
+          } catch {}
+        }
+
+        if (forceFetch && targetMbrId) {
+          memberMediaPromiseCache.delete(targetMbrId);
+        }
 
         const mediaList = targetMbrId
-          ? await taskApi.getMemberMedia(targetMbrId).catch(() => [])
+          ? await fetchCachedMemberMedia(targetMbrId)
           : [];
 
         if (isMounted && Array.isArray(mediaList)) {
@@ -115,7 +147,7 @@ export default function StoryAudioPlayer({
       }
     };
 
-    loadSavedNarration();
+    loadSavedNarration(false);
 
     const handleMediaUpdated = (evt: Event) => {
       const customEvt = evt as CustomEvent;
@@ -127,7 +159,7 @@ export default function StoryAudioPlayer({
         setIsNativePlaying(false);
         setIsNativePaused(false);
         setNativeProgress(0);
-        loadSavedNarration();
+        loadSavedNarration(true);
       }
     };
 
@@ -148,7 +180,7 @@ export default function StoryAudioPlayer({
       window.removeEventListener('media-updated', handleMediaUpdated);
       window.removeEventListener('stop-storybook-tts', handleGlobalStop);
     };
-  }, [storyId]);
+  }, [storyId, initialAudioMedia, authorMbrId]);
 
   useEffect(() => {
     return () => {

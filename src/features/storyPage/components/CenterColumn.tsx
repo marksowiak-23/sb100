@@ -124,6 +124,48 @@ export default function CenterColumn({
     );
   }
 
+  if (!isLoading && !storyContent) {
+    return (
+      <div className="space-y-6 relative">
+        {onClickBack && (
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={onClickBack}
+              className="group inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors focus:outline-none cursor-pointer"
+            >
+              <div className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center shadow-xs group-hover:border-blue-300 dark:group-hover:border-blue-600 group-hover:bg-blue-50 dark:group-hover:bg-blue-950/40 transition-all">
+                <ArrowLeft className="w-4 h-4 text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+              </div>
+              <span>Back to Stories</span>
+            </button>
+          </div>
+        )}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-8 sm:p-12 shadow-sm text-center relative overflow-hidden">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-slate-100 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 mb-5">
+            <ShieldAlert className="w-8 h-8" />
+          </div>
+          <h2 className="font-serif text-2xl font-bold text-slate-900 dark:text-white mb-2">
+            Story Not Found
+          </h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6 font-sans">
+            The requested story chapter could not be located or is no longer available on StoryBook.
+          </p>
+          {onClickBack && (
+            <button
+              type="button"
+              onClick={onClickBack}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Return to Stories Feed</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 relative">
       {/* Top Back to Stories Navigation Button */}

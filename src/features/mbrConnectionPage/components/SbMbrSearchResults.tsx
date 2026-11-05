@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Info, Loader2, ChevronDown } from 'lucide-react';
 import MbrProfilePanel from '@/src/components/mbrProfilePanel';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -38,17 +38,19 @@ export default function SbMbrSearchResults({
   onClickReadStory,
   userLocation
 }: SbMbrSearchResultsProps) {
-  const uniqueMembers = Array.from(new Map(members.map(m => [m.mbrId || m.id, m])).values())
-    .filter(m => {
-      const targetId = m.mbrId || m.id;
-      // Do not show the logged-in member's profile
-      if (viewerMbrId && targetId === viewerMbrId) {
-        return false;
-      }
-      if (m.mbrSettings) return m.mbrSettings.mbrSettingsAllowPublicFlag === true;
-      if (m.mbrSettingsAllowPublicFlag !== undefined) return m.mbrSettingsAllowPublicFlag === true;
-      return true;
-    });
+  const uniqueMembers = useMemo(() => {
+    return Array.from(new Map(members.map(m => [m.mbrId || m.id, m])).values())
+      .filter(m => {
+        const targetId = m.mbrId || m.id;
+        // Do not show the logged-in member's profile
+        if (viewerMbrId && targetId === viewerMbrId) {
+          return false;
+        }
+        if (m.mbrSettings) return m.mbrSettings.mbrSettingsAllowPublicFlag === true;
+        if (m.mbrSettingsAllowPublicFlag !== undefined) return m.mbrSettingsAllowPublicFlag === true;
+        return true;
+      });
+  }, [members, viewerMbrId]);
 
   return (
     <div className="space-y-5 relative">
@@ -111,8 +113,8 @@ export default function SbMbrSearchResults({
                 key={`${targetId}-${idx}`}
                 profile={member}
                 isSandbox={false}
-                isConnected={connInfo?.isConnected}
-                connectionGrpName={connInfo?.grpName}
+                isConnected={connectionsMap ? Boolean(connInfo?.isConnected) : undefined}
+                connectionGrpName={connInfo?.grpName || ''}
                 isRequestSent={isRequestSent}
                 viewerMbrId={viewerMbrId}
                 onClickReadStory={onClickReadStory}

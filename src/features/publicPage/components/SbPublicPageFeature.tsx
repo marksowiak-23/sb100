@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import LeftColumn from './LeftColumn';
 import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
@@ -111,19 +111,39 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
     }
   }, []);
 
-  // Fetch initial batch of members on load or when searchQuery / userLocation / proximityEnabled / maxProfiles changes
+  const prevSearchQueryRef = useRef(searchQuery);
+  const maxProfilesRef = useRef(maxProfiles);
+  maxProfilesRef.current = maxProfiles;
+
+  // Clamp currently loaded members if maxProfiles is dynamically lowered below current count
+  useEffect(() => {
+    setMembers((prev) => {
+      if (prev.length > maxProfiles) {
+        setHasMore(false);
+        return prev.slice(0, maxProfiles);
+      }
+      return prev;
+    });
+  }, [maxProfiles]);
+
+  // Fetch initial batch of members on load or when searchQuery / userLocation / proximityEnabled changes
   useEffect(() => {
     let isCancelled = false;
+    const controller = new AbortController();
+    const isQueryChange = searchQuery !== prevSearchQueryRef.current;
+    prevSearchQueryRef.current = searchQuery;
+
     setLoading(true);
     setHasMore(true);
 
-    const timer = setTimeout(async () => {
+    const runSearch = async () => {
       try {
         const queryTrimmed = searchQuery.trim();
         // Guardrail: single-character searches are deferred until at least 2 characters are entered
         const effectiveQuery = queryTrimmed.length === 1 ? undefined : (queryTrimmed || undefined);
         const useProximity = proximityEnabled && userLocation;
-        const initialLimit = Math.min(PAGE_SIZE, maxProfiles);
+        const currentMax = maxProfilesRef.current;
+        const initialLimit = Math.min(PAGE_SIZE, currentMax);
         const result = await taskApi.getMembers({
           query: effectiveQuery,
           proximity: useProximity ? userLocation?.label : undefined,
@@ -131,16 +151,18 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
           proximity_lng: useProximity ? userLocation?.longitude : undefined,
           public_only: true,
           limit: initialLimit,
-          skip: 0
+          skip: 0,
+          signal: controller.signal
         });
 
         if (!isCancelled) {
           const uniqueList = Array.from(new Map((result || []).map((m: any) => [m.mbrId || m.id, m])).values());
-          const cappedList = uniqueList.slice(0, maxProfiles);
+          const cappedList = uniqueList.slice(0, currentMax);
           setMembers(cappedList);
-          setHasMore((result || []).length === initialLimit && cappedList.length < maxProfiles);
+          setHasMore((result || []).length === initialLimit && cappedList.length < currentMax);
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
         console.error("Failed to fetch members for public search:", err);
         if (!isCancelled) {
           setMembers([]);
@@ -151,13 +173,20 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
           setLoading(false);
         }
       }
-    }, 350);
+    };
+
+    const delayMs = isQueryChange ? 350 : 0;
+    const timer = delayMs > 0 ? setTimeout(runSearch, delayMs) : null;
+    if (delayMs === 0) {
+      runSearch();
+    }
 
     return () => {
       isCancelled = true;
-      clearTimeout(timer);
+      controller.abort();
+      if (timer) clearTimeout(timer);
     };
-  }, [searchQuery, userLocation, proximityEnabled, maxProfiles]);
+  }, [searchQuery, userLocation?.label, userLocation?.latitude, userLocation?.longitude, proximityEnabled]);
 
   // Handler to fetch another batch of members up to maxProfiles
   const handleLoadMore = useCallback(async () => {

@@ -77,7 +77,10 @@ export default function PageSeo({
     if (keywords) {
       setMetaTag('name', 'keywords', keywords);
     }
-    setMetaTag('name', 'robots', robots);
+    // Environment-aware robots directive: Only production allows index/follow
+    const isProd = import.meta.env.VITE_APP_ENV === 'prod';
+    const effectiveRobots = isProd ? (robots || 'index, follow') : 'noindex, nofollow';
+    setMetaTag('name', 'robots', effectiveRobots);
     setMetaTag('name', 'author', 'StoryBook');
 
     // 3. Canonical URL

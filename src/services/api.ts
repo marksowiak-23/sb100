@@ -1236,8 +1236,10 @@ export const taskApi = {
     proximity_lng?: number;
     public_only?: boolean;
     viewer_mbr_id?: string;
+    connected_only?: boolean;
     limit?: number;
     skip?: number;
+    signal?: AbortSignal;
   }): Promise<any[]> {
     const searchParams = new URLSearchParams();
     if (params?.query) searchParams.append('query', params.query);
@@ -1248,20 +1250,18 @@ export const taskApi = {
     if (params?.proximity_lng !== undefined && params?.proximity_lng !== null) searchParams.append('proximity_lng', params.proximity_lng.toString());
     if (params?.public_only !== undefined) searchParams.append('public_only', params.public_only.toString());
     if (params?.viewer_mbr_id) searchParams.append('viewer_mbr_id', params.viewer_mbr_id);
+    if (params?.connected_only !== undefined) searchParams.append('connected_only', params.connected_only.toString());
     if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
     if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
-    searchParams.append('t', Date.now().toString());
 
     const queryString = searchParams.toString();
     const url = `${API_BASE_URL}/mbrs${queryString ? `?${queryString}` : ''}`;
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+        'Accept': 'application/json'
       },
-      cache: 'no-cache'
+      signal: params?.signal
     });
     return handleResponse<any[]>(response);
   },
@@ -2028,6 +2028,30 @@ export const taskApi = {
   /**
    * Fetch all stories, optionally filtered by a specific member ID.
    */
+  /**
+   * Fetch pre-aggregated, access-filtered Member Story Feed for a viewer in a single request.
+   */
+  async getMemberStoryFeed(viewerMbrId: string, limit: number = 200): Promise<{
+    stories: any[];
+    readStoryIds: string[];
+    connectedCirclesCount: number;
+  }> {
+    const response = await fetch(
+      `${API_BASE_URL}/mbr-stories/feed/${encodeURIComponent(viewerMbrId)}?limit=${limit}`,
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      }
+    );
+    return handleResponse<{
+      stories: any[];
+      readStoryIds: string[];
+      connectedCirclesCount: number;
+    }>(response);
+  },
+
   async getStories(mbrId?: string, limit: number = 200, skip: number = 0): Promise<MbrStory[]> {
     const url = mbrId
       ? `${API_BASE_URL}/mbr-stories/member/${mbrId}?t=${Date.now()}`
@@ -2414,8 +2438,9 @@ export const taskApi = {
   /**
    * Fetch member story group privilege records.
    */
-  async getMemberStoryGroupPrivs(params?: { mbrStoryId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrStoryGroupPrivs[]> {
+  async getMemberStoryGroupPrivs(params?: { mbrId?: string; mbrStoryId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrStoryGroupPrivs[]> {
     const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
     if (params?.mbrStoryId) searchParams.append('mbr_story_id', params.mbrStoryId);
     if (params?.grpId) searchParams.append('grp_id', params.grpId);
     if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
@@ -4482,7 +4507,7 @@ export const topicSparkApi = {
 };
 
 export const mbrStoryGroupPrivsApi = {
-  async getStoryGroupPrivs(params?: { mbrStoryId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrStoryGroupPrivs[]> {
+  async getStoryGroupPrivs(params?: { mbrId?: string; mbrStoryId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrStoryGroupPrivs[]> {
     return taskApi.getMemberStoryGroupPrivs(params);
   },
   async createStoryGroupPriv(priv: Partial<MbrStoryGroupPrivs>): Promise<MbrStoryGroupPrivs> {

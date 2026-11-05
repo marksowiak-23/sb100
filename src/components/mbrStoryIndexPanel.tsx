@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   BookOpen, 
   ChevronDown, 
@@ -99,6 +99,123 @@ const DEFAULT_TOPICS_LIST: Topic[] = [
   { topicId: 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e', topicName: 'Sparks', topicFullName: 'Question Spark', topicCategoryCd: 'OTHER', topicSortOrder: 8 },
   { topicId: 'f3bc73b4-d4db-4390-ad3b-6aa07af70e4e', topicName: 'Other', topicFullName: 'Other', topicCategoryCd: 'OTHER', topicSortOrder: 99 }
 ];
+
+const TOPICS_WITH_CARDS = new Set([
+  'profile',
+  'family',
+  'relationships',
+  'relationship',
+  'residencies',
+  'residence',
+  'trips and vacations',
+  'trips & vacations',
+  'trips',
+  'vacations',
+  'education',
+  'education and training',
+  'education & training',
+  'employment',
+  'employment and career',
+  'employment & career',
+  'activities',
+  'hobbies',
+  'activity',
+  'activities and hobbies',
+  'activities & hobbies',
+  'health',
+  'wellness',
+  'health and wellness',
+  'health & wellness',
+  'achievements',
+  'achievement',
+  'special events',
+  'special event',
+  'specialevents',
+  'special-events',
+  'celebrations'
+]);
+
+const hasTopicCard = (topic: Topic): boolean => {
+  const normName = (topic.topicName || '').trim().toLowerCase();
+  const normFullName = (topic.topicFullName || '').trim().toLowerCase();
+  return TOPICS_WITH_CARDS.has(normName) || TOPICS_WITH_CARDS.has(normFullName);
+};
+
+// Session-level caches for static reference data
+let cachedTopics: Topic[] | null = null;
+let cachedTopicsPromise: Promise<Topic[]> | null = null;
+let cachedCategories: Partial<Cd>[] | null = null;
+let cachedCategoriesPromise: Promise<Partial<Cd>[]> | null = null;
+let cachedPublicGrpId: string | null = null;
+let cachedPublicGrpPromise: Promise<string> | null = null;
+
+function getCachedTopics(): Promise<Topic[]> {
+  if (cachedTopics) return Promise.resolve(cachedTopics);
+  if (!cachedTopicsPromise) {
+    cachedTopicsPromise = taskApi
+      .getTopics()
+      .then((res) => {
+        if (Array.isArray(res) && res.length > 0) {
+          cachedTopics = res;
+          return res;
+        }
+        return DEFAULT_TOPICS_LIST;
+      })
+      .catch(() => {
+        cachedTopicsPromise = null;
+        return DEFAULT_TOPICS_LIST;
+      });
+  }
+  return cachedTopicsPromise;
+}
+
+function getCachedCategories(): Promise<Partial<Cd>[]> {
+  if (cachedCategories) return Promise.resolve(cachedCategories);
+  if (!cachedCategoriesPromise) {
+    cachedCategoriesPromise = taskApi
+      .getCds('topicCategoryCd')
+      .then((res) => {
+        if (Array.isArray(res) && res.length > 0) {
+          cachedCategories = res;
+          return res;
+        }
+        return DEFAULT_CATEGORIES;
+      })
+      .catch(() => {
+        cachedCategoriesPromise = null;
+        return DEFAULT_CATEGORIES;
+      });
+  }
+  return cachedCategoriesPromise;
+}
+
+function getCachedPublicGroupId(): Promise<string> {
+  if (cachedPublicGrpId) return Promise.resolve(cachedPublicGrpId);
+  if (!cachedPublicGrpPromise) {
+    cachedPublicGrpPromise = taskApi
+      .getGroupsGlobal()
+      .then((globals) => {
+        const pub = (globals || []).find((g) => g.grpName?.toLowerCase() === 'public');
+        const id = pub?.grpId || '13efcbad-d840-44ad-9b50-d6d2218e5cac';
+        cachedPublicGrpId = id;
+        return id;
+      })
+      .catch(() => {
+        cachedPublicGrpPromise = null;
+        return '13efcbad-d840-44ad-9b50-d6d2218e5cac';
+      });
+  }
+  return cachedPublicGrpPromise;
+}
+
+function buildInitialOpenCategories(cats: Partial<Cd>[]): Record<string, boolean> {
+  const initialOpen: Record<string, boolean> = {};
+  cats.forEach((c) => {
+    if (c.cdValue) initialOpen[c.cdValue] = true;
+  });
+  initialOpen['OTHER'] = true;
+  return initialOpen;
+}
 
 function getTopicIconDetails(name: string = '', fullName: string = '') {
   const norm = `${name} ${fullName}`.toLowerCase();
@@ -262,12 +379,14 @@ export default function MbrStoryIndexPanel({
   showEditControls = true,
   isStoryPage = false
 }: MbrStoryIndexPanelProps) {
-  const [dbTopics, setDbTopics] = useState<Topic[]>(DEFAULT_TOPICS_LIST);
-  const [categories, setCategories] = useState<Partial<Cd>[]>(DEFAULT_CATEGORIES);
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+  const [dbTopics, setDbTopics] = useState<Topic[]>(() => cachedTopics || DEFAULT_TOPICS_LIST);
+  const [categories, setCategories] = useState<Partial<Cd>[]>(() => cachedCategories || DEFAULT_CATEGORIES);
+  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>(() =>
+    buildInitialOpenCategories(cachedCategories || DEFAULT_CATEGORIES)
+  );
   const [stories, setStories] = useState<MbrStory[]>([]);
 
-  const fetchStories = async () => {
+  const fetchStories = useCallback(async () => {
     try {
       let resolvedMbrId = memberId;
       if (!resolvedMbrId || resolvedMbrId === 'm1' || !isUuid(resolvedMbrId)) {
@@ -371,57 +490,36 @@ export default function MbrStoryIndexPanel({
         }
       }
 
-      // If viewer is author themselves: all published stories are viewable
-      if (effectiveViewerId && resolvedMbrId && effectiveViewerId.toLowerCase() === resolvedMbrId.toLowerCase()) {
-        const pubStories = allStories.filter(s => (s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published');
-        setStories(pubStories);
+      const candidateList = allStories.filter(s => (s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published');
+
+      // Short-circuit: if viewer is author themselves OR there are no published stories, no extra permission queries needed
+      if (
+        candidateList.length === 0 ||
+        (effectiveViewerId && resolvedMbrId && effectiveViewerId.toLowerCase() === resolvedMbrId.toLowerCase())
+      ) {
+        setStories(candidateList);
         return;
       }
 
-      // Filter candidate published stories based on story-level privileges
-      const candidateList = allStories.filter(s => (s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published');
-
       try {
-        let assignedGrpId: string | null = null;
-        if (effectiveViewerId && resolvedMbrId) {
-          const authorConns = await taskApi.getMemberConnections({
-            mbrId: resolvedMbrId,
-            connectedMbrId: effectiveViewerId
-          }).catch(() => []);
-          if (authorConns.length > 0) {
-            const connGrps = await taskApi.getMemberConnectionGrps({
-              connectionId: authorConns[0].mbrConnectionId
-            }).catch(() => []);
-            if (connGrps && connGrps.length > 0) {
-              assignedGrpId = connGrps[0].grpId;
-            }
-          } else {
-            // Also check reciprocal connection
-            const viewerConns = await taskApi.getMemberConnections({
-              mbrId: effectiveViewerId,
-              connectedMbrId: resolvedMbrId
-            }).catch(() => []);
-            if (viewerConns.length > 0) {
-              const connGrps = await taskApi.getMemberConnectionGrps({
-                connectionId: viewerConns[0].mbrConnectionId
-              }).catch(() => []);
-              if (connGrps && connGrps.length > 0) {
-                assignedGrpId = connGrps[0].grpId;
-              }
-            }
-          }
-        }
+        const resolveAssignedGroup = async (): Promise<string | null> => {
+          if (!effectiveViewerId || !resolvedMbrId) return null;
+          const [authorConns, viewerConns] = await Promise.all([
+            taskApi.getMemberConnections({ mbrId: resolvedMbrId, connectedMbrId: effectiveViewerId }).catch(() => []),
+            taskApi.getMemberConnections({ mbrId: effectiveViewerId, connectedMbrId: resolvedMbrId }).catch(() => [])
+          ]);
+          const primaryConn = authorConns[0] || viewerConns[0];
+          if (!primaryConn?.mbrConnectionId) return null;
+          const connGrps = await taskApi.getMemberConnectionGrps({ connectionId: primaryConn.mbrConnectionId }).catch(() => []);
+          return connGrps && connGrps.length > 0 ? connGrps[0].grpId : null;
+        };
 
-        let publicGrpId: string | null = null;
-        const globals = await taskApi.getGroupsGlobal().catch(() => []);
-        const pub = globals.find(g => g.grpName?.toLowerCase() === 'public');
-        if (pub) publicGrpId = pub.grpId;
-        if (!publicGrpId) publicGrpId = '13efcbad-d840-44ad-9b50-d6d2218e5cac';
-
-        const [allStoryPrivs, allStoryConnPrivs] = await Promise.all([
-          taskApi.getMemberStoryGroupPrivs({ limit: 1000 }).catch(() => []),
+        const [assignedGrpId, publicGrpId, allStoryPrivs, allStoryConnPrivs] = await Promise.all([
+          resolveAssignedGroup(),
+          getCachedPublicGroupId(),
+          taskApi.getMemberStoryGroupPrivs({ mbrId: resolvedMbrId, limit: 1000 }).catch(() => []),
           effectiveViewerId
-            ? taskApi.getMemberStoryConnectionPrivs({ mbrConnectionMbrId: effectiveViewerId, limit: 1000 }).catch(() => [])
+            ? taskApi.getMemberStoryConnectionPrivs({ mbrId: resolvedMbrId, mbrConnectionMbrId: effectiveViewerId, limit: 1000 }).catch(() => [])
             : Promise.resolve([])
         ]);
 
@@ -508,35 +606,24 @@ export default function MbrStoryIndexPanel({
     } catch (err) {
       console.warn("Could not fetch stories in MbrStoryIndexPanel:", err);
     }
-  };
+  }, [memberId, viewerMbrId, isStoryPage, showEditControls]);
 
   useEffect(() => {
     let isMounted = true;
     const fetchTopicsAndCategories = async () => {
       try {
-        const [fetchedTopics, fetchedCds] = await Promise.all([
-          taskApi.getTopics().catch(() => []),
-          taskApi.getCds('topicCategoryCd').catch(() => [])
+        const [finalTopics, finalCds] = await Promise.all([
+          getCachedTopics(),
+          getCachedCategories()
         ]);
 
         if (isMounted) {
-          const finalTopics = Array.isArray(fetchedTopics) && fetchedTopics.length > 0 
-            ? fetchedTopics 
-            : DEFAULT_TOPICS_LIST;
           setDbTopics(finalTopics);
-
-          const finalCds = Array.isArray(fetchedCds) && fetchedCds.length > 0 
-            ? fetchedCds 
-            : DEFAULT_CATEGORIES;
           setCategories(finalCds);
-
-          // Initially open all categories that have topics
-          const initialOpen: Record<string, boolean> = {};
-          finalCds.forEach(c => {
-            if (c.cdValue) initialOpen[c.cdValue] = true;
+          setOpenCategories(prev => {
+            if (Object.keys(prev).length > 0) return prev;
+            return buildInitialOpenCategories(finalCds);
           });
-          initialOpen['OTHER'] = true;
-          setOpenCategories(initialOpen);
         }
       } catch (err) {
         console.warn("Could not load topics or categories in MbrStoryIndexPanel:", err);
@@ -561,39 +648,44 @@ export default function MbrStoryIndexPanel({
       window.removeEventListener('refresh-stories', handleRefresh);
       window.removeEventListener('user-switched', handleRefresh);
     };
-  }, [memberId, viewerMbrId, isStoryPage, showEditControls, lockedPanelIds]);
+  }, [fetchStories]);
 
   const currentActive = (activeTopic || activeSection || 'Profile').toLowerCase();
 
-  // Sort categories according to cdSortOrder
-  const sortedCategories = [...categories].sort((a, b) => {
-    const orderA = a.cdSortOrder ?? 999;
-    const orderB = b.cdSortOrder ?? 999;
-    if (orderA !== orderB) return orderA - orderB;
-    return (a.cdLabel || a.cdValue || '').localeCompare(b.cdLabel || b.cdValue || '');
-  });
-
-  // Group topics by category
-  const topicsByCategory = new Map<string, Topic[]>();
-  const knownCatCodes = new Set(sortedCategories.map(c => (c.cdValue || '').toUpperCase()));
-
-  dbTopics.forEach(topic => {
-    const catCode = (topic.topicCategoryCd || 'OTHER').toUpperCase();
-    const targetKey = knownCatCodes.has(catCode) ? catCode : 'OTHER';
-    const list = topicsByCategory.get(targetKey) || [];
-    list.push(topic);
-    topicsByCategory.set(targetKey, list);
-  });
-
-  // Sort topics within each category
-  topicsByCategory.forEach((list) => {
-    list.sort((a, b) => {
-      const ordA = a.topicSortOrder ?? 999;
-      const ordB = b.topicSortOrder ?? 999;
-      if (ordA !== ordB) return ordA - ordB;
-      return (a.topicFullName || a.topicName || '').localeCompare(b.topicFullName || b.topicName || '');
+  // Sort categories according to cdSortOrder (memoized)
+  const sortedCategories = useMemo(() => {
+    return [...categories].sort((a, b) => {
+      const orderA = a.cdSortOrder ?? 999;
+      const orderB = b.cdSortOrder ?? 999;
+      if (orderA !== orderB) return orderA - orderB;
+      return (a.cdLabel || a.cdValue || '').localeCompare(b.cdLabel || b.cdValue || '');
     });
-  });
+  }, [categories]);
+
+  // Group and sort topics by category (memoized)
+  const topicsByCategory = useMemo(() => {
+    const map = new Map<string, Topic[]>();
+    const knownCatCodes = new Set(sortedCategories.map(c => (c.cdValue || '').toUpperCase()));
+
+    dbTopics.forEach(topic => {
+      const catCode = (topic.topicCategoryCd || 'OTHER').toUpperCase();
+      const targetKey = knownCatCodes.has(catCode) ? catCode : 'OTHER';
+      const list = map.get(targetKey) || [];
+      list.push(topic);
+      map.set(targetKey, list);
+    });
+
+    map.forEach((list) => {
+      list.sort((a, b) => {
+        const ordA = a.topicSortOrder ?? 999;
+        const ordB = b.topicSortOrder ?? 999;
+        if (ordA !== ordB) return ordA - ordB;
+        return (a.topicFullName || a.topicName || '').localeCompare(b.topicFullName || b.topicName || '');
+      });
+    });
+
+    return map;
+  }, [dbTopics, sortedCategories]);
 
   // Auto-expand category containing current active section if closed
   useEffect(() => {
@@ -608,7 +700,7 @@ export default function MbrStoryIndexPanel({
         setOpenCategories(prev => ({ ...prev, [catCode]: true }));
       }
     }
-  }, [currentActive]);
+  }, [currentActive, topicsByCategory]);
 
   const toggleCategory = (catCode: string) => {
     setOpenCategories(prev => ({
@@ -633,94 +725,59 @@ export default function MbrStoryIndexPanel({
     if (onSelectTopic) onSelectTopic(storyTopicItem, rawTopic);
   };
 
-  const TOPICS_WITH_CARDS = new Set([
-    'profile',
-    'family',
-    'relationships',
-    'relationship',
-    'residencies',
-    'residence',
-    'trips and vacations',
-    'trips & vacations',
-    'trips',
-    'vacations',
-    'education',
-    'education and training',
-    'education & training',
-    'employment',
-    'employment and career',
-    'employment & career',
-    'activities',
-    'hobbies',
-    'activity',
-    'activities and hobbies',
-    'activities & hobbies',
-    'health',
-    'wellness',
-    'health and wellness',
-    'health & wellness',
-    'achievements',
-    'achievement',
-    'special events',
-    'special event',
-    'specialevents',
-    'special-events',
-    'celebrations'
-  ]);
-
-  const hasTopicCard = (topic: Topic): boolean => {
-    const normName = (topic.topicName || '').trim().toLowerCase();
-    const normFullName = (topic.topicFullName || '').trim().toLowerCase();
-    return TOPICS_WITH_CARDS.has(normName) || TOPICS_WITH_CARDS.has(normFullName);
-  };
-
   const isStoryPageView = isStoryPage || showEditControls === false;
 
-  const isTopicPanelLocked = (topic: Topic): boolean => {
-    const normName = (topic.topicName || '').trim().toLowerCase();
-    if (normName === 'profile') return false; // Profile panel is always universally accessible
+  // Pre-compute story counts for all topics in a single memoized pass
+  const storyCountsByTopicKey = useMemo(() => {
+    const countsMap = new Map<string, { total: number; published: number }>();
     const locks = (lockedPanelIds && lockedPanelIds.length > 0) ? lockedPanelIds : (lockedTopicIds || []);
-    if (!locks || locks.length === 0) return false;
-    const normFullName = (topic.topicFullName || '').trim().toLowerCase();
-    const topicId = (topic.topicId || '').trim().toLowerCase();
-    return locks.some((lid) => {
-      if (typeof lid !== 'string') return false;
-      const lower = lid.trim().toLowerCase();
-      return (
-        lower === normName ||
-        lower === normFullName ||
-        (topicId && lower === topicId) ||
-        (normName.includes(lower) && lower.length > 3) ||
-        (normFullName.includes(lower) && lower.length > 3)
-      );
-    });
-  };
 
-  const getStoryCountsForTopic = (topic: Topic) => {
-    const matching = stories.filter(s => matchStoryToTopic(s, topic));
-    const publishedStories = matching.filter(s => (s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published').length;
+    const checkLocked = (topic: Topic): boolean => {
+      const normName = (topic.topicName || '').trim().toLowerCase();
+      if (normName === 'profile') return false;
+      if (!locks || locks.length === 0) return false;
+      const normFullName = (topic.topicFullName || '').trim().toLowerCase();
+      const topicId = (topic.topicId || '').trim().toLowerCase();
+      return locks.some((lid) => {
+        if (typeof lid !== 'string') return false;
+        const lower = lid.trim().toLowerCase();
+        return (
+          lower === normName ||
+          lower === normFullName ||
+          (topicId && lower === topicId) ||
+          (normName.includes(lower) && lower.length > 3) ||
+          (normFullName.includes(lower) && lower.length > 3)
+        );
+      });
+    };
 
-    if (isStoryPageView) {
-      // Reflect the number of published stories the logged-in user has permission to view for this topic
-      let count = publishedStories;
+    for (const topic of dbTopics) {
+      const key = topic.topicId || topic.topicName || '';
+      let total = 0;
+      let publishedStories = 0;
 
-      // Also, if the user has access to the associated topic panel, increment the count. Don't count the storyEditorPanel for that.
-      if (hasTopicCard(topic)) {
-        const isPanelLocked = isTopicPanelLocked(topic);
-        if (!isPanelLocked) {
-          count += 1;
+      for (const s of stories) {
+        if (matchStoryToTopic(s, topic)) {
+          total += 1;
+          if ((s.mbrStoryPublishStatusCd || '').trim().toLowerCase() === 'published') {
+            publishedStories += 1;
+          }
         }
       }
 
-      return { total: count, published: count };
+      if (isStoryPageView) {
+        let count = publishedStories;
+        if (hasTopicCard(topic) && !checkLocked(topic)) {
+          count += 1;
+        }
+        countsMap.set(key, { total: count, published: count });
+      } else {
+        countsMap.set(key, { total, published: publishedStories });
+      }
     }
 
-    // On the Author Page (workspace), display published / total authored stories
-    const total = matching.length;
-    const published = publishedStories;
-
-    return { total, published };
-  };
+    return countsMap;
+  }, [dbTopics, stories, isStoryPageView, lockedPanelIds, lockedTopicIds]);
 
   return (
     <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-4 sm:p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-3 relative select-none">
@@ -784,7 +841,8 @@ export default function MbrStoryIndexPanel({
                         ((currentActive === 'hobbies' || currentActive === 'activities') && topicName.toLowerCase() === 'activities');
 
                       const { icon: IconComponent, colorClass } = getTopicIconDetails(topicName, topicFullName);
-                      const { total: totalCount, published: publishedCount } = getStoryCountsForTopic(topic);
+                      const counts = storyCountsByTopicKey.get(topic.topicId || topicName) || { total: 0, published: 0 };
+                      const { total: totalCount, published: publishedCount } = counts;
 
                       return (
                         <button
@@ -838,6 +896,3 @@ export default function MbrStoryIndexPanel({
 }
 
 export { MbrStoryIndexPanel, MbrStoryIndexPanel as mbrStoryIndexPanel, MbrStoryIndexPanel as SbStoryIndexPanel };
-
-
-

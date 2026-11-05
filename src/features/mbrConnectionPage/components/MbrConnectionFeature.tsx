@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { taskApi, Mbr, GroupGlobal, GroupCustom, MbrConnection, MbrConnectionGrp, MbrContact } from '@/src/services/api.ts';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { 
@@ -31,6 +31,28 @@ import { generateConnectionPdf } from '../utils/generateConnectionPdf';
 const SEARCH_PAGE_SIZE = 5;
 const AUTO_SCROLL_LIMIT = 20;
 
+function resolveInitialMemberIdentity(): { mbrId: string; email: string } {
+  let mbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
+  let email = 'eleanor.vance@storybook.ai';
+  try {
+    const storedMbr = sessionStorage.getItem('sb_current_mbr') || sessionStorage.getItem('mbr');
+    if (storedMbr) {
+      const parsed = JSON.parse(storedMbr);
+      if (parsed?.mbrId) mbrId = parsed.mbrId;
+      if (parsed?.mbrEmailAddress) email = parsed.mbrEmailAddress;
+    }
+    const userStr = sessionStorage.getItem('user');
+    if (userStr) {
+      const u = JSON.parse(userStr);
+      if (u?.email) email = u.email;
+      if (mbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1' && (u?.mbr_id || u?.mbrId)) {
+        mbrId = u.mbr_id || u.mbrId;
+      }
+    }
+  } catch {}
+  return { mbrId, email };
+}
+
 export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyChange, onNavigate, onClickReadStory }: MbrConnectionFeatureProps) {
   // Navigation / View state: 'my-connections' (default) | 'groups' | 'invitations' | 'requests'
   const [activeSection, setActiveSection] = useState<ConnectionSection>('my-connections');
@@ -39,8 +61,8 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const [currentMbrId, setCurrentMbrId] = useState<string>('9edb4311-a4bc-428a-8317-833f0f08fea1');
-  const [mbrEmail, setMbrEmail] = useState<string>('eleanor.vance@storybook.ai');
+  const [currentMbrId, setCurrentMbrId] = useState<string>(() => resolveInitialMemberIdentity().mbrId);
+  const [mbrEmail, setMbrEmail] = useState<string>(() => resolveInitialMemberIdentity().email);
   const [groups, setGroups] = useState<UnifiedGroupOption[]>([]);
   const [items, setItems] = useState<Record<string, MemberConnectionItem>>({});
   const [invitations, setInvitations] = useState<Record<string, MemberInvitationItem>>({});
@@ -135,49 +157,69 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
     setLoading(true);
     setError(null);
     try {
-      // 1. Identify logged-in member ID & email
-      let resolvedMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      let resolvedEmail = 'eleanor.vance@storybook.ai';
+      // 1. Identify logged-in member ID & email (prefer synchronous sessionStorage first)
+      const initialIdentity = resolveInitialMemberIdentity();
+      let resolvedMbrId = initialIdentity.mbrId;
+      let resolvedEmail = initialIdentity.email;
 
-      const userStr = sessionStorage.getItem('user');
-      if (userStr) {
-        try {
-          const u = JSON.parse(userStr);
-          if (u.email) resolvedEmail = u.email;
-          if (!isSandbox) {
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              resolvedMbrId = mbrProfile.mbrId;
-              if (mbrProfile.mbrEmailAddress) resolvedEmail = mbrProfile.mbrEmailAddress;
-            }
-          }
-        } catch {}
-      } else {
-        const storedMbr = sessionStorage.getItem('sb_current_mbr');
-        if (storedMbr) {
+      if (!isSandbox && resolvedMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
+        const userStr = sessionStorage.getItem('user');
+        if (userStr) {
           try {
-            const parsed = JSON.parse(storedMbr);
-            if (parsed.mbrId) resolvedMbrId = parsed.mbrId;
-            if (parsed.mbrEmailAddress) resolvedEmail = parsed.mbrEmailAddress;
+            const u = JSON.parse(userStr);
+            if (u.email) resolvedEmail = u.email;
+            if (u.user_id) {
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+              if (mbrProfile && mbrProfile.mbrId) {
+                resolvedMbrId = mbrProfile.mbrId;
+                if (mbrProfile.mbrEmailAddress) resolvedEmail = mbrProfile.mbrEmailAddress;
+              }
+            }
           } catch {}
         }
       }
       setCurrentMbrId(resolvedMbrId);
       setMbrEmail(resolvedEmail);
 
-      // 2. Fetch Member Connections for this owner
+      // 2-6. Batch-fetch Connections, Connection Groups, Members, Global/Custom Groups, and Contacts in parallel
       let connections: MbrConnection[] = [];
       let connectionGrps: MbrConnectionGrp[] = [];
+      let allMembers: Mbr[] = [];
+      let fetchedGlobals: GroupGlobal[] = [];
+      let fetchedCustoms: GroupCustom[] = [];
+      let rawContacts: MbrContact[] = [];
 
       if (!isSandbox) {
-        try {
-          connections = await taskApi.getMemberConnections({ mbrId: resolvedMbrId });
-          if (connections.length > 0) {
-            connectionGrps = await taskApi.getMemberConnectionGrps();
-          }
-        } catch (e) {
-          console.warn("Error fetching member connections:", e);
+        const [
+          resConnections,
+          resConnGrps,
+          resMembers,
+          resGlobals,
+          resCustoms,
+          recipientContacts,
+          senderContacts
+        ] = await Promise.all([
+          taskApi.getMemberConnections({ mbrId: resolvedMbrId }).catch(() => []),
+          taskApi.getMemberConnectionGrps().catch(() => []),
+          taskApi.getMembers({ viewer_mbr_id: resolvedMbrId, limit: 200 }).catch(() => []),
+          taskApi.getGroupsGlobal().catch(() => []),
+          taskApi.getGroupsCustom(resolvedMbrId).catch(() => []),
+          taskApi.getMemberContactsByRecipient(resolvedMbrId).catch(() => []),
+          taskApi.getMemberContacts(resolvedMbrId).catch(() => [])
+        ]);
+
+        connections = resConnections || [];
+        connectionGrps = resConnGrps || [];
+        allMembers = resMembers || [];
+        fetchedGlobals = resGlobals || [];
+        fetchedCustoms = resCustoms || [];
+
+        const combined = [...(recipientContacts || []), ...(senderContacts || [])];
+        const map = new Map<string, MbrContact>();
+        for (const c of combined) {
+          if (c.mbrContactId) map.set(c.mbrContactId, c);
         }
+        rawContacts = Array.from(map.values());
       } else {
         const savedConns = sessionStorage.getItem(`sandbox_mbr_connections_${resolvedMbrId}`);
         const savedGrps = sessionStorage.getItem(`sandbox_mbr_connection_grps_${resolvedMbrId}`);
@@ -187,17 +229,6 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         if (savedGrps) {
           try { connectionGrps = JSON.parse(savedGrps); } catch {}
         }
-      }
-
-      // 3. Fetch all members
-      let allMembers: Mbr[] = [];
-      if (!isSandbox) {
-        try {
-          allMembers = await taskApi.getMembers();
-        } catch (e) {
-          console.warn("Error fetching all members:", e);
-        }
-      } else {
         allMembers = [
           {
             mbrId: 'e1a2b3c4-1111-4000-8000-000000000001',
@@ -289,18 +320,8 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         connectedMembers = allMembers.filter(m => m.mbrId !== resolvedMbrId);
       }
 
-      // 4. Fetch Global and Custom Groups
-      let fetchedGlobals: GroupGlobal[] = [];
-      let fetchedCustoms: GroupCustom[] = [];
-
-      if (!isSandbox) {
-        try {
-          fetchedGlobals = await taskApi.getGroupsGlobal();
-          fetchedCustoms = await taskApi.getGroupsCustom(resolvedMbrId);
-        } catch (e) {
-          console.warn("Error fetching groups:", e);
-        }
-      } else {
+      // 4. Populate Global and Custom Groups (already fetched in parallel for Live mode)
+      if (isSandbox) {
         fetchedGlobals = [
           { grpId: '00000000-0000-4000-8000-000000000001', grpName: 'Family', grpDescription: 'Immediate and extended family', grpSortOrder: 10 },
           { grpId: '00000000-0000-4000-8000-000000000002', grpName: 'Friends', grpDescription: 'Close friends & peers', grpSortOrder: 20 },
@@ -375,24 +396,8 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
 
       setItems(newItems);
 
-      // 6. Fetch all mbrContact records for Invitations & Requests
-      let rawContacts: MbrContact[] = [];
-      if (!isSandbox) {
-        try {
-          const recipientContacts = await taskApi.getMemberContactsByRecipient(resolvedMbrId).catch(() => []);
-          const senderContacts = await taskApi.getMemberContacts(resolvedMbrId).catch(() => []);
-          const allContacts = await taskApi.getAllMemberContacts().catch(() => []);
-          
-          const combined = [...recipientContacts, ...senderContacts, ...allContacts];
-          const map = new Map<string, MbrContact>();
-          for (const c of combined) {
-            if (c.mbrContactId) map.set(c.mbrContactId, c);
-          }
-          rawContacts = Array.from(map.values());
-        } catch (e) {
-          console.warn("Error fetching member contact invitations/requests:", e);
-        }
-      } else {
+      // 6. Populate Sandbox mbrContact records if in sandbox mode
+      if (isSandbox) {
         const savedContacts = sessionStorage.getItem(`sandbox_mbr_contacts_${resolvedMbrId}`);
         if (savedContacts) {
           try { rawContacts = JSON.parse(savedContacts); } catch {}
@@ -437,18 +442,39 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         }
       }
 
-      // Collect all referenced member IDs for sender/recipient lookup
-      const referencedMbrIds = new Set<string>();
-      for (const c of rawContacts) {
-        if (c.mbrId) referencedMbrIds.add(c.mbrId);
-        if (c.mbrContactMbrId) referencedMbrIds.add(c.mbrContactMbrId);
+      // 7. Filter pending Invitations and pending Outgoing Requests first
+      const pendingInvitations = rawContacts.filter(c => {
+        const isRecipient = c.mbrContactMbrId ? c.mbrContactMbrId === resolvedMbrId : c.mbrId !== resolvedMbrId;
+        const isPending = c.mbrContactResponseInd !== 1;
+        return isRecipient && isPending;
+      });
+
+      const pendingRequests = rawContacts.filter(c => {
+        const isSender = c.mbrId === resolvedMbrId;
+        const isPending = !c.mbrContactResponseInd || c.mbrContactResponseInd === 0;
+        return isSender && isPending;
+      });
+
+      // Pre-populate referencedProfilesMap with already-fetched allMembers to avoid redundant getMemberById calls
+      const referencedProfilesMap = new Map<string, Mbr>();
+      for (const m of allMembers) {
+        if (m && m.mbrId) {
+          referencedProfilesMap.set(m.mbrId, m);
+        }
       }
 
-      const referencedProfilesMap = new Map<string, Mbr>();
-      if (!isSandbox && referencedMbrIds.size > 0) {
-        const idList = Array.from(referencedMbrIds);
-        const profilePromises = idList.map(id => taskApi.getMemberById(id).catch(() => null));
-        const fetchedProfiles = await Promise.all(profilePromises);
+      // Collect only missing member IDs referenced by pending invitations or requests
+      const missingMbrIds = new Set<string>();
+      for (const c of pendingInvitations) {
+        if (c.mbrId && !referencedProfilesMap.has(c.mbrId)) missingMbrIds.add(c.mbrId);
+      }
+      for (const c of pendingRequests) {
+        if (c.mbrContactMbrId && !referencedProfilesMap.has(c.mbrContactMbrId)) missingMbrIds.add(c.mbrContactMbrId);
+      }
+
+      if (!isSandbox && missingMbrIds.size > 0) {
+        const idList = Array.from(missingMbrIds);
+        const fetchedProfiles = await Promise.all(idList.map(id => taskApi.getMemberById(id).catch(() => null)));
         for (const p of fetchedProfiles) {
           if (p && p.mbrId) {
             referencedProfilesMap.set(p.mbrId, p);
@@ -481,16 +507,9 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         }
       };
 
-      // 7. Populate Invitations (Incoming: mbrContactMbrId === resolvedMbrId and mbrContactResponseInd !== 1)
-      const pendingInvitations = rawContacts.filter(c => {
-        const isRecipient = c.mbrContactMbrId ? c.mbrContactMbrId === resolvedMbrId : c.mbrId !== resolvedMbrId;
-        const isPending = c.mbrContactResponseInd !== 1;
-        return isRecipient && isPending;
-      });
-
       const newInvitationsMap: Record<string, MemberInvitationItem> = {};
       for (const contact of pendingInvitations) {
-        const senderProfile = referencedProfilesMap.get(contact.mbrId) || (mockProfiles[contact.mbrId] as Mbr) || {
+        const senderProfile = referencedProfilesMap.get(contact.mbrId) || (isSandbox ? (mockProfiles[contact.mbrId] as Mbr) : null) || {
           mbrId: contact.mbrId,
           mbrFirstName: contact.mbrContactEmail ? contact.mbrContactEmail.split('@')[0] : 'StoryBook',
           mbrLastName: 'Member',
@@ -506,17 +525,10 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
       }
       setInvitations(newInvitationsMap);
 
-      // 8. Populate Requests (Outgoing: mbrId === resolvedMbrId and mbrContactResponseInd === 0 or null)
-      const pendingRequests = rawContacts.filter(c => {
-        const isSender = c.mbrId === resolvedMbrId;
-        const isPending = !c.mbrContactResponseInd || c.mbrContactResponseInd === 0;
-        return isSender && isPending;
-      });
-
       const newRequestsMap: Record<string, MemberRequestItem> = {};
       for (const contact of pendingRequests) {
         const targetMbrId = contact.mbrContactMbrId || '';
-        const targetProfile = referencedProfilesMap.get(targetMbrId) || (mockProfiles[targetMbrId] as Mbr) || {
+        const targetProfile = referencedProfilesMap.get(targetMbrId) || (isSandbox ? (mockProfiles[targetMbrId] as Mbr) : null) || {
           mbrId: targetMbrId,
           mbrFirstName: 'StoryBook',
           mbrLastName: 'Member',
@@ -979,17 +991,26 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
     return map;
   }, [items, groups, isMemberInNonPublicGroup]);
 
-  // Debounced member search for "My Connections" section
+  const prevMbrSearchQueryRef = useRef(mbrSearchQuery);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  const connectionsMapRef = useRef(connectionsMap);
+  connectionsMapRef.current = connectionsMap;
+
+  // Member search for "My Connections" section (0ms on mount/toggle, 350ms debounce when typing)
   useEffect(() => {
     let isMounted = true;
+    const controller = new AbortController();
+    const isQueryChange = mbrSearchQuery !== prevMbrSearchQueryRef.current;
+    prevMbrSearchQueryRef.current = mbrSearchQuery;
+
     setSearchLoading(true);
 
-    const timer = setTimeout(async () => {
+    const runSearch = async () => {
       try {
         const queryTrimmed = mbrSearchQuery.trim();
         // Guardrail: single-character searches are deferred until at least 2 characters are entered
         const effectiveQuery = queryTrimmed.length === 1 ? undefined : (queryTrimmed || undefined);
-        const fetchLimit = connectionsOnly ? 200 : SEARCH_PAGE_SIZE;
 
         let result: any[] = [];
         if (!isSandbox) {
@@ -1000,11 +1021,13 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             proximity_lng: userLocation?.longitude,
             public_only: true,
             viewer_mbr_id: currentMbrId || undefined,
-            limit: fetchLimit,
-            skip: 0
+            connected_only: connectionsOnly,
+            limit: SEARCH_PAGE_SIZE,
+            skip: 0,
+            signal: controller.signal
           });
         } else {
-          result = (Object.values(items) as any[]).map((i: any) => i.member);
+          result = (Object.values(itemsRef.current) as any[]).map((i: any) => i.member);
         }
 
         if (isMounted) {
@@ -1015,10 +1038,11 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             uniqueList = uniqueList.filter((m: any) => (m.mbrId || m.id) !== currentMbrId);
           }
 
-          if (connectionsOnly) {
+          if (isSandbox && connectionsOnly) {
+            const cMap = connectionsMapRef.current;
             uniqueList = uniqueList.filter((m: any) => {
               const targetId = m.mbrId || m.id;
-              return connectionsMap.has(targetId) && connectionsMap.get(targetId)?.isConnected === true;
+              return cMap.has(targetId) && cMap.get(targetId)?.isConnected === true;
             });
             setSearchMembers(uniqueList);
             setSearchHasMore(false);
@@ -1027,7 +1051,8 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             setSearchHasMore((result || []).length === SEARCH_PAGE_SIZE);
           }
         }
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
         console.error("Failed to search members:", err);
         if (isMounted) {
           setSearchMembers([]);
@@ -1038,16 +1063,23 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           setSearchLoading(false);
         }
       }
-    }, 350);
+    };
+
+    const delayMs = isQueryChange ? 350 : 0;
+    const timer = delayMs > 0 ? setTimeout(runSearch, delayMs) : null;
+    if (delayMs === 0) {
+      runSearch();
+    }
 
     return () => {
       isMounted = false;
-      clearTimeout(timer);
+      controller.abort();
+      if (timer) clearTimeout(timer);
     };
-  }, [mbrSearchQuery, connectionsOnly, userLocation, connectionsMap, currentMbrId, isSandbox, items]);
+  }, [mbrSearchQuery, connectionsOnly, userLocation?.label, userLocation?.latitude, userLocation?.longitude, currentMbrId, isSandbox]);
 
   const handleLoadMoreSearchMembers = useCallback(async () => {
-    if (searchLoading || searchLoadingMore || !searchHasMore || connectionsOnly) return;
+    if (searchLoading || searchLoadingMore || !searchHasMore) return;
     setSearchLoadingMore(true);
     try {
       const queryTrimmed = mbrSearchQuery.trim();
@@ -1060,6 +1092,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         proximity_lng: userLocation?.longitude,
         public_only: true,
         viewer_mbr_id: currentMbrId || undefined,
+        connected_only: connectionsOnly,
         limit: SEARCH_PAGE_SIZE,
         skip: currentSkip
       });
@@ -1088,7 +1121,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   useEffect(() => {
     const handleScroll = () => {
       if (activeSection !== 'my-connections') return;
-      if (searchLoading || searchLoadingMore || !searchHasMore || connectionsOnly) return;
+      if (searchLoading || searchLoadingMore || !searchHasMore) return;
       if (searchMembers.length >= AUTO_SCROLL_LIMIT) return;
 
       const scrollPosition = window.innerHeight + window.scrollY;

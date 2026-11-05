@@ -207,6 +207,30 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
   }
 ];
 
+function getSyncViewerId(): string {
+  try {
+    const storedMbr = sessionStorage.getItem('sb_current_mbr');
+    if (storedMbr) {
+      const parsed = JSON.parse(storedMbr);
+      if (parsed?.mbrId) return parsed.mbrId;
+    }
+  } catch {}
+  return 'e20986fa-0fb9-4081-ae5d-35bc8f504df0';
+}
+
+function getFeedCacheKey(isSandbox: boolean, viewerId?: string | null): string {
+  const id = viewerId || getSyncViewerId();
+  return `sb_cached_feed_stories_${isSandbox ? 'sbx' : 'live'}_${id}`;
+}
+
+function computeStoryPublishedTs(s: any): number {
+  if (typeof s?.publishedTs === 'number') return s.publishedTs;
+  const raw = s?.mbrStoryPublishDt || s?.mbrStoryPublishedDate || s?.mbrStoryCreatedAt || 0;
+  if (!raw) return 0;
+  const t = new Date(raw).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
 export default function SbMbrStoryFeedPageFeature({
   isSandbox = true,
   onClickReadStory,
@@ -215,7 +239,7 @@ export default function SbMbrStoryFeedPageFeature({
 }: SbMbrStoryFeedPageFeatureProps) {
   const [allStories, setAllStories] = useState<FeedStoryItem[]>(() => {
     try {
-      const cached = sessionStorage.getItem('sb_cached_feed_stories');
+      const cached = sessionStorage.getItem(getFeedCacheKey(isSandbox));
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
@@ -262,7 +286,7 @@ export default function SbMbrStoryFeedPageFeature({
   }, []);
   const [loading, setLoading] = useState<boolean>(() => {
     try {
-      const cached = sessionStorage.getItem('sb_cached_feed_stories');
+      const cached = sessionStorage.getItem(getFeedCacheKey(isSandbox));
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) return false;
@@ -363,13 +387,11 @@ export default function SbMbrStoryFeedPageFeature({
           } catch {}
 
           // Exclude stories where author is the viewer themselves
-          const filtered = sandboxStories.filter(s => s.authorMbrId !== resolvedViewerId);
+          const filtered = sandboxStories
+            .filter(s => s.authorMbrId !== resolvedViewerId)
+            .map(s => ({ ...s, publishedTs: computeStoryPublishedTs(s) }));
           // Sort by published date descending
-          const sorted = [...filtered].sort((a, b) => {
-            const dateA = new Date(a.mbrStoryPublishedDate || a.mbrStoryCreatedAt || 0).getTime();
-            const dateB = new Date(b.mbrStoryPublishedDate || b.mbrStoryCreatedAt || 0).getTime();
-            return dateB - dateA;
-          });
+          const sorted = [...filtered].sort((a, b) => (b.publishedTs || 0) - (a.publishedTs || 0));
 
           // Distinct connection groups count
           const uniqueCircles = new Set(sorted.map(s => s.connectionGrpName).filter(Boolean)).size;
@@ -379,14 +401,53 @@ export default function SbMbrStoryFeedPageFeature({
             setConnectedCirclesCount(uniqueCircles || 3);
             setVisibleCount(PAGE_SIZE);
             try {
-              sessionStorage.setItem('sb_cached_feed_stories', JSON.stringify(sorted));
+              sessionStorage.setItem(getFeedCacheKey(true, resolvedViewerId), JSON.stringify(sorted));
             } catch {}
           }
           return;
         }
 
         // Live DB Mode:
-        // 2. Fetch all required datasets in ONE single parallel batch (Zero N+1 waterfalls!)
+        // Fast Path: Single pre-aggregated backend feed request (eliminates 11 table dumps + 2 waterfalls + 20 per-card requests)
+        try {
+          const feedResp = await taskApi.getMemberStoryFeed(resolvedViewerId, 200);
+          if (feedResp && Array.isArray(feedResp.stories)) {
+            if (isCancelled) return;
+
+            const loadedReadSet = new Set<string>(
+              Array.isArray(feedResp.readStoryIds) ? feedResp.readStoryIds : []
+            );
+            try {
+              const raw = sessionStorage.getItem('sb_read_stories');
+              if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed)) {
+                  parsed.forEach((id: string) => loadedReadSet.add(id));
+                }
+              }
+            } catch {}
+            setReadStoryIds(loadedReadSet);
+
+            const hydratedStories: FeedStoryItem[] = feedResp.stories.map((s: any) => ({
+              ...s,
+              authorAvatarUrl: s.authorAvatarUrl ? resolveMediaUrl(s.authorAvatarUrl) : undefined,
+              publishedTs: computeStoryPublishedTs(s)
+            }));
+            hydratedStories.sort((a, b) => (b.publishedTs || 0) - (a.publishedTs || 0));
+
+            setAllStories(hydratedStories);
+            setConnectedCirclesCount(feedResp.connectedCirclesCount || 0);
+            setVisibleCount(PAGE_SIZE);
+            try {
+              sessionStorage.setItem(getFeedCacheKey(false, resolvedViewerId), JSON.stringify(hydratedStories));
+            } catch {}
+            return;
+          }
+        } catch (fastFeedErr) {
+          console.warn('Fast feed endpoint unavailable, falling back to client-side feed assembly:', fastFeedErr);
+        }
+
+        // Fallback client-side assembly:
         const [
           viewerConns,
           authorConns,
@@ -500,7 +561,7 @@ export default function SbMbrStoryFeedPageFeature({
         let extraConnStories: any[] = [];
         if (missingConnStoryIds.length > 0) {
           const fetched = await Promise.all(
-            missingConnStoryIds.map(id => taskApi.getStoryById(id, resolvedViewerId).catch(() => null))
+            missingConnStoryIds.map(id => taskApi.getStoryById(id).catch(() => null))
           );
           extraConnStories = fetched.filter((s): s is any => Boolean(s && s.mbrStoryId));
         }
@@ -604,13 +665,6 @@ export default function SbMbrStoryFeedPageFeature({
 
           const storyPrivs = story.mbrStoryId ? (privsByStoryId.get(story.mbrStoryId) || []) : [];
 
-          // Evaluate story-level group privileges AND member connection privileges:
-          // A story is visible IF:
-          // a) The viewer has privs through mbrStoryGroupPrivs (via assigned connection groups)
-          // OR
-          // b) The story has granted access to the Public group in mbrStoryGroupPrivs
-          // OR
-          // c) The story granted individual member access to the logged-in member in mbrStoryConnectionPrivs (mbrConnectionMbrId === resolvedViewerId)
           let hasAccess = false;
 
           // 1. Check if viewer has access through assigned connection groups in mbrStoryGroupPrivs
@@ -687,7 +741,7 @@ export default function SbMbrStoryFeedPageFeature({
             normalizeTopicKey(t.topicName) === normStoryTopic
           );
 
-          feedItems.push({
+          const item: FeedStoryItem = {
             mbrStoryId: story.mbrStoryId,
             mbrStoryTitle: story.mbrStoryTitle,
             mbrStoryContent: story.mbrStoryContent,
@@ -708,18 +762,16 @@ export default function SbMbrStoryFeedPageFeature({
             authorInitials,
             connectionGrpName: displayedConnectionGrpName,
             isConnection,
-            isDirectShared: hasDirectMemberPriv
-          });
+            isDirectShared: hasDirectMemberPriv,
+            publishedTs: computeStoryPublishedTs(story)
+          };
+          feedItems.push(item);
         }
 
         if (isCancelled) return;
 
         // Sort all feed items by published date descending
-        const sortedFeed = feedItems.sort((a, b) => {
-          const dateA = new Date(a.mbrStoryPublishedDate || a.mbrStoryCreatedAt || 0).getTime();
-          const dateB = new Date(b.mbrStoryPublishedDate || b.mbrStoryCreatedAt || 0).getTime();
-          return dateB - dateA;
-        });
+        const sortedFeed = feedItems.sort((a, b) => (b.publishedTs || 0) - (a.publishedTs || 0));
 
         const uniqueCircles = new Set(sortedFeed.map(s => s.connectionGrpName).filter(Boolean)).size;
 
@@ -727,7 +779,7 @@ export default function SbMbrStoryFeedPageFeature({
         setConnectedCirclesCount(uniqueCircles || 0);
         setVisibleCount(PAGE_SIZE);
         try {
-          sessionStorage.setItem('sb_cached_feed_stories', JSON.stringify(sortedFeed));
+          sessionStorage.setItem(getFeedCacheKey(false, resolvedViewerId), JSON.stringify(sortedFeed));
         } catch {}
 
       } catch (err) {
@@ -826,9 +878,7 @@ export default function SbMbrStoryFeedPageFeature({
           return aRead - bRead; // 0 (unread) before 1 (read)
         }
         // Preserve chronological sort (newest published first)
-        const aTime = new Date(a.mbrStoryPublishDt || a.mbrStoryPublishedDate || a.mbrStoryCreatedAt || 0).getTime();
-        const bTime = new Date(b.mbrStoryPublishDt || b.mbrStoryPublishedDate || b.mbrStoryCreatedAt || 0).getTime();
-        return bTime - aTime;
+        return computeStoryPublishedTs(b) - computeStoryPublishedTs(a);
       });
 
       return {

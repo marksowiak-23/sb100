@@ -182,17 +182,26 @@ export default function SbStoryPageFeature({
         }
 
         if (!loadedStory) {
-          // Check sandbox fallback if DB empty
-          const mock = (storyId && SANDBOX_STORIES[storyId]) || Object.values(SANDBOX_STORIES)[0];
+          if (isSandbox) {
+            // Check sandbox mock stories when explicitly running in sandbox mode
+            const mock = (storyId && SANDBOX_STORIES[storyId]) || Object.values(SANDBOX_STORIES)[0];
+            if (!isCancelled) {
+              setStory(mock);
+              setAuthorProfile({
+                mbrFirstName: mock.authorName.split(' ')[0],
+                mbrLastName: mock.authorName.split(' ')[1] || '',
+                mbrLivesCityState: mock.authorLocation,
+                mbrProfilePic: mock.authorAvatarUrl
+              });
+              setConnectionGrpName(mock.connectionGrpName || 'Connected');
+              setIsLoading(false);
+            }
+            return;
+          }
+
+          // Live DB Mode: Story not found in database
           if (!isCancelled) {
-            setStory(mock);
-            setAuthorProfile({
-              mbrFirstName: mock.authorName.split(' ')[0],
-              mbrLastName: mock.authorName.split(' ')[1] || '',
-              mbrLivesCityState: mock.authorLocation,
-              mbrProfilePic: mock.authorAvatarUrl
-            });
-            setConnectionGrpName(mock.connectionGrpName || 'Connected');
+            setStory(null);
             setIsLoading(false);
           }
           return;

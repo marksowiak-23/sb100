@@ -13,56 +13,120 @@ interface SbPersonalTriviaCardProps {
   onClickAuthorPage?: (initialPrompt?: string, section?: string, trivia?: any) => void;
 }
 
+const DAILY_TRIVIA_TTL_MS = 15 * 60 * 1000; // 15 minutes in-memory freshness before background check
+const dailyTriviaMemoryCache = new Map<string, { data: MbrPersonalTrivia; fetchedAt: number }>();
+const historyMemoryCache = new Map<string, MbrPersonalTrivia[]>();
+const inFlightDailyPromises = new Map<string, Promise<MbrPersonalTrivia>>();
+
+function getCachedDailyTrivia(mbrId: string | null): MbrPersonalTrivia | null {
+  if (!mbrId) return null;
+  const mem = dailyTriviaMemoryCache.get(mbrId);
+  if (mem) return mem.data;
+  try {
+    const raw = sessionStorage.getItem(`sb_daily_trivia_${mbrId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw) as MbrPersonalTrivia;
+      if (parsed && parsed.mbrTriviaId) {
+        dailyTriviaMemoryCache.set(mbrId, { data: parsed, fetchedAt: Date.now() });
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignore storage read errors
+  }
+  return null;
+}
+
+function setCachedDailyTrivia(mbrId: string, data: MbrPersonalTrivia) {
+  dailyTriviaMemoryCache.set(mbrId, { data, fetchedAt: Date.now() });
+  try {
+    sessionStorage.setItem(`sb_daily_trivia_${mbrId}`, JSON.stringify(data));
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
 export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTriviaCardProps) {
-  const [trivia, setTrivia] = useState<MbrPersonalTrivia | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [activeMbrId, setActiveMbrId] = useState<string | null>(() => {
+    const storedMbr = userManager.getStoredMember();
+    return storedMbr?.mbrId || null;
+  });
+  const [trivia, setTrivia] = useState<MbrPersonalTrivia | null>(() => getCachedDailyTrivia(activeMbrId));
+  const [loading, setLoading] = useState<boolean>(() => !getCachedDailyTrivia(activeMbrId));
   const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
-  const [historyItems, setHistoryItems] = useState<MbrPersonalTrivia[]>([]);
+  const [historyItems, setHistoryItems] = useState<MbrPersonalTrivia[]>(() =>
+    (activeMbrId && historyMemoryCache.get(activeMbrId)) || []
+  );
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
-  const [activeMbrId, setActiveMbrId] = useState<string | null>(null);
 
-  // Determine active member ID on mount
+  // Fallback resolution if activeMbrId wasn't synchronously in storage on mount
   useEffect(() => {
+    if (activeMbrId) return;
+    let isMounted = true;
     const resolveMemberId = async () => {
-      const storedMbr = userManager.getStoredMember();
-      if (storedMbr?.mbrId) {
-        setActiveMbrId(storedMbr.mbrId);
-        return;
-      }
-      // Fallback: check session user
       try {
         const res = await userManager.getCurrentUser();
+        if (!isMounted) return;
         if (res.success && res.member?.mbrId) {
           setActiveMbrId(res.member.mbrId);
         } else {
           setLoading(false);
         }
       } catch {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     resolveMemberId();
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [activeMbrId]);
 
   // Load today's or latest daily trivia once activeMbrId is known
   useEffect(() => {
     if (!activeMbrId) return;
 
     let isMounted = true;
+    const memEntry = dailyTriviaMemoryCache.get(activeMbrId);
+    const cached = getCachedDailyTrivia(activeMbrId);
+
+    if (cached) {
+      setTrivia(cached);
+      setLoading(false);
+      // Skip network request if recently fetched within TTL
+      if (memEntry && Date.now() - memEntry.fetchedAt < DAILY_TRIVIA_TTL_MS) {
+        return;
+      }
+    }
+
     const fetchTrivia = async () => {
       try {
-        setLoading(true);
+        if (!cached) {
+          setLoading(true);
+        }
         setError(null);
-        const data = await mbrPersonalTriviaApi.getDailyTrivia(activeMbrId);
+
+        let promise = inFlightDailyPromises.get(activeMbrId);
+        if (!promise) {
+          promise = mbrPersonalTriviaApi.getDailyTrivia(activeMbrId).finally(() => {
+            inFlightDailyPromises.delete(activeMbrId);
+          });
+          inFlightDailyPromises.set(activeMbrId, promise);
+        }
+
+        const data = await promise;
+        if (data) {
+          setCachedDailyTrivia(activeMbrId, data);
+        }
         if (isMounted) {
           setTrivia(data);
         }
       } catch (err: any) {
         console.warn('Could not load daily trivia:', err);
-        if (isMounted) {
+        if (isMounted && !cached) {
           setError('Unable to load personalized trivia.');
         }
       } finally {
@@ -86,6 +150,18 @@ export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTr
       setError(null);
       const newTrivia = await mbrPersonalTriviaApi.generateNewTrivia(activeMbrId);
       setTrivia(newTrivia);
+      setCachedDailyTrivia(activeMbrId, newTrivia);
+
+      // Update cached history if present so History modal stays fresh without an extra request
+      const existingHistory = historyMemoryCache.get(activeMbrId);
+      if (existingHistory) {
+        const updatedHistory = [
+          newTrivia,
+          ...existingHistory.filter((item) => item.mbrTriviaId !== newTrivia.mbrTriviaId),
+        ].slice(0, 30);
+        historyMemoryCache.set(activeMbrId, updatedHistory);
+        setHistoryItems(updatedHistory);
+      }
     } catch (err: any) {
       console.error('Failed to generate new trivia:', err);
       setError('Could not generate a new fact right now. Please try again.');
@@ -94,24 +170,59 @@ export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTr
     }
   };
 
-  // Handle favorite toggle
+  // Handle favorite toggle with optimistic UI update
   const handleToggleFavorite = async () => {
     if (!trivia) return;
+    const previousTrivia = trivia;
+    const optimisticTrivia: MbrPersonalTrivia = {
+      ...trivia,
+      isFavorite: !trivia.isFavorite,
+    };
+
+    setTrivia(optimisticTrivia);
+    if (activeMbrId) {
+      setCachedDailyTrivia(activeMbrId, optimisticTrivia);
+      const existingHistory = historyMemoryCache.get(activeMbrId);
+      if (existingHistory) {
+        const updatedHistory = existingHistory.map((item) =>
+          item.mbrTriviaId === optimisticTrivia.mbrTriviaId ? optimisticTrivia : item
+        );
+        historyMemoryCache.set(activeMbrId, updatedHistory);
+        setHistoryItems(updatedHistory);
+      }
+    }
+
     try {
       const updated = await mbrPersonalTriviaApi.toggleTriviaFavorite(trivia.mbrTriviaId);
       setTrivia(updated);
+      if (activeMbrId) {
+        setCachedDailyTrivia(activeMbrId, updated);
+      }
     } catch (err) {
       console.error('Failed to toggle favorite:', err);
+      // Rollback optimistic update on failure
+      setTrivia(previousTrivia);
+      if (activeMbrId) {
+        setCachedDailyTrivia(activeMbrId, previousTrivia);
+      }
     }
   };
 
-  // Open history modal and fetch past trivia
+  // Open history modal and fetch past trivia (serving cached items immediately if available)
   const handleOpenHistory = async () => {
     setShowHistoryModal(true);
     if (!activeMbrId) return;
+
+    const cachedHistory = historyMemoryCache.get(activeMbrId);
+    if (cachedHistory && cachedHistory.length > 0) {
+      setHistoryItems(cachedHistory);
+      return;
+    }
+
     try {
       setLoadingHistory(true);
       const items = await mbrPersonalTriviaApi.getTriviaHistory(activeMbrId, { limit: 30 });
+      historyMemoryCache.set(activeMbrId, items);
       setHistoryItems(items);
     } catch (err) {
       console.error('Failed to fetch trivia history:', err);
@@ -395,6 +506,9 @@ export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTr
                       <button
                         onClick={() => {
                           setTrivia(item);
+                          if (activeMbrId) {
+                            setCachedDailyTrivia(activeMbrId, item);
+                          }
                           setShowHistoryModal(false);
                         }}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
