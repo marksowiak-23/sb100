@@ -711,6 +711,10 @@ export default function StoryPageStoryPanel({
     }
 
     for (const m of storyMedia) {
+      const isAudio =
+        (m.mbrMediaMimeType && m.mbrMediaMimeType.toLowerCase().startsWith('audio/')) ||
+        (m.mbrMediaOriginalFilename && (m.mbrMediaOriginalFilename.toLowerCase().endsWith('.mp3') || m.mbrMediaOriginalFilename.toLowerCase().endsWith('.wav')));
+      if (isAudio) continue;
       const u = m.mbrMediaPath || (m as any).mbrMediaUrl || '';
       if (u && !seenUrls.has(u)) {
         seenUrls.add(u);
@@ -1090,17 +1094,29 @@ export default function StoryPageStoryPanel({
         {storyTitle}
       </h1>
 
-      {/* Story Metadata: Date Published & Estimated Read / Word Count */}
-      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mb-6 flex-wrap">
-        <span className="flex items-center gap-1">
-          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-          {formattedDate}
-        </span>
-        <span>•</span>
-        <span className="flex items-center gap-1">
-          <Clock className="w-3.5 h-3.5 text-slate-400" />
-          {readTimeMinutes} min read ({wordCount} words)
-        </span>
+      {/* Story Metadata: Date Published & Estimated Read / Word Count + Play Story Narration */}
+      <div className="flex items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400 mb-6 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            {formattedDate}
+          </span>
+          <span>•</span>
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            {readTimeMinutes} min read ({wordCount} words)
+          </span>
+        </div>
+
+        {layoutInfo.cleanContent && (
+          <StoryAudioPlayer
+            text={`${storyTitle}. ${layoutInfo.cleanContent}`}
+            storyId={storyId || storyTitle}
+            title={storyTitle}
+            variant="inline-button"
+            authorMbrId={authorMbrId || undefined}
+          />
+        )}
       </div>
 
       {/* Photo Layout: Hero Banner Style */}
@@ -1246,18 +1262,6 @@ export default function StoryPageStoryPanel({
               "{paragraphs[0] || layoutInfo.cleanContent.slice(0, 240)}..."
             </p>
           </div>
-        </div>
-      )}
-
-      {/* Audiobook Narration Player */}
-      {layoutInfo.cleanContent && (
-        <div className="mb-8">
-          <StoryAudioPlayer
-            text={`${storyTitle}. ${layoutInfo.cleanContent}`}
-            storyId={storyTitle}
-            title={storyTitle}
-            variant="full"
-          />
         </div>
       )}
 

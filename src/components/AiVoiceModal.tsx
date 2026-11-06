@@ -458,7 +458,10 @@ export default function AiVoiceModal({
 
     // 1. Try playing neural TTS sample from sb-api-ai so the Sample matches the generated voice 100%
     try {
-      let cachedUrl = sampleAudioCacheRef.current[voiceId];
+      const sampleCacheKey = isPersonalClone
+        ? `${voiceId}:${personalVoiceProfile?.vertexVoiceCloningKey || ''}:${personalVoiceProfile?.voiceUpdatedAt || ''}`
+        : voiceId;
+      let cachedUrl = sampleAudioCacheRef.current[sampleCacheKey];
       if (!cachedUrl) {
         const res = await textToSpeechApi.synthesize({
           text: sampleText,
@@ -467,12 +470,36 @@ export default function AiVoiceModal({
           persona: profile.name,
           is_cloned_voice: Boolean(isPersonalClone),
           voice_cloning_key: isPersonalClone ? personalVoiceProfile?.vertexVoiceCloningKey || null : null,
+          sample_audio_url:
+            isPersonalClone && personalVoiceProfile?.sampleAudioPath
+              ? resolveMediaUrl(personalVoiceProfile.sampleAudioPath)
+              : null,
           acoustic_profile: isPersonalClone ? (personalVoiceProfile?.acousticProfileJson as Record<string, any>) || null : null,
         });
+        if (
+          isPersonalClone &&
+          personalVoiceProfile &&
+          res.voice_cloning_key &&
+          res.voice_cloning_key !== personalVoiceProfile.vertexVoiceCloningKey
+        ) {
+          const upgraded = {
+            ...personalVoiceProfile,
+            vertexVoiceCloningKey: res.voice_cloning_key,
+          };
+          setPersonalVoiceProfile(upgraded);
+          sessionStorage.setItem(`sb_voice_profile_${mbrId || 'sandbox-mbr'}`, JSON.stringify(upgraded));
+          if (!isSandbox && mbrId && personalVoiceProfile.mbrVoiceProfileId) {
+            mbrVoiceProfileApi
+              .updateMemberVoiceProfile(personalVoiceProfile.mbrVoiceProfileId, {
+                vertexVoiceCloningKey: res.voice_cloning_key,
+              })
+              .catch(() => {});
+          }
+        }
         if (res.audio_base64) {
           const blob = base64ToBlob(res.audio_base64, res.mime_type || 'audio/wav');
           cachedUrl = URL.createObjectURL(blob);
-          sampleAudioCacheRef.current[voiceId] = cachedUrl;
+          sampleAudioCacheRef.current[sampleCacheKey] = cachedUrl;
         }
       }
 
@@ -617,6 +644,10 @@ export default function AiVoiceModal({
         speed: selectedSpeed,
         is_cloned_voice: Boolean(isPersonalClone),
         voice_cloning_key: isPersonalClone ? personalVoiceProfile?.vertexVoiceCloningKey || null : null,
+        sample_audio_url:
+          isPersonalClone && personalVoiceProfile?.sampleAudioPath
+            ? resolveMediaUrl(personalVoiceProfile.sampleAudioPath)
+            : null,
         acoustic_profile: isPersonalClone ? (personalVoiceProfile?.acousticProfileJson as Record<string, any>) || null : null,
       }).catch((e) => {
         console.warn('FastAPI TTS endpoint call note (using fallback synthesizer):', e);
@@ -626,6 +657,7 @@ export default function AiVoiceModal({
           estimated_duration_seconds: estimatedSeconds,
           voice: selectedVoice,
           persona: activeProfile.name,
+          voice_cloning_key: null,
           audio_format: 'wav',
           mime_type: 'audio/wav',
           audio_base64: null,
@@ -635,6 +667,27 @@ export default function AiVoiceModal({
           message: 'Synthesized via AI Voice Studio'
         };
       });
+
+      if (
+        isPersonalClone &&
+        personalVoiceProfile &&
+        ttsResult.voice_cloning_key &&
+        ttsResult.voice_cloning_key !== personalVoiceProfile.vertexVoiceCloningKey
+      ) {
+        const upgraded = {
+          ...personalVoiceProfile,
+          vertexVoiceCloningKey: ttsResult.voice_cloning_key,
+        };
+        setPersonalVoiceProfile(upgraded);
+        sessionStorage.setItem(`sb_voice_profile_${mbrId || 'sandbox-mbr'}`, JSON.stringify(upgraded));
+        if (!isSandbox && mbrId && personalVoiceProfile.mbrVoiceProfileId) {
+          mbrVoiceProfileApi
+            .updateMemberVoiceProfile(personalVoiceProfile.mbrVoiceProfileId, {
+              vertexVoiceCloningKey: ttsResult.voice_cloning_key,
+            })
+            .catch(() => {});
+        }
+      }
 
       const latencyMs = Math.max(10, Math.round(performance.now() - startTime));
 

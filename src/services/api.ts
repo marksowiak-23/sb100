@@ -2438,6 +2438,120 @@ export const taskApi = {
   /**
    * Fetch member story group privilege records.
    */
+  async getMemberAlbumGroupPrivs(params?: { mbrId?: string; albumId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrAlbumGroupPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.albumId) searchParams.append('album_id', params.albumId);
+    if (params?.grpId) searchParams.append('grp_id', params.grpId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-album-group-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrAlbumGroupPrivs[]>(response);
+  },
+
+  async createMemberAlbumGroupPriv(priv: Partial<MbrAlbumGroupPrivs>): Promise<MbrAlbumGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-album-group-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrAlbumGroupPrivs>(response);
+  },
+
+  async updateMemberAlbumGroupPriv(privId: string, priv: Partial<MbrAlbumGroupPrivs>): Promise<MbrAlbumGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-album-group-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrAlbumGroupPrivs>(response);
+  },
+
+  async deleteMemberAlbumGroupPriv(privId: string): Promise<MbrAlbumGroupPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-album-group-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrAlbumGroupPrivs>(response);
+  },
+
+  async getMemberAlbumConnectionPrivs(params?: { mbrId?: string; albumId?: string; mbrConnectionMbrId?: string; limit?: number; skip?: number }): Promise<MbrAlbumConnectionPrivs[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.albumId) searchParams.append('album_id', params.albumId);
+    if (params?.mbrConnectionMbrId) searchParams.append('mbr_connection_mbr_id', params.mbrConnectionMbrId);
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-album-connection-privs${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrAlbumConnectionPrivs[]>(response);
+  },
+
+  async createMemberAlbumConnectionPriv(priv: Partial<MbrAlbumConnectionPrivs>): Promise<MbrAlbumConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-album-connection-privs`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrAlbumConnectionPrivs>(response);
+  },
+
+  async updateMemberAlbumConnectionPriv(privId: string, priv: Partial<MbrAlbumConnectionPrivs>): Promise<MbrAlbumConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-album-connection-privs/${privId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(priv),
+    });
+    return handleResponse<MbrAlbumConnectionPrivs>(response);
+  },
+
+  async deleteMemberAlbumConnectionPriv(privId: string): Promise<MbrAlbumConnectionPrivs> {
+    const response = await fetch(`${API_BASE_URL}/mbr-album-connection-privs/${privId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<MbrAlbumConnectionPrivs>(response);
+  },
+
   async getMemberStoryGroupPrivs(params?: { mbrId?: string; mbrStoryId?: string; grpId?: string; limit?: number; skip?: number }): Promise<MbrStoryGroupPrivs[]> {
     const searchParams = new URLSearchParams();
     if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
@@ -5509,6 +5623,7 @@ export interface TTSSynthesizePayload {
   is_cloned_voice?: boolean;
   voice_cloning_key?: string | null;
   reference_audio_base64?: string | null;
+  sample_audio_url?: string | null;
   acoustic_profile?: Record<string, any> | null;
 }
 
@@ -5518,6 +5633,7 @@ export interface TTSSynthesizeResponse {
   estimated_duration_seconds: number;
   voice: string;
   persona: string;
+  voice_cloning_key?: string | null;
   audio_format: string;
   mime_type?: string;
   audio_base64?: string | null;
@@ -6002,6 +6118,25 @@ export interface MbrAlbumPhoto {
   mbrMediaPath?: string;
   mbrMediaOriginalFilename?: string;
   mbrMediaMimeType?: string;
+}
+
+export interface MbrAlbumGroupPrivs {
+  privId: string;
+  albumId: string;
+  grpId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
+}
+
+export interface MbrAlbumConnectionPrivs {
+  privId: string;
+  mbrId: string;
+  albumId: string;
+  mbrConnectionMbrId: string;
+  privValueCd: string;
+  privCreatedAt?: string;
+  privUpdatedAt?: string;
 }
 
 export interface MbrVoiceProfile {

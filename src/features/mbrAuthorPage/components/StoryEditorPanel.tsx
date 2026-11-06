@@ -1001,27 +1001,53 @@ export default function StoryEditorPanel({
   const [authorLocation, setAuthorLocation] = useState<string | undefined>(undefined);
 
   useEffect(() => {
+    let isCancelled = false;
     const resolveAuthorInfo = async () => {
       try {
-        const storedMbr = sessionStorage.getItem('mbr') || sessionStorage.getItem('sandbox_mbr');
-        if (storedMbr) {
-          const m = JSON.parse(storedMbr);
-          const fullName = `${m.mbrFirstName || ''} ${m.mbrLastName || ''}`.trim();
-          if (fullName) setAuthorName(fullName);
-          if (m.mbrLivesCityState || m.mbrFromCityState) {
-            setAuthorLocation(m.mbrLivesCityState || m.mbrFromCityState);
+        const targetAuthorMbrId =
+          activeStory?.mbrMbrId ||
+          (activeStory as any)?.mbrId ||
+          (memberId && memberId !== 'm1' ? memberId : null) ||
+          resolvedMbrId;
+
+        if (targetAuthorMbrId && isUuid(targetAuthorMbrId)) {
+          const m = await taskApi.getMemberById(targetAuthorMbrId).catch(() => null);
+          if (isCancelled) return;
+          if (m) {
+            const fullName = `${m.mbrFirstName || ''} ${m.mbrLastName || ''}`.trim();
+            if (fullName) setAuthorName(fullName);
+            setAuthorLocation(m.mbrLivesCityState || m.mbrFromCityState || undefined);
+            return;
           }
         }
-        const userStr = sessionStorage.getItem('user');
-        if (userStr) {
-          const u = JSON.parse(userStr);
-          if (u.user_id) {
-            const m = await taskApi.getMemberByUserId(u.user_id).catch(() => null);
-            if (m) {
-              const fullName = `${m.mbrFirstName || ''} ${m.mbrLastName || ''}`.trim();
-              if (fullName) setAuthorName(fullName);
-              if (m.mbrLivesCityState || m.mbrFromCityState) {
-                setAuthorLocation(m.mbrLivesCityState || m.mbrFromCityState);
+
+        const storedMbr =
+          sessionStorage.getItem('sb_current_mbr') ||
+          sessionStorage.getItem('mbr') ||
+          sessionStorage.getItem('sandbox_mbr');
+        if (storedMbr) {
+          const m = JSON.parse(storedMbr);
+          if (!targetAuthorMbrId || m.mbrId === targetAuthorMbrId) {
+            const fullName = `${m.mbrFirstName || ''} ${m.mbrLastName || ''}`.trim();
+            if (fullName && !isCancelled) setAuthorName(fullName);
+            if ((m.mbrLivesCityState || m.mbrFromCityState) && !isCancelled) {
+              setAuthorLocation(m.mbrLivesCityState || m.mbrFromCityState);
+            }
+          }
+        }
+        if (!memberId && !readOnly) {
+          const userStr = sessionStorage.getItem('user');
+          if (userStr) {
+            const u = JSON.parse(userStr);
+            if (u.user_id) {
+              const m = await taskApi.getMemberByUserId(u.user_id).catch(() => null);
+              if (isCancelled) return;
+              if (m) {
+                const fullName = `${m.mbrFirstName || ''} ${m.mbrLastName || ''}`.trim();
+                if (fullName) setAuthorName(fullName);
+                if (m.mbrLivesCityState || m.mbrFromCityState) {
+                  setAuthorLocation(m.mbrLivesCityState || m.mbrFromCityState);
+                }
               }
             }
           }
@@ -1031,7 +1057,10 @@ export default function StoryEditorPanel({
       }
     };
     resolveAuthorInfo();
-  }, [resolvedMbrId]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [memberId, resolvedMbrId, activeStory?.mbrMbrId, readOnly]);
 
   const handlePrintToPdf = () => {
     const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);

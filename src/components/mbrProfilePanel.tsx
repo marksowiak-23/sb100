@@ -509,6 +509,7 @@ export default function MbrProfilePanel({
   };
 
   const loadProfileById = async (targetId: string) => {
+    setProfile((prev: any) => (prev && (prev.mbrId === targetId || prev.id === targetId) ? prev : null));
     setLoading(true);
     try {
       const staticM = MEMBER_STORIES.find((m) => m.id === targetId);

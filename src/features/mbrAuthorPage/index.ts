@@ -7,5 +7,6 @@ export { default as AuthorPageFeature, MbrAuthorPageFeature, SbMbrAuthorPageFeat
 export { default as AuthorPageHeaderPanel } from './components/AuthorPageHeaderPanel';
 export { default as AuthorMobileMenuBar, authorMobileMenuBar } from './components/AuthorMobileMenuBar';
 export { default as AuthorHowToCard, SbAuthorHowToCard } from './components/AuthorHowToCard';
+export { default as StoryBookGeneratorCard, SbStoryBookGeneratorCard } from './components/StoryBookGeneratorCard';
 
 

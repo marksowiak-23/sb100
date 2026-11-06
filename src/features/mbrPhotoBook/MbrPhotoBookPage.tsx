@@ -33,10 +33,12 @@ import {
   AlertCircle,
   ArrowLeft,
   RotateCw,
-  Eye
+  Eye,
+  ShieldAlert
 } from 'lucide-react';
 import { taskApi, mediaApi, MbrMedia, MEDIA_API_BASE_URL, resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import MbrAlbumPrivacyModal from '@/src/components/mbrAlbumPrivacyModal';
 
 export interface MbrPhotoBookPageProps {
   isSandbox?: boolean;
@@ -97,6 +99,7 @@ export default function MbrPhotoBookPage({
 
   // Modals
   const [isAlbumModalOpen, setIsAlbumModalOpen] = useState<boolean>(false);
+  const [privacyTargetAlbum, setPrivacyTargetAlbum] = useState<PhotoAlbum | null>(null);
   const [albumPendingDelete, setAlbumPendingDelete] = useState<PhotoAlbum | null>(null);
   const [isDeletingAlbum, setIsDeletingAlbum] = useState<boolean>(false);
   const [editingAlbum, setEditingAlbum] = useState<PhotoAlbum | null>(null);
@@ -1212,6 +1215,17 @@ export default function MbrPhotoBookPage({
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  setPrivacyTargetAlbum(album);
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer"
+                                title="Album Privacy Settings"
+                              >
+                                <ShieldAlert className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   handleOpenEditAlbum(album);
                                 }}
                                 className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
@@ -1318,6 +1332,15 @@ export default function MbrPhotoBookPage({
                     >
                       <Play className="w-3.5 h-3.5 text-amber-700" />
                       <span>Slideshow</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPrivacyTargetAlbum(activeAlbum)}
+                      className="p-2 text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-xl transition-all cursor-pointer"
+                      title="Album Privacy Settings"
+                    >
+                      <ShieldAlert className="w-4 h-4" />
                     </button>
 
                     <button
@@ -2303,6 +2326,17 @@ export default function MbrPhotoBookPage({
 
         </div>
       )}
+
+      {/* Admin Component Tag per Guidelines */}
+      {/* Album Privacy Settings Modal */}
+      <MbrAlbumPrivacyModal
+        isOpen={Boolean(privacyTargetAlbum)}
+        onClose={() => setPrivacyTargetAlbum(null)}
+        albumId={privacyTargetAlbum?.id || ''}
+        albumName={privacyTargetAlbum?.name || 'Photo Album'}
+        mbrId={currentMbrId}
+        isSandbox={isSandbox}
+      />
 
       {/* Admin Component Tag per Guidelines */}
       <AdminComponentTag name="mbrPhotoBookFeature" />

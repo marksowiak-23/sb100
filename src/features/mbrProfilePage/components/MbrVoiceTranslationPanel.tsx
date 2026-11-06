@@ -185,6 +185,7 @@ export default function MbrVoiceTranslationPanel({
   const [recordedWavBase64, setRecordedWavBase64] = useState<string | null>(null);
   const [recordedPreviewUrl, setRecordedPreviewUrl] = useState<string | null>(null);
   const [recordedDurationSec, setRecordedDurationSec] = useState<number>(0);
+  const [hasUnenrolledSample, setHasUnenrolledSample] = useState<boolean>(false);
   const [isPlayingSample, setIsPlayingSample] = useState(false);
 
   // --- Enrollment & Synthesis Playground State ---
@@ -346,6 +347,7 @@ export default function MbrVoiceTranslationPanel({
           setRecordedWavBase64(wavBase64);
           setRecordedPreviewUrl(previewUrl);
           setRecordedDurationSec(durationSec);
+          setHasUnenrolledSample(true);
         } catch (convErr: any) {
           console.error('WAV conversion error:', convErr);
           setError('Could not process the recorded audio. Please try recording again.');
@@ -391,6 +393,7 @@ export default function MbrVoiceTranslationPanel({
       setRecordedWavBase64(wavBase64);
       setRecordedPreviewUrl(previewUrl);
       setRecordedDurationSec(durationSec);
+      setHasUnenrolledSample(true);
     } catch (err: any) {
       setError('Could not decode the selected audio file. Please choose a valid WAV, MP3, or M4A recording.');
     } finally {
@@ -423,14 +426,14 @@ export default function MbrVoiceTranslationPanel({
     audio.play().catch(() => setIsPlayingSample(false));
   };
 
-  const handleEnrollAndSaveVoice = async () => {
+  const handleEnrollAndSaveVoice = async (): Promise<MbrVoiceProfile | null> => {
     if (!recordedWavBlob || !recordedWavBase64) {
       setError('Please record or upload your voice calibration sample first.');
-      return;
+      return null;
     }
     if (recordedDurationSec < 5) {
       setError('Your voice recording is under 5 seconds. Please record at least 10–30 seconds of the calibration script for accurate voice cloning.');
-      return;
+      return null;
     }
 
     setEnrolling(true);
@@ -505,7 +508,7 @@ export default function MbrVoiceTranslationPanel({
             totalTokens: totalTok,
             estimatedCostUsd: Number(((totalTok / 1000) * 0.00025).toFixed(6)),
             latencyMs,
-            modelName: 'gemini-2.5-flash',
+            modelName: 'gemini-3.8-flash-tts',
             statusCode: 200,
             isSuccess: true,
             metadataJson: {
@@ -549,13 +552,16 @@ export default function MbrVoiceTranslationPanel({
       }
 
       setVoiceProfile(savedProfile);
+      setHasUnenrolledSample(false);
       sessionStorage.setItem(`sb_voice_profile_${targetMbrId}`, JSON.stringify(savedProfile));
       setSuccess(
         `Your personal AI voice ("${savedProfile.voiceName}") has been enrolled with Google Cloud Vertex AI and is now available in the AI Voice Studio!`
       );
+      return savedProfile;
     } catch (err: any) {
       console.error('Voice enrollment error:', err);
       setError(err?.message || 'Failed to enroll your voice sample with Vertex AI. Please try again.');
+      return null;
     } finally {
       setEnrolling(false);
     }
@@ -603,21 +609,74 @@ export default function MbrVoiceTranslationPanel({
   };
 
   const handleTestClonedVoice = async () => {
-    if (!voiceProfile || !testText.trim()) return;
+    if (!testText.trim()) return;
     setSynthesizingTest(true);
     setError(null);
     const startMs = performance.now();
 
     try {
+      // If the member just recorded or uploaded a new voice script that hasn't been enrolled yet,
+      // automatically enroll & save it first so "Speak with My AI Voice" always uses their latest recording/upload.
+      let activeProfile = voiceProfile;
+      if (hasUnenrolledSample && recordedWavBlob && recordedWavBase64) {
+        const newlyEnrolled = await handleEnrollAndSaveVoice();
+        if (newlyEnrolled) {
+          activeProfile = newlyEnrolled;
+        }
+      }
+
+      if (!activeProfile && !recordedWavBase64) {
+        setError('Please record or upload your voice calibration sample first.');
+        return;
+      }
+
+      const resolvedSampleUrl = activeProfile?.sampleAudioPath
+        ? resolveMediaUrl(activeProfile.sampleAudioPath)
+        : null;
+
       const res = await textToSpeechApi.synthesize({
         text: testText.trim(),
         voice_name: 'mbr-personal-voice',
-        persona: voiceProfile.voiceName,
+        persona: activeProfile?.voiceName || voiceNameInput || defaultVoiceName,
         speed: 1.0,
         is_cloned_voice: true,
-        voice_cloning_key: voiceProfile.vertexVoiceCloningKey || null,
-        acoustic_profile: (voiceProfile.acousticProfileJson as Record<string, any>) || null,
+        voice_cloning_key: activeProfile?.vertexVoiceCloningKey || null,
+        reference_audio_base64: recordedWavBase64 || null,
+        sample_audio_url: resolvedSampleUrl,
+        acoustic_profile: (activeProfile?.acousticProfileJson as Record<string, any>) || null,
       });
+
+      // If the backend upgraded a legacy voice_cloning_key to a native Gemini Replicated Voice key ('voice_...'),
+      // persist it to the member's voice profile so future story narrations use it directly.
+      if (
+        activeProfile &&
+        res.voice_cloning_key &&
+        res.voice_cloning_key !== activeProfile.vertexVoiceCloningKey
+      ) {
+        const targetMbrId = mbrId || 'sandbox-mbr';
+        const updatedAcoustic = {
+          ...((activeProfile.acousticProfileJson as Record<string, any>) || {}),
+          enrollment_engine: res.voice_cloning_key.startsWith('voice_')
+            ? 'google_voice_replication'
+            : ((activeProfile.acousticProfileJson as Record<string, any>)?.enrollment_engine || 'google_voice_replication'),
+        };
+        const upgradedProfile: MbrVoiceProfile = {
+          ...activeProfile,
+          vertexVoiceCloningKey: res.voice_cloning_key,
+          acousticProfileJson: updatedAcoustic,
+          voiceUpdatedAt: new Date().toISOString(),
+        };
+        setVoiceProfile(upgradedProfile);
+        sessionStorage.setItem(`sb_voice_profile_${targetMbrId}`, JSON.stringify(upgradedProfile));
+        if (!isSandbox && mbrId && activeProfile.mbrVoiceProfileId) {
+          mbrVoiceProfileApi
+            .updateMemberVoiceProfile(activeProfile.mbrVoiceProfileId, {
+              vertexVoiceCloningKey: res.voice_cloning_key,
+              acousticProfileJson: updatedAcoustic,
+            })
+            .catch(() => {});
+        }
+      }
 
       const latencyMs = Math.round(performance.now() - startMs);
 
@@ -642,13 +701,14 @@ export default function MbrVoiceTranslationPanel({
             totalTokens: totalTok,
             estimatedCostUsd: Number(((totalTok / 1000) * 0.0003).toFixed(6)),
             latencyMs,
-            modelName: 'gemini-2.5-flash-preview-tts',
+            modelName: 'gemini-3.8-flash-tts',
             statusCode: 200,
             isSuccess: true,
             metadataJson: {
               feature: 'mbrVoiceCloneTestPlayground',
               aiUseTypeCd: 'TTS',
-              voiceName: voiceProfile.voiceName,
+              voiceName: activeProfile?.voiceName || defaultVoiceName,
+              voiceCloningKey: res.voice_cloning_key || activeProfile?.vertexVoiceCloningKey,
             },
           })
           .catch(() => {});
@@ -791,13 +851,12 @@ export default function MbrVoiceTranslationPanel({
             <div className="bg-white/80 dark:bg-slate-800/70 border border-slate-200/70 dark:border-slate-700/70 rounded-2xl p-3">
               <div className="text-[10px] font-mono uppercase tracking-wider text-slate-400">Google Cloud Voice Engine</div>
               <div className="text-xs font-serif font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">
-                {acousticProfile.enrollment_engine === 'google_voice_replication'
+                {voiceProfile.vertexVoiceCloningKey?.startsWith('voice_') ||
+                acousticProfile.enrollment_engine === 'google_voice_replication'
                   ? 'Gemini Voice Replication'
                   : acousticProfile.enrollment_engine === 'vertex_chirp3_instant_voice'
                   ? 'Chirp 3: HD Instant Voice'
-                  : acousticProfile.enrollment_engine === 'google_chirp3_hd_profile'
-                  ? `Google Chirp 3 HD (${acousticProfile.recommended_gemini_anchor || 'Fenrir'})`
-                  : `Google Chirp 3 HD (${acousticProfile.recommended_gemini_anchor || 'Custom'})`}
+                  : `Gemini Voice Clone (${acousticProfile.recommended_gemini_anchor || 'Custom'})`}
               </div>
             </div>
           </div>
@@ -852,13 +911,13 @@ export default function MbrVoiceTranslationPanel({
             {testAudioUrl && (
               <div className="pt-2 flex flex-col sm:flex-row items-center gap-3 bg-indigo-50/50 dark:bg-slate-800/60 p-3 rounded-2xl border border-indigo-100 dark:border-slate-700">
                 <span className="text-[11px] font-mono text-indigo-700 dark:text-indigo-300 font-semibold shrink-0">
-                  Chirp 3 HD Audio:
+                  Personal AI Voice Audio:
                 </span>
                 <audio
                   controls
                   src={testAudioUrl}
                   className="w-full h-8"
-                  aria-label="Synthesized Chirp 3 AI Voice Audio"
+                  aria-label="Synthesized Personal AI Voice Audio"
                 />
               </div>
             )}

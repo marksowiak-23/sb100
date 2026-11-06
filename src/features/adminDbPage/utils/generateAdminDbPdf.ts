@@ -86,6 +86,8 @@ const TABLE_TITLE_MAP: Record<string, string> = {
   mbrVoiceProfile: 'Member Personal AI Voice Cloning Profiles (mbrVoiceProfile)',
   mbrAlbum: 'Member Photo Albums (mbrAlbum)',
   mbrAlbumPhoto: 'Photo Album Mappings & Layouts (mbrAlbumPhoto)',
+  mbrAlbumGroupPrivs: 'Album Group Access Privileges (mbrAlbumGroupPrivs)',
+  mbrAlbumConnectionPrivs: 'Album Connection Access Privileges (mbrAlbumConnectionPrivs)',
   sysConfig: 'System Global Configurations (sysConfig)',
   topic: 'Standard Story Topics Directory (topic)',
   user: 'User Authentication & Accounts (user)'

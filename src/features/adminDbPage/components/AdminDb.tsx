@@ -879,6 +879,31 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrAlbumGroupPrivs',
+    name: 'mbrAlbumGroupPrivs',
+    endpoint: '/mbr-album-group-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'albumId', label: 'Album ID (UUID)', type: 'uuid', required: true },
+      { name: 'grpId', label: 'Group ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE / NONE' }
+    ]
+  },
+  {
+    id: 'mbrAlbumConnectionPrivs',
+    name: 'mbrAlbumConnectionPrivs',
+    endpoint: '/mbr-album-connection-privs',
+    primaryKey: 'privId',
+    searchField: 'privValueCd',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'albumId', label: 'Album ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrConnectionMbrId', label: 'Connection Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'privValueCd', label: 'Privilege Value Code', type: 'string', required: true, placeholder: 'READ / WRITE / HIDE / NONE' }
+    ]
+  },
+  {
     id: 'mbrVoiceProfile',
     name: 'mbrVoiceProfile',
     endpoint: '/mbr-voice-profiles',

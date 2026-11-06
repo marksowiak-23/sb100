@@ -4,8 +4,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Users, Loader2, UserCheck, BookOpen, Calendar } from 'lucide-react';
-import { taskApi, mbrStatApi, resolveMediaUrl, Mbr, MbrStat } from '@/src/services/api';
+import { Users, Loader2, UserCheck } from 'lucide-react';
+import { taskApi, resolveMediaUrl, Mbr } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface ConnectedMemberItem {
@@ -78,14 +78,14 @@ export default function SbMyConnectionsCard({ onClickMember, className = '' }: S
         resolvedMbrId = 'e20986fa-0fb9-4081-ae5d-35bc8f504df0'; // Eleanor Hartwell fallback
       }
 
-      // 2. Fetch connections, connection groups, groups, members, and stats in parallel
-      const [rawConnections, connectionGrps, groupsGlobal, groupsCustom, allMembers, allStats] = await Promise.all([
+      // 2. Fetch connections, connection groups, groups, members, and accessible feed stories in parallel
+      const [rawConnections, connectionGrps, groupsGlobal, groupsCustom, allMembers, feedResponse] = await Promise.all([
         taskApi.getMemberConnections({ mbrId: resolvedMbrId }).catch(() => []),
         taskApi.getMemberConnectionGrps().catch(() => []),
         taskApi.getGroupsGlobal().catch(() => []),
         taskApi.getGroupsCustom(resolvedMbrId).catch(() => []),
         taskApi.getMembers({ limit: 100 }).catch(() => []),
-        mbrStatApi.getMemberStats(0, 1000).catch(() => [])
+        taskApi.getMemberStoryFeed(resolvedMbrId, 500).catch(() => null)
       ]);
 
       // Map Group ID -> Group Name
@@ -119,10 +119,15 @@ export default function SbMyConnectionsCard({ onClickMember, className = '' }: S
         if (m.mbrId) memberMap.set(m.mbrId, m);
       }
 
-      // Map Member ID -> Member Stat
-      const statMap = new Map<string, MbrStat>();
-      for (const st of (allStats || [])) {
-        if (st.mbrId) statMap.set(st.mbrId, st);
+      // Group accessible stories by authorMbrId (stories associated with the member's connection group / access privileges)
+      const accessibleStoriesByAuthor = new Map<string, any[]>();
+      const accessibleFeedStories = Array.isArray(feedResponse?.stories) ? feedResponse.stories : [];
+      for (const st of accessibleFeedStories) {
+        const authorId = st.authorMbrId || st.mbrMbrId || st.mbrId;
+        if (!authorId) continue;
+        const list = accessibleStoriesByAuthor.get(authorId) || [];
+        list.push(st);
+        accessibleStoriesByAuthor.set(authorId, list);
       }
 
       // Build only members in which I have a verified connection
@@ -147,9 +152,21 @@ export default function SbMyConnectionsCard({ onClickMember, className = '' }: S
           const grpName = grpNameByConnId.get(conn.mbrConnectionId) || 'Connected';
           const avatar = memberProfile.mbrProfilePic ? resolveMediaUrl(memberProfile.mbrProfilePic) : undefined;
 
-          const memberStat = statMap.get(targetMbrId);
-          const publishedCnt = memberStat ? (memberStat.statStoriesPublishedCnt || 0) : 0;
-          const lastPublishedDt = memberStat?.statLastPublishedDt || null;
+          const accessibleStories = accessibleStoriesByAuthor.get(targetMbrId) || [];
+          const publishedCnt = accessibleStories.length;
+
+          let lastPublishedDt: string | null = null;
+          let maxTs = 0;
+          for (const st of accessibleStories) {
+            const candidateDt = st.mbrStoryPublishedDate || st.mbrStoryCreatedAt || st.mbrStoryUpdatedAt || null;
+            if (candidateDt) {
+              const ts = new Date(candidateDt).getTime();
+              if (!isNaN(ts) && ts > maxTs) {
+                maxTs = ts;
+                lastPublishedDt = candidateDt;
+              }
+            }
+          }
 
           items.push({
             mbrId: targetMbrId,

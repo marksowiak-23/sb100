@@ -780,7 +780,10 @@ export default function MbrStoryIndexPanel({
   }, [dbTopics, stories, isStoryPageView, lockedPanelIds, lockedTopicIds]);
 
   return (
-    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-4 sm:p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-3 relative select-none">
+    <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-4 sm:p-5 shadow-[0_8px_20px_rgba(0,0,0,0.01)] flex flex-col gap-3 relative overflow-hidden group/panel select-none">
+      {/* Top Accent Line */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-amber-500 opacity-60 group-hover/panel:opacity-100 transition-opacity" />
+
       {/* --- PANEL HEADER --- */}
       <div className="flex items-center gap-2 pb-2.5 border-b border-[#EFECE7]">
         <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
@@ -851,8 +854,8 @@ export default function MbrStoryIndexPanel({
                           onClick={() => handleSelectTopic(topic)}
                           className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-left text-xs font-serif transition-all duration-150 cursor-pointer ${
                             isActive
-                              ? 'text-slate-900 font-bold bg-slate-100/90 shadow-2xs'
-                              : 'text-slate-650 hover:text-slate-850 hover:bg-slate-50/80'
+                              ? 'text-slate-950 font-bold bg-slate-200/90 ring-1 ring-slate-300/80 shadow-xs'
+                              : 'text-slate-650 hover:text-slate-850 hover:bg-slate-100/70'
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1 pr-1.5">

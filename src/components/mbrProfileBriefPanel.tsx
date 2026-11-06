@@ -274,6 +274,7 @@ export default function MbrProfileBriefPanel({
         return;
       }
 
+      setProfile((prev: any) => (prev && (prev.mbrId === memberId || prev.id === memberId) ? prev : null));
       setLoading(true);
 
       const targetId = memberId || 'm1';

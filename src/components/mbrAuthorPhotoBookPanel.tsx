@@ -13,7 +13,7 @@ import {
 import { taskApi, resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
-export interface MbrPhotoBookPanelProps {
+export interface MbrAuthorPhotoBookPanelProps {
   onOpenPhotoBook?: () => void;
   title?: string;
   description?: string;
@@ -21,8 +21,8 @@ export interface MbrPhotoBookPanelProps {
   memberId?: string;
 }
 
-export type SbPhotoBookPanelProps = MbrPhotoBookPanelProps;
-export type mbrPhotoBookPanelProps = MbrPhotoBookPanelProps;
+export type SbPhotoBookPanelProps = MbrAuthorPhotoBookPanelProps;
+export type mbrAuthorPhotoBookPanelProps = MbrAuthorPhotoBookPanelProps;
 
 // Curated vintage heirloom fallback previews
 const FALLBACK_PREVIEWS = [
@@ -31,13 +31,13 @@ const FALLBACK_PREVIEWS = [
   'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80'
 ];
 
-export default function MbrPhotoBookPanel({
+export default function MbrAuthorPhotoBookPanel({
   onOpenPhotoBook,
   title = 'Heirloom Photo Book',
   description = 'Collect, curate, and arrange cherished photographs with narratives into timeless chapters.',
   buttonText = 'Open Photo Book',
   memberId
-}: MbrPhotoBookPanelProps) {
+}: MbrAuthorPhotoBookPanelProps) {
   const [displayPreviews, setDisplayPreviews] = useState<string[]>(FALLBACK_PREVIEWS);
 
   useEffect(() => {
@@ -195,9 +195,9 @@ export default function MbrPhotoBookPanel({
         <ArrowRight className="w-3.5 h-3.5 text-amber-300 group-hover/btn:translate-x-1 transition-transform" />
       </button>
 
-      <AdminComponentTag name="mbrPhotoBookPanel" />
+      <AdminComponentTag name="mbrAuthorPhotoBookPanel" />
     </div>
   );
 }
 
-export { MbrPhotoBookPanel, MbrPhotoBookPanel as mbrPhotoBookPanel, MbrPhotoBookPanel as SbPhotoBookPanel };
+export { MbrAuthorPhotoBookPanel, MbrAuthorPhotoBookPanel as mbrAuthorPhotoBookPanel, MbrAuthorPhotoBookPanel as SbPhotoBookPanel };

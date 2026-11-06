@@ -114,6 +114,11 @@ export default function SbMbrStoryPageFeature({
         if (staticM) {
           if (!isCancelled) setLiveMember(staticM);
         } else {
+          if (!isCancelled) {
+            setLiveMember((prev) =>
+              prev && (prev.mbrId === storyAuthorMbrId || prev.id === storyAuthorMbrId) ? prev : null
+            );
+          }
           try {
             const mbr = await taskApi.getMemberById(storyAuthorMbrId);
             if (mbr && !isCancelled) {
@@ -591,8 +596,14 @@ export default function SbMbrStoryPageFeature({
     };
   }, [memberId, storyAuthorMbrId]);
 
-  // Look up current member
-  const member = liveMember || (memberId ? MEMBER_STORIES.find((m) => m.id === memberId) : null) || MEMBER_STORIES[0];
+  // Look up current member (only match target memberId / storyAuthorMbrId; never flash MEMBER_STORIES[0] while loading)
+  const matchingLiveMember =
+    liveMember && (liveMember.mbrId === storyAuthorMbrId || liveMember.id === storyAuthorMbrId || liveMember.id === memberId)
+      ? liveMember
+      : null;
+  const member =
+    matchingLiveMember ||
+    (memberId ? MEMBER_STORIES.find((m) => m.id === memberId || m.id === storyAuthorMbrId) || null : MEMBER_STORIES[0]);
 
   // Retrieve active section contents
   const getActiveContent = (): string[] => {
@@ -695,7 +706,7 @@ export default function SbMbrStoryPageFeature({
               onClickBack={onClickBack}
               activeSection={activeSection}
               setActiveSection={setActiveSection}
-              memberName={member.name}
+              memberName={member?.name || ''}
               memberId={storyAuthorMbrId}
               viewerMbrId={viewerMbrId}
               lockedPanelIds={lockedPanelIds}
@@ -723,7 +734,11 @@ export default function SbMbrStoryPageFeature({
 
           {/* Right Column Sidebar (Desktop only) */}
           <div className="hidden lg:block lg:col-span-3">
-            <RightColumn />
+            <RightColumn
+              memberId={storyAuthorMbrId}
+              viewerMbrId={viewerMbrId}
+              memberName={member?.name || ''}
+            />
           </div>
 
         </div>

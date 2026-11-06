@@ -141,7 +141,7 @@ export default function CenterColumn({
   const currentChIntentId = matchedTopic?.chIntentId || DEFAULT_TOPIC_LOOKUP[topicId]?.chIntentId;
   const currentTopicTitle = matchedTopic?.topicFullName || matchedTopic?.topicName || safeActiveSection;
 
-  const effectiveMemberId = member?.mbrId || member?.id || '';
+  const effectiveMemberId = storyAuthorMbrId || member?.mbrId || member?.id || '';
 
   // Reset subordinate filter when active section changes
   useEffect(() => {

@@ -112,7 +112,7 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
 
         {/* Right Column Sidebar */}
         <div className="lg:col-span-3">
-          <RightColumn />
+          <RightColumn onOpenPhotoBook={onOpenPhotoBook} onOpenStoryBookGenerator={onOpenStoryBookGenerator} />
         </div>
 
       </div>
