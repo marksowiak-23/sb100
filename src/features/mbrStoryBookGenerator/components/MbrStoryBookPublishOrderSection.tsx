@@ -29,6 +29,7 @@ import {
   MbrStoryBookOrder,
   LuluCostQuoteResponse,
 } from '@/src/services/api';
+import { analytics } from '@/src/services/analytics';
 import {
   generateStoryBookPdf,
   generateStoryBookCoverSpread,
@@ -324,6 +325,18 @@ export function MbrStoryBookPublishOrderSection({
         },
       }).catch((err) => console.warn('Could not log print order event:', err));
 
+      // Dispatch GA4 / GTM E-Commerce Purchase
+      analytics.purchase({
+        orderId: createdOrder.orderId,
+        totalCost: quote.totalCost,
+        currency: quote.currency || 'USD',
+        quantity,
+        bindingType,
+        bookTitle: bookConfig.bookTitle,
+        bookId: bookConfig.bookId,
+        shippingLevel,
+      });
+
       setOrderSuccessMessage(
         `Print order successfully placed! Your order has been registered with Lulu Direct under Job #${newOrderPayload.luluPrintJobId}. Production begins immediately.`
       );
@@ -388,6 +401,15 @@ export function MbrStoryBookPublishOrderSection({
           isSandbox,
         },
       }).catch((err) => console.warn('Could not log interior proof event:', err));
+
+      analytics.storybookPdf({
+        bookTitle: bookConfig.bookTitle,
+        bookId: bookConfig.bookId,
+        mode: 'pod-interior',
+        trimSize: trimCode,
+        chaptersCount: includedChapters.length,
+        estimatedPages: evenPageCount,
+      });
     } catch (err) {
       console.error('Error downloading POD interior:', err);
     } finally {
@@ -420,6 +442,15 @@ export function MbrStoryBookPublishOrderSection({
           isSandbox,
         },
       }).catch((err) => console.warn('Could not log cover proof event:', err));
+
+      analytics.storybookPdf({
+        bookTitle: bookConfig.bookTitle,
+        bookId: bookConfig.bookId,
+        mode: 'cover-spread',
+        trimSize: trimCode,
+        chaptersCount: includedChapters.length,
+        estimatedPages: evenPageCount,
+      });
     } catch (err) {
       console.error('Error downloading cover wrap spread:', err);
     } finally {

@@ -49,6 +49,7 @@ import {
 } from '@/src/services/api';
 import { CdSelect } from '@/src/components/CdSelect';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { analytics } from '@/src/services/analytics';
 import {
   generateStoryBookPdf,
   StoryBookChapterInput,
@@ -974,6 +975,16 @@ export default function MbrStoryBookGeneratorPage({
           isSandbox,
         },
       }).catch((err) => console.warn('Could not log storybook PDF generate event:', err));
+
+      // Dispatch GA4 / GTM event
+      analytics.storybookPdf({
+        bookTitle: activeBook.bookTitle,
+        bookId: activeBook.bookId,
+        mode,
+        trimSize: activeBook.bookTrimSizeCd,
+        chaptersCount: includedChapters.length,
+        estimatedPages: bookMetrics.estimatedPages,
+      });
 
       showToast(
         'success',

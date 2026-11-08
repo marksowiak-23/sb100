@@ -37,6 +37,7 @@ import {
   MbrVoiceAcousticProfile
 } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { analytics } from '@/src/services/analytics';
 
 export interface AiVoiceModalProps {
   isOpen: boolean;
@@ -663,6 +664,15 @@ export default function AiVoiceModal({
         }
       }).catch((logErr) => {
         console.warn('Failed to log audio event:', logErr);
+      });
+
+      // Dispatch GA4 / GTM event
+      analytics.aiVoice({
+        voiceId: selectedVoice,
+        voiceName: activeProfile.name,
+        gender: activeProfile.gender,
+        isClone: Boolean(isPersonalClone),
+        storyId,
       });
 
       // 1. Call AI Service TTS synthesize endpoint with the selected voice timbre & accent (or personal cloned voice)

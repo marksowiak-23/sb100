@@ -16,6 +16,7 @@ import { AlertTriangle, X } from 'lucide-react';
 
 import { taskApi, HealthCheckResponse } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
+import { analytics } from '@/src/services/analytics';
 
 // Import our layouts and feature components.
 import MainLayout from '@/src/layouts/MainLayout';
@@ -354,6 +355,9 @@ export default function App() {
   // The second argument is a dependency array:
   // - [] (Empty array): Tells React to run this effect EXACTLY ONCE, when the component initially mounts (loads).
   useEffect(() => {
+    // Initialize Google Tag Manager & Google Analytics 4
+    analytics.init();
+
     loadHealth();
 
     // 1. Initialize browser history state and session storage for current initial view if not already present
@@ -448,6 +452,14 @@ export default function App() {
       window.removeEventListener('user-switched', handleUserSwitched);
     };
   }, []);
+
+  // Google Analytics & GTM: Track virtual page views on SPA view/tab changes
+  useEffect(() => {
+    const tabName = activeTab || 'workspace';
+    const virtualPath = `/${tabName}`;
+    const formattedTitle = `StoryBook — ${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+    analytics.pageView(virtualPath, formattedTitle);
+  }, [activeTab]);
 
   // Helper function to query the backend health check endpoint.
   const loadHealth = async () => {
