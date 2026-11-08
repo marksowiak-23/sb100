@@ -96,10 +96,10 @@ export default function ProfileNavigationMenu({
               )}
             </button>
 
-            {/* Current Active Selection Badge */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 rounded-xl min-w-0">
-              <ActiveIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-              <span className="text-xs font-serif font-semibold text-slate-800 dark:text-slate-200 truncate">
+            {/* Current Active Selection Title */}
+            <div className="flex items-center gap-2 min-w-0 px-1 py-0.5">
+              <ActiveIcon className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+              <span className="text-xs sm:text-sm font-serif font-semibold text-slate-800 dark:text-slate-200 truncate">
                 {activeTitle}
               </span>
               {isCurrentDirty && (

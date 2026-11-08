@@ -99,6 +99,7 @@ export default function MbrPhotoBookPage({
 
   // Modals
   const [isAlbumModalOpen, setIsAlbumModalOpen] = useState<boolean>(false);
+  const [isCoverPickerOpen, setIsCoverPickerOpen] = useState<boolean>(false);
   const [privacyTargetAlbum, setPrivacyTargetAlbum] = useState<PhotoAlbum | null>(null);
   const [albumPendingDelete, setAlbumPendingDelete] = useState<PhotoAlbum | null>(null);
   const [isDeletingAlbum, setIsDeletingAlbum] = useState<boolean>(false);
@@ -459,6 +460,7 @@ export default function MbrPhotoBookPage({
     try {
       if (editingAlbum) {
         // Edit existing album
+        const newCoverUrl = albumFormCover.trim() || editingAlbum.coverPhotoUrl;
         const updatedAlbums = albums.map((a) => {
           if (a.id === editingAlbum.id) {
             return {
@@ -466,22 +468,43 @@ export default function MbrPhotoBookPage({
               name: albumFormName.trim(),
               dateLabel: albumFormDate.trim(),
               description: albumFormDesc.trim(),
-              coverPhotoUrl: a.coverPhotoUrl,
+              coverPhotoUrl: newCoverUrl,
               updatedAt: new Date().toISOString()
             };
           }
           return a;
         });
+
+        // Also update photos in this album to sync isCover flag
+        const updatedPhotos = photos.map((p) => {
+          if (p.albumId === editingAlbum.id) {
+            return {
+              ...p,
+              isCover: p.url === newCoverUrl
+            };
+          }
+          return p;
+        });
+
         setAlbums(updatedAlbums);
-        saveSandboxState(updatedAlbums, photos);
+        setPhotos(updatedPhotos);
+        saveSandboxState(updatedAlbums, updatedPhotos);
 
         if (!isSandbox && editingAlbum.recordId) {
+          const matchingPhoto = photos.find((p) => p.albumId === editingAlbum.id && p.url === newCoverUrl);
           await taskApi.updateMemberAlbum(editingAlbum.recordId, {
             albumName: albumFormName.trim(),
             albumDateLabel: albumFormDate.trim(),
             albumDesc: albumFormDesc.trim(),
-            albumCoverPhotoUrl: editingAlbum.coverPhotoUrl
+            albumCoverPhotoUrl: newCoverUrl,
+            albumCoverMediaId: matchingPhoto?.mbrMediaId || matchingPhoto?.id
           }).catch((err) => console.warn('Could not update album in live DB:', err));
+
+          if (matchingPhoto?.albumPhotoId) {
+            await taskApi.updateMemberAlbumPhoto(matchingPhoto.albumPhotoId, {
+              isCover: true
+            }).catch(() => {});
+          }
         }
 
         showToast(`Album "${albumFormName}" updated.`);
@@ -528,6 +551,67 @@ export default function MbrPhotoBookPage({
     } catch (err) {
       console.error('Error saving album:', err);
       showToast('Error saving album.', 'error');
+    }
+  };
+
+  const handleSetAlbumCoverPhoto = async (albumId: string, photo: PhotoItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+
+    try {
+      // 1. Update photos state: mark selected photo as isCover: true, un-cover others in the same album
+      const updatedPhotos = photos.map((p) => {
+        if (p.albumId === albumId) {
+          return { ...p, isCover: p.id === photo.id };
+        }
+        return p;
+      });
+
+      // 2. Update album coverPhotoUrl in albums state
+      const updatedAlbums = albums.map((a) => {
+        if (a.id === albumId) {
+          return {
+            ...a,
+            coverPhotoUrl: photo.url,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return a;
+      });
+
+      setPhotos(updatedPhotos);
+      setAlbums(updatedAlbums);
+      saveSandboxState(updatedAlbums, updatedPhotos);
+
+      // 3. Persist to live DB
+      if (!isSandbox) {
+        const targetAlbum = albums.find((a) => a.id === albumId);
+        const albumRecordId = targetAlbum?.recordId || albumId;
+        const mediaId = photo.mbrMediaId || photo.id;
+
+        // Update mbrAlbum table with new cover photo
+        await taskApi.updateMemberAlbum(albumRecordId, {
+          albumCoverPhotoUrl: photo.url,
+          albumCoverMediaId: mediaId
+        }).catch((err) => console.warn('Failed to update album cover in live DB:', err));
+
+        // Update mbrAlbumPhoto records for this album so isCover is synced in DB
+        const albumPhotos = photos.filter((p) => p.albumId === albumId);
+        await Promise.all(
+          albumPhotos.map(async (p) => {
+            if (p.albumPhotoId) {
+              const isNowCover = p.id === photo.id;
+              await taskApi.updateMemberAlbumPhoto(p.albumPhotoId, {
+                isCover: isNowCover
+              }).catch(() => {});
+            }
+          })
+        );
+      }
+
+      showToast(`Album cover set to "${photo.title || 'selected photo'}"!`);
+    } catch (err) {
+      console.error('Error setting album cover photo:', err);
+      showToast('Could not update album cover photo.', 'error');
     }
   };
 
@@ -1258,12 +1342,20 @@ export default function MbrPhotoBookPage({
                 {/* Album Header Banner */}
                 <div className="bg-white border border-[#EAE5DC] rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                   <div className="flex items-start gap-5">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shadow-xs border border-[#EAE5DC] shrink-0 bg-slate-100">
+                    <div
+                      onClick={() => setIsCoverPickerOpen(true)}
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden shadow-xs border border-[#EAE5DC] shrink-0 bg-slate-100 relative group cursor-pointer"
+                      title="Click to replace album cover photo"
+                    >
                       <img
                         src={albumStats[activeAlbum.id]?.coverUrl || activeAlbum.coverPhotoUrl}
                         alt={activeAlbum.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
+                      <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-center p-1">
+                        <Camera className="w-5 h-5 text-amber-300 mb-0.5" />
+                        <span className="text-[9px] font-serif font-bold leading-tight">Change Cover</span>
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <button
@@ -1315,6 +1407,16 @@ export default function MbrPhotoBookPage({
                     >
                       <Upload className="w-3.5 h-3.5" />
                       <span>Add Photos</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsCoverPickerOpen(true)}
+                      className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-[#E3DDD2] rounded-xl text-xs font-serif font-bold transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+                      title="Replace Album Cover Photo"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-amber-800" />
+                      <span>Change Cover</span>
                     </button>
 
 
@@ -1398,6 +1500,7 @@ export default function MbrPhotoBookPage({
                         onEdit={(e) => handleOpenEditPhoto(photo, e)}
                         onDelete={(e) => handleOpenDeletePhotosDialog([photo], e)}
                         onRemoveFromAlbum={(e) => handleOpenRemoveFromAlbumDialog([photo], e)}
+                        onSetAsCover={activeAlbum ? (e) => handleSetAlbumCoverPhoto(activeAlbum.id, photo, e) : undefined}
                       />
                     ))}
                   </div>
@@ -1461,6 +1564,7 @@ export default function MbrPhotoBookPage({
                         onEdit={(e) => handleOpenEditPhoto(photo, e)}
                         onDelete={(e) => handleOpenDeletePhotosDialog([photo], e)}
                         onRemoveFromAlbum={photo.albumId ? (e) => handleOpenRemoveFromAlbumDialog([photo], e) : undefined}
+                        onSetAsCover={photo.albumId ? (e) => handleSetAlbumCoverPhoto(photo.albumId!, photo, e) : undefined}
                       />
                     ))}
                   </div>
@@ -1842,6 +1946,61 @@ export default function MbrPhotoBookPage({
                   className="w-full px-3 py-2 text-xs bg-[#FAF8F5] border border-[#E3DDD2] rounded-xl focus:outline-hidden focus:ring-2 focus:ring-amber-800/20 font-serif"
                 />
               </div>
+
+              {editingAlbum && (
+                <div className="pt-2 border-t border-[#F2EEE9]">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-serif font-bold text-slate-700">
+                      Album Cover Photo
+                    </label>
+                    <span className="text-[10px] font-serif text-amber-800">
+                      {photos.filter((p) => p.albumId === editingAlbum.id).length > 0
+                        ? 'Click a photo below to set as cover'
+                        : 'No photos in this album yet'}
+                    </span>
+                  </div>
+
+                  {photos.filter((p) => p.albumId === editingAlbum.id).length > 0 ? (
+                    <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-40 overflow-y-auto p-1.5 bg-[#FAF8F5] border border-[#E3DDD2] rounded-xl">
+                      {photos
+                        .filter((p) => p.albumId === editingAlbum.id)
+                        .map((p) => {
+                          const isSelected = albumFormCover === p.url;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => setAlbumFormCover(p.url)}
+                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all cursor-pointer group ${
+                                isSelected
+                                  ? 'border-amber-800 ring-2 ring-amber-800/40 shadow-xs'
+                                  : 'border-transparent hover:border-amber-600/70 opacity-75 hover:opacity-100'
+                              }`}
+                              title={p.title || 'Album photo'}
+                            >
+                              <img
+                                src={p.url}
+                                alt={p.title}
+                                className="w-full h-full object-cover"
+                              />
+                              {isSelected && (
+                                <div className="absolute inset-0 bg-amber-950/40 flex items-center justify-center">
+                                  <div className="w-4 h-4 rounded-full bg-amber-800 text-white flex items-center justify-center shadow-xs">
+                                    <Check className="w-2.5 h-2.5 stroke-[3]" />
+                                  </div>
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <p className="text-[11px] font-serif text-slate-400 italic">
+                      Upload photos to this album first to select a custom cover photo.
+                    </p>
+                  )}
+                </div>
+              )}
 
             </div>
 
@@ -2232,6 +2391,26 @@ export default function MbrPhotoBookPage({
               {currentViewPhotos[lightboxIndex].albumId && (
                 <button
                   type="button"
+                  onClick={() => {
+                    const currentPhoto = currentViewPhotos[lightboxIndex];
+                    if (currentPhoto.albumId) {
+                      handleSetAlbumCoverPhoto(currentPhoto.albumId, currentPhoto);
+                    }
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-serif font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    currentViewPhotos[lightboxIndex].isCover
+                      ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
+                      : 'bg-white/10 hover:bg-white/20 text-white'
+                  }`}
+                  title={currentViewPhotos[lightboxIndex].isCover ? 'Current Album Cover Photo' : 'Set as Album Cover Photo'}
+                >
+                  <Camera className="w-3.5 h-3.5 text-amber-300" />
+                  <span>{currentViewPhotos[lightboxIndex].isCover ? 'Cover Photo' : 'Set as Cover'}</span>
+                </button>
+              )}
+              {currentViewPhotos[lightboxIndex].albumId && (
+                <button
+                  type="button"
                   onClick={() => handleOpenRemoveFromAlbumDialog([currentViewPhotos[lightboxIndex]])}
                   className="p-2 bg-white/10 hover:bg-white/20 text-amber-300 rounded-xl transition-all cursor-pointer"
                   title="Remove from Album (Keep in Library)"
@@ -2327,6 +2506,111 @@ export default function MbrPhotoBookPage({
         </div>
       )}
 
+      {/* --- REPLACE ALBUM COVER MODAL --- */}
+      {isCoverPickerOpen && activeAlbum && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white border border-[#EAE5DC] rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#F2EEE9]">
+              <div className="flex items-center gap-2">
+                <Camera className="w-5 h-5 text-amber-800" />
+                <div>
+                  <h3 className="font-serif text-base font-bold text-slate-900">
+                    Replace Album Cover Photo
+                  </h3>
+                  <p className="font-serif text-xs text-slate-500">
+                    Select a photograph from &ldquo;{activeAlbum.name}&rdquo; to display on the cover
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCoverPickerOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {currentViewPhotos.length === 0 ? (
+              <div className="py-8 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-800 flex items-center justify-center mx-auto">
+                  <ImageIcon className="w-6 h-6" />
+                </div>
+                <p className="font-serif text-xs text-slate-500">
+                  There are no photos in this album yet. Upload photos first to choose a cover.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCoverPickerOpen(false);
+                    handleOpenUploadModal(activeAlbum.id);
+                  }}
+                  className="px-3.5 py-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-serif font-bold transition-all cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Photos</span>
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-96 overflow-y-auto p-1">
+                  {currentViewPhotos.map((photo) => {
+                    const isCover = photo.isCover || photo.url === (albumStats[activeAlbum.id]?.coverUrl || activeAlbum.coverPhotoUrl);
+                    return (
+                      <div
+                        key={photo.id}
+                        onClick={() => {
+                          handleSetAlbumCoverPhoto(activeAlbum.id, photo);
+                          setIsCoverPickerOpen(false);
+                        }}
+                        className={`group relative rounded-xl overflow-hidden border-2 transition-all cursor-pointer aspect-4/3 bg-slate-100 ${
+                          isCover
+                            ? 'border-amber-800 ring-2 ring-amber-800/30 shadow-md'
+                            : 'border-[#EAE5DC] hover:border-amber-600 hover:shadow-xs'
+                        }`}
+                      >
+                        <img
+                          src={photo.url}
+                          alt={photo.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent flex flex-col justify-between p-2">
+                          <div className="flex justify-end">
+                            {isCover ? (
+                              <span className="text-[10px] font-serif font-bold text-amber-900 bg-amber-200 border border-amber-300 px-1.5 py-0.5 rounded-md shadow-xs flex items-center gap-0.5">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                                Current Cover
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-serif font-bold text-white bg-black/60 px-1.5 py-0.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                                Select
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-white text-[11px] font-serif font-bold truncate">
+                            {photo.title || 'Untitled Photo'}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="pt-3 border-t border-[#F2EEE9] flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIsCoverPickerOpen(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-serif font-bold transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Admin Component Tag per Guidelines */}
       {/* Album Privacy Settings Modal */}
       <MbrAlbumPrivacyModal
@@ -2355,6 +2639,7 @@ interface PhotoCardProps {
   onEdit: (e: React.MouseEvent) => void;
   onDelete: (e: React.MouseEvent) => void;
   onRemoveFromAlbum?: (e: React.MouseEvent) => void;
+  onSetAsCover?: (e: React.MouseEvent) => void;
 }
 
 function PhotoCard({
@@ -2365,7 +2650,8 @@ function PhotoCard({
   onClick,
   onEdit,
   onDelete,
-  onRemoveFromAlbum
+  onRemoveFromAlbum,
+  onSetAsCover
 }: PhotoCardProps) {
   return (
     <div
@@ -2410,7 +2696,8 @@ function PhotoCard({
           ) : <span />}
 
           {photo.isCover && (
-            <span className="text-[10px] font-serif font-bold text-amber-900 bg-amber-200/95 border border-amber-300 px-2 py-0.5 rounded-full shadow-xs shrink-0">
+            <span className="text-[10px] font-serif font-bold text-amber-900 bg-amber-200/95 border border-amber-300 px-2 py-0.5 rounded-full shadow-xs shrink-0 flex items-center gap-1">
+              <Camera className="w-2.5 h-2.5" />
               Cover
             </span>
           )}
@@ -2418,6 +2705,16 @@ function PhotoCard({
 
         {/* Action icons on hover */}
         <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 z-20">
+          {onSetAsCover && !photo.isCover && (
+            <button
+              type="button"
+              onClick={onSetAsCover}
+              className="p-1.5 bg-white/95 hover:bg-amber-100 text-amber-900 rounded-lg shadow-xs transition-all cursor-pointer"
+              title="Set as Album Cover Photo"
+            >
+              <Camera className="w-3.5 h-3.5" />
+            </button>
+          )}
           {onRemoveFromAlbum && (
             <button
               type="button"

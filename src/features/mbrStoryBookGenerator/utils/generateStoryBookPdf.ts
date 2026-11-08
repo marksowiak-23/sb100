@@ -1169,3 +1169,136 @@ export async function generateStoryBookPdf({
   doc.save(`${safeSlug || 'storybook'}_${suffix}.pdf`);
 }
 
+export interface GenerateStoryBookCoverSpreadOptions {
+  book: Partial<MbrStoryBook>;
+  pageCount: number;
+}
+
+export async function generateStoryBookCoverSpread({
+  book,
+  pageCount,
+}: GenerateStoryBookCoverSpreadOptions): Promise<void> {
+  const trimCode = book.bookTrimSizeCd || 'TRADE_6X9';
+  const trim = TRIM_SPECS[trimCode] || TRIM_SPECS.TRADE_6X9;
+  const themeCode = book.bookCoverThemeCd || 'AMBER';
+  const palette = COVER_THEME_PALETTES[themeCode] || COVER_THEME_PALETTES.AMBER;
+  const fontName = (book.bookFontFamilyCd || 'times') as 'times' | 'helvetica' | 'courier';
+
+  const bookTitle = (book.bookTitle || 'My Life Stories').trim();
+  const bookSubtitle = (book.bookSubtitle || '').trim();
+  const authorName = (book.bookAuthorDisplayName || 'StoryBook Member').trim();
+  const volumeLabel = (book.bookVolumeLabel || '').trim();
+  const spineTitle = (book.bookSpineTitle || bookTitle).trim();
+
+  // Lulu standard: 0.125 inch bleed = 9 pt
+  const bleed = 9;
+  // Spine calculation: page count * 0.002252 in * 72 pt/in, min 18 pt
+  const calculatedSpine = Math.round(pageCount * 0.002252 * 72 * 10) / 10;
+  const spineWidth = Math.max(18, calculatedSpine);
+
+  const spreadWidth = trim.width * 2 + spineWidth + bleed * 2;
+  const spreadHeight = trim.height + bleed * 2;
+
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'pt',
+    format: [spreadWidth, spreadHeight],
+  });
+
+  // Background across whole spread
+  doc.setFillColor(...palette.bgRgb);
+  doc.rect(0, 0, spreadWidth, spreadHeight, 'F');
+
+  const backCoverLeft = bleed;
+  const spineLeft = bleed + trim.width;
+  const frontCoverLeft = bleed + trim.width + spineWidth;
+
+  // 1. BACK COVER (Left)
+  const backCenterX = backCoverLeft + trim.width / 2;
+  const blurb = (book.bookBackCoverBlurb || '').trim();
+  if (blurb) {
+    doc.setFont(fontName, 'italic');
+    doc.setFontSize(11);
+    doc.setTextColor(...palette.textRgb);
+    const blurbLines = doc.splitTextToSize(blurb, trim.width - 80);
+    doc.text(blurbLines, backCenterX, spreadHeight / 2 - 40, { align: 'center' });
+  }
+  doc.setFont(fontName, 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...palette.mutedTextRgb);
+  if (book.bookIsbn && book.bookIsbn.trim()) {
+    doc.text(`ISBN / Edition: ${book.bookIsbn.trim()}`, backCenterX, spreadHeight - bleed - 40, {
+      align: 'center',
+    });
+  }
+  doc.text(
+    `Heirloom Print Edition • ${pageCount} Pages`,
+    backCenterX,
+    spreadHeight - bleed - 24,
+    { align: 'center' }
+  );
+
+  // 2. SPINE (Center)
+  doc.setDrawColor(...palette.accentRgb);
+  doc.setLineWidth(0.5);
+  doc.setLineDashPattern([2, 2], 0);
+  doc.line(spineLeft, 0, spineLeft, spreadHeight);
+  doc.line(spineLeft + spineWidth, 0, spineLeft + spineWidth, spreadHeight);
+  doc.setLineDashPattern([], 0);
+
+  // Vertical spine title
+  if (spineWidth >= 16) {
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(spineWidth > 24 ? 9 : 7.5);
+    doc.setTextColor(...palette.textRgb);
+    const spineText = `${spineTitle}   —   ${authorName}`;
+    const spineCenterX = spineLeft + spineWidth / 2;
+    const spineCenterY = spreadHeight / 2;
+    doc.text(spineText, spineCenterX + (spineWidth > 24 ? 3 : 2), spineCenterY, {
+      align: 'center',
+      angle: 270,
+    });
+  }
+
+  // 3. FRONT COVER (Right)
+  const frontCenterX = frontCoverLeft + trim.width / 2;
+  doc.setDrawColor(...palette.accentRgb);
+  doc.setLineWidth(1.5);
+  doc.rect(frontCoverLeft + 24, bleed + 24, trim.width - 48, trim.height - 48);
+
+  let frontY = bleed + 60;
+  if (volumeLabel) {
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...palette.accentRgb);
+    doc.text(volumeLabel.toUpperCase(), frontCenterX, frontY, { align: 'center' });
+    frontY += 26;
+  }
+
+  doc.setFont(fontName, 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(...palette.textRgb);
+  const titleLines = doc.splitTextToSize(bookTitle, trim.width - 90);
+  doc.text(titleLines, frontCenterX, frontY, { align: 'center' });
+  frontY += titleLines.length * 26 + 10;
+
+  if (bookSubtitle) {
+    doc.setFont(fontName, 'italic');
+    doc.setFontSize(11);
+    doc.setTextColor(...palette.mutedTextRgb);
+    const subLines = doc.splitTextToSize(bookSubtitle, trim.width - 100);
+    doc.text(subLines, frontCenterX, frontY, { align: 'center' });
+  }
+
+  doc.setFont(fontName, 'bold');
+  doc.setFontSize(11.5);
+  doc.setTextColor(...palette.textRgb);
+  doc.text(authorName.toUpperCase(), frontCenterX, spreadHeight - bleed - 44, { align: 'center' });
+
+  const safeSlug = bookTitle
+    .replace(/[^a-zA-Z0-9_-]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase();
+  doc.save(`${safeSlug || 'storybook'}_lulu_cover_spread.pdf`);
+}
+

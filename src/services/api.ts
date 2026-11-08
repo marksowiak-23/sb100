@@ -39,6 +39,7 @@ export interface Mbr {
   mbrRegistrationDt?: string;
   mbrLastLoginDate?: string;
   mbrPriorLoginDate?: string;
+  mbrAiProfileInd?: boolean;
   mbrCreatedAt?: string;
   mbrUpdatedAt?: string;
   user_id?: string;
@@ -4119,8 +4120,70 @@ export const taskApi = {
       method: 'DELETE',
       headers: { 'Accept': 'application/json' }
     });
-  }
+  },
 
+  /**
+   * Member StoryBook Print Orders (Lulu POD)
+   */
+  async getMemberStoryBookOrders(mbrId?: string, bookId?: string): Promise<MbrStoryBookOrder[]> {
+    const params = new URLSearchParams();
+    if (mbrId) params.append('mbr_id', mbrId);
+    if (bookId) params.append('book_id', bookId);
+    params.append('t', Date.now().toString());
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-orders?${params.toString()}`, {
+      headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' }
+    });
+    return handleResponse<MbrStoryBookOrder[]>(response);
+  },
+
+  async getMemberStoryBookOrder(orderId: string): Promise<MbrStoryBookOrder> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-orders/${orderId}?t=${Date.now()}`, {
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrStoryBookOrder>(response);
+  },
+
+  async createMemberStoryBookOrder(order: Partial<MbrStoryBookOrder>): Promise<MbrStoryBookOrder> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(order)
+    });
+    return handleResponse<MbrStoryBookOrder>(response);
+  },
+
+  async updateMemberStoryBookOrder(orderId: string, order: Partial<MbrStoryBookOrder>): Promise<MbrStoryBookOrder> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-orders/${orderId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(order)
+    });
+    return handleResponse<MbrStoryBookOrder>(response);
+  },
+
+  async deleteMemberStoryBookOrder(orderId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/mbr-story-book-orders/${orderId}`, {
+      method: 'DELETE'
+    });
+  },
+
+  async calculateLuluCostQuote(req: LuluCostQuoteRequest): Promise<LuluCostQuoteResponse> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-orders/quote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(req)
+    });
+    return handleResponse<LuluCostQuoteResponse>(response);
+  },
+
+  async syncLuluOrderStatus(orderId: string): Promise<MbrStoryBookOrder> {
+    const response = await fetch(`${API_BASE_URL}/mbr-story-book-orders/${orderId}/sync-status`, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<MbrStoryBookOrder>(response);
+  }
 };
 
 export const mbrStoryLikesApi = {
@@ -6072,6 +6135,69 @@ export interface MbrStoryBookItem {
   bookItemCreatedAt: string;
   bookItemUpdatedAt: string;
 }
+
+export interface MbrStoryBookOrder {
+  orderId: string;
+  mbrId: string;
+  bookId: string;
+  luluPrintJobId?: string | null;
+  orderStatusCd: string;
+  podPackageId: string;
+  bindingTypeCd: string;
+  coverFinishCd: string;
+  paperTypeCd: string;
+  quantity: number;
+  pageCount: number;
+  unitCost: number;
+  shippingCost: number;
+  taxCost: number;
+  totalCost: number;
+  currency: string;
+  shippingLevel: string;
+  recipientName: string;
+  street1: string;
+  street2?: string | null;
+  city: string;
+  stateCode: string;
+  postcode: string;
+  countryCode: string;
+  phoneNumber?: string | null;
+  interiorPdfUrl?: string | null;
+  coverPdfUrl?: string | null;
+  carrierName?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  estimatedDeliveryDate?: string | null;
+  orderCreatedAt: string;
+  orderUpdatedAt: string;
+}
+
+export interface LuluCostQuoteRequest {
+  pageCount: number;
+  podPackageId: string;
+  quantity?: number;
+  shippingLevel?: string;
+  recipientName?: string;
+  street1: string;
+  street2?: string;
+  city: string;
+  stateCode: string;
+  postcode: string;
+  countryCode?: string;
+  phoneNumber?: string;
+}
+
+export interface LuluCostQuoteResponse {
+  unitCost: number;
+  shippingCost: number;
+  fulfillmentCost: number;
+  taxCost: number;
+  totalCost: number;
+  currency: string;
+  suggestedAddress?: any;
+  warnings?: any[];
+}
+
 
 
 

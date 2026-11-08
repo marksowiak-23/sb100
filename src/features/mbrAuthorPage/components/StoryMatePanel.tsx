@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, X, HelpCircle, Check, Users, Mic, MicOff } from 'lucide-react';
-import { chatApi, adminDbApi, taskApi, resolveMediaUrl, mbrAiUsageLogApi, DEFAULT_TOPIC_LOOKUP, matchTopicByName } from '@/src/services/api';
+import { chatApi, adminDbApi, taskApi, resolveMediaUrl, mbrAiUsageLogApi, eventApi, DEFAULT_TOPIC_LOOKUP, matchTopicByName } from '@/src/services/api';
 import { AdminComponentTag, useShowComponentName } from '@/src/components/AdminComponentTag';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
 import { useSpeechToText } from '@/src/hooks/useSpeechToText';
@@ -1074,6 +1074,39 @@ export default function StoryMatePanel({
     const startTime = performance.now();
     generationCountRef.current += 1;
     const isRegenerating = effectiveStoryText.length >= 10;
+
+    // Log STORY_GENERATE event whenever user clicks "Generate Story"
+    let actorMbrId = resolvedMbrId;
+    try {
+      const storedMbrStr =
+        sessionStorage.getItem('sb_current_mbr') ||
+        sessionStorage.getItem('mbr') ||
+        sessionStorage.getItem('sandbox_mbr');
+      if (storedMbrStr) {
+        const parsedMbr = JSON.parse(storedMbrStr);
+        if (parsedMbr?.mbrId) actorMbrId = parsedMbr.mbrId;
+      }
+    } catch {}
+
+    eventApi.logEvent({
+      eventSiteCd: 'SB',
+      eventActorId: actorMbrId || undefined,
+      eventActorTypeCd: 'MBR',
+      eventCd: 'STORY_GENERATE',
+      eventDetail: `User triggered story generation via StoryMate (${personaName}) for ${storyTitle || resolvedTopicCustomName || componentName}`,
+      eventTagValue: {
+        componentName,
+        topicId: topicId || undefined,
+        topicCustomName: resolvedTopicCustomName || undefined,
+        storyTitle: storyTitle || undefined,
+        personaName,
+        personaId: writerPersona?.chWriterId || undefined,
+        isRegenerating,
+        revisionNumber: generationCountRef.current
+      }
+    }).catch((logErr) => {
+      console.warn('Failed to log STORY_GENERATE event:', logErr);
+    });
 
     // Compile conversation notes for AI synthesis (excluding UI status notices and old drafts)
     const conversationSummary = buildCleanConversationNotes();

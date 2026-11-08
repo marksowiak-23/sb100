@@ -28,6 +28,7 @@ import {
   taskApi,
   mediaApi,
   mbrAiUsageLogApi,
+  eventApi,
   getOrCreateSessionId,
   resolveMediaUrl,
   MEDIA_API_BASE_URL,
@@ -633,8 +634,36 @@ export default function AiVoiceModal({
         }
       : VOICE_PROFILES[selectedVoice] || VOICE_PROFILES['en-US-Standard-C'];
 
+    const isRegenerate = Boolean(existingMedia || generatedMedia);
+    const actionLabel = isRegenerate ? 'regenerated' : 'generated';
+
     try {
       const startTime = performance.now();
+
+      // Log AUDIO_GENERATE / AUDIO_REGENERATE event
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: mbrId || undefined,
+        eventActorTypeCd: 'MBR',
+        eventCd: isRegenerate ? 'AUDIO_REGENERATE' : 'AUDIO_GENERATE',
+        eventDetail: `User ${actionLabel} AI voice narration audio for story '${storyTitle || storyId}' using voice '${activeProfile.name}' (${activeProfile.accent} ${activeProfile.gender})`,
+        eventTagValue: {
+          storyId,
+          storyTitle: storyTitle || undefined,
+          categoryCd,
+          voiceId: selectedVoice,
+          voiceName: activeProfile.name,
+          voiceGender: activeProfile.gender,
+          voiceAccent: activeProfile.accent,
+          speed: selectedSpeed,
+          isPersonalClone: Boolean(isPersonalClone),
+          isRegenerate,
+          textLength: fullNarrationText.length,
+          estimatedSeconds
+        }
+      }).catch((logErr) => {
+        console.warn('Failed to log audio event:', logErr);
+      });
 
       // 1. Call AI Service TTS synthesize endpoint with the selected voice timbre & accent (or personal cloned voice)
       const ttsResult = await textToSpeechApi.synthesize({

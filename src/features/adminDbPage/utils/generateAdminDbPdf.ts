@@ -59,6 +59,7 @@ const TABLE_TITLE_MAP: Record<string, string> = {
   mbrStoryActivity: 'Story Interaction Logs (mbrStoryActivity)',
   mbrStoryBook: 'Member Compiled StoryBook Configurations (mbrStoryBook)',
   mbrStoryBookItem: 'Member StoryBook Chapter & Item Mappings (mbrStoryBookItem)',
+  mbrStoryBookOrder: 'Member StoryBook Print Orders (mbrStoryBookOrder)',
   mbrStoryLikes: 'Story Likes & Reactions (mbrStoryLikes)',
   mbrStoryRead: 'Member Story Read History & Tracking (mbrStoryRead)',
   mbrStoryComments: 'Story Comments & Replies (mbrStoryComments)',

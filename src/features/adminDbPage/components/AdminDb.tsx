@@ -166,6 +166,7 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrRegistrationDt', label: 'Registration Date/Time', type: 'date', required: false },
       { name: 'mbrLastLoginDate', label: 'Last Login Date/Time', type: 'date', required: false },
       { name: 'mbrPriorLoginDate', label: 'Prior Login Date/Time', type: 'date', required: false },
+      { name: 'mbrAiProfileInd', label: 'AI Profile Indicator', type: 'boolean', required: false },
       { name: 'user_id', label: 'Associated User ID (UUID)', type: 'uuid', required: false }
     ]
   },
@@ -546,6 +547,38 @@ const TABLES: TableDefinition[] = [
       { name: 'bookChapterTitleOverride', label: 'Chapter Title Override', type: 'string', required: false },
       { name: 'bookChapterSubtitle', label: 'Chapter Subtitle', type: 'string', required: false },
       { name: 'bookChapterIncludePhoto', label: 'Include Chapter Photo', type: 'boolean', required: true }
+    ]
+  },
+  {
+    id: 'mbrStoryBookOrder',
+    name: 'mbrStoryBookOrder',
+    endpoint: '/mbr-story-book-orders',
+    primaryKey: 'orderId',
+    searchField: 'recipientName',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'bookId', label: 'Book ID (UUID)', type: 'uuid', required: true },
+      { name: 'luluPrintJobId', label: 'Lulu Print Job ID', type: 'string', required: false },
+      { name: 'orderStatusCd', label: 'Status Code', type: 'string', required: true, placeholder: 'CREATED | IN_PRODUCTION | SHIPPED' },
+      { name: 'podPackageId', label: 'POD Package SKU', type: 'string', required: true },
+      { name: 'bindingTypeCd', label: 'Binding Type', type: 'string', required: true, placeholder: 'HARDCOVER | PAPERBACK' },
+      { name: 'coverFinishCd', label: 'Cover Finish', type: 'string', required: true, placeholder: 'MATTE | GLOSS' },
+      { name: 'paperTypeCd', label: 'Paper Type', type: 'string', required: true, placeholder: 'CREAM_60 | WHITE_80' },
+      { name: 'quantity', label: 'Quantity', type: 'number', required: true },
+      { name: 'pageCount', label: 'Page Count', type: 'number', required: true },
+      { name: 'unitCost', label: 'Unit Cost', type: 'number', required: true },
+      { name: 'shippingCost', label: 'Shipping Cost', type: 'number', required: true },
+      { name: 'taxCost', label: 'Tax Cost', type: 'number', required: true },
+      { name: 'totalCost', label: 'Total Cost', type: 'number', required: true },
+      { name: 'currency', label: 'Currency', type: 'string', required: true, placeholder: 'USD' },
+      { name: 'shippingLevel', label: 'Shipping Level', type: 'string', required: true, placeholder: 'MAIL | GROUND | EXPEDITED' },
+      { name: 'recipientName', label: 'Recipient Name', type: 'string', required: true },
+      { name: 'street1', label: 'Street Line 1', type: 'string', required: true },
+      { name: 'city', label: 'City', type: 'string', required: true },
+      { name: 'stateCode', label: 'State Code', type: 'string', required: true },
+      { name: 'postcode', label: 'Postal Code', type: 'string', required: true },
+      { name: 'trackingNumber', label: 'Tracking Number', type: 'string', required: false },
+      { name: 'trackingUrl', label: 'Tracking URL', type: 'string', required: false }
     ]
   },
   {
@@ -990,8 +1023,8 @@ const getInitialMockData = (tableId: string): any[] => {
       ];
     case 'mbr':
       return [
-        { mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', mbrFirstName: 'Eleanor', mbrLastName: 'Ross', mbrMiddleName: 'Grace', mbrBirthDate: '1945-05-12', mbrGenderCd: 'Female', mbrIntroduction: 'Born in Chicago, Eleanor lived through the space age and taught English for 35 years.', mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format', mbrCreatedAt: now, mbrUpdatedAt: now },
-        { mbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341', user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', mbrFirstName: 'James', mbrLastName: 'Carter', mbrMiddleName: 'Dean', mbrBirthDate: '1952-11-20', mbrGenderCd: 'Male', mbrIntroduction: 'Retired mechanical engineer and grandfather of four. Enthusiast of sailing and history.', mbrProfilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&auto=format', mbrCreatedAt: now, mbrUpdatedAt: now }
+        { mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', mbrFirstName: 'Eleanor', mbrLastName: 'Ross', mbrMiddleName: 'Grace', mbrBirthDate: '1945-05-12', mbrGenderCd: 'Female', mbrIntroduction: 'Born in Chicago, Eleanor lived through the space age and taught English for 35 years.', mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format', mbrAiProfileInd: false, mbrCreatedAt: now, mbrUpdatedAt: now },
+        { mbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341', user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', mbrFirstName: 'James', mbrLastName: 'Carter', mbrMiddleName: 'Dean', mbrBirthDate: '1952-11-20', mbrGenderCd: 'Male', mbrIntroduction: 'Retired mechanical engineer and grandfather of four. Enthusiast of sailing and history.', mbrProfilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&auto=format', mbrAiProfileInd: false, mbrCreatedAt: now, mbrUpdatedAt: now }
       ];
     case 'cd':
       return [
@@ -1156,6 +1189,39 @@ const getInitialMockData = (tableId: string): any[] => {
           bookChapterIncludePhoto: true,
           bookItemCreatedAt: now,
           bookItemUpdatedAt: now
+        }
+      ];
+
+    case 'mbrStoryBookOrder':
+      return [
+        {
+          orderId: 'ord-mock-01',
+          mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
+          bookId: 'book-mock-01',
+          luluPrintJobId: 'LULU-JOB-89421',
+          orderStatusCd: 'IN_PRODUCTION',
+          podPackageId: '0850X1100BWSTDCW060CW444MXX',
+          bindingTypeCd: 'HARDCOVER',
+          coverFinishCd: 'MATTE',
+          paperTypeCd: 'CREAM_60',
+          quantity: 1,
+          pageCount: 32,
+          unitCost: 9.83,
+          shippingCost: 5.69,
+          taxCost: 0.72,
+          totalCost: 16.24,
+          currency: 'USD',
+          shippingLevel: 'MAIL',
+          recipientName: 'Eleanor Ross',
+          street1: '123 Meadow Lane',
+          city: 'Asheville',
+          stateCode: 'NC',
+          postcode: '28801',
+          countryCode: 'US',
+          trackingNumber: '9400111899223194881211',
+          trackingUrl: 'https://tools.usps.com/go/TrackConfirmAction?tLabels=9400111899223194881211',
+          orderCreatedAt: new Date().toISOString(),
+          orderUpdatedAt: new Date().toISOString()
         }
       ];
     case 'mbrAlbum':

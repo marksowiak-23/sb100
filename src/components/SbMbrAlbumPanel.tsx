@@ -14,7 +14,6 @@ import {
   Loader2,
   Calendar,
   Sparkles,
-  Info,
   ShieldAlert
 } from 'lucide-react';
 import { taskApi, resolveMediaUrl, MbrAlbum, MbrAlbumPhoto, MbrAlbumGroupPrivs, MbrAlbumConnectionPrivs } from '@/src/services/api';
@@ -387,14 +386,6 @@ export default function SbMbrAlbumPanel({
         <span className="text-[9.5px] font-serif font-bold uppercase tracking-wider text-indigo-800 bg-indigo-100/70 px-2 py-0.5 rounded-full border border-indigo-200">
           Albums
         </span>
-      </div>
-
-      {/* Descriptive summary banner matching privacy modal aesthetic */}
-      <div className="bg-slate-50/80 border border-slate-200/70 rounded-2xl p-3 flex items-start gap-2.5">
-        <Info className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
-        <p className="text-[11.5px] font-serif text-slate-600 leading-relaxed">
-          Albums shared with you according to {memberName}'s group and member connection privacy permissions. Click any album to view photographs.
-        </p>
       </div>
 
       {/* =========================================================================
