@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   BookOpen,
   ArrowLeft,
@@ -22,6 +22,9 @@ import {
   Palette,
   Award,
   Check,
+  CheckCircle,
+  AlertCircle,
+  Cloud,
   Loader2,
   Eye,
   Edit3,
@@ -35,6 +38,7 @@ import {
 } from 'lucide-react';
 import {
   taskApi,
+  eventApi,
   mediaApi,
   MEDIA_API_BASE_URL,
   resolveMediaUrl,
@@ -226,9 +230,63 @@ export default function MbrStoryBookGeneratorPage({
   const [previewTab, setPreviewTab] = useState<PreviewTab>('cover');
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [generatingMode, setGeneratingMode] = useState<'full' | 'pod-interior' | null>(null);
   const [statusBanner, setStatusBanner] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(
     null
+  );
+
+  const isLoadedRef = useRef<boolean>(false);
+  const lastSavedPayloadRef = useRef<string>('');
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const latestBookConfigRef = useRef<Partial<MbrStoryBook>>({});
+  const latestStoryItemsRef = useRef<EnrichedStoryItem[]>([]);
+
+  // Serializer to cleanly compare changes and detect edits
+  const serializeSettings = useCallback(
+    (config: Partial<MbrStoryBook>, items: EnrichedStoryItem[]) => {
+      return JSON.stringify({
+        title: config.bookTitle,
+        subtitle: config.bookSubtitle,
+        author: config.bookAuthorDisplayName,
+        volume: config.bookVolumeLabel,
+        layout: config.bookCoverLayoutCd,
+        theme: config.bookCoverThemeCd,
+        photo: config.bookCoverPhotoUrl,
+        caption: config.bookCoverPhotoCaption,
+        blurb: config.bookBackCoverBlurb,
+        spine: config.bookSpineTitle,
+        trim: config.bookTrimSizeCd,
+        font: config.bookFontFamilyCd,
+        fontSize: config.bookFontSizePt,
+        toc: config.bookIncludeToc,
+        parts: config.bookIncludePartDividers,
+        dropCaps: config.bookIncludeDropCaps,
+        photos: config.bookIncludeStoryPhotos,
+        copyright: config.bookIncludeCopyrightPage,
+        colophon: config.bookIncludeColophon,
+        dedication: config.bookDedicationText,
+        forewordTitle: config.bookForewordTitle,
+        forewordText: config.bookForewordText,
+        forewordAuthor: config.bookForewordAuthor,
+        afterwordTitle: config.bookAfterwordTitle,
+        afterwordText: config.bookAfterwordText,
+        ack: config.bookAcknowledgmentsText,
+        aboutText: config.bookAboutAuthorText,
+        aboutPhoto: config.bookAboutAuthorPhotoUrl,
+        items: items.map((i) => ({
+          id: i.mbrStoryId,
+          inc: i.included,
+          pt: i.partTitle,
+          pso: i.partSortOrder,
+          cso: i.chapterSortOrder,
+          cto: i.chapterTitleOverride,
+          cs: i.chapterSubtitle,
+          cip: i.chapterIncludePhoto,
+        })),
+      });
+    },
+    []
   );
 
   const [memberProfile, setMemberProfile] = useState<any>(null);
@@ -415,6 +473,8 @@ export default function MbrStoryBookGeneratorPage({
           }
         }
 
+        lastSavedPayloadRef.current = serializeSettings(initialBook, enriched);
+        isLoadedRef.current = true;
         setLoading(false);
         return;
       }
@@ -552,6 +612,13 @@ export default function MbrStoryBookGeneratorPage({
       });
 
       setStoryItems(enrichedList);
+      const snapshotBook = activeBook || {
+        ...bookConfig,
+        mbrId,
+        bookAuthorDisplayName: authorFull,
+      };
+      lastSavedPayloadRef.current = serializeSettings(snapshotBook, enrichedList);
+      isLoadedRef.current = true;
     } catch (err) {
       console.error('Error loading StoryBook Generator workspace:', err);
       showToast('error', 'Unable to load all book data. Using available defaults.');
@@ -743,7 +810,9 @@ export default function MbrStoryBookGeneratorPage({
           bookChapterIncludePhoto: s.chapterIncludePhoto,
         }));
         sessionStorage.setItem(`sb_storybook_items_${mbrId}`, JSON.stringify(itemsToSave));
+        lastSavedPayloadRef.current = serializeSettings(updatedBook, storyItems);
         setBookConfig(updatedBook);
+        setAutoSaveStatus('saved');
         if (!silent) showToast('success', 'Book configuration saved to Sandbox session.');
         return updatedBook;
       }
@@ -806,17 +875,58 @@ export default function MbrStoryBookGeneratorPage({
         await taskApi.syncMemberStoryBookItems(savedBook.bookId, syncPayload);
       }
 
+      lastSavedPayloadRef.current = serializeSettings(savedBook, storyItems);
       setBookConfig(savedBook);
+      setAutoSaveStatus('saved');
       if (!silent) showToast('success', 'StoryBook configuration saved to database!');
       return savedBook;
     } catch (err) {
       console.error('Failed to save StoryBook configuration:', err);
+      setAutoSaveStatus('error');
       if (!silent) showToast('error', 'Failed to save book configuration. Please try again.');
       return null;
     } finally {
       setSaving(false);
     }
   };
+
+  // Auto-Save Effect: Watches bookConfig and storyItems with 1.2s debounce
+  useEffect(() => {
+    latestBookConfigRef.current = bookConfig;
+    latestStoryItemsRef.current = storyItems;
+
+    if (!isLoadedRef.current || loading) return;
+
+    const currentPayload = serializeSettings(bookConfig, storyItems);
+    if (currentPayload === lastSavedPayloadRef.current) return;
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    setAutoSaveStatus('saving');
+
+    autoSaveTimerRef.current = setTimeout(async () => {
+      try {
+        const saved = await handleSaveBookConfig(true);
+        if (saved) {
+          lastSavedPayloadRef.current = serializeSettings(saved, latestStoryItemsRef.current);
+          setAutoSaveStatus('saved');
+        } else {
+          setAutoSaveStatus('error');
+        }
+      } catch (err) {
+        console.error('Auto-save failed:', err);
+        setAutoSaveStatus('error');
+      }
+    }, 1200);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [bookConfig, storyItems, loading, serializeSettings]);
 
   // Generate PDF
   const handleGeneratePdf = async (mode: 'full' | 'pod-interior') => {
@@ -842,6 +952,29 @@ export default function MbrStoryBookGeneratorPage({
           })
           .catch(() => {});
       }
+
+      // Log PDF generation event
+      const actorId = activeBook.mbrId || memberProfile?.mbrId || undefined;
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: actorId,
+        eventActorTypeCd: 'MBR',
+        eventCd: mode === 'pod-interior' ? 'STORYBOOK_PDF_INTERIOR_GENERATE' : 'STORYBOOK_PDF_GENERATE',
+        eventDetail: `Member generated ${mode === 'pod-interior' ? 'POD interior block' : 'complete heirloom'} PDF for storybook '${activeBook.bookTitle || 'My Life Stories'}' (${includedChapters.length} chapters, ${activeTrim.label})`,
+        eventTagValue: {
+          bookId: activeBook.bookId,
+          bookTitle: activeBook.bookTitle,
+          mode,
+          trimSizeCd: activeBook.bookTrimSizeCd,
+          chaptersCount: includedChapters.length,
+          estimatedPages: bookMetrics.estimatedPages,
+          coverLayoutCd: activeBook.bookCoverLayoutCd,
+          coverThemeCd: activeBook.bookCoverThemeCd,
+          fontFamilyCd: activeBook.bookFontFamilyCd,
+          isSandbox,
+        },
+      }).catch((err) => console.warn('Could not log storybook PDF generate event:', err));
+
       showToast(
         'success',
         mode === 'pod-interior'
@@ -1048,17 +1181,31 @@ export default function MbrStoryBookGeneratorPage({
           </p>
         </div>
 
-        {/* Primary Action Buttons */}
+        {/* Primary Action & Auto-Save Indicator */}
         <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={() => handleSaveBookConfig(false)}
-            disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs font-bold font-serif transition-all shadow-2xs cursor-pointer disabled:opacity-60"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 text-slate-700" />}
-            <span>Save Configuration</span>
-          </button>
+          <div className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-serif shadow-2xs">
+            {saving || autoSaveStatus === 'saving' ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 text-amber-700 animate-spin" />
+                <span className="text-slate-600 font-medium">Saving changes...</span>
+              </>
+            ) : autoSaveStatus === 'saved' ? (
+              <>
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="text-emerald-800 font-medium">All changes saved</span>
+              </>
+            ) : autoSaveStatus === 'error' ? (
+              <>
+                <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                <span className="text-rose-700 font-medium">Auto-save error</span>
+              </>
+            ) : (
+              <>
+                <Cloud className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-slate-500">Auto-saved</span>
+              </>
+            )}
+          </div>
 
           <button
             type="button"

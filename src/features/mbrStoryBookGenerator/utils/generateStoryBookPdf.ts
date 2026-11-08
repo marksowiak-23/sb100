@@ -1161,6 +1161,15 @@ export async function generateStoryBookPdf({
     );
   }
 
+  // =========================================================================
+  // 11. POD INTERIOR EVEN-PAGE PADDING FOR LULU MANUFACTURING
+  // Lulu strictly requires physical interior blocks to have an even page count (divisible by 2)
+  // =========================================================================
+  if (mode === 'pod-interior' && currentInteriorPage % 2 !== 0) {
+    addInteriorPage();
+    // Intentionally unnumbered blank verso leaf ensures clean physical sheet alignment
+  }
+
   const safeSlug = bookTitle
     .replace(/[^a-zA-Z0-9_-]+/g, '_')
     .replace(/^_+|_+$/g, '')
@@ -1172,17 +1181,20 @@ export async function generateStoryBookPdf({
 export interface GenerateStoryBookCoverSpreadOptions {
   book: Partial<MbrStoryBook>;
   pageCount: number;
+  bindingType?: 'HARDCOVER' | 'PAPERBACK';
 }
 
 export async function generateStoryBookCoverSpread({
   book,
   pageCount,
+  bindingType = 'HARDCOVER',
 }: GenerateStoryBookCoverSpreadOptions): Promise<void> {
   const trimCode = book.bookTrimSizeCd || 'TRADE_6X9';
   const trim = TRIM_SPECS[trimCode] || TRIM_SPECS.TRADE_6X9;
   const themeCode = book.bookCoverThemeCd || 'AMBER';
   const palette = COVER_THEME_PALETTES[themeCode] || COVER_THEME_PALETTES.AMBER;
   const fontName = (book.bookFontFamilyCd || 'times') as 'times' | 'helvetica' | 'courier';
+  const coverLayout = book.bookCoverLayoutCd || 'CLASSIC_FRAME';
 
   const bookTitle = (book.bookTitle || 'My Life Stories').trim();
   const bookSubtitle = (book.bookSubtitle || '').trim();
@@ -1190,11 +1202,20 @@ export async function generateStoryBookCoverSpread({
   const volumeLabel = (book.bookVolumeLabel || '').trim();
   const spineTitle = (book.bookSpineTitle || bookTitle).trim();
 
-  // Lulu standard: 0.125 inch bleed = 9 pt
-  const bleed = 9;
-  // Spine calculation: page count * 0.002252 in * 72 pt/in, min 18 pt
-  const calculatedSpine = Math.round(pageCount * 0.002252 * 72 * 10) / 10;
-  const spineWidth = Math.max(18, calculatedSpine);
+  // Load cover image if present
+  const coverImg = await loadImageAsDataUrl(book.bookCoverPhotoUrl);
+
+  // Lulu standard: Hardcovers require 0.625" (45pt) wrap margin around boards; paperbacks require 0.125" (9pt) bleed
+  const isHardcover = bindingType === 'HARDCOVER';
+  const bleed = isHardcover ? 45 : 9;
+
+  // Even page count enforcement for spine calculation
+  const effectivePages = pageCount % 2 !== 0 ? pageCount + 1 : Math.max(pageCount, 4);
+
+  // Spine calculation: page count * 0.002252 in * 72 pt/in (+ board gap for casebound)
+  const baseSpine = effectivePages * 0.002252 * 72;
+  const calculatedSpine = Math.round((baseSpine + (isHardcover ? 14 : 0)) * 10) / 10;
+  const spineWidth = Math.max(isHardcover ? 24 : 16, calculatedSpine);
 
   const spreadWidth = trim.width * 2 + spineWidth + bleed * 2;
   const spreadHeight = trim.height + bleed * 2;
@@ -1213,32 +1234,55 @@ export async function generateStoryBookCoverSpread({
   const spineLeft = bleed + trim.width;
   const frontCoverLeft = bleed + trim.width + spineWidth;
 
-  // 1. BACK COVER (Left)
+  // =========================================================================
+  // 1. BACK COVER (Left Panel)
+  // =========================================================================
   const backCenterX = backCoverLeft + trim.width / 2;
-  const blurb = (book.bookBackCoverBlurb || '').trim();
-  if (blurb) {
-    doc.setFont(fontName, 'italic');
-    doc.setFontSize(11);
-    doc.setTextColor(...palette.textRgb);
-    const blurbLines = doc.splitTextToSize(blurb, trim.width - 80);
-    doc.text(blurbLines, backCenterX, spreadHeight / 2 - 40, { align: 'center' });
-  }
+
+  // Back cover ornamental borders
+  doc.setDrawColor(...palette.accentRgb);
+  doc.setLineWidth(1.4);
+  doc.rect(backCoverLeft + 26, bleed + 26, trim.width - 52, trim.height - 52);
+  doc.setLineWidth(0.6);
+  doc.rect(backCoverLeft + 32, bleed + 32, trim.width - 64, trim.height - 64);
+
+  let backY = bleed + trim.height * 0.22;
+  doc.setFont(fontName, 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(...palette.accentRgb);
+  doc.text(bookTitle, backCenterX, backY, { align: 'center' });
+  backY += 24;
+
+  const blurb =
+    (book.bookBackCoverBlurb || '').trim() ||
+    (book.bookAboutAuthorText || '').trim() ||
+    `A curated collection of personal memoirs, family history, and life reflections authored by ${authorName}.`;
+
+  doc.setFont(fontName, 'italic');
+  doc.setFontSize(10.5);
+  doc.setTextColor(...palette.textRgb);
+  const blurbLines = doc.splitTextToSize(blurb, trim.width - 100);
+  doc.text(blurbLines, backCenterX, backY, { align: 'center' });
+
+  // Bottom ISBN / Edition Seal
   doc.setFont(fontName, 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(...palette.mutedTextRgb);
   if (book.bookIsbn && book.bookIsbn.trim()) {
-    doc.text(`ISBN / Edition: ${book.bookIsbn.trim()}`, backCenterX, spreadHeight - bleed - 40, {
+    doc.text(`ISBN / Edition: ${book.bookIsbn.trim()}`, backCenterX, spreadHeight - bleed - 42, {
       align: 'center',
     });
   }
   doc.text(
-    `Heirloom Print Edition • ${pageCount} Pages`,
+    `Heirloom Print Edition • ${effectivePages} Pages`,
     backCenterX,
-    spreadHeight - bleed - 24,
+    spreadHeight - bleed - 26,
     { align: 'center' }
   );
 
-  // 2. SPINE (Center)
+  // =========================================================================
+  // 2. SPINE (Center Panel)
+  // =========================================================================
   doc.setDrawColor(...palette.accentRgb);
   doc.setLineWidth(0.5);
   doc.setLineDashPattern([2, 2], 0);
@@ -1246,54 +1290,220 @@ export async function generateStoryBookCoverSpread({
   doc.line(spineLeft + spineWidth, 0, spineLeft + spineWidth, spreadHeight);
   doc.setLineDashPattern([], 0);
 
-  // Vertical spine title
+  // Vertical spine title and author
   if (spineWidth >= 16) {
     doc.setFont(fontName, 'bold');
-    doc.setFontSize(spineWidth > 24 ? 9 : 7.5);
+    doc.setFontSize(spineWidth > 26 ? 9 : 7.5);
     doc.setTextColor(...palette.textRgb);
     const spineText = `${spineTitle}   —   ${authorName}`;
     const spineCenterX = spineLeft + spineWidth / 2;
     const spineCenterY = spreadHeight / 2;
-    doc.text(spineText, spineCenterX + (spineWidth > 24 ? 3 : 2), spineCenterY, {
+    doc.text(spineText, spineCenterX + (spineWidth > 26 ? 3 : 2), spineCenterY, {
       align: 'center',
       angle: 270,
     });
   }
 
-  // 3. FRONT COVER (Right)
+  // =========================================================================
+  // 3. FRONT COVER (Right Panel) - Faithfully renders bookCoverLayoutCd & photo!
+  // =========================================================================
   const frontCenterX = frontCoverLeft + trim.width / 2;
-  doc.setDrawColor(...palette.accentRgb);
-  doc.setLineWidth(1.5);
-  doc.rect(frontCoverLeft + 24, bleed + 24, trim.width - 48, trim.height - 48);
+  const frontPageWidth = trim.width;
+  const frontPageHeight = trim.height;
 
-  let frontY = bleed + 60;
-  if (volumeLabel) {
+  if (coverLayout === 'HERO_BLEED' && coverImg) {
+    // Cover photo filling top 58% of front cover panel
+    const heroH = frontPageHeight * 0.58;
+    doc.addImage(
+      coverImg.dataUrl,
+      'JPEG',
+      frontCoverLeft,
+      bleed,
+      frontPageWidth,
+      heroH,
+      undefined,
+      'FAST'
+    );
+    // Divider band
+    doc.setDrawColor(...palette.accentRgb);
+    doc.setLineWidth(2);
+    doc.line(frontCoverLeft, bleed + heroH, frontCoverLeft + frontPageWidth, bleed + heroH);
+
+    let y = bleed + heroH + 38;
+    if (volumeLabel) {
+      doc.setFont(fontName, 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...palette.accentRgb);
+      doc.text(volumeLabel.toUpperCase(), frontCenterX, y, { align: 'center' });
+      y += 22;
+    }
     doc.setFont(fontName, 'bold');
-    doc.setFontSize(8.5);
-    doc.setTextColor(...palette.accentRgb);
-    doc.text(volumeLabel.toUpperCase(), frontCenterX, frontY, { align: 'center' });
-    frontY += 26;
-  }
+    doc.setFontSize(22);
+    doc.setTextColor(...palette.textRgb);
+    const titleLines = doc.splitTextToSize(bookTitle, frontPageWidth - 70);
+    doc.text(titleLines, frontCenterX, y, { align: 'center' });
+    y += titleLines.length * 26 + 8;
 
-  doc.setFont(fontName, 'bold');
-  doc.setFontSize(22);
-  doc.setTextColor(...palette.textRgb);
-  const titleLines = doc.splitTextToSize(bookTitle, trim.width - 90);
-  doc.text(titleLines, frontCenterX, frontY, { align: 'center' });
-  frontY += titleLines.length * 26 + 10;
+    if (bookSubtitle) {
+      doc.setFont(fontName, 'italic');
+      doc.setFontSize(11);
+      doc.setTextColor(...palette.mutedTextRgb);
+      const subLines = doc.splitTextToSize(bookSubtitle, frontPageWidth - 80);
+      doc.text(subLines, frontCenterX, y, { align: 'center' });
+    }
 
-  if (bookSubtitle) {
-    doc.setFont(fontName, 'italic');
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(11.5);
+    doc.setTextColor(...palette.textRgb);
+    doc.text(authorName.toUpperCase(), frontCenterX, spreadHeight - bleed - 42, { align: 'center' });
+  } else if (coverLayout === 'PORTRAIT_MEDALLION') {
+    // Outer frame
+    doc.setDrawColor(...palette.accentRgb);
+    doc.setLineWidth(1.2);
+    doc.rect(frontCoverLeft + 26, bleed + 26, frontPageWidth - 52, frontPageHeight - 52);
+
+    let y = bleed + 68;
+    if (volumeLabel) {
+      doc.setFont(fontName, 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...palette.accentRgb);
+      doc.text(volumeLabel.toUpperCase(), frontCenterX, y, { align: 'center' });
+      y += 22;
+    }
+
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(...palette.textRgb);
+    const titleLines = doc.splitTextToSize(bookTitle, frontPageWidth - 80);
+    doc.text(titleLines, frontCenterX, y, { align: 'center' });
+    y += titleLines.length * 26 + 8;
+
+    if (bookSubtitle) {
+      doc.setFont(fontName, 'italic');
+      doc.setFontSize(11);
+      doc.setTextColor(...palette.mutedTextRgb);
+      const subLines = doc.splitTextToSize(bookSubtitle, frontPageWidth - 90);
+      doc.text(subLines, frontCenterX, y, { align: 'center' });
+      y += subLines.length * 15 + 14;
+    }
+
+    // Centered framed portrait photograph
+    const boxW = Math.min(180, frontPageWidth - 120);
+    const boxH = boxW * 1.15;
+    const boxX = frontCoverLeft + (frontPageWidth - boxW) / 2;
+    const boxY = Math.max(y + 8, bleed + frontPageHeight * 0.4);
+    doc.setFillColor(...palette.secondaryBgRgb);
+    doc.rect(boxX - 5, boxY - 5, boxW + 10, boxH + 10, 'F');
+    doc.setDrawColor(...palette.accentRgb);
+    doc.setLineWidth(1.5);
+    doc.rect(boxX - 5, boxY - 5, boxW + 10, boxH + 10, 'S');
+    if (coverImg) {
+      doc.addImage(coverImg.dataUrl, 'JPEG', boxX, boxY, boxW, boxH, undefined, 'FAST');
+    } else {
+      doc.setFont(fontName, 'italic');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...palette.mutedTextRgb);
+      doc.text('Family Heirloom Edition', frontCenterX, boxY + boxH / 2, { align: 'center' });
+    }
+
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...palette.textRgb);
+    doc.text(authorName, frontCenterX, spreadHeight - bleed - 48, { align: 'center' });
+  } else if (coverLayout === 'MINIMAL_LINEN') {
+    // Left vertical spine accent bar on front cover
+    doc.setFillColor(...palette.accentRgb);
+    doc.rect(frontCoverLeft, bleed, 16, frontPageHeight, 'F');
+
+    let y = bleed + frontPageHeight * 0.26;
+    if (volumeLabel) {
+      doc.setFont(fontName, 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...palette.accentRgb);
+      doc.text(volumeLabel.toUpperCase(), frontCoverLeft + 48, y);
+      y += 20;
+    }
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(24);
+    doc.setTextColor(...palette.textRgb);
+    const titleLines = doc.splitTextToSize(bookTitle, frontPageWidth - 80);
+    doc.text(titleLines, frontCoverLeft + 48, y);
+    y += titleLines.length * 28 + 8;
+
+    doc.setDrawColor(...palette.accentRgb);
+    doc.setLineWidth(1.5);
+    doc.line(frontCoverLeft + 48, y, frontCoverLeft + 128, y);
+    y += 22;
+
+    if (bookSubtitle) {
+      doc.setFont(fontName, 'italic');
+      doc.setFontSize(11.5);
+      doc.setTextColor(...palette.mutedTextRgb);
+      const subLines = doc.splitTextToSize(bookSubtitle, frontPageWidth - 90);
+      doc.text(subLines, frontCoverLeft + 48, y);
+    }
+
+    doc.setFont(fontName, 'normal');
     doc.setFontSize(11);
-    doc.setTextColor(...palette.mutedTextRgb);
-    const subLines = doc.splitTextToSize(bookSubtitle, trim.width - 100);
-    doc.text(subLines, frontCenterX, frontY, { align: 'center' });
-  }
+    doc.setTextColor(...palette.textRgb);
+    doc.text(authorName, frontCoverLeft + 48, spreadHeight - bleed - 54);
+  } else {
+    // CLASSIC_FRAME (default)
+    // Double-ruled gold ornamental border
+    doc.setDrawColor(...palette.accentRgb);
+    doc.setLineWidth(1.8);
+    doc.rect(frontCoverLeft + 26, bleed + 26, frontPageWidth - 52, frontPageHeight - 52);
+    doc.setLineWidth(0.6);
+    doc.rect(frontCoverLeft + 32, bleed + 32, frontPageWidth - 64, frontPageHeight - 64);
 
-  doc.setFont(fontName, 'bold');
-  doc.setFontSize(11.5);
-  doc.setTextColor(...palette.textRgb);
-  doc.text(authorName.toUpperCase(), frontCenterX, spreadHeight - bleed - 44, { align: 'center' });
+    let y = bleed + frontPageHeight * 0.22;
+    if (volumeLabel) {
+      doc.setFont(fontName, 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(...palette.accentRgb);
+      doc.text(volumeLabel.toUpperCase(), frontCenterX, y, { align: 'center' });
+      y += 24;
+    }
+
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(24);
+    doc.setTextColor(...palette.textRgb);
+    const titleLines = doc.splitTextToSize(bookTitle, frontPageWidth - 90);
+    doc.text(titleLines, frontCenterX, y, { align: 'center' });
+    y += titleLines.length * 28 + 10;
+
+    // Ornamental gold divider line
+    doc.setDrawColor(...palette.accentRgb);
+    doc.setLineWidth(0.9);
+    doc.line(frontCenterX - 42, y, frontCenterX + 42, y);
+    y += 22;
+
+    if (bookSubtitle) {
+      doc.setFont(fontName, 'italic');
+      doc.setFontSize(11.5);
+      doc.setTextColor(...palette.mutedTextRgb);
+      const subLines = doc.splitTextToSize(bookSubtitle, frontPageWidth - 100);
+      doc.text(subLines, frontCenterX, y, { align: 'center' });
+      y += subLines.length * 16 + 18;
+    }
+
+    // Centered framed photo if uploaded
+    if (coverImg) {
+      const imgW = Math.min(160, frontPageWidth - 120);
+      const imgH = imgW * 0.75;
+      const imgX = frontCoverLeft + (frontPageWidth - imgW) / 2;
+      const imgY = Math.max(y + 8, bleed + frontPageHeight * 0.46);
+      doc.setDrawColor(...palette.accentRgb);
+      doc.setLineWidth(1);
+      doc.rect(imgX - 3, imgY - 3, imgW + 6, imgH + 6);
+      doc.addImage(coverImg.dataUrl, 'JPEG', imgX, imgY, imgW, imgH, undefined, 'FAST');
+    }
+
+    doc.setFont(fontName, 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(...palette.textRgb);
+    doc.text(authorName, frontCenterX, spreadHeight - bleed - 50, { align: 'center' });
+  }
 
   const safeSlug = bookTitle
     .replace(/[^a-zA-Z0-9_-]+/g, '_')

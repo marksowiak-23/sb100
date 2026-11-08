@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Printer,
   Package,
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import {
   taskApi,
+  eventApi,
   MbrStoryBook,
   MbrStoryBookOrder,
   LuluCostQuoteResponse,
@@ -56,7 +57,7 @@ export function MbrStoryBookPublishOrderSection({
 }: MbrStoryBookPublishOrderSectionProps) {
   // Format & Binding Options
   const [bindingType, setBindingType] = useState<'HARDCOVER' | 'PAPERBACK'>('HARDCOVER');
-  const [paperType, setPaperType] = useState<'CREAM_60' | 'WHITE_80'>('CREAM_60');
+  const [paperType, setPaperType] = useState<'CREAM_60' | 'WHITE_80'>('WHITE_80');
   const [coverFinish, setCoverFinish] = useState<'MATTE' | 'GLOSS'>('MATTE');
   const [quantity, setQuantity] = useState<number>(1);
   const [shippingLevel, setShippingLevel] = useState<'MAIL' | 'PRIORITY_MAIL' | 'GROUND' | 'EXPEDITED'>('MAIL');
@@ -93,17 +94,27 @@ export function MbrStoryBookPublishOrderSection({
   const trimCode = bookConfig.bookTrimSizeCd || 'TRADE_6X9';
   const trim = TRIM_SPECS[trimCode] || TRIM_SPECS.TRADE_6X9;
 
-  // Resolve Lulu POD Package SKU
-  const resolvedPodPackageId =
-    trimCode.includes('85X11') || trimCode.includes('LETTER')
-      ? bindingType === 'HARDCOVER'
-        ? '0850X1100BWSTDCW060CW444MXX'
-        : '0850X1100BWSTDPB060UW444MXX'
-      : trimCode.includes('6X9') || trimCode.includes('TRADE')
-      ? bindingType === 'HARDCOVER'
-        ? '0600X0900BWSTDCW060CW444MXX'
-        : '0600X0900BWSTDPB060UW444MXX'
-      : '0850X1100BWSTDPB060UW444MXX';
+  // Lulu physical manufacturing strictly requires interior blocks to have an even page count
+  const evenPageCount = pageCount % 2 !== 0 ? pageCount + 1 : Math.max(pageCount, 4);
+
+  // Resolve verified Lulu Direct POD Package SKU (Standard Full-Color Process)
+  const resolvedPodPackageId = useMemo(() => {
+    let size = '0600X0900';
+    if (trimCode.includes('85X11') || trimCode.includes('LETTER')) {
+      size = '0850X1100';
+    } else if (trimCode.includes('614X921') || trimCode.includes('ROYAL')) {
+      size = '0614X0921';
+    } else if (trimCode.includes('55X85') || trimCode.includes('DIGEST')) {
+      size = '0550X0850';
+    }
+
+    const ink = 'FC';
+    const bind = bindingType === 'HARDCOVER' ? 'CW' : 'PB';
+    const finishCode = coverFinish === 'GLOSS' ? 'GXX' : 'MXX';
+    const paperCode = paperType === 'WHITE_80' ? '080CW444' : '060UW444';
+
+    return `${size}${ink}STD${bind}${paperCode}${finishCode}`;
+  }, [trimCode, bindingType, coverFinish, paperType]);
 
   // Load Past Orders
   const loadOrders = useCallback(async () => {
@@ -175,9 +186,9 @@ export function MbrStoryBookPublishOrderSection({
 
     try {
       if (isSandbox) {
-        // Realistic sandbox estimation
+        // Realistic sandbox estimation based on binding and full-color process
         await new Promise((r) => setTimeout(r, 600));
-        const unit = bindingType === 'HARDCOVER' ? 9.83 : 4.45;
+        const unit = (bindingType === 'HARDCOVER' ? 8.5 : 3.8) + 4.5;
         const ship = shippingLevel === 'EXPEDITED' ? 14.5 : shippingLevel === 'GROUND' ? 8.25 : 5.69;
         const fulfill = 0.75;
         const tax = Math.round((unit * quantity + ship + fulfill) * 0.0725 * 100) / 100;
@@ -194,7 +205,7 @@ export function MbrStoryBookPublishOrderSection({
         });
       } else {
         const res = await taskApi.calculateLuluCostQuote({
-          pageCount: Math.max(pageCount, 4),
+          pageCount: evenPageCount,
           podPackageId: resolvedPodPackageId,
           quantity,
           shippingLevel,
@@ -243,7 +254,7 @@ export function MbrStoryBookPublishOrderSection({
         coverFinishCd: coverFinish,
         paperTypeCd: paperType,
         quantity,
-        pageCount: Math.max(pageCount, 4),
+        pageCount: evenPageCount,
         unitCost: quote.unitCost,
         shippingCost: quote.shippingCost,
         taxCost: quote.taxCost,
@@ -263,6 +274,7 @@ export function MbrStoryBookPublishOrderSection({
         trackingNumber: `9400${Math.floor(1000000000000000 + Math.random() * 9000000000000000)}`,
       };
 
+      let createdOrder: MbrStoryBookOrder;
       if (isSandbox) {
         const created: MbrStoryBookOrder = {
           ...newOrderPayload,
@@ -274,10 +286,43 @@ export function MbrStoryBookPublishOrderSection({
         const updatedList = [created, ...orders];
         setOrders(updatedList);
         sessionStorage.setItem('sb_mock_storybook_orders', JSON.stringify(updatedList));
+        createdOrder = created;
       } else {
         const created = await taskApi.createMemberStoryBookOrder(newOrderPayload);
         setOrders([created, ...orders]);
+        createdOrder = created;
       }
+
+      // Log print order placement event
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: mbrId || bookConfig.mbrId || undefined,
+        eventActorTypeCd: 'MBR',
+        eventCd: 'STORYBOOK_PRINT_ORDER_PLACE',
+        eventDetail: `Member placed storybook physical print order for '${bookConfig.bookTitle || 'My Life Stories'}' (${quantity} ${quantity === 1 ? 'copy' : 'copies'}, ${bindingType}, Job #${newOrderPayload.luluPrintJobId})`,
+        eventTagValue: {
+          orderId: createdOrder.orderId,
+          bookId: bookConfig.bookId,
+          bookTitle: bookConfig.bookTitle,
+          luluPrintJobId: newOrderPayload.luluPrintJobId,
+          bindingTypeCd: bindingType,
+          podPackageId: resolvedPodPackageId,
+          paperTypeCd: paperType,
+          coverFinishCd: coverFinish,
+          quantity,
+          pageCount: evenPageCount,
+          unitCost: quote.unitCost,
+          shippingCost: quote.shippingCost,
+          totalCost: quote.totalCost,
+          currency: quote.currency || 'USD',
+          shippingLevel,
+          recipientName: address.recipientName,
+          shippingCity: address.city,
+          shippingState: address.stateCode,
+          shippingZip: address.postcode,
+          isSandbox,
+        },
+      }).catch((err) => console.warn('Could not log print order event:', err));
 
       setOrderSuccessMessage(
         `Print order successfully placed! Your order has been registered with Lulu Direct under Job #${newOrderPayload.luluPrintJobId}. Production begins immediately.`
@@ -327,6 +372,22 @@ export function MbrStoryBookPublishOrderSection({
         chapters: includedChapters,
         mode: 'pod-interior',
       });
+
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: mbrId || bookConfig.mbrId || undefined,
+        eventActorTypeCd: 'MBR',
+        eventCd: 'STORYBOOK_PDF_PROOF_INTERIOR_GENERATE',
+        eventDetail: `Member downloaded POD interior proof PDF for storybook '${bookConfig.bookTitle || 'My Life Stories'}' (${includedChapters.length} chapters, ${trim.label})`,
+        eventTagValue: {
+          bookId: bookConfig.bookId,
+          bookTitle: bookConfig.bookTitle,
+          mode: 'pod-interior',
+          pageCount: evenPageCount,
+          trimSizeCd: trimCode,
+          isSandbox,
+        },
+      }).catch((err) => console.warn('Could not log interior proof event:', err));
     } catch (err) {
       console.error('Error downloading POD interior:', err);
     } finally {
@@ -339,8 +400,26 @@ export function MbrStoryBookPublishOrderSection({
     try {
       await generateStoryBookCoverSpread({
         book: bookConfig,
-        pageCount: Math.max(pageCount, 4),
+        pageCount: evenPageCount,
+        bindingType,
       });
+
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: mbrId || bookConfig.mbrId || undefined,
+        eventActorTypeCd: 'MBR',
+        eventCd: 'STORYBOOK_PDF_PROOF_COVER_GENERATE',
+        eventDetail: `Member downloaded Lulu wrap cover spread proof PDF for storybook '${bookConfig.bookTitle || 'My Life Stories'}' (${bindingType}, ${trim.label})`,
+        eventTagValue: {
+          bookId: bookConfig.bookId,
+          bookTitle: bookConfig.bookTitle,
+          mode: 'cover-spread',
+          bindingType,
+          pageCount: evenPageCount,
+          trimSizeCd: trimCode,
+          isSandbox,
+        },
+      }).catch((err) => console.warn('Could not log cover proof event:', err));
     } catch (err) {
       console.error('Error downloading cover wrap spread:', err);
     } finally {
@@ -371,11 +450,14 @@ export function MbrStoryBookPublishOrderSection({
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle className="w-4 h-4 text-emerald-400" />
-              Length: <strong>{pageCount} pages</strong>
+              Length: <strong>{evenPageCount} pages</strong>
+              {pageCount % 2 !== 0 && (
+                <span className="text-[10px] text-amber-300 font-sans">(Even-padded)</span>
+              )}
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle className="w-4 h-4 text-emerald-400" />
-              Status: <strong>Print-Ready</strong>
+              Interior: <strong>Full-Color Process (CMYK)</strong>
             </span>
           </div>
         </div>
@@ -453,6 +535,24 @@ export function MbrStoryBookPublishOrderSection({
                     Lightweight perfect-bound bookstore paperback. Ideal for casual family copies.
                   </p>
                 </button>
+              </div>
+            </div>
+
+            {/* Standard Full-Color Process Banner */}
+            <div className="bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-800 mt-0.5">
+                <CheckCircle className="w-4 h-4" />
+              </div>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-xs font-serif font-bold text-amber-950">Standard Full-Color Process</h4>
+                  <span className="px-2 py-0.5 bg-amber-200/70 text-amber-900 rounded-md text-[10px] font-serif font-semibold">
+                    Always Included
+                  </span>
+                </div>
+                <p className="text-[11px] font-serif text-amber-900/85 leading-relaxed">
+                  Every heirloom storybook is printed in vibrant 4-color CMYK photographic process so all family photos, archival scans, chapter dividers, and portrait medallions are reproduced in true-to-life full color.
+                </p>
               </div>
             </div>
 
