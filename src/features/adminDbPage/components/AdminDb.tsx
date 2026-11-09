@@ -957,6 +957,28 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrSessionReplay',
+    name: 'mbrSessionReplay',
+    endpoint: '/api/v1/admin/session-replays',
+    primaryKey: 'sessionReplayId',
+    searchField: 'sessionGuid',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'sessionGuid', label: 'Session GUID', type: 'string', required: true },
+      { name: 'statusCd', label: 'Status Code', type: 'string', required: true, placeholder: 'RECORDING / COMPLETED / ERROR' },
+      { name: 'durationSec', label: 'Duration (Sec)', type: 'number', required: true },
+      { name: 'eventCount', label: 'Event Count', type: 'number', required: true },
+      { name: 'errorCount', label: 'Error Count', type: 'number', required: true },
+      { name: 'deviceTypeCd', label: 'Device Type', type: 'string', required: false },
+      { name: 'browserName', label: 'Browser Name', type: 'string', required: false },
+      { name: 'osName', label: 'Operating System', type: 'string', required: false },
+      { name: 'viewportWidth', label: 'Viewport Width', type: 'number', required: false },
+      { name: 'viewportHeight', label: 'Viewport Height', type: 'number', required: false },
+      { name: 'initialUrl', label: 'Initial Route URL', type: 'string', required: false },
+      { name: 'gcsPrefix', label: 'GCS Storage Prefix', type: 'string', required: true }
+    ]
+  },
+  {
     id: 'sysConfig',
     name: 'sysConfig',
     endpoint: '/sys-configs',

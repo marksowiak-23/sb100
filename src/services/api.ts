@@ -6395,6 +6395,90 @@ export const mbrVoiceProfileApi = {
   },
 };
 
+export interface MbrSessionReplay {
+  sessionReplayId: string;
+  mbrId: string;
+  sessionGuid: string;
+  statusCd: string;
+  startTs: string;
+  endTs?: string | null;
+  durationSec: number;
+  eventCount: number;
+  errorCount: number;
+  deviceTypeCd?: string | null;
+  browserName?: string | null;
+  osName?: string | null;
+  viewportWidth?: number | null;
+  viewportHeight?: number | null;
+  initialUrl?: string | null;
+  gcsPrefix: string;
+  metadataJson?: Record<string, any>;
+  createdTs: string;
+  updatedTs: string;
+}
+
+export const sessionReplayApi = {
+  async startSession(payload: {
+    mbrId: string;
+    sessionGuid: string;
+    deviceTypeCd?: string;
+    browserName?: string;
+    osName?: string;
+    viewportWidth?: number;
+    viewportHeight?: number;
+    initialUrl?: string;
+    gcsPrefix: string;
+    metadataJson?: Record<string, any>;
+  }): Promise<MbrSessionReplay> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/session-replays/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return handleResponse<MbrSessionReplay>(response);
+  },
+
+  async completeSession(
+    sessionGuid: string,
+    payload: {
+      statusCd?: string;
+      endTs?: string;
+      durationSec?: number;
+      eventCount?: number;
+      errorCount?: number;
+      metadataJson?: Record<string, any>;
+    }
+  ): Promise<MbrSessionReplay> {
+    const response = await fetch(`${API_BASE_URL}/api/v1/session-replays/${encodeURIComponent(sessionGuid)}/complete`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    return handleResponse<MbrSessionReplay>(response);
+  },
+
+  async uploadChunk(sessionGuid: string, chunkIndex: number, eventsJson: string, isFinal = false): Promise<any> {
+    const response = await fetch(`${MEDIA_API_BASE_URL}/media/session-replay/${encodeURIComponent(sessionGuid)}/chunk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({
+        chunk_index: chunkIndex,
+        events_json: eventsJson,
+        is_final: isFinal
+      })
+    });
+    return handleResponse<any>(response);
+  },
+
+  async getSessionStream(sessionGuid: string): Promise<{ session_guid: string; total_chunks: number; total_events: number; events: any[] }> {
+    const response = await fetch(`${MEDIA_API_BASE_URL}/media/session-replay/${encodeURIComponent(sessionGuid)}/stream`, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse<{ session_guid: string; total_chunks: number; total_events: number; events: any[] }>(response);
+  }
+};
+
 export const voiceCloneApi = {
   async enrollVoice(payload: VoiceCloneEnrollRequest): Promise<VoiceCloneEnrollResponse> {
     const response = await fetch(`${AI_API_BASE_URL}/voice-clone/enroll`, {

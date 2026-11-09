@@ -157,8 +157,21 @@ export default function MbrPhotoBookPage({
   // --- MEMBER RESOLUTION ---
   useEffect(() => {
     let resolvedId = targetMemberId;
+
+    // 1. Check sb_current_mbr (primary logged-in member session object)
     if (!resolvedId) {
-      const storedMbr = sessionStorage.getItem('selectedMember');
+      const currentMbrStr = sessionStorage.getItem('sb_current_mbr');
+      if (currentMbrStr) {
+        try {
+          const parsed = JSON.parse(currentMbrStr);
+          if (parsed?.mbrId) resolvedId = parsed.mbrId;
+        } catch {}
+      }
+    }
+
+    // 2. Check selectedMember or legacy mbr
+    if (!resolvedId) {
+      const storedMbr = sessionStorage.getItem('selectedMember') || sessionStorage.getItem('mbr');
       if (storedMbr) {
         try {
           const parsed = JSON.parse(storedMbr);
@@ -166,6 +179,8 @@ export default function MbrPhotoBookPage({
         } catch {}
       }
     }
+
+    // 3. Fallback to user account ID query
     if (!resolvedId && !isSandbox) {
       const userStr = sessionStorage.getItem('user');
       if (userStr) {
@@ -175,14 +190,15 @@ export default function MbrPhotoBookPage({
             taskApi.getMemberByUserId(u.user_id).then((m) => {
               if (m?.mbrId) setCurrentMbrId(m.mbrId);
             }).catch(() => {});
+            return;
           }
         } catch {}
       }
     }
-    if (!resolvedId) {
-      resolvedId = '299da1e4-a233-4333-ab7c-b9ca64b6b7d4'; // Default member Mark Sowiak
+
+    if (resolvedId) {
+      setCurrentMbrId(resolvedId);
     }
-    setCurrentMbrId(resolvedId);
   }, [targetMemberId, isSandbox]);
 
   // Reset multi-select when switching views or albums
