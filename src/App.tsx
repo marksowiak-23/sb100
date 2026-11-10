@@ -17,6 +17,7 @@ import { AlertTriangle, X } from 'lucide-react';
 import { taskApi, HealthCheckResponse } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { analytics } from '@/src/services/analytics';
+import { sessionReplayService } from '@/src/services/sessionReplayService';
 
 // Import our layouts and feature components.
 import MainLayout from '@/src/layouts/MainLayout';
@@ -357,6 +358,9 @@ export default function App() {
   useEffect(() => {
     // Initialize Google Tag Manager & Google Analytics 4
     analytics.init();
+
+    // Initialize Customer Support Session Replay if member is authenticated
+    sessionReplayService.init().catch(() => {});
 
     loadHealth();
 

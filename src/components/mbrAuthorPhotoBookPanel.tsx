@@ -44,7 +44,16 @@ export default function MbrAuthorPhotoBookPanel({
     let resolvedMbrId = memberId;
     if (!resolvedMbrId) {
       try {
-        const storedMbr = sessionStorage.getItem('selectedMember');
+        const currentMbrStr = sessionStorage.getItem('sb_current_mbr');
+        if (currentMbrStr) {
+          const parsed = JSON.parse(currentMbrStr);
+          if (parsed?.mbrId) resolvedMbrId = parsed.mbrId;
+        }
+      } catch {}
+    }
+    if (!resolvedMbrId) {
+      try {
+        const storedMbr = sessionStorage.getItem('selectedMember') || sessionStorage.getItem('mbr');
         if (storedMbr) {
           const parsed = JSON.parse(storedMbr);
           if (parsed?.mbrId) resolvedMbrId = parsed.mbrId;

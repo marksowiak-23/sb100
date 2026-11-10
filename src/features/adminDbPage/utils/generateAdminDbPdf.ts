@@ -85,6 +85,7 @@ const TABLE_TITLE_MAP: Record<string, string> = {
   mbrTopicConnectionPrivs: 'Topic Category Connection Access Privileges (mbrTopicConnectionPrivs)',
   mbrProfileGroupPrivs: 'Profile Group Access Privileges (mbrProfileGroupPrivs)',
   mbrVoiceProfile: 'Member Personal AI Voice Cloning Profiles (mbrVoiceProfile)',
+  mbrSessionReplay: 'Member Diagnostic Session Replays (mbrSessionReplay)',
   mbrAlbum: 'Member Photo Albums (mbrAlbum)',
   mbrAlbumPhoto: 'Photo Album Mappings & Layouts (mbrAlbumPhoto)',
   mbrAlbumGroupPrivs: 'Album Group Access Privileges (mbrAlbumGroupPrivs)',

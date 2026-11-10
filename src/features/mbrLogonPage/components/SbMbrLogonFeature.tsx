@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Loader2, AlertCircle, ArrowLeft, ShieldCheck, LogIn, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { userManager } from '@/src/services/userManager';
+import { sessionReplayService } from '@/src/services/sessionReplayService';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import PageSeo from '@/src/components/PageSeo';
 
@@ -47,6 +48,8 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
 
         if (result.success && result.user) {
           sessionStorage.setItem('user', JSON.stringify(result.user));
+          const mbrId = result.member?.mbrId;
+          sessionReplayService.init(mbrId).catch(() => {});
           setStatusState('success');
 
           await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -94,6 +97,9 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
 
       if (result.success && result.user) {
         sessionStorage.setItem('user', JSON.stringify(result.user));
+        // Trigger session replay initialization for newly logged in member
+        const mbrId = result.member?.mbrId;
+        sessionReplayService.init(mbrId).catch(() => {});
         setStatusState('success');
 
         setTimeout(() => {
