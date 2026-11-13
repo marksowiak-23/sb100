@@ -36,6 +36,25 @@ interface TableDefinition {
 // All 28 system tables mapped with their respective columns, endpoints, and data types
 const TABLES: TableDefinition[] = [
   {
+    id: 'adm',
+    name: 'adm',
+    endpoint: '/admins',
+    primaryKey: 'admId',
+    searchField: 'admEmail',
+    fields: [
+      { name: 'user_id', label: 'User ID (FK)', type: 'string', required: true, placeholder: 'UUID of user account' },
+      { name: 'admRoleTypeCd', label: 'Role Code', type: 'string', required: true, placeholder: 'ADMIN, SUPPORT, SUPERADMIN' },
+      { name: 'admFirstName', label: 'First Name', type: 'string', required: true, placeholder: 'First Name' },
+      { name: 'admLastName', label: 'Last Name', type: 'string', required: true, placeholder: 'Last Name' },
+      { name: 'admEmail', label: 'Email Address', type: 'string', required: true, placeholder: 'operator@storybook.ai' },
+      { name: 'admTitle', label: 'Title', type: 'string', required: false, placeholder: 'e.g. Lead Support Specialist' },
+      { name: 'admDepartment', label: 'Department', type: 'string', required: false, placeholder: 'e.g. Operations' },
+      { name: 'admPhone', label: 'Phone', type: 'string', required: false, placeholder: 'e.g. +1 555-0199' },
+      { name: 'admStatusCd', label: 'Status', type: 'string', required: true, placeholder: 'ACTIVE, SUSPENDED' },
+      { name: 'isSuperAdminInd', label: 'Super Admin', type: 'boolean', required: true }
+    ]
+  },
+  {
     id: 'cd',
     name: 'cd',
     endpoint: '/cds',
@@ -1038,6 +1057,43 @@ const TABLES: TableDefinition[] = [
 const getInitialMockData = (tableId: string): any[] => {
   const now = new Date().toISOString();
   switch (tableId) {
+    case 'adm':
+      return [
+        {
+          admId: '7a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d',
+          user_id: 'cf650da5-ef31-419b-a083-d9d1326be8ad',
+          admRoleTypeCd: 'SUPERADMIN',
+          admFirstName: 'Platform',
+          admLastName: 'Administrator',
+          admEmail: 'admin@storybook.ai',
+          admTitle: 'Principal Systems Architect',
+          admDepartment: 'Engineering',
+          admPhone: '+1 312-555-0100',
+          admStatusCd: 'ACTIVE',
+          isSuperAdminInd: true,
+          lastLoginAt: now,
+          priorLoginAt: null,
+          admCreatedAt: now,
+          admUpdatedAt: now
+        },
+        {
+          admId: '8b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e',
+          user_id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+          admRoleTypeCd: 'SUPPORT',
+          admFirstName: 'Customer',
+          admLastName: 'Support',
+          admEmail: 'support@storybook.ai',
+          admTitle: 'Senior Care Specialist',
+          admDepartment: 'Customer Operations',
+          admPhone: '+1 312-555-0101',
+          admStatusCd: 'ACTIVE',
+          isSuperAdminInd: false,
+          lastLoginAt: now,
+          priorLoginAt: null,
+          admCreatedAt: now,
+          admUpdatedAt: now
+        }
+      ];
     case 'user':
       return [
         { user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', email: 'eleanor.ross@storybook.ai', user_typeCd: 'MBR', password_hash: 'c1a74d2b1f8e9a0b:3e2d1c0b9a8f7e6d5c4b3a21', is_active: true, created_at: now, updated_at: now },

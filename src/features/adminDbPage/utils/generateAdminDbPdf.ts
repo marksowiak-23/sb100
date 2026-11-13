@@ -207,7 +207,28 @@ export function generateAdminDbPdf({
   let baseFontSize = 8;
   let cellPadding = 5;
 
-  if (table.id === 'user') {
+  if (table.id === 'adm') {
+    headers = ['Admin ID (UUID)', 'Full Name', 'Role', 'Status', 'Email Address', 'Title / Dept', 'Super Admin'];
+    baseFontSize = 7.5;
+    columnStyles = {
+      0: { font: 'courier', cellWidth: 100 },
+      1: { fontStyle: 'bold', cellWidth: 110 },
+      2: { halign: 'center', cellWidth: 65 },
+      3: { halign: 'center', cellWidth: 55 },
+      4: { cellWidth: 140 },
+      5: { cellWidth: 110 },
+      6: { halign: 'center', cellWidth: 55 }
+    };
+    tableRows = data.map((row) => [
+      String(row.admId || '-'),
+      `${row.admFirstName || ''} ${row.admLastName || ''}`.trim() || '-',
+      String(row.admRoleTypeCd || 'ADMIN'),
+      String(row.admStatusCd || 'ACTIVE'),
+      String(row.admEmail || '-'),
+      `${row.admTitle || ''}${row.admDepartment ? ' (' + row.admDepartment + ')' : ''}` || '-',
+      formatBoolean(row.isSuperAdminInd)
+    ]);
+  } else if (table.id === 'user') {
     headers = ['User ID (UUID)', 'Email Address', 'Type', 'Status', 'Password Hash', 'Created At'];
     columnStyles = {
       0: { font: 'courier', cellWidth: 150 },

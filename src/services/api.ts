@@ -17,6 +17,24 @@ export interface User {
   updated_at: string;
 }
 
+export interface Adm {
+  admId: string;
+  user_id: string;
+  admRoleTypeCd: string;
+  admFirstName: string;
+  admLastName: string;
+  admEmail: string;
+  admTitle?: string;
+  admDepartment?: string;
+  admPhone?: string;
+  admStatusCd: string;
+  isSuperAdminInd: boolean;
+  lastLoginAt?: string;
+  priorLoginAt?: string;
+  admCreatedAt: string;
+  admUpdatedAt: string;
+}
+
 export interface Mbr {
   mbrId: string;
   mbrFirstName: string;
@@ -6476,6 +6494,59 @@ export const sessionReplayApi = {
       headers: { 'Accept': 'application/json' }
     });
     return handleResponse<{ session_guid: string; total_chunks: number; total_events: number; events: any[] }>(response);
+  },
+
+  async getAdms(params?: { skip?: number; limit?: number; role_cd?: string; status_cd?: string; search?: string }): Promise<Adm[]> {
+    const url = new URL(`${API_BASE_URL}/admins`);
+    if (params?.skip) url.searchParams.append('skip', String(params.skip));
+    if (params?.limit) url.searchParams.append('limit', String(params.limit));
+    if (params?.role_cd) url.searchParams.append('role_cd', params.role_cd);
+    if (params?.status_cd) url.searchParams.append('status_cd', params.status_cd);
+    if (params?.search) url.searchParams.append('search', params.search);
+    const response = await fetch(url.toString(), {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse(response);
+  },
+
+  async getAdm(admId: string): Promise<Adm> {
+    const response = await fetch(`${API_BASE_URL}/admins/${admId}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse(response);
+  },
+
+  async getAdmByUserId(userId: string): Promise<Adm> {
+    const response = await fetch(`${API_BASE_URL}/admins/user/${userId}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse(response);
+  },
+
+  async createAdm(adm: Partial<Adm>): Promise<Adm> {
+    const response = await fetch(`${API_BASE_URL}/admins`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(adm)
+    });
+    return handleResponse(response);
+  },
+
+  async updateAdm(admId: string, adm: Partial<Adm>): Promise<Adm> {
+    const response = await fetch(`${API_BASE_URL}/admins/${admId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(adm)
+    });
+    return handleResponse(response);
+  },
+
+  async deleteAdm(admId: string): Promise<Adm> {
+    const response = await fetch(`${API_BASE_URL}/admins/${admId}`, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse(response);
   }
 };
 
