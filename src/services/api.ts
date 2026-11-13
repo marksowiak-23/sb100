@@ -4284,6 +4284,23 @@ export const taskApi = {
       headers: { 'Accept': 'application/json' }
     });
     return handleResponse(response);
+  },
+
+  async adminLogin(credentials: { email: string; password: string }): Promise<{
+    success: boolean;
+    message: string;
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+    user: User;
+    admin: Adm;
+  }> {
+    const response = await fetch(`${API_BASE_URL}/admins/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(credentials)
+    });
+    return handleResponse(response);
   }
 };
 
