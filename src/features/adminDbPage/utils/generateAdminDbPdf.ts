@@ -224,7 +224,7 @@ export function generateAdminDbPdf({
       `${row.admFirstName || ''} ${row.admLastName || ''}`.trim() || '-',
       String(row.admRoleTypeCd || 'ADMIN'),
       String(row.admStatusCd || 'ACTIVE'),
-      String(row.admEmail || '-'),
+      String(row.email || row.admEmail || '-'),
       `${row.admTitle || ''}${row.admDepartment ? ' (' + row.admDepartment + ')' : ''}` || '-',
       formatBoolean(row.isSuperAdminInd)
     ]);
@@ -270,7 +270,7 @@ export function generateAdminDbPdf({
         String(row.mbrGenderCd || '-'),
         loc || '-',
         workStudy,
-        String(row.mbrEmailAddress || '-'),
+        String(row.email || row.mbrEmailAddress || '-'),
         String(row.mbrIntroduction || '-')
       ];
     });

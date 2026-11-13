@@ -23,7 +23,8 @@ export interface Adm {
   admRoleTypeCd: string;
   admFirstName: string;
   admLastName: string;
-  admEmail: string;
+  email?: string;
+  admEmail?: string;
   admTitle?: string;
   admDepartment?: string;
   admPhone?: string;
@@ -40,7 +41,8 @@ export interface AdmCreate {
   admRoleTypeCd: string;
   admFirstName: string;
   admLastName: string;
-  admEmail: string;
+  email?: string;
+  admEmail?: string;
   admTitle?: string;
   admDepartment?: string;
   admPhone?: string;
@@ -53,6 +55,7 @@ export interface AdmUpdate {
   admRoleTypeCd?: string;
   admFirstName?: string;
   admLastName?: string;
+  email?: string;
   admEmail?: string;
   admTitle?: string;
   admDepartment?: string;
@@ -77,6 +80,7 @@ export interface Mbr {
   mbrFromCityState?: string;
   mbrWorkAt?: string;
   mbrStudiedAt?: string;
+  email?: string;
   mbrEmailAddress?: string;
   mbrIntroduction?: string;
   mbrProfilePic?: string;
