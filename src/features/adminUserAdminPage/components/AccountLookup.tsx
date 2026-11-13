@@ -138,6 +138,7 @@ export default function AccountLookup({ isSandbox, setActiveTab, onSwitchUser }:
             </div>
             <div className="text-left sm:text-right font-serif text-[10px] text-slate-400 space-y-1">
               <div><strong>User ID:</strong> <code className="bg-slate-100 px-1 py-0.5 rounded text-[9px] font-mono text-slate-600">{currentUser.user_id}</code></div>
+              <div><strong>Type:</strong> <span className="bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase">{currentUser.user_typeCd || 'MBR'}</span></div>
               <div><strong>Registered:</strong> {new Date(currentUser.created_at).toLocaleDateString()}</div>
             </div>
           </div>

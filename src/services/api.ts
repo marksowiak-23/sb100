@@ -11,7 +11,7 @@ export interface HealthCheckResponse {
 export interface User {
   user_id: string;
   email: string;
-
+  user_typeCd: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;

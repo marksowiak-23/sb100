@@ -125,6 +125,11 @@ const UserCard: React.FC<UserCardProps> = ({
                 >
                   {user.is_active ? 'Active' : 'Inactive'}
                 </span>
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border bg-purple-50 text-purple-700 border-purple-200"
+                >
+                  {user.user_typeCd || 'MBR'}
+                </span>
                 {isCurrent && (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border bg-blue-50 text-blue-700 border-blue-200">
                     Current Session

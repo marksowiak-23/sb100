@@ -208,17 +208,19 @@ export function generateAdminDbPdf({
   let cellPadding = 5;
 
   if (table.id === 'user') {
-    headers = ['User ID (UUID)', 'Email Address', 'Status', 'Password Hash', 'Created At'];
+    headers = ['User ID (UUID)', 'Email Address', 'Type', 'Status', 'Password Hash', 'Created At'];
     columnStyles = {
-      0: { font: 'courier', cellWidth: 170 },
-      1: { fontStyle: 'bold', cellWidth: 180 },
-      2: { halign: 'center', cellWidth: 65 },
-      3: { font: 'courier', cellWidth: 180 },
-      4: { halign: 'center', cellWidth: 'auto' }
+      0: { font: 'courier', cellWidth: 150 },
+      1: { fontStyle: 'bold', cellWidth: 160 },
+      2: { halign: 'center', cellWidth: 55 },
+      3: { halign: 'center', cellWidth: 55 },
+      4: { font: 'courier', cellWidth: 160 },
+      5: { halign: 'center', cellWidth: 'auto' }
     };
     tableRows = data.map((row) => [
       String(row.user_id || '-'),
       String(row.email || '-'),
+      String(row.user_typeCd || 'MBR'),
       formatBoolean(row.is_active),
       row.password_hash ? String(row.password_hash).slice(0, 24) + '...' : '-',
       formatShortDate(row.created_at)
