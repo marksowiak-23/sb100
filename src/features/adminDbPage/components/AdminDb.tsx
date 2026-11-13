@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Database, Search, Plus, Edit2, Trash2, 
   ChevronLeft, ChevronRight, X, AlertTriangle, 
-  Check, Loader2, RefreshCw, Printer
+  Check, Loader2, RefreshCw, Printer, Copy
 } from 'lucide-react';
 import { adminDbApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -1706,6 +1706,14 @@ export default function AdminDb({ isSandbox }: AdminDbProps) {
   // Confirm delete dialog state
   const [deletingRow, setDeletingRow] = useState<any | null>(null);
 
+  // Copy to clipboard indicator state
+  const [copiedCellKey, setCopiedCellKey] = useState<string | null>(null);
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCellKey(key);
+    setTimeout(() => setCopiedCellKey(null), 2000);
+  };
+
   // Load table data when selected table changes or connection status changes
   useEffect(() => {
     loadData();
@@ -2114,9 +2122,31 @@ export default function AdminDb({ isSandbox }: AdminDbProps) {
                       </td>
                       {selectedTable.fields.map((field) => {
                         let cellVal = row[field.name];
+                        const cellKey = `${rowId}-${field.name}`;
                         return (
                           <td key={field.name} className="px-5 py-4 max-w-xs truncate">
-                            {field.type === 'boolean' ? (
+                            {field.name === 'password_hash' && cellVal ? (
+                              <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                                <span className="truncate max-w-[170px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-700 select-all" title={String(cellVal)}>
+                                  {String(cellVal)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopy(String(cellVal), cellKey);
+                                  }}
+                                  title="Copy password hash to clipboard"
+                                  className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded cursor-pointer transition-colors shrink-0"
+                                >
+                                  {copiedCellKey === cellKey ? (
+                                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                  ) : (
+                                    <Copy className="w-3.5 h-3.5" />
+                                  )}
+                                </button>
+                              </div>
+                            ) : field.type === 'boolean' ? (
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
                                 cellVal ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
                               }`}>
@@ -2260,6 +2290,37 @@ export default function AdminDb({ isSandbox }: AdminDbProps) {
                         onChange={(e) => handleInputChange(field.name, e.target.value)}
                         className={`bg-white border border-[#EFECE7] text-slate-800 text-xs rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-blue-500 w-full resize-y ${field.name === 'eventTagValue' ? 'font-mono text-[11px]' : 'font-serif leading-relaxed'}`}
                       />
+                    ) : field.name === 'password_hash' ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          required={field.required}
+                          placeholder={field.placeholder}
+                          value={formData[field.name] || ''}
+                          onChange={(e) => handleInputChange(field.name, e.target.value)}
+                          className="bg-slate-50 border border-[#EFECE7] text-slate-800 text-xs font-mono rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500 flex-1 select-all"
+                        />
+                        {formData[field.name] && (
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(formData[field.name], 'form-password-hash')}
+                            title="Copy password hash to clipboard"
+                            className="px-2.5 py-2 border border-[#EFECE7] bg-white hover:bg-slate-50 rounded-xl text-slate-600 hover:text-blue-600 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-medium shrink-0"
+                          >
+                            {copiedCellKey === 'form-password-hash' ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                <span className="text-emerald-600 text-[11px] font-semibold">Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5" />
+                                <span className="text-[11px]">Copy</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     ) : (
                       <input
                         type="text"

@@ -12,6 +12,7 @@ export interface User {
   user_id: string;
   email: string;
   user_typeCd: string;
+  password_hash?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
