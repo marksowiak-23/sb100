@@ -38,7 +38,7 @@ export default function ConnectionsHeader({
                 My Connections
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Explore your personal network and search members across the StoryBook community.
+                Explore your personal network and search members across the BackStory community.
               </p>
             </div>
           </div>

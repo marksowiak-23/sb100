@@ -38,7 +38,7 @@ export default function GroupHeader({
                 My Groups
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Organize other StoryBook members into your personal groups to control sharing and story access permissions.
+                Organize other BackStory members into your personal groups to control sharing and story access permissions.
               </p>
             </div>
           </div>

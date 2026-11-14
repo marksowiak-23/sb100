@@ -604,7 +604,7 @@ export default function MbrStorySpecialEventsPanel({
               )}
             </button>
 
-            {/* Storybook Icon Button with Count Badge */}
+            {/* BackStory Icon Button with Count Badge */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
                 detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents' }

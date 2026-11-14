@@ -59,15 +59,15 @@ export interface StorybookAdConfig {
 export const STORYBOOK_ADS: StorybookAdConfig[] = [
   {
     id: 'ad-vision',
-    badge: 'Platform Spotlight • The StoryBook Vision',
+    badge: 'Platform Spotlight • The BackStory Vision',
     badgeIcon: <Compass className="w-3.5 h-3.5 text-blue-600" />,
     badgeStyle: 'bg-blue-50 text-blue-700 border-blue-200/80',
     accentGradient: 'from-blue-600 via-indigo-600 to-sky-600',
     title: 'Live It. Write It. Share It.',
     tagline: 'Your life is an epic tapestry. Preserve every chapter before memories fade.',
-    description: 'StoryBook is the creative space designed for real life moments, personal adventures, family heritage, and quiet milestones. Connect with a welcoming community that values authentic human stories over noisy social feeds.',
+    description: 'BackStory is the creative space designed for real life moments, personal adventures, family heritage, and quiet milestones. Connect with a welcoming community that values authentic human stories over noisy social feeds.',
     imageUrl: '/storybook_splash_collage.jpg',
-    imageAlt: 'StoryBook - Live it. Write it. Share it. Life adventures and storytelling collage',
+    imageAlt: 'BackStory - Live it. Write it. Share it. Life adventures and storytelling collage',
     highlights: [
       {
         icon: <BookOpen className="w-4 h-4 text-blue-600 shrink-0" />,
@@ -86,10 +86,10 @@ export const STORYBOOK_ADS: StorybookAdConfig[] = [
       }
     ],
     testimonial: {
-      quote: 'StoryBook gave me the inspiration to finally write down the memories my kids always begged to hear about.',
-      author: 'David M., StoryBook Member since 2025'
+      quote: 'BackStory gave me the inspiration to finally write down the memories my kids always begged to hear about.',
+      author: 'David M., BackStory Member since 2025'
     },
-    ctaText: 'Start your StoryBook',
+    ctaText: 'Start your BackStory',
     statBadge: {
       value: '100% Free',
       label: 'To Begin Writing'
@@ -127,7 +127,7 @@ export const STORYBOOK_ADS: StorybookAdConfig[] = [
       quote: 'Unwrapping the hardcover book with my grandma’s stories brought the entire family to tears on Christmas morning.',
       author: 'Sarah L., Oregon'
     },
-    ctaText: 'Start your StoryBook',
+    ctaText: 'Start your BackStory',
     statBadge: {
       value: 'Heirloom',
       label: 'Archival Quality'
@@ -141,7 +141,7 @@ export const STORYBOOK_ADS: StorybookAdConfig[] = [
     accentGradient: 'from-rose-600 via-pink-600 to-red-600',
     title: 'Share Stories Across Generations',
     tagline: 'Give your children and grandchildren the greatest gift: the living legacy of where they came from.',
-    description: 'Old photo albums often leave behind questions: who was in that picture? Where was it taken? StoryBook bridges the gap by pairing photographs with your firsthand stories, personal voice, and ancestral wisdom.',
+    description: 'Old photo albums often leave behind questions: who was in that picture? Where was it taken? BackStory bridges the gap by pairing photographs with your firsthand stories, personal voice, and ancestral wisdom.',
     imageUrl: '/storybook_family_sharing.jpg',
     imageAlt: 'Three generations gathered together on a living room sofa reading and sharing family stories',
     highlights: [
@@ -163,9 +163,9 @@ export const STORYBOOK_ADS: StorybookAdConfig[] = [
     ],
     testimonial: {
       quote: 'My grandchildren live across the country, but reading my childhood stories keeps us closer than ever.',
-      author: 'Robert K., StoryBook Member'
+      author: 'Robert K., BackStory Member'
     },
-    ctaText: 'Start your StoryBook',
+    ctaText: 'Start your BackStory',
     statBadge: {
       value: 'Generations',
       label: 'Connected Together'
@@ -203,7 +203,7 @@ export const STORYBOOK_ADS: StorybookAdConfig[] = [
       quote: 'I stared at blank paper for years. With StoryMate, I finished my first 12 chapters in just two weeks!',
       author: 'Margaret T., Ohio'
     },
-    ctaText: 'Start your StoryBook',
+    ctaText: 'Start your BackStory',
     statBadge: {
       value: 'Effortless',
       label: 'AI Story Co-Writer'
@@ -217,7 +217,7 @@ export const STORYBOOK_ADS: StorybookAdConfig[] = [
     accentGradient: 'from-violet-600 via-purple-600 to-indigo-600',
     title: '“What’s Your Story?” — Turn Acquaintances Into Real Friends',
     tagline: 'Go beyond small talk. Discover the unforgettable moments that shaped the people around you.',
-    description: 'Whenever people meet, the most meaningful question is always, "What’s your story?" StoryBook is where friends explore each other’s journeys—uncovering shared hometown roots, hilarious adventures, passions, and life lessons that spark lasting connections.',
+    description: 'Whenever people meet, the most meaningful question is always, "What’s your story?" BackStory is where friends explore each other’s journeys—uncovering shared hometown roots, hilarious adventures, passions, and life lessons that spark lasting connections.',
     imageUrl: '/storybook_friends_connection.jpg',
     imageAlt: 'Diverse close friends laughing and connecting warmly over coffee sharing stories',
     highlights: [
@@ -238,10 +238,10 @@ export const STORYBOOK_ADS: StorybookAdConfig[] = [
       }
     ],
     testimonial: {
-      quote: 'Reading my college roommate’s StoryBook showed me things about his journey I never knew after 15 years of friendship!',
+      quote: 'Reading my college roommate’s BackStory showed me things about his journey I never knew after 15 years of friendship!',
       author: 'Marcus T., Chicago'
     },
-    ctaText: 'Start your StoryBook',
+    ctaText: 'Start your BackStory',
     statBadge: {
       value: 'Connections',
       label: 'Lifelong Friends'

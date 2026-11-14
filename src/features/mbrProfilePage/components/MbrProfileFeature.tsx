@@ -1064,7 +1064,6 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                         <option value="">-- Choose Gender --</option>
                         <option value="Female">Female</option>
                         <option value="Male">Male</option>
-                        <option value="Non-Binary">Non-Binary</option>
                         <option value="Rather not say">Rather not say</option>
                       </select>
                     </div>

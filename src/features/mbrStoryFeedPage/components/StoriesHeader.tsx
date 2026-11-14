@@ -23,7 +23,7 @@ export default function StoriesHeader({
   success,
   error,
   title = 'Member Stories',
-  description = 'Explore published life stories, memoirs, and shared history from your circle across StoryBook.'
+  description = 'Explore published life stories, memoirs, and shared history from your circle across BackStory.'
 }: StoriesHeaderProps) {
   return (
     <div className="relative mb-4 sm:mb-8 pb-4 sm:pb-6 border-b border-slate-200 dark:border-slate-800">

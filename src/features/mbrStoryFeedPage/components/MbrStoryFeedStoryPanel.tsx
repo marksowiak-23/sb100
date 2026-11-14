@@ -1084,7 +1084,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
             type="button"
             onClick={() => (onClickViewAuthor ? onClickViewAuthor(story.authorMbrId) : onClickReadStory?.(story.mbrStoryId, story.authorMbrId))}
             className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 hover:ring-2 hover:ring-blue-500/50 transition-all focus:outline-none cursor-pointer"
-            title={`View ${story.authorName}'s storybook`}
+            title={`View ${story.authorName}'s backstory`}
           >
             {story.authorAvatarUrl ? (
               <img

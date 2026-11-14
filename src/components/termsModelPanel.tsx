@@ -65,15 +65,15 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
       content: (
         <div className="space-y-3">
           <p className="font-semibold text-slate-800">
-            Welcome to StoryBook. These Terms of Service (&quot;Terms&quot;) constitute a legally binding agreement between you (&quot;you&quot;, &quot;your&quot;, or &quot;User&quot;) and StoryBook, Inc. (&quot;StoryBook&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;).
+            Welcome to BackStory. These Terms of Service (&quot;Terms&quot;) constitute a legally binding agreement between you (&quot;you&quot;, &quot;your&quot;, or &quot;User&quot;) and BackStory, Inc. (&quot;BackStory&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;).
           </p>
           <p>
-            These Terms govern your access to and use of StoryBook websites, mobile applications, social connection tools, memoir publishing tools, interactive community features, AI-assisted writing companions (including StoryMate), photo archives, and custom book printing services (collectively, the &quot;Services&quot;).
+            These Terms govern your access to and use of BackStory websites, mobile applications, social connection tools, memoir publishing tools, interactive community features, AI-assisted writing companions (including StoryMate), photo archives, and custom book printing services (collectively, the &quot;Services&quot;).
           </p>
           <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl text-[11px] space-y-1">
             <span className="font-bold text-blue-900 block font-mono uppercase tracking-wider">Key Agreement Summary</span>
             <p className="text-blue-800 leading-normal">
-              By accessing, browsing, registering an account, connecting with other members, or purchasing services on StoryBook, you acknowledge that you have read, understood, and agreed to be bound by these Terms and our Privacy Policy. If you do not agree to these Terms, you must not access or use our Services.
+              By accessing, browsing, registering an account, connecting with other members, or purchasing services on BackStory, you acknowledge that you have read, understood, and agreed to be bound by these Terms and our Privacy Policy. If you do not agree to these Terms, you must not access or use our Services.
             </p>
           </div>
         </div>
@@ -87,7 +87,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
       content: (
         <div className="space-y-3">
           <p>
-            StoryBook is primarily an online storytelling website and social connection platform designed to capture, archive, and share personal life journeys, everyday reflections, and family histories:
+            BackStory is primarily an online storytelling website and social connection platform designed to capture, archive, and share personal life journeys, everyday reflections, and family histories:
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-slate-650">
             <li>
@@ -117,7 +117,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
       content: (
         <div className="space-y-3.5">
           <p className="font-semibold text-slate-800">
-            StoryBook enables members to discover others, form social connections, exchange comments, and share personal memories. The following rules govern social features:
+            BackStory enables members to discover others, form social connections, exchange comments, and share personal memories. The following rules govern social features:
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
@@ -127,7 +127,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
                 <span>Member-to-Member Disclaimers</span>
               </div>
               <p className="text-[11px] text-slate-650 leading-relaxed">
-                StoryBook provides the platform and communication tools for social connection, but <strong>we do not accept liability for any user post, story, comment, message, or conduct</strong> originating from a member. You interact, connect, and communicate with other members solely at your own discretion.
+                BackStory provides the platform and communication tools for social connection, but <strong>we do not accept liability for any user post, story, comment, message, or conduct</strong> originating from a member. You interact, connect, and communicate with other members solely at your own discretion.
               </p>
             </div>
 
@@ -137,7 +137,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
                 <span>Invitations, Links &amp; QR Codes</span>
               </div>
               <p className="text-[11px] text-slate-650 leading-relaxed">
-                You may share invitation links, connection invites, and QR codes generated by StoryBook for their intended purpose of connecting with genuine friends, family, and collaborators. You must not broadcast private invitation links as spam or falsely imply StoryBook endorsement.
+                You may share invitation links, connection invites, and QR codes generated by BackStory for their intended purpose of connecting with genuine friends, family, and collaborators. You must not broadcast private invitation links as spam or falsely imply BackStory endorsement.
               </p>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-[11px] text-slate-750">
             <span className="font-bold text-slate-900 block">External Hyperlinks in Stories:</span>
             <p>
-              Users may include hyperlinks to external websites (e.g., historical archives, genealogy databases, personal blogs) within their stories or profiles. StoryBook does not endorse, verify, or take responsibility for the content, privacy practices, or availability of third-party websites.
+              Users may include hyperlinks to external websites (e.g., historical archives, genealogy databases, personal blogs) within their stories or profiles. BackStory does not endorse, verify, or take responsibility for the content, privacy practices, or availability of third-party websites.
             </p>
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
       content: (
         <div className="space-y-3.5">
           <p className="font-semibold text-slate-800">
-            StoryBook operates on a dual-revenue model combining paid customer products with privacy-first paid advertising and sponsorships:
+            BackStory operates on a dual-revenue model combining paid customer products with privacy-first paid advertising and sponsorships:
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 pt-1">
@@ -170,7 +170,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
                 <span>4.1 Paid Products &amp; Printing</span>
               </div>
               <p className="text-slate-650 leading-relaxed">
-                StoryBook offers premium paid products, including printed hardcover book packages, additional print copies, expedited shipping, extended account subscriptions beyond standard project windows, and expanded media storage tiers.
+                BackStory offers premium paid products, including printed hardcover book packages, additional print copies, expedited shipping, extended account subscriptions beyond standard project windows, and expanded media storage tiers.
               </p>
               <ul className="list-disc pl-4 space-y-1 text-slate-600 text-[11px]">
                 <li>All fees and packages are clearly displayed prior to purchase.</li>
@@ -210,22 +210,22 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
       content: (
         <div className="space-y-3">
           <p className="font-semibold text-slate-800 text-sm">
-            You retain 100% ownership of the copyright and intellectual property in the stories, reflections, and photographs you create and upload to StoryBook.
+            You retain 100% ownership of the copyright and intellectual property in the stories, reflections, and photographs you create and upload to BackStory.
           </p>
           <p>
             Nothing in these Terms takes away your ownership rights. You are completely free to share, print, export, or publish your personal stories wherever and whenever you want.
           </p>
           <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-[11px] text-slate-700">
-            <span className="font-bold text-slate-900 font-mono uppercase tracking-wider block">Limited Operating License Granted to StoryBook:</span>
+            <span className="font-bold text-slate-900 font-mono uppercase tracking-wider block">Limited Operating License Granted to BackStory:</span>
             <p>
-              Solely to enable us to host, format, generate digital previews, index your chapters, generate AI prompts you request, display stories to your approved connections, and manufacture and ship physical books, you grant StoryBook a non-exclusive, worldwide, royalty-free, transferable license to store, process, reproduce, and transmit your content.
+              Solely to enable us to host, format, generate digital previews, index your chapters, generate AI prompts you request, display stories to your approved connections, and manufacture and ship physical books, you grant BackStory a non-exclusive, worldwide, royalty-free, transferable license to store, process, reproduce, and transmit your content.
             </p>
             <p className="font-semibold text-slate-800">
               This license terminates immediately when your content or account is deleted from our active systems.
             </p>
           </div>
           <p className="text-slate-650">
-            <strong>Contributors &amp; Collaborators:</strong> When friends or family contribute content to your book through an invitation link, they retain ownership of their respective contributions and authorize you (the Organizer) and StoryBook to format and print their submission in your book.
+            <strong>Contributors &amp; Collaborators:</strong> When friends or family contribute content to your book through an invitation link, they retain ownership of their respective contributions and authorize you (the Organizer) and BackStory to format and print their submission in your book.
           </p>
         </div>
       )
@@ -238,19 +238,19 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
       content: (
         <div className="space-y-3.5 text-slate-650">
           <div className="p-3.5 bg-white border border-[#EFECE7] rounded-2xl space-y-2 shadow-2xs">
-            <span className="font-bold text-slate-900 text-xs block">StoryBook Platform Property vs. User Memoirs</span>
+            <span className="font-bold text-slate-900 text-xs block">BackStory Platform Property vs. User Memoirs</span>
             <p className="text-[11px] leading-relaxed">
-              All copyright and rights in the StoryBook website design, layout architecture, software code, graphic artwork, prompts, question spark libraries, brand names, and logos belong exclusively to StoryBook, Inc. You are granted a limited, personal, revocable license to access and view the website for your own personal use.
+              All copyright and rights in the BackStory website design, layout architecture, software code, graphic artwork, prompts, question spark libraries, brand names, and logos belong exclusively to BackStory, Inc. You are granted a limited, personal, revocable license to access and view the website for your own personal use.
             </p>
             <p className="text-[11px] font-semibold text-slate-800">
-              You are strictly prohibited from using data mining robots, scraping crawlers, metatagging, framing, or mirroring StoryBook website content without our prior written permission.
+              You are strictly prohibited from using data mining robots, scraping crawlers, metatagging, framing, or mirroring BackStory website content without our prior written permission.
             </p>
           </div>
 
           <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1 text-[11px]">
             <span className="font-bold text-slate-850 block">Product Suggestions &amp; Feedback (&quot;Comments&quot;):</span>
             <p>
-              Any feedback, suggestions, reviews, or feature ideas you provide to us regarding the StoryBook website or business become the property of StoryBook. We may use such feedback to improve or promote the platform without royalty or compensation. <strong>This does not apply to personal memoirs, stories, or photos</strong>, which remain your exclusive property under Section 5.
+              Any feedback, suggestions, reviews, or feature ideas you provide to us regarding the BackStory website or business become the property of BackStory. We may use such feedback to improve or promote the platform without royalty or compensation. <strong>This does not apply to personal memoirs, stories, or photos</strong>, which remain your exclusive property under Section 5.
             </p>
           </div>
         </div>
@@ -264,7 +264,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
       content: (
         <div className="space-y-3">
           <p>
-            Because each StoryBook printed edition is custom manufactured specifically for you, the following terms govern physical book production and fulfillment:
+            Because each BackStory printed edition is custom manufactured specifically for you, the following terms govern physical book production and fulfillment:
           </p>
           <div className="space-y-2 text-slate-650">
             <div className="p-3 bg-white border border-[#EFECE7] rounded-xl space-y-1">
@@ -429,66 +429,60 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
                 <button
                   type="button"
                   onClick={() => { setActiveTab('all'); setSearchQuery(''); }}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'all'
-                      ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'all'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   All Sections
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('social')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'social'
-                      ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'social'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   Social Connections
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('funding')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'funding'
-                      ? 'bg-emerald-600 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'funding'
+                    ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   Payments &amp; Ads
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('ownership')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'ownership'
-                      ? 'bg-blue-700 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'ownership'
+                    ? 'bg-blue-700 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   Your Content &amp; IP
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('platform-ip')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'platform-ip'
-                      ? 'bg-slate-800 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'platform-ip'
+                    ? 'bg-slate-800 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   Website Assets
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('printing')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'printing'
-                      ? 'bg-purple-600 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'printing'
+                    ? 'bg-purple-600 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   Book Printing
                 </button>

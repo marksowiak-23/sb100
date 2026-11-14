@@ -11,10 +11,61 @@ export interface HealthCheckResponse {
 export interface User {
   user_id: string;
   email: string;
-
+  user_typeCd: string;
+  password_hash?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface Adm {
+  admId: string;
+  user_id: string;
+  admRoleTypeCd: string;
+  admFirstName: string;
+  admLastName: string;
+  email?: string;
+  admEmail?: string;
+  admTitle?: string;
+  admDepartment?: string;
+  admPhone?: string;
+  admStatusCd: string;
+  isSuperAdminInd: boolean;
+  lastLoginAt?: string;
+  priorLoginAt?: string;
+  admCreatedAt: string;
+  admUpdatedAt: string;
+}
+
+export interface AdmCreate {
+  user_id?: string;
+  admRoleTypeCd: string;
+  admFirstName: string;
+  admLastName: string;
+  email?: string;
+  admEmail?: string;
+  admTitle?: string;
+  admDepartment?: string;
+  admPhone?: string;
+  admStatusCd: string;
+  isSuperAdminInd: boolean;
+  password?: string;
+}
+
+export interface AdmUpdate {
+  admRoleTypeCd?: string;
+  admFirstName?: string;
+  admLastName?: string;
+  email?: string;
+  admEmail?: string;
+  admTitle?: string;
+  admDepartment?: string;
+  admPhone?: string;
+  admStatusCd?: string;
+  isSuperAdminInd?: boolean;
+  password?: string;
+  lastLoginAt?: string;
+  priorLoginAt?: string;
 }
 
 export interface Mbr {
@@ -30,6 +81,7 @@ export interface Mbr {
   mbrFromCityState?: string;
   mbrWorkAt?: string;
   mbrStudiedAt?: string;
+  email?: string;
   mbrEmailAddress?: string;
   mbrIntroduction?: string;
   mbrProfilePic?: string;
@@ -4183,6 +4235,77 @@ export const taskApi = {
       headers: { 'Accept': 'application/json' }
     });
     return handleResponse<MbrStoryBookOrder>(response);
+  },
+
+  async getAdms(params?: { skip?: number; limit?: number; role_cd?: string; status_cd?: string; search?: string }): Promise<Adm[]> {
+    const url = new URL(`${API_BASE_URL}/admins`);
+    if (params?.skip) url.searchParams.append('skip', String(params.skip));
+    if (params?.limit) url.searchParams.append('limit', String(params.limit));
+    if (params?.role_cd) url.searchParams.append('role_cd', params.role_cd);
+    if (params?.status_cd) url.searchParams.append('status_cd', params.status_cd);
+    if (params?.search) url.searchParams.append('search', params.search);
+    const response = await fetch(url.toString(), {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse(response);
+  },
+
+  async getAdm(admId: string): Promise<Adm> {
+    const response = await fetch(`${API_BASE_URL}/admins/${admId}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse(response);
+  },
+
+  async getAdmByUserId(userId: string): Promise<Adm> {
+    const response = await fetch(`${API_BASE_URL}/admins/user/${userId}`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse(response);
+  },
+
+  async createAdm(adm: AdmCreate | (Partial<Adm> & { password?: string })): Promise<Adm> {
+    const response = await fetch(`${API_BASE_URL}/admins`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(adm)
+    });
+    return handleResponse(response);
+  },
+
+  async updateAdm(admId: string, adm: AdmUpdate | (Partial<Adm> & { password?: string })): Promise<Adm> {
+    const response = await fetch(`${API_BASE_URL}/admins/${admId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(adm)
+    });
+    return handleResponse(response);
+  },
+
+  async deleteAdm(admId: string, deleteUser: boolean = false): Promise<Adm> {
+    const url = `${API_BASE_URL}/admins/${admId}${deleteUser ? '?delete_user=true' : ''}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { 'Accept': 'application/json' }
+    });
+    return handleResponse(response);
+  },
+
+  async adminLogin(credentials: { email: string; password: string }): Promise<{
+    success: boolean;
+    message: string;
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+    user: User;
+    admin: Adm;
+  }> {
+    const response = await fetch(`${API_BASE_URL}/admins/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(credentials)
+    });
+    return handleResponse(response);
   }
 };
 
@@ -5483,6 +5606,19 @@ export const eventApi = {
       },
     });
     return handleResponse<EventRecord[]>(response);
+  },
+
+  /**
+   * Fetch total record count of events in the event table.
+   */
+  async getEventsCount(): Promise<{ count: number }> {
+    const response = await fetch(`${API_BASE_URL}/events/count`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<{ count: number }>(response);
   },
 
   /**

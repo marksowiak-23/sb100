@@ -43,8 +43,8 @@ export default function AcceptInvitationModal({
 
   const sender = invitation.senderMember;
   const senderName = sender
-    ? `${sender.mbrFirstName || ''} ${sender.mbrLastName || ''}`.trim() || 'StoryBook Member'
-    : 'StoryBook Member';
+    ? `${sender.mbrFirstName || ''} ${sender.mbrLastName || ''}`.trim() || 'BackStory Member'
+    : 'BackStory Member';
   const senderInitials = sender
     ? `${sender.mbrFirstName?.[0] || 'M'}${sender.mbrLastName?.[0] || ''}`.toUpperCase()
     : 'SB';

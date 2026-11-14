@@ -177,8 +177,8 @@ export const analytics = {
       currency,
       items: [
         {
-          item_id: order.bookId || 'storybook_heirloom',
-          item_name: order.bookTitle || 'StoryBook Heirloom Print Keepsake',
+          item_id: order.bookId || 'backstory_heirloom',
+          item_name: order.bookTitle || 'BackStory Heirloom Print Keepsake',
           item_category: order.bindingType || 'HARDCOVER',
           price: Math.round(unitPrice * 100) / 100,
           quantity,
@@ -205,7 +205,7 @@ export const analytics = {
   },
 
   /**
-   * Track StoryBook PDF Generation.
+   * Track BackStory PDF Generation.
    */
   storybookPdf: (data: AnalyticsPdfGeneration) => {
     analytics.event('storybook_pdf_generate', {

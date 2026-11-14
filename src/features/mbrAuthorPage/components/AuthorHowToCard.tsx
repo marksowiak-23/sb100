@@ -371,7 +371,7 @@ export default function AuthorHowToCard({ className = '' }: AuthorHowToCardProps
                     </h3>
                   </div>
                   <p className="text-xs text-slate-500 font-serif mt-0.5">
-                    A simple 5-step guide to authoring your life stories in StoryBook
+                    A simple 5-step guide to authoring your life stories in BackStory
                   </p>
                 </div>
               </div>

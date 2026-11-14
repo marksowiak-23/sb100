@@ -35,8 +35,8 @@ export default function RequestCard({
   const { contact, targetMember } = item;
   
   const recipientName = targetMember
-    ? `${targetMember.mbrFirstName || ''} ${targetMember.mbrLastName || ''}`.trim() || 'StoryBook Member'
-    : (contact.mbrContactEmail || 'StoryBook Member');
+    ? `${targetMember.mbrFirstName || ''} ${targetMember.mbrLastName || ''}`.trim() || 'BackStory Member'
+    : (contact.mbrContactEmail || 'BackStory Member');
 
   const recipientInitials = targetMember
     ? `${targetMember.mbrFirstName?.[0] || 'M'}${targetMember.mbrLastName?.[0] || ''}`.toUpperCase()

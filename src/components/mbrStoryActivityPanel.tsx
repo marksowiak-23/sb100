@@ -741,7 +741,7 @@ export default function MbrStoryActivityPanel({
           <h4 className="font-serif font-bold text-base text-slate-800">No activities or hobbies added yet</h4>
           <p className="text-sm sm:text-[15px] text-slate-500 font-sans leading-relaxed max-w-sm mt-1 mb-4 font-normal">
             {readOnly
-              ? "This member hasn't added any activities or hobbies to their storybook yet."
+              ? "This member hasn't added any activities or hobbies to their backstory yet."
               : "Document personal pastimes, creative pursuits, sports, and recurring hobbies."}
           </p>
           {!readOnly && (
@@ -999,7 +999,7 @@ export default function MbrStoryActivityPanel({
                       {editingActivityId ? 'Edit Activity' : 'Add Activity'}
                     </h3>
                     <p className="text-[11px] text-slate-500 font-serif mt-0.5 flex items-center gap-1.5">
-                      <span>Document a hobby, personal interest, or creative pursuit in your storybook.</span>
+                      <span>Document a hobby, personal interest, or creative pursuit in your backstory.</span>
                       {hasModalUnsavedChanges && (
                         <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 shrink-0">
                           Unsaved edits

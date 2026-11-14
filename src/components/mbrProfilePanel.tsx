@@ -780,7 +780,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
 
   const firstName = profile.mbrFirstName || (profile.name ? profile.name.split(' ')[0] : '');
   const lastName = profile.mbrLastName || (profile.name ? profile.name.split(' ').slice(1).join(' ') : '');
-  const fullName = firstName && lastName ? `${firstName} ${lastName}` : (profile.name || firstName || lastName || 'Storybook Member');
+  const fullName = firstName && lastName ? `${firstName} ${lastName}` : (profile.name || firstName || lastName || 'BackStory Member');
   
   // Initials for avatar fallback
   const initials = (profile.mbrFirstName?.[0] || '') + (profile.mbrLastName?.[0] || '') || (profile.name ? profile.name.split(' ').map((w: string) => w[0]).join('').toUpperCase() : 'SB');

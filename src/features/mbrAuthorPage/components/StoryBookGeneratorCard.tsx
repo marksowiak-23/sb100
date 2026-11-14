@@ -36,7 +36,7 @@ export default function StoryBookGeneratorCard({
       </div>
       <div className="space-y-1">
         <h3 className="font-serif text-sm font-bold text-slate-900">
-          StoryBook Generator
+          BackStory Book Studio
         </h3>
         <p className="font-serif text-[11px] text-slate-600 leading-relaxed">
           Compile your published stories by topic category, design your book cover, and export a print-ready PDF book.

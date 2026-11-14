@@ -55,7 +55,7 @@ export default function StoryPdfPrintModal({
   storyTitle,
   storyContent,
   topicTitle = 'Story',
-  authorName = 'Storybook Author',
+  authorName = 'BackStory Author',
   authorLocation = '',
   publishedDate,
   status = 'Draft',
@@ -165,7 +165,7 @@ export default function StoryPdfPrintModal({
         storyTitle: customTitle || 'Untitled Story',
         storyContent,
         topicTitle: customTopic || 'Story',
-        authorName: customAuthor || 'Storybook Author',
+        authorName: customAuthor || 'BackStory Author',
         authorLocation: customLocation,
         publishedDate,
         status,
@@ -725,7 +725,7 @@ export default function StoryPdfPrintModal({
                           End-of-Chapter Colophon & Vignette
                         </h5>
                         <p className="text-[11px] text-slate-500">
-                          Concluding fleuron, word count, and Storybook imprint
+                          Concluding fleuron, word count, and BackStory imprint
                         </p>
                       </div>
                     </div>

@@ -16,11 +16,11 @@ export default function SbExplainerCard() {
             <Sparkles className="w-4 h-4" />
           </div>
           <h3 className="font-serif text-base font-bold text-slate-850">
-            Why StoryBook?
+            Why BackStory?
           </h3>
         </div>
         <p className="text-xs text-slate-600 leading-relaxed font-serif">
-          StoryBook is the creative space for people of all ages to share real life moments, personal adventures, creative journeys, and connect with a community that cares about authentic stories.
+          BackStory is the creative space for people of all ages to share real life moments, personal adventures, creative journeys, and connect with a community that cares about authentic stories.
         </p>
       </div>
 
@@ -55,7 +55,7 @@ export default function SbExplainerCard() {
           <span>Community Voice</span>
         </div>
         <p className="text-xs italic text-slate-700 leading-relaxed font-serif">
-          "StoryBook gave me a place to share my travel stories and creative projects, connecting with people who care about real stories without the noise."
+          "BackStory gave me a place to share my travel stories and creative projects, connecting with people who care about real stories without the noise."
         </p>
         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right font-mono">
           — Maya S., creator & student

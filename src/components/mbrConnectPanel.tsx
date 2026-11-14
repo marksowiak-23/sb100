@@ -194,7 +194,7 @@ export default function MbrConnectPanel({
 
   const targetName = targetMember.mbrFirstName && targetMember.mbrLastName
     ? `${targetMember.mbrFirstName} ${targetMember.mbrLastName}`
-    : (targetMember.name || targetMember.mbrFirstName || 'StoryBook Member');
+    : (targetMember.name || targetMember.mbrFirstName || 'BackStory Member');
 
   const targetInitials = (targetMember.mbrFirstName?.[0] || '') + (targetMember.mbrLastName?.[0] || '') || 'SB';
 
@@ -337,7 +337,7 @@ export default function MbrConnectPanel({
                     rows={3}
                     value={contactMsg}
                     onChange={(e) => setContactMsg(e.target.value)}
-                    placeholder="Hello! I would like to connect with you on StoryBook..."
+                    placeholder="Hello! I would like to connect with you on BackStory..."
                     className="w-full px-3.5 py-2.5 bg-white border border-[#EFECE7] rounded-xl text-xs font-serif text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all shadow-2xs resize-none leading-relaxed"
                   />
                 </div>

@@ -1084,7 +1084,7 @@ export default function StoryPageStoryPanel({
             className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 focus:outline-none cursor-pointer"
           >
             <BookOpen className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Author's Storybook</span>
+            <span className="hidden sm:inline">Author's BackStory</span>
           </button>
         )}
       </div>
@@ -1407,7 +1407,7 @@ export default function StoryPageStoryPanel({
       <div className="mt-5 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
           <Sparkles className="w-4 h-4 text-amber-500" />
-          <span>Preserved with StoryBook</span>
+          <span>Preserved with BackStory</span>
         </div>
 
         <div className="flex items-center gap-3">

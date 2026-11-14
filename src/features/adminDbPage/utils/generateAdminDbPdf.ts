@@ -207,18 +207,41 @@ export function generateAdminDbPdf({
   let baseFontSize = 8;
   let cellPadding = 5;
 
-  if (table.id === 'user') {
-    headers = ['User ID (UUID)', 'Email Address', 'Status', 'Password Hash', 'Created At'];
+  if (table.id === 'adm') {
+    headers = ['Admin ID (UUID)', 'Full Name', 'Role', 'Status', 'Email Address', 'Title / Dept', 'Super Admin'];
+    baseFontSize = 7.5;
     columnStyles = {
-      0: { font: 'courier', cellWidth: 170 },
-      1: { fontStyle: 'bold', cellWidth: 180 },
+      0: { font: 'courier', cellWidth: 100 },
+      1: { fontStyle: 'bold', cellWidth: 110 },
       2: { halign: 'center', cellWidth: 65 },
-      3: { font: 'courier', cellWidth: 180 },
-      4: { halign: 'center', cellWidth: 'auto' }
+      3: { halign: 'center', cellWidth: 55 },
+      4: { cellWidth: 140 },
+      5: { cellWidth: 110 },
+      6: { halign: 'center', cellWidth: 55 }
+    };
+    tableRows = data.map((row) => [
+      String(row.admId || '-'),
+      `${row.admFirstName || ''} ${row.admLastName || ''}`.trim() || '-',
+      String(row.admRoleTypeCd || 'ADMIN'),
+      String(row.admStatusCd || 'ACTIVE'),
+      String(row.email || row.admEmail || '-'),
+      `${row.admTitle || ''}${row.admDepartment ? ' (' + row.admDepartment + ')' : ''}` || '-',
+      formatBoolean(row.isSuperAdminInd)
+    ]);
+  } else if (table.id === 'user') {
+    headers = ['User ID (UUID)', 'Email Address', 'Type', 'Status', 'Password Hash', 'Created At'];
+    columnStyles = {
+      0: { font: 'courier', cellWidth: 150 },
+      1: { fontStyle: 'bold', cellWidth: 160 },
+      2: { halign: 'center', cellWidth: 55 },
+      3: { halign: 'center', cellWidth: 55 },
+      4: { font: 'courier', cellWidth: 160 },
+      5: { halign: 'center', cellWidth: 'auto' }
     };
     tableRows = data.map((row) => [
       String(row.user_id || '-'),
       String(row.email || '-'),
+      String(row.user_typeCd || 'MBR'),
       formatBoolean(row.is_active),
       row.password_hash ? String(row.password_hash).slice(0, 24) + '...' : '-',
       formatShortDate(row.created_at)
@@ -247,7 +270,7 @@ export function generateAdminDbPdf({
         String(row.mbrGenderCd || '-'),
         loc || '-',
         workStudy,
-        String(row.mbrEmailAddress || '-'),
+        String(row.email || row.mbrEmailAddress || '-'),
         String(row.mbrIntroduction || '-')
       ];
     });

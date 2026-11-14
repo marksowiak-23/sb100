@@ -56,7 +56,7 @@ export default function AboutModelPanel({ isOpen, onClose }: AboutModelPanelProp
                 </div>
                 <div>
                   <h2 className="font-serif text-xl font-bold text-slate-850 tracking-tight">
-                    About StoryBook
+                    About BackStory
                   </h2>
                   <p className="font-serif text-xs italic text-slate-500">
                     Your life, your voice, your story — for every generation
@@ -83,14 +83,14 @@ export default function AboutModelPanel({ isOpen, onClose }: AboutModelPanelProp
                   <span>Our Mission: Real Stories, Real Connections</span>
                 </div>
                 <p className="text-sm text-slate-800 leading-relaxed font-semibold">
-                  StoryBook is a creative storytelling and community platform designed for people of all ages to share personal journeys, everyday adventures, and meaningful life moments.
+                  BackStory is a creative storytelling and community platform designed for people of all ages to share personal journeys, everyday adventures, and meaningful life moments.
                 </p>
                 <p className="text-slate-600">
-                  Unlike traditional social feeds where your thoughts disappear in seconds under endless algorithms, StoryBook gives your experiences a permanent, beautifully crafted home. Whether you're documenting your college years, sharing travel adventures, chronicling creative breakthroughs, or preserving family memories, StoryBook is your creative space to write, illustrate, and connect.
+                  Unlike traditional social feeds where your thoughts disappear in seconds under endless algorithms, BackStory gives your experiences a permanent, beautifully crafted home. Whether you're documenting your college years, sharing travel adventures, chronicling creative breakthroughs, or preserving family memories, BackStory is your creative space to write, illustrate, and connect.
                 </p>
               </div>
 
-              {/* Who Is StoryBook For? (All Ages Callout) */}
+              {/* Who Is BackStory For? (All Ages Callout) */}
               <div className="space-y-2.5">
                 <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-indigo-800 uppercase tracking-wider">
                   <Users className="w-3.5 h-3.5 text-indigo-600" />
@@ -131,7 +131,7 @@ export default function AboutModelPanel({ isOpen, onClose }: AboutModelPanelProp
               <div className="space-y-3 pt-2 border-t border-[#EFECE7]">
                 <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-purple-800 uppercase tracking-wider">
                   <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                  <span>Why You'll Love StoryBook</span>
+                  <span>Why You'll Love BackStory</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -194,7 +194,7 @@ export default function AboutModelPanel({ isOpen, onClose }: AboutModelPanelProp
             <div className="p-4 px-6 border-t border-[#EFECE7] bg-slate-50/60 flex items-center justify-between">
               <div className="flex flex-col gap-0.5">
                 <div className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider">
-                  StoryBook Platform • Connect & Inspire
+                  BackStory Platform • Connect & Inspire
                 </div>
                 <div
                   className="text-[9px] font-mono text-slate-400/80 tracking-tight"

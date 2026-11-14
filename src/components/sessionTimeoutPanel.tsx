@@ -76,7 +76,7 @@ export const SessionTimeoutPanel: React.FC<SessionTimeoutPanelProps> = ({
             Session Timeout Warning
           </h3>
           <p className="text-xs sm:text-sm text-slate-350 leading-relaxed max-w-sm mx-auto">
-            You have been inactive. For your account security, your StoryBook session
+            You have been inactive. For your account security, your BackStory session
             will automatically expire in:
           </p>
         </div>

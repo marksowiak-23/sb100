@@ -175,6 +175,7 @@ export const userManager = {
           user: {
             user_id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
             email: 'mark.sowiak@gmail.com',
+            user_typeCd: 'MBR',
             is_active: true,
             created_at: '2026-07-01T08:00:00Z',
             updated_at: '2026-07-01T08:00:00Z'
@@ -338,6 +339,7 @@ export const userManager = {
             user: {
               user_id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
               email: 'mark.sowiak@gmail.com',
+              user_typeCd: 'MBR',
               is_active: true,
               created_at: '2026-07-01T08:00:00Z',
               updated_at: '2026-07-01T08:00:00Z'
@@ -353,6 +355,7 @@ export const userManager = {
           user: {
             user_id: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
             email: 'mark.sowiak@gmail.com',
+            user_typeCd: 'MBR',
             is_active: true,
             created_at: '2026-07-01T08:00:00Z',
             updated_at: '2026-07-01T08:00:00Z'

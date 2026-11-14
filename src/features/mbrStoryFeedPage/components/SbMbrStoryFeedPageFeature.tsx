@@ -963,7 +963,7 @@ export default function SbMbrStoryFeedPageFeature({
   return (
     <div className="w-full relative">
       <PageSeo
-        title="Member Stories Feed — StoryBook"
+        title="Member Stories Feed — BackStory"
         description="Discover published life stories, memoirs, and shared history from your trusted circle of connections."
       />
 

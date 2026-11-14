@@ -218,7 +218,7 @@ export default function MbrPrivacyFeature({
           { grpId: 'g1', grpName: 'Family', grpDescription: 'Immediate and extended family members', grpSortOrder: 10 },
           { grpId: 'g2', grpName: 'Friends', grpDescription: 'Close personal friends', grpSortOrder: 20 },
           { grpId: 'g3', grpName: 'Work', grpDescription: 'Colleagues and professional peers', grpSortOrder: 30 },
-          { grpId: 'g4', grpName: 'Public', grpDescription: 'All StoryBook members and visitors', grpSortOrder: 40 }
+          { grpId: 'g4', grpName: 'Public', grpDescription: 'All BackStory members and visitors', grpSortOrder: 40 }
         ];
       }
 
