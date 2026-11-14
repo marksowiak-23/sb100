@@ -5609,6 +5609,19 @@ export const eventApi = {
   },
 
   /**
+   * Fetch total record count of events in the event table.
+   */
+  async getEventsCount(): Promise<{ count: number }> {
+    const response = await fetch(`${API_BASE_URL}/events/count`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    return handleResponse<{ count: number }>(response);
+  },
+
+  /**
    * Fetch a single event by ID.
    */
   async getEvent(eventId: string): Promise<EventRecord> {
