@@ -684,7 +684,7 @@ export const SAMPLE_HEADER_PHOTOS = [
   { url: '/carousel_shared_memories.jpg', label: 'Family Hearthside Gathering' },
   { url: '/carousel_shared_history.jpg', label: 'Kitchen Conversations' },
   { url: '/carousel_legacy_wisdom.jpg', label: 'Grandparent & Storybook' },
-  { url: '/storybook_splash_collage.jpg', label: 'StoryBook Life Collage' },
+  { url: '/storybook_splash_collage.jpg', label: 'BackStory Life Collage' },
   { url: '/storybook_friends_connection.jpg', label: 'Friends & Connections' }
 ];
 
@@ -997,7 +997,7 @@ export default function StoryEditorPanel({
     return topicTitle || 'Story';
   }, [topicId, topicTitle]);
 
-  const [authorName, setAuthorName] = useState<string>('Storybook Author');
+  const [authorName, setAuthorName] = useState<string>('BackStory Author');
   const [authorLocation, setAuthorLocation] = useState<string | undefined>(undefined);
 
   useEffect(() => {

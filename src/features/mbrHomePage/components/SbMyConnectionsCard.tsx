@@ -147,7 +147,7 @@ export default function SbMyConnectionsCard({ onClickMember, className = '' }: S
         }
 
         if (memberProfile) {
-          const fullName = `${memberProfile.mbrFirstName || ''} ${memberProfile.mbrLastName || ''}`.trim() || 'StoryBook Member';
+          const fullName = `${memberProfile.mbrFirstName || ''} ${memberProfile.mbrLastName || ''}`.trim() || 'BackStory Member';
           const loc = memberProfile.mbrLivesCityState || memberProfile.mbrFromCityState || '';
           const grpName = grpNameByConnId.get(conn.mbrConnectionId) || 'Connected';
           const avatar = memberProfile.mbrProfilePic ? resolveMediaUrl(memberProfile.mbrProfilePic) : undefined;

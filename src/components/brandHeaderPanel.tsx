@@ -16,7 +16,7 @@ export interface BrandHeaderPanelProps {
 export type SbBrandHeaderProps = BrandHeaderPanelProps;
 
 export default function BrandHeaderPanel({
-  title = 'Storybook',
+  title = 'BackStory',
   tagline = 'Where every life becomes literature',
   className = '',
   icon

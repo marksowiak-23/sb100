@@ -879,7 +879,7 @@ export default function MbrStoryBookGeneratorPage({
       lastSavedPayloadRef.current = serializeSettings(savedBook, storyItems);
       setBookConfig(savedBook);
       setAutoSaveStatus('saved');
-      if (!silent) showToast('success', 'StoryBook configuration saved to database!');
+      if (!silent) showToast('success', 'BackStory book configuration saved to database!');
       return savedBook;
     } catch (err) {
       console.error('Failed to save StoryBook configuration:', err);
@@ -990,7 +990,7 @@ export default function MbrStoryBookGeneratorPage({
         'success',
         mode === 'pod-interior'
           ? 'Print-on-Demand (POD) interior block PDF generated and downloaded!'
-          : 'Complete Heirloom StoryBook PDF generated and downloaded!'
+          : 'Complete Heirloom BackStory PDF generated and downloaded!'
       );
     } catch (err) {
       console.error('Error generating StoryBook PDF:', err);
@@ -1160,7 +1160,7 @@ export default function MbrStoryBookGeneratorPage({
     return (
       <div className="max-w-7xl mx-auto py-16 px-4 flex flex-col items-center justify-center gap-3 text-slate-600">
         <Loader2 className="w-8 h-8 animate-spin text-amber-700" />
-        <p className="font-serif text-sm">Loading your StoryBook Publishing Studio...</p>
+        <p className="font-serif text-sm">Loading your BackStory Publishing Studio...</p>
       </div>
     );
   }
@@ -1185,7 +1185,7 @@ export default function MbrStoryBookGeneratorPage({
           </div>
           <h1 className="font-serif text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2.5 pt-1">
             <BookOpen className="w-7 h-7 text-amber-800 shrink-0" />
-            <span>StoryBook Generator</span>
+            <span>BackStory Book Studio</span>
           </h1>
           <p className="font-serif text-xs sm:text-sm text-slate-600">
             Curate your published stories by topic category, customize your book cover and front/back matter, and export print-ready PDFs.
@@ -2606,7 +2606,7 @@ export default function MbrStoryBookGeneratorPage({
                   </div>
                   <div className="relative z-10 text-center space-y-1 pb-2 opacity-75 text-[10px] font-serif">
                     {bookConfig.bookIsbn && <p>ISBN / Edition: {bookConfig.bookIsbn}</p>}
-                    <p>StoryBook Heirloom Edition • {bookMetrics.includedCount} Chapters</p>
+                    <p>BackStory Heirloom Edition • {bookMetrics.includedCount} Chapters</p>
                   </div>
                 </div>
               )}

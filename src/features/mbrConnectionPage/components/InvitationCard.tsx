@@ -37,8 +37,8 @@ export default function InvitationCard({
   const { contact, senderMember } = item;
   
   const senderName = senderMember
-    ? `${senderMember.mbrFirstName || ''} ${senderMember.mbrLastName || ''}`.trim() || 'StoryBook Member'
-    : (contact.mbrContactEmail || 'StoryBook Member');
+    ? `${senderMember.mbrFirstName || ''} ${senderMember.mbrLastName || ''}`.trim() || 'BackStory Member'
+    : (contact.mbrContactEmail || 'BackStory Member');
 
   const senderInitials = senderMember
     ? `${senderMember.mbrFirstName?.[0] || 'M'}${senderMember.mbrLastName?.[0] || ''}`.toUpperCase()

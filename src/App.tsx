@@ -387,7 +387,7 @@ export default function App() {
       } catch {}
     }
 
-    // 2. Popstate listener: handles browser Back and Forward navigation within StoryBook
+    // 2. Popstate listener: handles browser Back and Forward navigation within BackStory
     const handlePopState = (event: PopStateEvent) => {
       const state = event.state;
       if (state && state.tab) {
@@ -461,7 +461,7 @@ export default function App() {
   useEffect(() => {
     const tabName = activeTab || 'workspace';
     const virtualPath = `/${tabName}`;
-    const formattedTitle = `StoryBook — ${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
+    const formattedTitle = `BackStory — ${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`;
     analytics.pageView(virtualPath, formattedTitle);
   }, [activeTab]);
 

@@ -326,7 +326,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           { grpId: '00000000-0000-4000-8000-000000000001', grpName: 'Family', grpDescription: 'Immediate and extended family', grpSortOrder: 10 },
           { grpId: '00000000-0000-4000-8000-000000000002', grpName: 'Friends', grpDescription: 'Close friends & peers', grpSortOrder: 20 },
           { grpId: '00000000-0000-4000-8000-000000000003', grpName: 'Work', grpDescription: 'Colleagues & professional circle', grpSortOrder: 30 },
-          { grpId: '00000000-0000-4000-8000-000000000004', grpName: 'Public', grpDescription: 'All StoryBook members', grpSortOrder: 40 }
+          { grpId: '00000000-0000-4000-8000-000000000004', grpName: 'Public', grpDescription: 'All BackStory members', grpSortOrder: 40 }
         ];
         fetchedCustoms = [
           { grpId: '00000000-0000-4000-8000-0000000000c1', mbrId: resolvedMbrId, grpName: 'Book Club', grpSortOrder: 50 },
@@ -339,7 +339,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
           { grpId: '00000000-0000-4000-8000-000000000001', grpName: 'Family', grpDescription: 'Immediate and extended family', grpSortOrder: 10 },
           { grpId: '00000000-0000-4000-8000-000000000002', grpName: 'Friends', grpDescription: 'Close friends & peers', grpSortOrder: 20 },
           { grpId: '00000000-0000-4000-8000-000000000003', grpName: 'Work', grpDescription: 'Colleagues & professional circle', grpSortOrder: 30 },
-          { grpId: '00000000-0000-4000-8000-000000000004', grpName: 'Public', grpDescription: 'All StoryBook members', grpSortOrder: 40 }
+          { grpId: '00000000-0000-4000-8000-000000000004', grpName: 'Public', grpDescription: 'All BackStory members', grpSortOrder: 40 }
         ];
       }
 
@@ -511,7 +511,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
       for (const contact of pendingInvitations) {
         const senderProfile = referencedProfilesMap.get(contact.mbrId) || (isSandbox ? (mockProfiles[contact.mbrId] as Mbr) : null) || {
           mbrId: contact.mbrId,
-          mbrFirstName: contact.mbrContactEmail ? contact.mbrContactEmail.split('@')[0] : 'StoryBook',
+          mbrFirstName: contact.mbrContactEmail ? contact.mbrContactEmail.split('@')[0] : 'BackStory',
           mbrLastName: 'Member',
           mbrEmailAddress: contact.mbrContactEmail
         };
@@ -530,9 +530,9 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         const targetMbrId = contact.mbrContactMbrId || '';
         const targetProfile = referencedProfilesMap.get(targetMbrId) || (isSandbox ? (mockProfiles[targetMbrId] as Mbr) : null) || {
           mbrId: targetMbrId,
-          mbrFirstName: 'StoryBook',
+          mbrFirstName: 'BackStory',
           mbrLastName: 'Member',
-          mbrEmailAddress: 'member@storybook.ai'
+          mbrEmailAddress: 'member@backstory.ai'
         };
 
         newRequestsMap[contact.mbrContactId] = {

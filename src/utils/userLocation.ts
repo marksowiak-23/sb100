@@ -42,7 +42,7 @@ async function reverseGeocodeCoords(lat: number, lon: number): Promise<UserLocat
       {
         headers: {
           'Accept': 'application/json',
-          'User-Agent': 'StoryBookApp/1.0'
+          'User-Agent': 'BackStoryApp/1.0'
         }
       }
     );

@@ -684,7 +684,7 @@ export default function MbrStoryEducationPanel({
               )}
             </button>
 
-            {/* Storybook Icon Button with Count Badge */}
+            {/* BackStory Icon Button with Count Badge */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
                 detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Education and Training', componentName: 'sbMbrStryEducation' }
@@ -842,7 +842,7 @@ export default function MbrStoryEducationPanel({
           <h4 className="font-serif font-bold text-sm text-slate-700">No education records registered</h4>
           <p className="text-xs text-slate-400 font-serif max-w-sm mt-1 mb-4">
             {readOnly
-              ? "This member hasn't added any education history to their storybook yet."
+              ? "This member hasn't added any education history to their backstory yet."
               : "Document schools, universities, degrees, certificates, and academic milestones."}
           </p>
           {!readOnly && (

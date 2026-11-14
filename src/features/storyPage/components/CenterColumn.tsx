@@ -149,7 +149,7 @@ export default function CenterColumn({
             Story Not Found
           </h2>
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto mb-6 font-sans">
-            The requested story chapter could not be located or is no longer available on StoryBook.
+            The requested story chapter could not be located or is no longer available on BackStory.
           </p>
           {onClickBack && (
             <button

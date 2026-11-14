@@ -358,8 +358,8 @@ export default function SbStoryPageFeature({
   return (
     <div className="w-full relative">
       <PageSeo
-        title={`${story?.mbrStoryTitle || 'Story'} | StoryBook`}
-        description={story?.mbrStoryContent?.slice(0, 150) || "Read personal memoir chapters on StoryBook."}
+        title={`${story?.mbrStoryTitle || 'Story'} | BackStory`}
+        description={story?.mbrStoryContent?.slice(0, 150) || "Read personal memoir chapters on BackStory."}
       />
 
       {/* 3-Column Responsive Grid Structure */}

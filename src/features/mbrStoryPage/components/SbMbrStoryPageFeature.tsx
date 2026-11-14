@@ -127,7 +127,7 @@ export default function SbMbrStoryPageFeature({
                 id: mbr.mbrId,
                 mbrId: mbr.mbrId,
                 name: `${mbr.mbrFirstName || ''} ${mbr.mbrLastName || ''}`.trim() || 'Member',
-                location: mbr.mbrLivesCityState || mbr.mbrFromCityState || 'Storybook Member',
+                location: mbr.mbrLivesCityState || mbr.mbrFromCityState || 'BackStory Member',
                 tags: ['Memoirs', 'Family', 'Heritage'],
                 joinedDate: mbr.mbrCreatedAt ? new Date(mbr.mbrCreatedAt).getFullYear().toString() : '2025',
                 avatarUrl: resolveMediaUrl(mbr.mbrProfilePic),
@@ -614,14 +614,14 @@ export default function SbMbrStoryPageFeature({
     
     // Dynamic fallback copy for other members
     const memberName = member?.name || 'Member';
-    const memberLocation = member?.location || 'Storybook';
+    const memberLocation = member?.location || 'BackStory';
     const memberJoined = member?.joinedDate || '2025';
     const memberChapters = member?.chaptersCount || 1;
     const memberTags = Array.isArray(member?.tags) ? member.tags.join(', ') : 'Memoirs, Family, Heritage';
 
     if (secKey === 'introduction') {
       return [
-        `${memberName} joined Storybook in ${memberJoined} to document a life lived across different eras. Residing in ${memberLocation}, they have already published ${memberChapters} chapters of their memoirs, capturing personal anecdotes, family histories, and local transitions.`,
+        `${memberName} joined BackStory in ${memberJoined} to document a life lived across different eras. Residing in ${memberLocation}, they have already published ${memberChapters} chapters of their memoirs, capturing personal anecdotes, family histories, and local transitions.`,
         `Their recollections focus heavily on themes of ${memberTags} — drawing connections between past events and the wisdom they hold today.`,
         "This is their story, written in their own words, preserved forever."
       ];
@@ -630,7 +630,7 @@ export default function SbMbrStoryPageFeature({
     if (secKey === 'demographics') {
       return [
         `${memberName} was born and raised in ${memberLocation}. They have built a lifetime of experiences, establishing deep roots in their community while documenting their ancestry and descent.`,
-        `As a member of the Storybook platform, they actively collaborate with family and friends to co-author and refine their life records. This section details their early education, family structure, marriages, and professional achievements.`
+        `As a member of the BackStory platform, they actively collaborate with family and friends to co-author and refine their life records. This section details their early education, family structure, marriages, and professional achievements.`
       ];
     }
 
@@ -651,25 +651,25 @@ export default function SbMbrStoryPageFeature({
     <div className="w-full relative">
       <PageSeo
         title={`${member?.name || 'Member'}'s Story & Experiences`}
-        description={member?.excerpt || `Read the personal journey, experiences, and stories shared by ${member?.name || 'Member'} on StoryBook.`}
-        keywords={`real life stories, ${member?.name || ''}, ${member?.location || ''}, personal journey, creative writing, true stories, storybook`}
+        description={member?.excerpt || `Read the personal journey, experiences, and stories shared by ${member?.name || 'Member'} on BackStory.`}
+        keywords={`real life stories, ${member?.name || ''}, ${member?.location || ''}, personal journey, creative writing, true stories, backstory`}
         ogType="article"
         ogTitle={`${member?.name || 'Member'}'s Story & Experiences`}
-        ogDescription={member?.excerpt || `Discover the stories and life moments shared by ${member?.name || 'Member'} on StoryBook.`}
+        ogDescription={member?.excerpt || `Discover the stories and life moments shared by ${member?.name || 'Member'} on BackStory.`}
         ogImage={member?.avatarUrl}
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "Article",
           "headline": `${member?.name || 'Member'}'s Story & Journey`,
-          "description": member?.excerpt || 'A life story and journey on StoryBook.',
+          "description": member?.excerpt || 'A life story and journey on BackStory.',
           "author": {
             "@type": "Person",
             "name": member?.name || 'Member'
           },
           "publisher": {
             "@type": "Organization",
-            "name": "StoryBook",
-            "url": "https://storybook.ai"
+            "name": "BackStory",
+            "url": "https://backstory.ai"
           },
           "image": member?.avatarUrl || undefined
         }}

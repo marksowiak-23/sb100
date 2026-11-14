@@ -59,13 +59,13 @@ export default function PrivacyModelPanel({ isOpen, onClose }: PrivacyModelPanel
       content: (
         <div className="space-y-3">
           <p className="font-semibold text-slate-800">
-            At StoryBook, your personal memories, life stories, and family photos are deeply sacred. We believe your history belongs to you and your loved ones.
+            At BackStory, your personal memories, life stories, and family photos are deeply sacred. We believe your history belongs to you and your loved ones.
           </p>
           <p>
-            This Privacy Policy explains how StoryBook, Inc. (&quot;StoryBook&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) collects, uses, protects, and discloses personal information when you visit our website, utilize our storytelling applications, collaborate on family tribute books, interact with our AI writing companion (StoryMate), or order custom printed editions.
+            This Privacy Policy explains how BackStory, Inc. (&quot;BackStory&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;) collects, uses, protects, and discloses personal information when you visit our website, utilize our storytelling applications, collaborate on family tribute books, interact with our AI writing companion (StoryMate), or order custom printed editions.
           </p>
           <div className="p-3.5 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl text-[11px] space-y-1">
-            <span className="font-bold text-emerald-900 block font-mono uppercase tracking-wider">The StoryBook Privacy Pledge</span>
+            <span className="font-bold text-emerald-900 block font-mono uppercase tracking-wider">The BackStory Privacy Pledge</span>
             <p className="text-emerald-800 leading-normal">
               We <strong>NEVER sell your personal information or the contents of your memoirs</strong> to third-party data brokers or advertisers. Your stories, photos, and family records are never used to train open public foundation models or shared outside of authorized book creation and printing fulfillment.
             </p>
@@ -133,7 +133,7 @@ export default function PrivacyModelPanel({ isOpen, onClose }: PrivacyModelPanel
       content: (
         <div className="space-y-3">
           <p className="font-semibold text-slate-800">
-            How does StoryBook protect your personal memoirs and private family history?
+            How does BackStory protect your personal memoirs and private family history?
           </p>
           <div className="space-y-2 text-slate-650">
             <div className="p-3 bg-white border border-[#EFECE7] rounded-xl space-y-1">
@@ -178,7 +178,7 @@ export default function PrivacyModelPanel({ isOpen, onClose }: PrivacyModelPanel
               <strong>Shipping &amp; Logistics Carriers:</strong> Recipient names, delivery addresses, and phone numbers are shared with couriers (e.g., FedEx, UPS, USPS, DHL) solely to ensure accurate door-to-door delivery.
             </li>
             <li>
-              <strong>Secure Payment Processors:</strong> Credit card transactions are handled directly by PCI-DSS compliant payment gateways (e.g., Stripe). StoryBook never stores full card numbers or CVV codes on our servers.
+              <strong>Secure Payment Processors:</strong> Credit card transactions are handled directly by PCI-DSS compliant payment gateways (e.g., Stripe). BackStory never stores full card numbers or CVV codes on our servers.
             </li>
             <li>
               <strong>Legal Compliance:</strong> We may disclose information if required by law, subpoena, or to protect the safety and rights of our users and the public.
@@ -195,7 +195,7 @@ export default function PrivacyModelPanel({ isOpen, onClose }: PrivacyModelPanel
       content: (
         <div className="space-y-3 text-slate-650">
           <p>
-            As detailed in our Terms of Service, StoryBook is supported by paid user products and thoughtfully curated, privacy-preserving sponsorships:
+            As detailed in our Terms of Service, BackStory is supported by paid user products and thoughtfully curated, privacy-preserving sponsorships:
           </p>
           <div className="p-3.5 bg-amber-50/70 border border-amber-200/80 rounded-2xl text-[11px] text-amber-900 space-y-1.5">
             <span className="font-bold block uppercase tracking-wider font-mono">No Sale of Personal Data</span>
@@ -217,10 +217,10 @@ export default function PrivacyModelPanel({ isOpen, onClose }: PrivacyModelPanel
       content: (
         <div className="space-y-3 text-slate-650">
           <p>
-            Whether you reside in the European Economic Area (under GDPR), the United Kingdom, California (under CCPA/CPRA), or elsewhere, StoryBook extends universal privacy protections:
+            Whether you reside in the European Economic Area (under GDPR), the United Kingdom, California (under CCPA/CPRA), or elsewhere, BackStory extends universal privacy protections:
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-slate-750 text-xs">
-            <li><strong>Right to Access &amp; Portability:</strong> You may request an export of all personal stories, photos, and records you have created on StoryBook.</li>
+            <li><strong>Right to Access &amp; Portability:</strong> You may request an export of all personal stories, photos, and records you have created on BackStory.</li>
             <li><strong>Right to Correction:</strong> You can edit and update your personal information directly within your Profile and Story Editor settings at any time.</li>
             <li><strong>Right to Deletion:</strong> You may delete individual stories, photos, or your entire account. Account deletion permanently removes your active memoirs and photos from our systems within 30 to 90 days.</li>
             <li><strong>Non-Discrimination:</strong> We will never discriminate against you, alter your book quality, or deny service for exercising your statutory privacy rights.</li>
@@ -236,13 +236,13 @@ export default function PrivacyModelPanel({ isOpen, onClose }: PrivacyModelPanel
       content: (
         <div className="space-y-3">
           <p className="text-xs text-slate-650">
-            StoryBook operates secure cloud systems in the United States and works with certified international printing partners. If you access the Services outside the United States, your information is processed subject to standard contractual clauses ensuring equivalent safeguards.
+            BackStory operates secure cloud systems in the United States and works with certified international printing partners. If you access the Services outside the United States, your information is processed subject to standard contractual clauses ensuring equivalent safeguards.
           </p>
           <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-1.5 text-[11px] text-slate-700">
             <span className="font-bold text-slate-900 font-mono uppercase tracking-wider block">Privacy Officer &amp; Inquiries</span>
             <p>If you have any questions, requests to exercise privacy rights, or feedback regarding this policy, please reach out to us:</p>
             <p className="font-semibold text-slate-800">
-              Email: privacy@storybook.com • StoryBook, Inc. Data Protection Office
+              Email: privacy@backstory.ai • BackStory, Inc. Data Protection Office
             </p>
           </div>
         </div>
@@ -426,7 +426,7 @@ export default function PrivacyModelPanel({ isOpen, onClose }: PrivacyModelPanel
                 <div className="space-y-0.5">
                   <span className="font-bold text-slate-850 text-xs font-serif">Have questions regarding your Data or Privacy Rights?</span>
                   <p className="text-[11px] text-slate-600 font-sans">
-                    Our Data Protection Officer and Privacy Team are ready to assist you at privacy@storybook.com.
+                    Our Data Protection Officer and Privacy Team are ready to assist you at privacy@backstory.ai.
                   </p>
                 </div>
                 <button
@@ -443,7 +443,7 @@ export default function PrivacyModelPanel({ isOpen, onClose }: PrivacyModelPanel
             <div className="p-4 px-6 border-t border-[#EFECE7] bg-slate-50 flex items-center justify-between text-[11px] text-slate-500 font-sans shrink-0">
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>StoryBook, Inc. • High-Assurance Data Privacy</span>
+                <span>BackStory, Inc. • High-Assurance Data Privacy</span>
               </span>
               <button
                 type="button"

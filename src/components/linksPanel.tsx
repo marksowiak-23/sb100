@@ -23,7 +23,7 @@ export default function LinksPanel({ className = '' }: LinksPanelProps) {
   const footerLinks = [
     { text: 'Privacy', action: 'Privacy Policy', isPrivacy: true },
     { text: 'Terms', action: 'Terms of Service', isTerms: true },
-    { text: 'About', action: 'About Storybook', isAbout: true }
+    { text: 'About', action: 'About BackStory', isAbout: true }
   ];
 
   const handleAction = (link: typeof footerLinks[0]) => {
@@ -55,7 +55,7 @@ export default function LinksPanel({ className = '' }: LinksPanelProps) {
         ))}
       </div>
       <div className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-        © 2026 Storybook, Inc.
+        © 2026 BackStory, Inc.
       </div>
 
       {/* About Modal Dialog */}

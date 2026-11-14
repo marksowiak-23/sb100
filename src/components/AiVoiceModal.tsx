@@ -455,8 +455,8 @@ export default function AiVoiceModal({
         }
       : VOICE_PROFILES[voiceId] || VOICE_PROFILES['en-US-Standard-C'];
     const sampleText = isPersonalClone
-      ? `Hello! This is ${profile.name}, ready to narrate your StoryBook memories in your own personal AI voice.`
-      : `Hello! Here is a sample of the ${profile.name} voice for your StoryBook memoir narration.`;
+      ? `Hello! This is ${profile.name}, ready to narrate your BackStory memories in your own personal AI voice.`
+      : `Hello! Here is a sample of the ${profile.name} voice for your BackStory memoir narration.`;
 
     // 1. Try playing neural TTS sample from sb-api-ai so the Sample matches the generated voice 100%
     try {

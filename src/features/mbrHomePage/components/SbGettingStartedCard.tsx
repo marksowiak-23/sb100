@@ -514,7 +514,7 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
       id: 1,
       title: 'Complete Your Profile',
       tagline: 'Set your story foundation',
-      description: 'Fill in your hometown, places you have lived, schools attended, and career milestones. These details empower StoryBook to weave rich nostalgic trivia and personalized story suggestions.',
+      description: 'Fill in your hometown, places you have lived, schools attended, and career milestones. These details empower BackStory to weave rich nostalgic trivia and personalized story suggestions.',
       actionLabel: 'Update Profile',
       targetTab: 'mbrProfilePage',
       icon: <User className="w-4 h-4" />,
@@ -556,7 +556,7 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
       id: 4,
       title: 'Publish Your Story',
       tagline: 'Preserve your family legacy',
-      description: 'Review your story drafts, attach cherished heirloom photos, set viewing privacy for topic groups, and publish your chapter to your personal StoryBook.',
+      description: 'Review your story drafts, attach cherished heirloom photos, set viewing privacy for topic groups, and publish your chapter to your personal BackStory.',
       actionLabel: 'Author Studio',
       targetTab: 'mbrAuthorPage',
       icon: <Send className="w-4 h-4" />,
@@ -645,7 +645,7 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
           {/* Heading & Full-Width Subtitle */}
           <div className="space-y-1">
             <h3 className="font-serif text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight">
-              Welcome to StoryBook! Let&apos;s Get You Started
+              Welcome to BackStory! Let&apos;s Get You Started
             </h3>
             <p className="text-xs md:text-sm text-slate-600 font-serif leading-relaxed">
               Follow these five simple steps to bring your life story to life and start sharing cherished memories with the people you love.

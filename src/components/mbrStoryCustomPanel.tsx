@@ -641,7 +641,7 @@ export default function MbrStoryCustomPanel({
         </div>
 
         <p className="text-xs text-slate-500 font-serif w-full">
-          Define custom topics and draft unique chapters for your StoryBook.
+          Define custom topics and draft unique chapters for your BackStory.
         </p>
       </div>
 

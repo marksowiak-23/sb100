@@ -122,9 +122,9 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
   return (
     <div className="w-full max-w-md mx-auto py-12 px-1 sm:px-4">
       <PageSeo
-        title="Sign In | StoryBook Storytelling Community"
-        description="Sign in to your StoryBook account to write, share real life stories, connect with friends, and inspire others."
-        keywords="storybook login, storyteller sign in, creative community login, share your story, connect with friends"
+        title="Sign In | BackStory Storytelling Community"
+        description="Sign in to your BackStory account to write, share real life stories, connect with friends, and inspire others."
+        keywords="backstory login, storyteller sign in, creative community login, share your story, connect with friends"
         robots="index, follow"
       />
       <motion.div
@@ -186,10 +186,10 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
                 Logon Successful
               </h3>
               <p className="text-xs text-emerald-600 mt-1 font-semibold">
-                Welcome back to Storybook!
+                Welcome back to BackStory!
               </p>
               <p className="text-xs text-slate-400 mt-1 font-serif">
-                Loading your Storybook dashboard...
+                Loading your BackStory dashboard...
               </p>
             </div>
             <Loader2 className="w-5 h-5 text-emerald-600 animate-spin mt-2" />

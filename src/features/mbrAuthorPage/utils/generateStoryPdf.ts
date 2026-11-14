@@ -115,7 +115,7 @@ export function generateStoryPdf({
   storyTitle,
   storyContent,
   topicTitle = 'Story',
-  authorName = 'Storybook Author',
+  authorName = 'BackStory Author',
   authorLocation,
   publishedDate,
   status = 'Draft',
@@ -222,7 +222,7 @@ export function generateStoryPdf({
   // 5. Metadata Preparation
   const cleanTitle = (storyTitle || 'Untitled Story').trim();
   const cleanTopic = (topicTitle || 'Memoir Chapter').toUpperCase();
-  const cleanAuthor = (authorName || 'Storybook Author').trim();
+  const cleanAuthor = (authorName || 'BackStory Author').trim();
   const displayDate = publishedDate
     ? new Date(publishedDate).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -499,7 +499,7 @@ export function generateStoryPdf({
       doc.setFontSize(8);
       doc.setTextColor(theme.meta[0], theme.meta[1], theme.meta[2]);
       doc.text(
-        `Storybook Memoir  •  Chapter: ${cleanTopic}  •  ${resolvedWordCount} words`,
+        `BackStory Memoir  •  Chapter: ${cleanTopic}  •  ${resolvedWordCount} words`,
         pageWidth / 2,
         cursorY,
         { align: 'center' }

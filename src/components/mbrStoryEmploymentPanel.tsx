@@ -730,7 +730,7 @@ export default function MbrStoryEmploymentPanel({
               )}
             </button>
 
-            {/* Storybook Icon Button with Count Badge */}
+            {/* BackStory Icon Button with Count Badge */}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('open-story-editor', {
                 detail: { topicId: resolvedTopicId, chIntentId: resolvedChIntentId, topicTitle: 'Employment and Career', componentName: 'sbMbrStryEmployment' }
@@ -888,7 +888,7 @@ export default function MbrStoryEmploymentPanel({
           <h4 className="font-serif font-bold text-sm text-slate-700">No employment records registered</h4>
           <p className="text-xs text-slate-400 font-serif max-w-sm mt-1 mb-4">
             {readOnly
-              ? "This member hasn't added any employment history to their storybook yet."
+              ? "This member hasn't added any employment history to their backstory yet."
               : "Document companies, positions, career milestones, and professional experiences."}
           </p>
           {!readOnly && (

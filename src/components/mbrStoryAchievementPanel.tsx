@@ -705,7 +705,7 @@ export default function MbrStoryAchievementPanel({ isSandbox = false, memberId, 
           <h4 className="font-serif font-bold text-sm text-slate-700">No achievements added yet</h4>
           <p className="text-xs text-slate-400 font-serif max-w-sm mt-1 mb-4">
             {readOnly
-              ? "This member hasn't added any achievements to their storybook yet."
+              ? "This member hasn't added any achievements to their backstory yet."
               : "Document awards, honors, milestone recognitions, and major life achievements."}
           </p>
           {!readOnly && (
@@ -964,7 +964,7 @@ export default function MbrStoryAchievementPanel({ isSandbox = false, memberId, 
                       {editingAchievementId ? 'Edit Achievement' : 'Add Achievement'}
                     </h3>
                     <p className="text-[11px] text-slate-500 font-serif mt-0.5 flex items-center gap-1.5">
-                      <span>Document an award, honor, publication, or milestone in your storybook.</span>
+                      <span>Document an award, honor, publication, or milestone in your backstory.</span>
                       {hasModalUnsavedChanges && (
                         <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800 shrink-0">
                           Unsaved edits

@@ -103,9 +103,9 @@ export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId
   return (
     <div className="w-full min-h-[80vh] flex items-center justify-center p-4 py-8 relative">
       <PageSeo
-        title="Join StoryBook | Share Your Voice & Connect"
-        description="Start sharing your stories, life adventures, and creative milestones with a supportive global community of storytellers of all ages on StoryBook."
-        keywords="join storybook, sign up, share your voice, creative writing community, storyteller account, life moments, connect with people, write stories"
+        title="Join BackStory | Share Your Voice & Connect"
+        description="Start sharing your stories, life adventures, and creative milestones with a supportive global community of storytellers of all ages on BackStory."
+        keywords="join backstory, sign up, share your voice, creative writing community, storyteller account, life moments, connect with people, write stories, backstory"
         robots="index, follow"
       />
       <motion.div
@@ -165,7 +165,7 @@ export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId
             </div>
             <div>
               <h3 className="font-serif text-xl font-bold text-slate-800">
-                Welcome to Storybook!
+                Welcome to BackStory!
               </h3>
               <p className="text-xs text-slate-500 mt-1">
                 Your member account has been registered. Preparing your author workspace...

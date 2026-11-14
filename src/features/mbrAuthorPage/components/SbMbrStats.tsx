@@ -119,7 +119,7 @@ export default function SbMbrStats() {
       <div className="flex items-center gap-2 pb-1 border-b border-[#EFECE7]">
         <BarChart3 className="w-4 h-4 text-slate-650 shrink-0" />
         <h3 className="font-serif text-sm font-bold text-slate-800">
-          My Storybook Statistics
+          My BackStory Statistics
         </h3>
       </div>
 

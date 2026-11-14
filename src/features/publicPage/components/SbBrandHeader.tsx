@@ -14,7 +14,7 @@ export default function SbBrandHeader({ className = '' }: SbBrandHeaderProps) {
   return (
     <div className={`space-y-2 relative ${className}`}>
       <h1 className="font-serif text-4xl md:text-5xl font-black text-slate-800 tracking-tight leading-none">
-        Storybook
+        BackStory
       </h1>
       <p className="font-serif text-sm italic text-slate-500 tracking-wide">
         Live it. Write it. Share it.

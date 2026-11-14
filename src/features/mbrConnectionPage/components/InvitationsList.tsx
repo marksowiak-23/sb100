@@ -46,7 +46,7 @@ export default function InvitationsList({
           No Pending Invitations
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto font-serif leading-relaxed">
-          You are all caught up! When other StoryBook members send you a connection request, it will appear here for you to accept or ignore.
+          You are all caught up! When other BackStory members send you a connection request, it will appear here for you to accept or ignore.
         </p>
       </div>
     );

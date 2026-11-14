@@ -47,7 +47,7 @@ export default function PageSeo({
 }: PageSeoProps) {
   useEffect(() => {
     // 1. Update Document Title
-    const formattedTitle = title.includes('StoryBook') ? title : `${title} | StoryBook`;
+    const formattedTitle = title.includes('BackStory') ? title : `${title} | BackStory`;
     document.title = formattedTitle;
 
     // Helper function to set or create a <meta> tag
@@ -81,7 +81,7 @@ export default function PageSeo({
     const isProd = import.meta.env.VITE_APP_ENV === 'prod';
     const effectiveRobots = isProd ? (robots || 'index, follow') : 'noindex, nofollow';
     setMetaTag('name', 'robots', effectiveRobots);
-    setMetaTag('name', 'author', 'StoryBook');
+    setMetaTag('name', 'author', 'BackStory');
 
     // 3. Canonical URL
     const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
@@ -91,7 +91,7 @@ export default function PageSeo({
     }
 
     // 4. Open Graph (OG) Social Meta Tags
-    setMetaTag('property', 'og:site_name', 'StoryBook');
+    setMetaTag('property', 'og:site_name', 'BackStory');
     setMetaTag('property', 'og:title', ogTitle || formattedTitle);
     setMetaTag('property', 'og:description', ogDescription || description);
     setMetaTag('property', 'og:type', ogType);
@@ -109,7 +109,7 @@ export default function PageSeo({
     }
 
     // 6. Schema.org JSON-LD Structured Data
-    const scriptId = 'storybook-page-json-ld';
+    const scriptId = 'backstory-page-json-ld';
     let jsonLdScript = document.getElementById(scriptId) as HTMLScriptElement | null;
 
     if (jsonLd) {

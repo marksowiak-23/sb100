@@ -97,7 +97,7 @@ export default function MainLayout({
   const [isPrivacyOpen, setIsPrivacyOpen] = React.useState(false);
   const [isAboutOpen, setIsAboutOpen] = React.useState(false);
   const [profilePic, setProfilePic] = React.useState<string | null>(null);
-  const [userName, setUserName] = React.useState<string>('StoryBook Member');
+  const [userName, setUserName] = React.useState<string>('BackStory Member');
   const [invitationCount, setInvitationCount] = React.useState<number>(0);
 
   // Automatically close mobile menu if window is resized to desktop size
@@ -131,7 +131,7 @@ export default function MainLayout({
   const handleSessionTimeout = React.useCallback(() => {
     userManager.userLogout();
     setProfilePic(null);
-    setUserName('StoryBook Member');
+    setUserName('BackStory Member');
     setActiveTab('publicPage');
     setDropdownOpen(false);
     setIsMobileMenuOpen(false);
@@ -338,7 +338,7 @@ export default function MainLayout({
           </div>
           <div className="flex flex-col">
             <span className="font-serif font-black text-lg sm:text-xl tracking-tight text-white flex items-center gap-0.5 group-hover:opacity-95 transition-opacity whitespace-nowrap leading-none">
-              story<span className="text-blue-400 font-sans font-light">book</span>
+              back<span className="text-blue-400 font-sans font-light">story</span>
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 mt-1"></span>
             </span>
             {/* Desktop Tagline */}
@@ -722,7 +722,7 @@ export default function MainLayout({
                       onClick={() => {
                         userManager.userLogout();
                         setProfilePic(null);
-                        setUserName('StoryBook Member');
+                        setUserName('BackStory Member');
                         setActiveTab('publicPage');
                         setDropdownOpen(false);
                       }}
@@ -1132,7 +1132,7 @@ export default function MainLayout({
                 onClick={() => {
                   userManager.userLogout();
                   setProfilePic(null);
-                  setUserName('StoryBook Member');
+                  setUserName('BackStory Member');
                   setActiveTab('publicPage');
                   setIsMobileMenuOpen(false);
                 }}
@@ -1160,7 +1160,7 @@ export default function MainLayout({
         }`}
       >
         <div className="flex items-center gap-4">
-          <span>&copy; {new Date().getFullYear()} StoryBook</span>
+          <span>&copy; {new Date().getFullYear()} BackStory</span>
           <div className="flex items-center gap-3 border-l border-slate-700 pl-4 text-[11px]">
             <button
               type="button"
@@ -1428,7 +1428,7 @@ export default function MainLayout({
                   onClick={() => {
                     userManager.userLogout();
                     setProfilePic(null);
-                    setUserName('StoryBook Member');
+                    setUserName('BackStory Member');
                     setActiveTab('publicPage');
                     setIsMobileAccountOpen(false);
                   }}

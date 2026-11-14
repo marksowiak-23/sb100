@@ -43,7 +43,7 @@ export default function RequestsList({
           No Outgoing Requests
         </h3>
         <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto font-serif leading-relaxed">
-          You currently have no pending connection requests waiting for response. You can connect with other StoryBook members from the Find a Member feed.
+          You currently have no pending connection requests waiting for response. You can connect with other BackStory members from the Find a Member feed.
         </p>
       </div>
     );
