@@ -94,7 +94,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
               <strong>Social Connection &amp; Sharing:</strong> Find and connect with family, friends, and community members, manage connection groups (Close Family, Extended Family, Friends, and Public), and share stories across social circles.
             </li>
             <li>
-              <strong>Interactive Life &amp; Tribute Memoirs:</strong> Personal workspaces to collect, organize, write, and illustrate stories across life topics, from early childhood to career, relationships, travels, and milestones.
+              <strong>Interactive Life &amp; Tribute Storybooks:</strong> Personal workspaces to collect, organize, write, and illustrate stories across life topics, from early childhood to career, relationships, travels, and milestones.
             </li>
             <li>
               <strong>StoryMate AI Writing Companion:</strong> Generative prompts, conversation-based question sparks, and formatting assistance to help inspire and structure your memoirs while maintaining full author autonomy.
@@ -299,10 +299,10 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
       content: (
         <div className="space-y-3 text-slate-650">
           <p>
-            To protect our community and ensure BackStory remains a secure, authentic home for memories, all users must abide by the following standards:
+            To protect our community and ensure StoryBook remains a secure, authentic home for memories, all users must abide by the following standards:
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-slate-750">
-            <li><strong>Age Requirement:</strong> You must be at least 13 years old to create an account or use BackStory.</li>
+            <li><strong>Age Requirement:</strong> You must be at least 13 years old to create an account or use StoryBook.</li>
             <li><strong>Accurate Information:</strong> Provide accurate information and maintain the security of your account credentials.</li>
             <li><strong>Respect Rights &amp; Privacy:</strong> Do not upload photographs, letters, or sensitive materials of third parties without proper consent or authority.</li>
             <li><strong>Prohibited Material:</strong> Do not publish defamatory, obscene, harassing, fraudulent, hateful, or unlawful materials.</li>
@@ -319,7 +319,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
       content: (
         <div className="space-y-3">
           <p className="font-semibold text-slate-800">
-            Because memoirs and family history are meant to endure for generations, BackStory provides legacy preservation protocols:
+            Because memoirs and family history are meant to endure for generations, StoryBook provides legacy preservation protocols:
           </p>
           <p className="text-slate-650">
             You may designate a trusted individual as your <strong>Legacy Contact</strong> within your account preferences. In the event of death or incapacity, your designated Legacy Contact or verified legal representative (presenting appropriate documentation) may request limited administrative access to preserve your books, finalize printing orders, or export archives for family posterity.
@@ -341,10 +341,10 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
             <strong>&quot;As Is&quot; Provision:</strong> We work diligently to provide reliable, beautiful software and print production. However, digital services are provided on an &quot;AS IS&quot; and &quot;AS AVAILABLE&quot; basis without warranties of any kind, express or implied.
           </p>
           <p>
-            <strong>User Indemnification:</strong> By accessing and using BackStory, you agree to indemnify, defend, and hold harmless BackStory, Inc., its directors, officers, and employees from any claims, actions, liabilities, damages, and legal costs arising from content you publish, stories or photos you upload, or your breach of these Terms.
+            <strong>User Indemnification:</strong> By accessing and using StoryBook, you agree to indemnify, defend, and hold harmless StoryBook, Inc., its directors, officers, and employees from any claims, actions, liabilities, damages, and legal costs arising from content you publish, stories or photos you upload, or your breach of these Terms.
           </p>
           <p>
-            <strong>Limitation of Liability:</strong> To the fullest extent permitted by law, BackStory shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or loss of profits or data. Our aggregate liability for any claims arising from the Services shall not exceed the greater of $100 or the total amount paid by you to BackStory in the preceding 12 months.
+            <strong>Limitation of Liability:</strong> To the fullest extent permitted by law, StoryBook shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or loss of profits or data. Our aggregate liability for any claims arising from the Services shall not exceed the greater of $100 or the total amount paid by you to StoryBook in the preceding 12 months.
           </p>
           <p>
             <strong>Governing Law &amp; Jurisdiction:</strong> These Terms are governed by and construed in accordance with applicable laws without regard to conflict of law principles. Any dispute arising under these Terms shall be resolved in competent courts as specified in our detailed dispute resolution protocol.
@@ -429,66 +429,60 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
                 <button
                   type="button"
                   onClick={() => { setActiveTab('all'); setSearchQuery(''); }}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'all'
-                      ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'all'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   All Sections
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('social')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'social'
-                      ? 'bg-blue-600 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'social'
+                    ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   Social Connections
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('funding')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'funding'
-                      ? 'bg-emerald-600 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'funding'
+                    ? 'bg-emerald-600 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   Payments &amp; Ads
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('ownership')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'ownership'
-                      ? 'bg-blue-700 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'ownership'
+                    ? 'bg-blue-700 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   Your Content &amp; IP
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('platform-ip')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'platform-ip'
-                      ? 'bg-slate-800 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'platform-ip'
+                    ? 'bg-slate-800 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   Website Assets
                 </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('printing')}
-                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'printing'
-                      ? 'bg-purple-600 text-white shadow-2xs font-bold'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl transition-all cursor-pointer whitespace-nowrap ${activeTab === 'printing'
+                    ? 'bg-purple-600 text-white shadow-2xs font-bold'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                 >
                   Book Printing
                 </button>
@@ -552,7 +546,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
                 <div className="space-y-0.5">
                   <span className="font-bold text-slate-850 text-xs font-serif">Have questions regarding our Terms or Community Guidelines?</span>
                   <p className="text-[11px] text-slate-600 font-sans">
-                    Our community trust and legal team is here to assist you at support@backstory.ai.
+                    Our community trust and legal team is here to assist you at support@storybook.com.
                   </p>
                 </div>
                 <button
@@ -569,7 +563,7 @@ export default function TermsModelPanel({ isOpen, onClose }: TermsModelPanelProp
             <div className="p-4 px-6 border-t border-[#EFECE7] bg-slate-50 flex items-center justify-between text-[11px] text-slate-500 font-sans shrink-0">
               <span className="flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>BackStory, Inc. • Community &amp; Trust Assured</span>
+                <span>StoryBook, Inc. • Community &amp; Trust Assured</span>
               </span>
               <button
                 type="button"

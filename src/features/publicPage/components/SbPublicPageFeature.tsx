@@ -275,8 +275,8 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
           "url": "https://backstory.ai/explore",
           "provider": {
             "@type": "Organization",
-            "name": "BackStory",
-            "url": "https://backstory.ai"
+            "name": "StoryBook",
+            "url": "https://storybook.ai"
           }
         }}
       />
