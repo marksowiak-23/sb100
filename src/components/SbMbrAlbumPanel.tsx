@@ -14,7 +14,8 @@ import {
   Loader2,
   Calendar,
   Sparkles,
-  ShieldAlert
+  ShieldAlert,
+  Trash2
 } from 'lucide-react';
 import { taskApi, resolveMediaUrl, MbrAlbum, MbrAlbumPhoto, MbrAlbumGroupPrivs, MbrAlbumConnectionPrivs } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -50,6 +51,8 @@ export default function SbMbrAlbumPanel({
   const [loadingPhotos, setLoadingPhotos] = useState<boolean>(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [activePhotoIndex, setActivePhotoIndex] = useState<number>(0);
+  const [deletingAlbumPhotoId, setDeletingAlbumPhotoId] = useState<string | null>(null);
+  const [deleteSuccessMsg, setDeleteSuccessMsg] = useState<string | null>(null);
 
   // Resolved viewer ID
   const [viewerMbrId, setViewerMbrId] = useState<string | null>(() => {
@@ -355,6 +358,53 @@ export default function SbMbrAlbumPanel({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedAlbum, albumPhotos.length]);
 
+  // Check if current viewer is the author/owner of the photo book
+  const isAuthorViewer = Boolean(
+    (viewerMbrId && viewerMbrId === memberId) ||
+    (propViewerMbrId && propViewerMbrId === memberId) ||
+    (isSandbox && (!viewerMbrId || viewerMbrId === memberId || memberId === 'sandbox-id-eleanor'))
+  );
+
+  // Delete photo from album (Owner only)
+  const handleDeleteAlbumPhoto = async (albumPhotoId: string) => {
+    if (!albumPhotoId || !selectedAlbum) return;
+    setDeletingAlbumPhotoId(albumPhotoId);
+    setPhotoError(null);
+    setDeleteSuccessMsg(null);
+
+    try {
+      if (!isSandbox) {
+        await taskApi.removePhotoFromMemberAlbum(albumPhotoId);
+      } else {
+        const savedStr = sessionStorage.getItem(`sb_photobook_albums_${memberId}`);
+        if (savedStr) {
+          try {
+            const allAlb = JSON.parse(savedStr);
+            sessionStorage.setItem(`sb_photobook_albums_${memberId}`, JSON.stringify(allAlb));
+          } catch {}
+        }
+      }
+
+      setAlbumPhotos((prev) => prev.filter((p) => p.albumPhotoId !== albumPhotoId));
+      setActivePhotoIndex(0);
+      setDeleteSuccessMsg('Photo removed from album successfully.');
+      setTimeout(() => setDeleteSuccessMsg(null), 3500);
+
+      setAccessibleAlbums((prev) =>
+        prev.map((item) =>
+          item.album.albumId === selectedAlbum.albumId
+            ? { ...item, photoCount: Math.max(0, (item.photoCount || 1) - 1) }
+            : item
+        )
+      );
+    } catch (err: any) {
+      console.error('Failed to remove photo from album:', err);
+      setPhotoError(err?.message || 'Failed to remove photo from album.');
+    } finally {
+      setDeletingAlbumPhotoId(null);
+    }
+  };
+
   const currentPhoto = albumPhotos[activePhotoIndex];
 
   return (
@@ -531,14 +581,32 @@ export default function SbMbrAlbumPanel({
                         Photo {albumPhotos.length > 0 ? activePhotoIndex + 1 : 0} of {albumPhotos.length}
                       </span>
                       <span className="text-[10px] text-indigo-400 font-mono border-l border-slate-700 pl-2">
-                        Read-Only View
+                        {isAuthorViewer ? 'Author Mode' : 'Read-Only View'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Right Action Controls: Close button only (No upload/delete) */}
+                {/* Right Action Controls: Close button and Owner actions */}
                 <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                  {isAuthorViewer && albumPhotos.length > 0 && currentPhoto && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteAlbumPhoto(currentPhoto.albumPhotoId)}
+                      disabled={deletingAlbumPhotoId === currentPhoto.albumPhotoId}
+                      className="p-1.5 sm:p-2 bg-rose-600/80 hover:bg-rose-600 text-white rounded-xl transition-all cursor-pointer flex items-center gap-1.5 text-xs font-serif shadow-xs"
+                      title="Delete Photo from Album"
+                      aria-label="Delete Photo"
+                    >
+                      {deletingAlbumPhotoId === currentPhoto.albumPhotoId ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
+                      <span className="hidden sm:inline">Delete</span>
+                    </button>
+                  )}
+
                   <button
                     type="button"
                     onClick={handleCloseAlbumPhotos}
@@ -552,6 +620,14 @@ export default function SbMbrAlbumPanel({
               </div>
 
               {/* Feedback Alerts */}
+              {deleteSuccessMsg && (
+                <div className="bg-emerald-950/60 border-b border-emerald-800 text-emerald-300 px-6 py-2.5 text-xs font-serif flex items-center justify-between shrink-0">
+                  <span>{deleteSuccessMsg}</span>
+                  <button onClick={() => setDeleteSuccessMsg(null)} className="text-emerald-400 hover:text-emerald-200">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
               {photoError && (
                 <div className="bg-rose-950/60 border-b border-rose-800 text-rose-300 px-6 py-2.5 text-xs font-serif flex items-center justify-between shrink-0">
                   <span>{photoError}</span>
@@ -588,11 +664,29 @@ export default function SbMbrAlbumPanel({
                       transition={{ duration: 0.2 }}
                       className="flex flex-col items-center justify-center max-h-[58vh] w-full"
                     >
-                      <img
-                        src={resolveMediaUrl(currentPhoto?.mbrMediaPath)}
-                        alt={currentPhoto?.photoTitle || currentPhoto?.mbrMediaOriginalFilename || `${selectedAlbum.albumName} Photo`}
-                        className="max-h-[44vh] max-w-full object-contain rounded-2xl shadow-xl border border-slate-800"
-                      />
+                      <div className="relative group max-h-[44vh] max-w-full">
+                        <img
+                          src={resolveMediaUrl(currentPhoto?.mbrMediaPath)}
+                          alt={currentPhoto?.photoTitle || currentPhoto?.mbrMediaOriginalFilename || `${selectedAlbum.albumName} Photo`}
+                          className="max-h-[44vh] max-w-full object-contain rounded-2xl shadow-xl border border-slate-800"
+                        />
+                        {isAuthorViewer && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAlbumPhoto(currentPhoto.albumPhotoId)}
+                            disabled={deletingAlbumPhotoId === currentPhoto.albumPhotoId}
+                            className="absolute top-2.5 right-2.5 p-2 bg-rose-600/90 hover:bg-rose-600 text-white rounded-xl shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95 z-20"
+                            title="Delete photo from album"
+                            aria-label="Delete photo from album"
+                          >
+                            {deletingAlbumPhotoId === currentPhoto.albumPhotoId ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        )}
+                      </div>
 
                       {/* Photo Description / Title Display (Read Only) */}
                       {(currentPhoto?.photoTitle || currentPhoto?.photoCaption) && (

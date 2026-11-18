@@ -30,6 +30,8 @@ import {
 import { userManager } from '@/src/services/userManager';
 import { taskApi, mbrRememberWhenApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { useMemberCredits } from '@/src/services/creditBalanceService';
+import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 
 export type NostalgiaCategory =
   | 'ALL'
@@ -993,9 +995,10 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
   const [favorites, setFavorites] = useState<string[]>([]);
   const [historyItems, setHistoryItems] = useState<NostalgiaItem[]>([]);
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
-  const [showSettingsPopover, setShowSettingsPopover] = useState<boolean>(false);
-  const [customYearInput, setCustomYearInput] = useState<string>(() => initialBirthYr.toString());
   const [isGeneratingAi, setIsGeneratingAi] = useState<boolean>(false);
+  const { isExhausted: hasExhaustedCredits } = useMemberCredits(activeMbrId || undefined);
+  const [showExhaustedCreditsModal, setShowExhaustedCreditsModal] = useState<boolean>(false);
+  const [exhaustedActionAttempted, setExhaustedActionAttempted] = useState<string>('');
   const [isTopicDropdownOpen, setIsTopicDropdownOpen] = useState<boolean>(false);
   const topicDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -1077,7 +1080,6 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
       }
       const finalYear = resolvedYear || 1961;
       setBirthYear(finalYear);
-      setCustomYearInput(finalYear.toString());
     };
 
     resolveMemberData();
@@ -1292,6 +1294,12 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
 
   // AI-powered nostalgia story generation (records tokens in mbrAiUsageLog)
   const handleGenerateWithAi = async () => {
+    if (hasExhaustedCredits) {
+      setExhaustedActionAttempted('AI Flashback generation');
+      setShowExhaustedCreditsModal(true);
+      return;
+    }
+
     let mbrId = activeMbrId;
     if (!mbrId) {
       const storedMbr = userManager.getStoredMember();
@@ -1351,16 +1359,6 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
       localStorage.setItem('sb_remember_when_favs', JSON.stringify(updated));
     } catch {
       // ignore
-    }
-  };
-
-  // Handle custom year save
-  const handleSaveCustomYear = (e: React.FormEvent) => {
-    e.preventDefault();
-    const yr = parseInt(customYearInput, 10);
-    if (!isNaN(yr) && yr >= 1910 && yr <= new Date().getFullYear()) {
-      setBirthYear(yr);
-      setShowSettingsPopover(false);
     }
   };
 
@@ -1429,51 +1427,13 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
 
         {/* Right: Year Born, Favorites, Memories (History) */}
         <div className="flex items-center gap-1 shrink-0">
-          {/* Birth Year / Era Adjuster Button */}
-          <div className="relative">
-            <button
-              onClick={() => setShowSettingsPopover(!showSettingsPopover)}
-              title={`Born in ${birthYear} · Click to adjust era`}
-              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1 text-xs cursor-pointer"
-            >
-              <Calendar className="w-3.5 h-3.5 text-slate-500" />
-              <span className="hidden sm:inline font-medium text-slate-600">Born {birthYear}</span>
-            </button>
-
-            {/* Adjust Birth Year Popover */}
-            {showSettingsPopover && (
-              <div className="absolute right-0 top-full mt-2 w-64 p-3 bg-white rounded-xl shadow-xl border border-slate-200 z-50 animate-fade-in text-xs space-y-2">
-                <div className="flex items-center justify-between font-semibold text-slate-800">
-                  <span>Adjust Your Birth Year</span>
-                  <button
-                    onClick={() => setShowSettingsPopover(false)}
-                    className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-                <p className="text-slate-500 text-[11px] leading-relaxed">
-                  Personalize the nostalgia timeline for when you were a teen, in your 20s, or growing up.
-                </p>
-                <form onSubmit={handleSaveCustomYear} className="flex items-center gap-1.5 pt-1">
-                  <input
-                    type="number"
-                    min="1910"
-                    max={new Date().getFullYear()}
-                    value={customYearInput}
-                    onChange={(e) => setCustomYearInput(e.target.value)}
-                    placeholder="e.g. 1961"
-                    className="w-full px-2.5 py-1 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-rose-500 focus:outline-none"
-                  />
-                  <button
-                    type="submit"
-                    className="px-2.5 py-1 text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors shrink-0 cursor-pointer"
-                  >
-                    Set
-                  </button>
-                </form>
-              </div>
-            )}
+          {/* Birth Year / Era Indicator (Read-Only) */}
+          <div
+            title={`Born in ${birthYear}`}
+            className="p-1.5 text-slate-500 flex items-center gap-1 text-xs select-none"
+          >
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            <span className="hidden sm:inline font-medium text-slate-600">Born {birthYear}</span>
           </div>
 
           {/* Favorite Button */}
@@ -1669,6 +1629,11 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
           <button
             onClick={() => {
+              if (hasExhaustedCredits) {
+                setExhaustedActionAttempted('Creating a new story');
+                setShowExhaustedCreditsModal(true);
+                return;
+              }
               const derivedTopicName = 'Remember When';
               const derivedPrompt = currentItem?.promptSuggestion || currentItem?.storyContent || currentItem?.headline || '';
               const derivedContent = currentItem?.storyContent || currentItem?.promptSuggestion || '';
@@ -1727,12 +1692,24 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
 
           <div className="flex items-center gap-2">
             <button
-              onClick={handleGenerateWithAi}
+              onClick={(e) => {
+                if (hasExhaustedCredits) {
+                  e.preventDefault();
+                  setExhaustedActionAttempted('AI Flashback generation');
+                  setShowExhaustedCreditsModal(true);
+                  return;
+                }
+                handleGenerateWithAi();
+              }}
               disabled={isGeneratingAi}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs md:text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200/80 transition-colors disabled:opacity-50"
-              title="Generate a personalized nostalgic memory using AI"
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs md:text-sm font-medium border transition-colors ${
+                hasExhaustedCredits
+                  ? 'opacity-60 text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 cursor-pointer'
+                  : 'text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200/80 cursor-pointer'
+              } disabled:opacity-50`}
+              title={hasExhaustedCredits ? 'Credits exhausted - click to purchase additional credits in My Account' : 'Generate a personalized nostalgic memory using AI'}
             >
-              <Sparkles className={`w-3.5 h-3.5 text-purple-600 ${isGeneratingAi ? 'animate-spin' : ''}`} />
+              <Sparkles className={`w-3.5 h-3.5 ${hasExhaustedCredits ? 'text-slate-400' : 'text-purple-600'} ${isGeneratingAi ? 'animate-spin' : ''}`} />
               {isGeneratingAi ? 'Generating...' : 'AI Flashback'}
             </button>
 
@@ -1818,6 +1795,13 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
           </div>
         </div>
       )}
+
+      {/* Exhausted Credits Notification Modal */}
+      <ExhaustedCreditsModal
+        isOpen={showExhaustedCreditsModal}
+        onClose={() => setShowExhaustedCreditsModal(false)}
+        actionAttempted={exhaustedActionAttempted}
+      />
 
       <AdminComponentTag name="SbRememberWhenCard" />
     </div>

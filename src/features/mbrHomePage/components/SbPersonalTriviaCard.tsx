@@ -8,6 +8,8 @@ import { Sparkles, RefreshCw, Bookmark, BookmarkCheck, Feather, History, MapPin,
 import { mbrPersonalTriviaApi, MbrPersonalTrivia } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { useMemberCredits } from '@/src/services/creditBalanceService';
+import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 
 interface SbPersonalTriviaCardProps {
   onClickAuthorPage?: (initialPrompt?: string, section?: string, trivia?: any) => void;
@@ -60,6 +62,8 @@ export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTr
     (activeMbrId && historyMemoryCache.get(activeMbrId)) || []
   );
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
+  const { isExhausted: hasExhaustedCredits } = useMemberCredits(activeMbrId || undefined);
+  const [showExhaustedCreditsModal, setShowExhaustedCreditsModal] = useState<boolean>(false);
 
   // Fallback resolution if activeMbrId wasn't synchronously in storage on mount
   useEffect(() => {
@@ -379,6 +383,10 @@ export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTr
         <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3 flex-wrap">
           <button
             onClick={() => {
+              if (hasExhaustedCredits) {
+                setShowExhaustedCreditsModal(true);
+                return;
+              }
               const derivedTopicName = 'Flashback';
               const derivedPrompt = trivia?.promptSuggestion || trivia?.storyContent || trivia?.headline || '';
               const derivedContent = trivia?.storyContent || trivia?.promptSuggestion || '';
@@ -523,6 +531,13 @@ export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTr
           </div>
         </div>
       )}
+
+      {/* Exhausted Credits Dialog */}
+      <ExhaustedCreditsModal
+        isOpen={showExhaustedCreditsModal}
+        onClose={() => setShowExhaustedCreditsModal(false)}
+        actionAttempted="Creating a new story"
+      />
 
       <AdminComponentTag name="SbPersonalTriviaCard" />
     </div>

@@ -36,6 +36,20 @@ interface TableDefinition {
 // All 28 system tables mapped with their respective columns, endpoints, and data types
 const TABLES: TableDefinition[] = [
   {
+    id: 'acctEventCredit',
+    name: 'acctEventCredit',
+    endpoint: '/acct-event-credits',
+    primaryKey: 'acctEventCreditId',
+    searchField: 'eventCd',
+    fields: [
+      { name: 'eventCd', label: 'Event Code', type: 'string', required: true, placeholder: 'e.g. STORY_GENERATE, ACCOUNT_SIGNUP' },
+      { name: 'acctEventCdAmt', label: 'Credit Amount (+ / -)', type: 'number', required: true, placeholder: 'e.g. -1 for charge, 10 for bonus' },
+      { name: 'acctEventCreditDesc', label: 'Description', type: 'textarea', required: false, placeholder: 'Rule explanation' },
+      { name: 'acctEventCreditCategoryCd', label: 'Category Code', type: 'string', required: true, placeholder: 'ACCOUNT, STORY, BOOK, MEDIA, SYSTEM' },
+      { name: 'activeFlag', label: 'Active Flag', type: 'boolean', required: true }
+    ]
+  },
+  {
     id: 'adm',
     name: 'adm',
     endpoint: '/admins',
@@ -188,6 +202,42 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrAcct',
+    name: 'mbrAcct',
+    endpoint: '/mbr-accts',
+    primaryKey: 'mbrAcctId',
+    searchField: 'mbrId',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true, placeholder: 'UUID of member' },
+      { name: 'mbrAcctCreditBalance', label: 'Credit Balance', type: 'number', required: true, placeholder: '0' },
+      { name: 'mbrAcctLifetimeCreditsEarned', label: 'Lifetime Credits Earned', type: 'number', required: false, placeholder: '0' },
+      { name: 'mbrAcctLifetimeCreditsUsed', label: 'Lifetime Credits Used', type: 'number', required: false, placeholder: '0' },
+      { name: 'mbrAcctStatusCd', label: 'Status Code', type: 'string', required: true, placeholder: 'ACTIVE, SUSPENDED, CLOSED' },
+      { name: 'mbrAcctTypeCd', label: 'Account Type Code', type: 'string', required: true, placeholder: 'STANDARD, PREMIUM, FOUNDER' },
+      { name: 'mbrAcctLastActivityDate', label: 'Last Activity Date', type: 'date', required: false }
+    ]
+  },
+  {
+    id: 'mbrAcctActivity',
+    name: 'mbrAcctActivity',
+    endpoint: '/mbr-acct-activities',
+    primaryKey: 'mbrAcctActivityId',
+    searchField: 'mbrAcctActivityTypeCd',
+    fields: [
+      { name: 'mbrAcctId', label: 'Account ID (UUID)', type: 'uuid', required: true, placeholder: 'UUID of member account' },
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true, placeholder: 'UUID of member' },
+      { name: 'mbrAcctActivityTypeCd', label: 'Activity Type Code', type: 'string', required: true, placeholder: 'PURCHASE, GRANT_WELCOME, USE_STORY_GEN, REFUND' },
+      { name: 'mbrAcctActivityDirectionCd', label: 'Direction (ADD/SUB)', type: 'string', required: true, placeholder: 'ADD or SUB' },
+      { name: 'creditAmount', label: 'Credit Amount', type: 'number', required: true, placeholder: 'Positive integer' },
+      { name: 'creditDelta', label: 'Credit Delta', type: 'number', required: true, placeholder: '+/- change' },
+      { name: 'balanceBefore', label: 'Balance Before', type: 'number', required: true, placeholder: 'Balance before transaction' },
+      { name: 'balanceAfter', label: 'Balance After', type: 'number', required: true, placeholder: 'Balance after transaction' },
+      { name: 'mbrAcctActivityDesc', label: 'Description', type: 'string', required: false, placeholder: 'Transaction description' },
+      { name: 'referenceTypeCd', label: 'Reference Type', type: 'string', required: false, placeholder: 'STRIPE_CHECKOUT, STORY, BOOK_ORDER' },
+      { name: 'referenceId', label: 'Reference ID', type: 'string', required: false, placeholder: 'External reference ID' }
+    ]
+  },
+  {
     id: 'mbrTopicAchievements',
     name: 'mbrTopicAchievements',
     endpoint: '/mbr-achievements',
@@ -239,6 +289,36 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrContactResponseDt', label: 'Response Date / Time', type: 'date', required: false },
       { name: 'mbrContactMbrId', label: 'Sender Member ID (UUID)', type: 'uuid', required: false },
       { name: 'grpId', label: 'Group ID (UUID)', type: 'uuid', required: false }
+    ]
+  },
+  {
+    id: 'mbrMemorialContact',
+    name: 'mbrMemorialContact',
+    endpoint: '/mbr-memorial-contacts',
+    primaryKey: 'mbrMemorialContactId',
+    searchField: 'contactLastName',
+    fields: [
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true, placeholder: 'UUID of member' },
+      { name: 'contactMbrId', label: 'Contact Member ID (UUID)', type: 'uuid', required: false, placeholder: 'UUID of contact member if registered' },
+      { name: 'contactFirstName', label: 'First Name', type: 'string', required: true, placeholder: 'Contact first name' },
+      { name: 'contactLastName', label: 'Last Name', type: 'string', required: true, placeholder: 'Contact last name' },
+      { name: 'contactEmail', label: 'Email', type: 'string', required: true, placeholder: 'contact@example.com' },
+      { name: 'contactPhone', label: 'Phone', type: 'string', required: false, placeholder: 'e.g. +1 555-0199' },
+      { name: 'contactRelationshipCd', label: 'Relationship Code', type: 'string', required: true, placeholder: 'SPOUSE, CHILD, SIBLING, PARENT, EXECUTOR, TRUSTEE, FRIEND, OTHER' },
+      { name: 'contactPriorityOrder', label: 'Priority Order', type: 'number', required: true, placeholder: '1, 2, 3...' },
+      { name: 'contactStatusCd', label: 'Status Code', type: 'string', required: true, placeholder: 'DESIGNATED, NOTIFIED, CONFIRMED, ACTIVATION_REQUESTED, ACTIVE, DECLINED' },
+      { name: 'allowStoryPublishFlag', label: 'Allow Story Publish', type: 'boolean', required: true },
+      { name: 'allowStoryEditFlag', label: 'Allow Story Edit', type: 'boolean', required: true },
+      { name: 'allowPhotoManageFlag', label: 'Allow Photo Manage', type: 'boolean', required: true },
+      { name: 'allowBookOrderFlag', label: 'Allow Book Order', type: 'boolean', required: true },
+      { name: 'allowDownloadArchiveFlag', label: 'Allow Download Archive', type: 'boolean', required: true },
+      { name: 'personalMessage', label: 'Personal Message', type: 'textarea', required: false, placeholder: 'Private guidance for memorial contact...' },
+      { name: 'verificationToken', label: 'Verification Token', type: 'string', required: false },
+      { name: 'contactNotifiedDt', label: 'Notified Date / Time', type: 'date', required: false },
+      { name: 'contactConfirmedDt', label: 'Confirmed Date / Time', type: 'date', required: false },
+      { name: 'activationRequestedDt', label: 'Activation Requested Date', type: 'date', required: false },
+      { name: 'activationApprovedDt', label: 'Activation Approved Date', type: 'date', required: false },
+      { name: 'activationNotes', label: 'Activation Notes', type: 'textarea', required: false }
     ]
   },
   {

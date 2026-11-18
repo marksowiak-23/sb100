@@ -9,7 +9,7 @@ import {
   Camera, User, Calendar, Save, Loader2, 
   CheckCircle2, AlertCircle, Image as ImageIcon, Sparkles, Upload,
   AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Plus, Trash2, Check,
-  Sliders, ShieldCheck, Eye, RotateCcw, Mic
+  Sliders, ShieldCheck, Eye, RotateCcw, Mic, HeartHandshake
 } from 'lucide-react';
 import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, API_BASE_URL, MEDIA_API_BASE_URL } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -17,8 +17,10 @@ import StoryMatePanel from '@/src/features/mbrAuthorPage/components/StoryMatePan
 import ImageCropModal from './ImageCropModal';
 import MbrProfileDisplaySettingsPanel from './MbrProfileDisplaySettingsPanel';
 import MbrVoiceTranslationPanel from './MbrVoiceTranslationPanel';
+import MbrLegacyContactsPanel from './MbrLegacyContactsPanel';
 import ProfilePageHeaderPanel from './ProfilePageHeaderPanel';
 import ProfileNavigationMenu, { ProfileSubTab } from './ProfileNavigationMenu';
+import { useMemberCredits } from '@/src/services/creditBalanceService';
 
 
 interface MbrProfileFeatureProps {
@@ -44,6 +46,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   // Member profile state
   const [mbrId, setMbrId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const { isExhausted: hasExhaustedCredits } = useMemberCredits(mbrId || undefined);
   const [formData, setFormData] = useState({
     mbrFirstName: '',
     mbrLastName: '',
@@ -74,6 +77,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   const [loadingGallery, setLoadingGallery] = useState(false);
   const [uploadingGalleryPhoto, setUploadingGalleryPhoto] = useState(false);
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null);
+  const [deletingProfilePic, setDeletingProfilePic] = useState(false);
 
   // Listen for StoryMate AI text insertion updates
   useEffect(() => {
@@ -595,6 +599,64 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
     }
   };
 
+  // Delete Profile Picture (Avatar)
+  const handleDeleteProfilePicture = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    setDeletingProfilePic(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      setPreviewImage(null);
+      setFormData((prev) => ({ ...prev, mbrProfilePic: '' }));
+
+      if (mbrId) {
+        sessionStorage.removeItem(`session_pic_${mbrId}`);
+      }
+
+      if (isSandbox) {
+        const saved = sessionStorage.getItem('sandbox_mbr');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            sessionStorage.setItem('sandbox_mbr', JSON.stringify({ ...parsed, mbrProfilePic: '' }));
+          } catch {}
+        }
+      } else if (mbrId) {
+        await taskApi.updateMember(mbrId, { ...formData, mbrProfilePic: '' });
+      }
+
+      try {
+        const currentStored = sessionStorage.getItem('sb_current_mbr');
+        if (currentStored) {
+          const parsed = JSON.parse(currentStored);
+          sessionStorage.setItem('sb_current_mbr', JSON.stringify({ ...parsed, mbrProfilePic: '' }));
+        }
+      } catch (err) {
+        console.warn('Could not update session member object:', err);
+      }
+
+      if (initialData) {
+        setInitialData({
+          ...initialData,
+          formData: { ...initialData.formData, mbrProfilePic: '' },
+          previewImage: null
+        });
+      }
+
+      setSuccess("Profile picture removed successfully.");
+    } catch (err: any) {
+      console.error("Error removing profile picture:", err);
+      setError(`Failed to remove profile picture: ${err.message || 'Unknown error'}`);
+    } finally {
+      setDeletingProfilePic(false);
+    }
+  };
+
   // Select photo from Member Gallery
   const handleSelectGalleryPhoto = (_url: string) => {
     // Gallery photos remain in gallery without mutating primary profile avatar
@@ -748,6 +810,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                       <User className="w-5 h-5" />
                     ) : activeSubTab === 'display-settings' ? (
                       <Sliders className="w-5 h-5" />
+                    ) : activeSubTab === 'legacy-contacts' ? (
+                      <HeartHandshake className="w-5 h-5" />
                     ) : (
                       <Mic className="w-5 h-5" />
                     )}
@@ -758,6 +822,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                         ? 'My Profile'
                         : activeSubTab === 'display-settings'
                         ? 'My Profile Display Settings'
+                        : activeSubTab === 'legacy-contacts'
+                        ? 'My Legacy Contacts'
                         : 'My Voice Translation'}
                     </h1>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -765,6 +831,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                         ? 'Your story starts here with knowing your basic demographics and personal introduction.'
                         : activeSubTab === 'display-settings'
                         ? 'Control which attributes and sections of your member profile are visible to visitors and community members.'
+                        : activeSubTab === 'legacy-contacts'
+                        ? 'Designate and manage trusted memorial contacts and custodians to preserve your life stories.'
                         : 'Record a guided calibration script so Google Cloud Vertex AI can narrate your stories in your own personal voice.'}
                     </p>
                   </div>
@@ -861,13 +929,31 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                   <div className="flex flex-col md:flex-row items-center gap-8">
                     {/* Avatar Preview & Upload Button */}
                     <div className="flex flex-col items-center gap-3 shrink-0">
-                      <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative">
+                      <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-md bg-slate-100 dark:bg-slate-800 flex items-center justify-center relative group">
                         {previewImage ? (
-                          <img 
-                            src={previewImage} 
-                            alt="Profile Preview" 
-                            className="w-full h-full object-cover" 
-                          />
+                          <>
+                            <img 
+                              src={previewImage} 
+                              alt="Profile Preview" 
+                              className="w-full h-full object-cover" 
+                            />
+                            {!uploadingImage && (
+                              <button
+                                type="button"
+                                onClick={handleDeleteProfilePicture}
+                                disabled={deletingProfilePic}
+                                className="absolute top-1.5 right-1.5 w-7 h-7 rounded-xl bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-md transition-all cursor-pointer z-10 hover:scale-105 active:scale-95"
+                                title="Delete profile picture"
+                                aria-label="Delete profile picture"
+                              >
+                                {deletingProfilePic ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            )}
+                          </>
                         ) : (
                           <User className="w-12 h-12 text-slate-400 dark:text-slate-500" />
                         )}
@@ -973,18 +1059,19 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                                     className="w-full h-full object-cover rounded-xl" 
                                   />
 
-                                  {/* Delete Hover Action */}
+                                  {/* Delete Photo Button */}
                                   <button
                                     type="button"
                                     onClick={(e) => handleDeleteGalleryPhoto(item.mbrMediaId, e)}
                                     disabled={isDeleting}
-                                    className="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-lg bg-red-600/90 hover:bg-red-700 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-xs cursor-pointer z-10"
+                                    className="absolute bottom-1.5 right-1.5 w-6 h-6 rounded-lg bg-rose-600/90 hover:bg-rose-700 text-white flex items-center justify-center shadow-xs cursor-pointer z-10 transition-transform hover:scale-105 active:scale-95"
                                     title="Delete photo from gallery"
+                                    aria-label="Delete photo from gallery"
                                   >
                                     {isDeleting ? (
-                                      <Loader2 className="w-3 h-3 animate-spin" />
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                     ) : (
-                                      <Trash2 className="w-3 h-3" />
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     )}
                                   </button>
                                 </div>
@@ -1246,10 +1333,43 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
 
           {/* TAB 3: MY VOICE TRANSLATION (PERSONAL AI VOICE CLONING) */}
           {activeSubTab === 'voice-translation' && (
-            <MbrVoiceTranslationPanel
+            hasExhaustedCredits ? (
+              <div className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 rounded-3xl p-8 text-center space-y-4 max-w-2xl mx-auto shadow-sm">
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Mic className="w-6 h-6" />
+                </div>
+                <h3 className="font-serif font-bold text-lg text-slate-900 dark:text-white">
+                  Voice Translation Paused
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+                  You have exhausted your allocated credits. Voice translation and AI cloning features require an active credit balance. Additional credits can be purchased via the My Account menu.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('open-member-account'));
+                    window.dispatchEvent(new CustomEvent('navigate-tab', { detail: { tab: 'mbrAccountPage' } }));
+                  }}
+                  className="px-5 py-2.5 rounded-xl text-xs font-serif font-bold bg-[#13547A] hover:bg-[#0E3E5B] text-white shadow-md transition-all cursor-pointer"
+                >
+                  Go to My Account
+                </button>
+              </div>
+            ) : (
+              <MbrVoiceTranslationPanel
+                isSandbox={isSandbox}
+                mbrId={mbrId}
+                memberFirstName={formData.mbrFirstName}
+              />
+            )
+          )}
+
+          {/* TAB 4: MY LEGACY CONTACTS (MEMORIAL CARETAKERS & CUSTODIANS) */}
+          {activeSubTab === 'legacy-contacts' && (
+            <MbrLegacyContactsPanel
               isSandbox={isSandbox}
               mbrId={mbrId}
-              memberFirstName={formData.mbrFirstName}
+              memberName={`${formData.mbrFirstName} ${formData.mbrLastName}`.trim()}
             />
           )}
         </main>

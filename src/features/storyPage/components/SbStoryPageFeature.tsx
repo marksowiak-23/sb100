@@ -10,6 +10,7 @@ import RightColumn from './RightColumn';
 import { taskApi, resolveMediaUrl, MbrStory } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import PageSeo from '@/src/components/PageSeo';
+import { storyCache } from '@/src/utils/storyCache';
 
 interface SbStoryPageFeatureProps {
   storyId?: string | null;
@@ -72,10 +73,14 @@ export default function SbStoryPageFeature({
   onClickBack,
   onClickViewAuthorStorybook
 }: SbStoryPageFeatureProps) {
-  const [story, setStory] = useState<any>(null);
-  const [authorProfile, setAuthorProfile] = useState<any>(null);
-  const [connectionGrpName, setConnectionGrpName] = useState<string>('Public');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const initialCachedStory = storyId ? storyCache.get(storyId) : null;
+  const [story, setStory] = useState<any>(() => initialCachedStory);
+  const [authorProfile, setAuthorProfile] = useState<any>(() => {
+    const authorId = memberId || initialCachedStory?.mbrMbrId || initialCachedStory?.authorMbrId;
+    return authorId ? storyCache.getAuthorProfile(authorId) : null;
+  });
+  const [connectionGrpName, setConnectionGrpName] = useState<string>(() => initialCachedStory?.connectionGrpName || 'Public');
+  const [isLoading, setIsLoading] = useState<boolean>(() => !initialCachedStory && !isSandbox);
   const [isRestricted, setIsRestricted] = useState<boolean>(false);
 
   useEffect(() => {
@@ -96,247 +101,151 @@ export default function SbStoryPageFeature({
     let isCancelled = false;
 
     const loadStoryDetails = async () => {
-      setIsLoading(true);
-      setIsRestricted(false);
-
+      // 1. Resolve viewer ID synchronously from session storage if possible
+      let resolvedViewerId: string = '299da1e4-a233-4333-ab7c-b9ca64b6b7d4';
       try {
-        // 1. Resolve logged-in viewer member ID
-        let resolvedViewerId: string | null = null;
         const storedMbr = sessionStorage.getItem('sb_current_mbr');
         if (storedMbr) {
-          try {
-            const parsed = JSON.parse(storedMbr);
-            if (parsed.mbrId) resolvedViewerId = parsed.mbrId;
-          } catch {}
-        }
-        if (!resolvedViewerId) {
+          const parsed = JSON.parse(storedMbr);
+          if (parsed.mbrId) resolvedViewerId = parsed.mbrId;
+        } else {
           const userStr = sessionStorage.getItem('user');
           if (userStr) {
-            try {
-              const u = JSON.parse(userStr);
-              if (u.user_id) {
-                const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-                if (mbrProfile?.mbrId) resolvedViewerId = mbrProfile.mbrId;
-              }
-            } catch {}
+            const u = JSON.parse(userStr);
+            if (u.mbrId) resolvedViewerId = u.mbrId;
           }
         }
-        if (!resolvedViewerId) {
-          resolvedViewerId = '299da1e4-a233-4333-ab7c-b9ca64b6b7d4'; // Mark Sowiak fallback
-        }
+      } catch {}
 
-        // Sandbox Mode fallback
-        if (isSandbox) {
-          const mock = (storyId && SANDBOX_STORIES[storyId]) || Object.values(SANDBOX_STORIES)[0];
-          if (!isCancelled) {
-            setStory(mock);
-            setAuthorProfile({
-              mbrFirstName: mock.authorName.split(' ')[0],
-              mbrLastName: mock.authorName.split(' ')[1] || '',
-              mbrLivesCityState: mock.authorLocation,
-              mbrProfilePic: mock.authorAvatarUrl
-            });
-            setConnectionGrpName(mock.connectionGrpName || 'Connected');
-            setIsLoading(false);
-          }
-          return;
+      // Sandbox Mode fallback
+      if (isSandbox) {
+        const mock = (storyId && SANDBOX_STORIES[storyId]) || Object.values(SANDBOX_STORIES)[0];
+        if (!isCancelled) {
+          setStory(mock);
+          setAuthorProfile({
+            mbrFirstName: mock.authorName.split(' ')[0],
+            mbrLastName: mock.authorName.split(' ')[1] || '',
+            mbrLivesCityState: mock.authorLocation,
+            mbrProfilePic: mock.authorAvatarUrl
+          });
+          setConnectionGrpName(mock.connectionGrpName || 'Connected');
+          setIsLoading(false);
         }
+        return;
+      }
 
-        // Live DB Mode
-        // 2. Fetch the story
-        let loadedStory: MbrStory | null = null;
+      // 2. Check cache first for instant render
+      let loadedStory: MbrStory | null = storyId ? storyCache.get(storyId) : null;
+
+      // If we don't have a cached story, show loading indicator while fetching
+      if (!loadedStory) {
+        setIsLoading(true);
+      } else {
+        setIsLoading(false);
+      }
+
+      // Fetch live story record
+      try {
         if (storyId) {
-          try {
-            loadedStory = await taskApi.getStoryById(storyId, resolvedViewerId);
-          } catch (e) {
-            console.warn(`Could not load story by ID ${storyId}:`, e);
+          const apiStory = await taskApi.getStoryById(storyId, resolvedViewerId);
+          if (apiStory) {
+            loadedStory = apiStory;
+            storyCache.set(storyId, apiStory);
           }
         }
-
-        if (loadedStory?.mbrStoryId) {
-          try {
-            const raw = sessionStorage.getItem('sb_read_stories');
-            const list: string[] = raw ? JSON.parse(raw) : [];
-            if (!list.includes(loadedStory.mbrStoryId)) {
-              list.push(loadedStory.mbrStoryId);
-              sessionStorage.setItem('sb_read_stories', JSON.stringify(list));
-            }
-          } catch {}
-
-          if (!isSandbox && resolvedViewerId) {
-            taskApi.recordStoryRead({ mbrStoryId: loadedStory.mbrStoryId, mbrId: resolvedViewerId }).catch(err => {
-              console.warn('Could not record story read:', err);
-            });
-          }
-        }
-
-        // If storyId wasn't direct, try fetching member's published stories
-        const targetAuthorId = loadedStory?.mbrMbrId || loadedStory?.mbrId || memberId;
-        if (!loadedStory && targetAuthorId) {
-          try {
-            const stories = await taskApi.getStories(targetAuthorId);
-            loadedStory = stories.find(s => s.mbrStoryId === storyId) || stories[0] || null;
-          } catch (e) {
-            console.warn(`Could not load author stories for ${targetAuthorId}:`, e);
-          }
-        }
-
-        if (!loadedStory) {
-          if (isSandbox) {
-            // Check sandbox mock stories when explicitly running in sandbox mode
-            const mock = (storyId && SANDBOX_STORIES[storyId]) || Object.values(SANDBOX_STORIES)[0];
-            if (!isCancelled) {
-              setStory(mock);
-              setAuthorProfile({
-                mbrFirstName: mock.authorName.split(' ')[0],
-                mbrLastName: mock.authorName.split(' ')[1] || '',
-                mbrLivesCityState: mock.authorLocation,
-                mbrProfilePic: mock.authorAvatarUrl
-              });
-              setConnectionGrpName(mock.connectionGrpName || 'Connected');
-              setIsLoading(false);
-            }
-            return;
-          }
-
-          // Live DB Mode: Story not found in database
+      } catch (err: any) {
+        const status = err?.status || err?.response?.status;
+        if (status === 403 || err?.message?.includes('403') || err?.message?.includes('permission')) {
           if (!isCancelled) {
-            setStory(null);
+            setIsRestricted(true);
             setIsLoading(false);
           }
           return;
         }
+      }
 
-        const resolvedAuthorId = loadedStory.mbrMbrId || loadedStory.mbrId;
-
-        // 3. Fetch author profile, connections, topic privileges, and topic catalogue
-        const [
-          profile,
-          authorConns,
-          viewerConns,
-          connectionGrps,
-          topicsList,
-          storyPrivsList,
-          groupsGlobal,
-          authorCustomGrps,
-          viewerCustomGrps,
-          memberConnPrivs
-        ] = await Promise.all([
-          taskApi.getMemberById(resolvedAuthorId).catch(() => null),
-          taskApi.getMemberConnections({ mbrId: resolvedAuthorId, connectedMbrId: resolvedViewerId }).catch(() => []),
-          taskApi.getMemberConnections({ mbrId: resolvedViewerId, connectedMbrId: resolvedAuthorId }).catch(() => []),
-          taskApi.getMemberConnectionGrps().catch(() => []),
-          taskApi.getTopics().catch(() => []),
-          taskApi.getMemberStoryGroupPrivs({ mbrStoryId: loadedStory.mbrStoryId || storyId || undefined }).catch(() => []),
-          taskApi.getGroupsGlobal().catch(() => []),
-          resolvedAuthorId ? taskApi.getGroupsCustom(resolvedAuthorId).catch(() => []) : Promise.resolve([]),
-          resolvedViewerId ? taskApi.getGroupsCustom(resolvedViewerId).catch(() => []) : Promise.resolve([]),
-          (loadedStory.mbrStoryId || storyId) && resolvedViewerId
-            ? taskApi.getMemberStoryConnectionPrivs({ mbrStoryId: loadedStory.mbrStoryId || storyId, mbrConnectionMbrId: resolvedViewerId }).catch(() => [])
-            : Promise.resolve([])
-        ]);
-
-        if (isCancelled) return;
-
-        // 4. Resolve Connection Badging & Assigned Group ID
-        const allGroups = [
-          ...(groupsGlobal || []),
-          ...(authorCustomGrps || []),
-          ...(viewerCustomGrps || []),
-          { grpId: 'g1', grpName: 'Family' },
-          { grpId: 'g2', grpName: 'Friends' },
-          { grpId: 'g3', grpName: 'Colleagues' },
-          { grpId: 'g4', grpName: 'Public' }
-        ];
-        const groupNameById = new Map<string, string>();
-        for (const g of allGroups) {
-          if (g.grpId && g.grpName) groupNameById.set(g.grpId, g.grpName);
+      // Fallback: If storyId wasn't found directly, try author's stories
+      const targetAuthorId = loadedStory?.mbrMbrId || loadedStory?.mbrId || memberId;
+      if (!loadedStory && targetAuthorId) {
+        try {
+          const stories = await taskApi.getStories(targetAuthorId);
+          loadedStory = stories.find(s => s.mbrStoryId === storyId) || stories[0] || null;
+          if (loadedStory?.mbrStoryId) {
+            storyCache.set(loadedStory.mbrStoryId, loadedStory);
+          }
+        } catch (e) {
+          console.warn(`Could not load author stories for ${targetAuthorId}:`, e);
         }
+      }
 
-        const authorToViewerConn = (authorConns || [])[0];
-        const viewerToAuthorConn = (viewerConns || [])[0];
-
-        const authorConnGrp = authorToViewerConn
-          ? (connectionGrps || []).find(cg => cg.mbrConnectionId === authorToViewerConn.mbrConnectionId)
-          : undefined;
-        const viewerConnGrp = viewerToAuthorConn
-          ? (connectionGrps || []).find(cg => cg.mbrConnectionId === viewerToAuthorConn.mbrConnectionId)
-          : undefined;
-
-        const assignedGrpId = authorConnGrp?.grpId || viewerConnGrp?.grpId;
-        let resolvedBadgeName = (viewerConnGrp?.grpId && groupNameById.get(viewerConnGrp.grpId))
-          || (authorConnGrp?.grpId && groupNameById.get(authorConnGrp.grpId))
-          || 'Public';
-
-        let publicGrpId = groupsGlobal?.find(g => g.grpName?.toLowerCase() === 'public')?.grpId || '13efcbad-d840-44ad-9b50-d6d2218e5cac';
-
-        // 5. Evaluate Privacy for this Story based on mbrStoryGroupPrivs and mbrStoryConnectionPrivs
-        // Self-author bypass
-        const isSelf = Boolean(resolvedAuthorId && resolvedViewerId && resolvedAuthorId === resolvedViewerId);
-        let hasAccess = isSelf;
-
-        const isPrivAllow = (val?: string) => {
-          if (!val) return false;
-          const upper = val.toUpperCase().trim();
-          return upper === 'READ' || upper === 'WRITE' || upper === 'VIEW' || upper.includes('VIEW') || upper.includes('COMMENT') || upper === 'ALLOW';
-        };
-
-        const storyPrivs = storyPrivsList || [];
-        if (!hasAccess) {
-          // Check assigned group privilege
-          if (assignedGrpId) {
-            const assignedPriv = storyPrivs.find((p: any) => p.grpId === assignedGrpId);
-            if (assignedPriv && isPrivAllow(assignedPriv.privValueCd)) {
-              hasAccess = true;
-            }
-          }
-
-          // Check Public group privilege
-          if (!hasAccess && publicGrpId) {
-            const pubPriv = storyPrivs.find((p: any) => 
-              p.grpId === publicGrpId || 
-              (groupNameById.get(p.grpId)?.toLowerCase() === 'public')
-            );
-            if (pubPriv && isPrivAllow(pubPriv.privValueCd)) {
-              hasAccess = true;
-            }
-          }
-
-          // Check Individual Member Connection privilege in mbrStoryConnectionPrivs
-          if (!hasAccess && memberConnPrivs && (memberConnPrivs as any[]).length > 0) {
-            const memberPriv = (memberConnPrivs as any[]).find((p: any) => p.mbrConnectionMbrId === resolvedViewerId);
-            if (memberPriv && isPrivAllow(memberPriv.privValueCd)) {
-              hasAccess = true;
-              if (resolvedBadgeName === 'Public') {
-                resolvedBadgeName = 'Direct Share';
-              }
-            }
-          }
-        }
-
-        const matchedTopic = (topicsList || []).find(t => 
-          t.topicId === loadedStory?.mbrStoryTypeCd || 
-          t.topicName?.toLowerCase() === loadedStory?.mbrStoryTypeCd?.toLowerCase()
-        );
-
+      if (!loadedStory) {
         if (!isCancelled) {
-          if (!hasAccess) {
-            setIsRestricted(true);
-          } else {
-            setStory({
-              ...loadedStory,
-              mbrStoryTypeCd: matchedTopic?.topicName || loadedStory.mbrStoryTypeCd
-            });
-            setAuthorProfile(profile);
-            setConnectionGrpName(resolvedBadgeName);
-          }
+          setStory(null);
           setIsLoading(false);
         }
-      } catch (err) {
-        console.error("Failed to load story page details:", err);
-        if (!isCancelled) {
-          setIsLoading(false);
+        return;
+      }
+
+      // CRITICAL UNBLOCK: Update story content immediately and dismiss loader
+      if (!isCancelled) {
+        setStory(loadedStory);
+        setIsLoading(false);
+      }
+
+      // Record story read in background (non-blocking)
+      if (loadedStory.mbrStoryId && resolvedViewerId) {
+        taskApi.recordStoryRead({ mbrStoryId: loadedStory.mbrStoryId, mbrId: resolvedViewerId }).catch(() => {});
+      }
+
+      const resolvedAuthorId = loadedStory.mbrMbrId || loadedStory.mbrId || memberId;
+      const isSelf = Boolean(resolvedAuthorId && resolvedViewerId && resolvedAuthorId === resolvedViewerId);
+
+      // 3. Background Metadata: Resolve Author Profile & Connection Badge non-blockingly
+      try {
+        let profile = resolvedAuthorId ? storyCache.getAuthorProfile(resolvedAuthorId) : null;
+        if (!profile && resolvedAuthorId) {
+          profile = await taskApi.getMemberById(resolvedAuthorId).catch(() => null);
+          if (profile) storyCache.setAuthorProfile(resolvedAuthorId, profile);
         }
+        if (profile && !isCancelled) {
+          setAuthorProfile(profile);
+        }
+
+        if (isSelf) {
+          if (!isCancelled) setConnectionGrpName('Author');
+        } else if (resolvedAuthorId && resolvedViewerId) {
+          // Fetch viewer connection & connection groups concurrently
+          const [viewerConns, connectionGrps, globalGroups] = await Promise.all([
+            taskApi.getMemberConnections({ mbrId: resolvedViewerId, connectedMbrId: resolvedAuthorId }).catch(() => []),
+            taskApi.getMemberConnectionGrps().catch(() => []),
+            storyCache.getGlobalGroups() ? Promise.resolve(storyCache.getGlobalGroups()!) : taskApi.getGroupsGlobal().catch(() => [])
+          ]);
+
+          if (globalGroups && !storyCache.getGlobalGroups()) {
+            storyCache.setGlobalGroups(globalGroups);
+          }
+
+          const groupNameById = new Map<string, string>();
+          (globalGroups || []).forEach((g: any) => {
+            if (g.grpId && g.grpName) groupNameById.set(g.grpId, g.grpName);
+          });
+          groupNameById.set('g1', 'Family');
+          groupNameById.set('g2', 'Friends');
+          groupNameById.set('g3', 'Colleagues');
+          groupNameById.set('g4', 'Public');
+
+          const viewerToAuthorConn = (viewerConns || [])[0];
+          const viewerConnGrp = viewerToAuthorConn
+            ? (connectionGrps || []).find(cg => cg.mbrConnectionId === viewerToAuthorConn.mbrConnectionId)
+            : undefined;
+
+          const badge = (viewerConnGrp?.grpId && groupNameById.get(viewerConnGrp.grpId)) || 'Public';
+          if (!isCancelled) {
+            setConnectionGrpName(badge);
+          }
+        }
+      } catch (e) {
+        console.warn('Background metadata resolution error:', e);
       }
     };
 

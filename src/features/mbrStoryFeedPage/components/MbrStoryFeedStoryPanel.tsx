@@ -13,6 +13,7 @@ import {
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { resolveMediaUrl, taskApi, MbrStoryLikes, MbrStoryComments, MbrMedia } from '@/src/services/api';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
+import { storyCache } from '@/src/utils/storyCache';
 
 export interface FeedStoryItem {
   mbrStoryId: string;
@@ -615,6 +616,22 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
   const [storyMedia, setStoryMedia] = useState<MbrMedia[]>(() => story.initialMedia || []);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
 
+  const handleOpenStory = () => {
+    storyCache.set(story.mbrStoryId, story);
+    if (story.authorMbrId) {
+      storyCache.setAuthorProfile(story.authorMbrId, {
+        mbrFirstName: (story.authorName || '').split(' ')[0],
+        mbrLastName: (story.authorName || '').split(' ').slice(1).join(' ') || '',
+        mbrLivesCityState: story.authorLocation,
+        mbrProfilePic: story.authorAvatarUrl
+      });
+      if (storyMedia && storyMedia.length > 0) {
+        storyCache.setMemberMedia(story.authorMbrId, storyMedia);
+      }
+    }
+    onClickReadStory?.(story.mbrStoryId, story.authorMbrId);
+  };
+
   useEffect(() => {
     let isCancelled = false;
     const loadMedia = async () => {
@@ -1167,7 +1184,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
           <div className="flex flex-col gap-3 mb-3.5">
             {/* Hero Image */}
             <div 
-              onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+              onClick={handleOpenStory}
               className="relative w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-900 shadow-sm max-h-[320px] sm:max-h-[380px] group/photo cursor-pointer"
             >
               <img
@@ -1236,7 +1253,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
 
             {/* Story Title */}
             <h3
-              onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+              onClick={handleOpenStory}
               className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer leading-snug tracking-tight"
             >
               {story.mbrStoryTitle}
@@ -1254,7 +1271,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
           <div className="grid grid-cols-1 md:grid-cols-12 gap-5 mb-3.5 items-start">
             <div className="md:col-span-7 flex flex-col justify-start gap-2.5">
               <h3
-                onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+                onClick={handleOpenStory}
                 className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer leading-snug tracking-tight"
               >
                 {story.mbrStoryTitle}
@@ -1274,7 +1291,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
             </div>
 
             <div 
-              onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+              onClick={handleOpenStory}
               className="md:col-span-5 flex flex-col gap-1.5 cursor-pointer group/split"
             >
               <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 shadow-sm max-h-[240px]">
@@ -1339,7 +1356,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
         /* DEFAULT CLASSIC MANUSCRIPT LAYOUT */
         <>
           <h3
-            onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+            onClick={handleOpenStory}
             className="font-serif text-lg sm:text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors cursor-pointer mb-2.5 leading-snug tracking-tight"
           >
             {story.mbrStoryTitle}
@@ -1357,7 +1374,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
       <div className="flex justify-end mb-4">
         <button
           type="button"
-          onClick={() => onClickReadStory?.(story.mbrStoryId, story.authorMbrId)}
+          onClick={handleOpenStory}
           className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors focus:outline-none cursor-pointer ${
             isRead
               ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40'

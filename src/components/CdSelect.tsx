@@ -50,6 +50,24 @@ const DEFAULT_FALLBACK_CODES: Record<string, { cdValue: string; cdLabel: string;
     { cdValue: 'EMERALD', cdLabel: 'Forest Emerald', cdDesc: 'Deep botanical green and warm cream' },
     { cdValue: 'SLATE', cdLabel: 'Midnight Slate', cdDesc: 'Sophisticated charcoal slate and silver' },
     { cdValue: 'MONOCHROME', cdLabel: 'Minimalist Ink', cdDesc: 'Crisp black and archival white' }
+  ],
+  contactrelationshipcd: [
+    { cdValue: 'SPOUSE', cdLabel: 'Spouse / Partner', cdDesc: 'Spouse or domestic partner' },
+    { cdValue: 'CHILD', cdLabel: 'Child / Descendant', cdDesc: 'Son, daughter, or grandchild' },
+    { cdValue: 'SIBLING', cdLabel: 'Sibling', cdDesc: 'Brother or sister' },
+    { cdValue: 'PARENT', cdLabel: 'Parent', cdDesc: 'Mother or father' },
+    { cdValue: 'EXECUTOR', cdLabel: 'Estate Executor', cdDesc: 'Designated legal estate executor or representative' },
+    { cdValue: 'TRUSTEE', cdLabel: 'Family Trustee', cdDesc: 'Family trust or digital asset trustee' },
+    { cdValue: 'FRIEND', cdLabel: 'Trusted Friend', cdDesc: 'Close friend or confidant' },
+    { cdValue: 'OTHER', cdLabel: 'Other Trusted Individual', cdDesc: 'Other designated trusted person' }
+  ],
+  contactstatuscd: [
+    { cdValue: 'DESIGNATED', cdLabel: 'Designated', cdDesc: 'Designated by member as a legacy contact' },
+    { cdValue: 'NOTIFIED', cdLabel: 'Invitation Sent', cdDesc: 'Notification and invitation email sent' },
+    { cdValue: 'CONFIRMED', cdLabel: 'Invitation Confirmed', cdDesc: 'Invitation accepted and confirmed by contact' },
+    { cdValue: 'ACTIVATION_REQUESTED', cdLabel: 'Activation Requested', cdDesc: 'Memorial caretaking activation requested' },
+    { cdValue: 'ACTIVE', cdLabel: 'Active Memorial Caretaker', cdDesc: 'Active memorial custodian for member account' },
+    { cdValue: 'DECLINED', cdLabel: 'Declined', cdDesc: 'Contact declined or stepped down from designation' }
   ]
 };
 

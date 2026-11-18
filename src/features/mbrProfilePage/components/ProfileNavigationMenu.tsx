@@ -4,11 +4,13 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { User, Sliders, Mic, Sparkles, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { User, Sliders, Mic, HeartHandshake, Sparkles, ChevronDown, ChevronUp, Check, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { useMemberCredits } from '@/src/services/creditBalanceService';
+import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 
-export type ProfileSubTab = 'profile' | 'display-settings' | 'voice-translation';
+export type ProfileSubTab = 'profile' | 'display-settings' | 'voice-translation' | 'legacy-contacts';
 
 interface ProfileNavigationMenuProps {
   activeSubTab: ProfileSubTab;
@@ -25,6 +27,8 @@ export default function ProfileNavigationMenu({
 }: ProfileNavigationMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const { isExhausted: hasExhaustedCredits } = useMemberCredits();
+  const [showExhaustedCreditsModal, setShowExhaustedCreditsModal] = useState(false);
 
   // Close mobile dropdown when clicking outside
   useEffect(() => {
@@ -46,12 +50,16 @@ export default function ProfileNavigationMenu({
       ? 'My Profile'
       : activeSubTab === 'display-settings'
       ? 'Display Settings'
+      : activeSubTab === 'legacy-contacts'
+      ? 'My Legacy Contacts'
       : 'My Voice Translation';
   const ActiveIcon =
     activeSubTab === 'profile'
       ? User
       : activeSubTab === 'display-settings'
       ? Sliders
+      : activeSubTab === 'legacy-contacts'
+      ? HeartHandshake
       : Mic;
   const isCurrentDirty =
     activeSubTab === 'profile'
@@ -61,6 +69,11 @@ export default function ProfileNavigationMenu({
       : false;
 
   const handleSelect = (tab: ProfileSubTab) => {
+    if (tab === 'voice-translation' && hasExhaustedCredits) {
+      setShowExhaustedCreditsModal(true);
+      setIsOpen(false);
+      return;
+    }
     onSelectTab(tab);
     setIsOpen(false);
   };
@@ -199,21 +212,33 @@ export default function ProfileNavigationMenu({
                   type="button"
                   onClick={() => handleSelect('voice-translation')}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs font-serif transition-all cursor-pointer ${
-                    activeSubTab === 'voice-translation'
+                    hasExhaustedCredits
+                      ? 'opacity-60 text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                      : activeSubTab === 'voice-translation'
                       ? 'bg-blue-50/90 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 font-bold border border-blue-200/80 dark:border-blue-800 shadow-xs'
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent'
                   }`}
+                  title={hasExhaustedCredits ? 'Credits exhausted - click to purchase via My Account' : undefined}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                      activeSubTab === 'voice-translation'
+                      hasExhaustedCredits
+                        ? 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                        : activeSubTab === 'voice-translation'
                         ? 'bg-blue-600 text-white'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                     }`}>
-                      <Mic className="w-3.5 h-3.5" />
+                      {hasExhaustedCredits ? <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> : <Mic className="w-3.5 h-3.5" />}
                     </div>
                     <div>
-                      <div className="text-xs font-bold leading-tight">My Voice Translation</div>
+                      <div className="text-xs font-bold leading-tight flex items-center gap-1.5">
+                        <span>My Voice Translation</span>
+                        {hasExhaustedCredits && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 font-normal">
+                            0 Credits
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400 font-sans leading-tight">
                         Personal AI Voice Cloning
                       </div>
@@ -221,8 +246,41 @@ export default function ProfileNavigationMenu({
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0 ml-2">
-                    {activeSubTab === 'voice-translation' && (
+                    {activeSubTab === 'voice-translation' && !hasExhaustedCredits && (
                       <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    )}
+                  </div>
+                </button>
+
+                {/* Option 4: My Legacy Contacts */}
+                <button
+                  type="button"
+                  onClick={() => handleSelect('legacy-contacts')}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs font-serif transition-all cursor-pointer ${
+                    activeSubTab === 'legacy-contacts'
+                      ? 'bg-amber-50/90 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 font-bold border border-amber-200/80 dark:border-amber-800 shadow-xs'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-transparent'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                      activeSubTab === 'legacy-contacts'
+                        ? 'bg-amber-600 text-white'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                    }`}>
+                      <HeartHandshake className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold leading-tight">My Legacy Contacts</div>
+                      <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400 font-sans leading-tight">
+                        Memorial Contacts & Custodians
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {activeSubTab === 'legacy-contacts' && (
+                      <Check className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                     )}
                   </div>
                 </button>
@@ -309,31 +367,82 @@ export default function ProfileNavigationMenu({
           {/* Menu Item 3: My Voice Translation */}
           <button
             type="button"
-            onClick={() => onSelectTab('voice-translation')}
+            onClick={() => {
+              if (hasExhaustedCredits) {
+                setShowExhaustedCreditsModal(true);
+                return;
+              }
+              onSelectTab('voice-translation');
+            }}
             className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-serif font-bold transition-all cursor-pointer text-left ${
-              activeSubTab === 'voice-translation'
+              hasExhaustedCredits
+                ? 'opacity-65 text-slate-400 dark:text-slate-500 hover:bg-slate-100/50 dark:hover:bg-slate-800/40 border border-transparent'
+                : activeSubTab === 'voice-translation'
                 ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
+            }`}
+            title={hasExhaustedCredits ? 'Credits exhausted - click to purchase via My Account' : undefined}
+          >
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                  hasExhaustedCredits
+                    ? 'bg-slate-200 dark:bg-slate-800 text-slate-400'
+                    : activeSubTab === 'voice-translation'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                }`}
+              >
+                {hasExhaustedCredits ? <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400" /> : <Mic className="w-4 h-4" />}
+              </div>
+              <div>
+                <div className="text-xs font-bold font-serif text-slate-900 dark:text-white flex items-center gap-1.5">
+                  <span>My Voice Translation</span>
+                  {hasExhaustedCredits && (
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-rose-100 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900 font-normal">
+                      0 Credits
+                    </span>
+                  )}
+                </div>
+                <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400 font-sans">Personal AI Voice Cloning</div>
+              </div>
+            </div>
+          </button>
+
+          {/* Menu Item 4: My Legacy Contacts */}
+          <button
+            type="button"
+            onClick={() => onSelectTab('legacy-contacts')}
+            className={`w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-serif font-bold transition-all cursor-pointer text-left ${
+              activeSubTab === 'legacy-contacts'
+                ? 'bg-amber-50/80 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-transparent'
             }`}
           >
             <div className="flex items-center gap-3">
               <div
                 className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
-                  activeSubTab === 'voice-translation'
-                    ? 'bg-blue-600 text-white shadow-xs'
+                  activeSubTab === 'legacy-contacts'
+                    ? 'bg-amber-600 text-white shadow-xs'
                     : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                 }`}
               >
-                <Mic className="w-4 h-4" />
+                <HeartHandshake className="w-4 h-4" />
               </div>
               <div>
-                <div className="text-xs font-bold font-serif text-slate-900 dark:text-white">My Voice Translation</div>
-                <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400 font-sans">Personal AI Voice Cloning</div>
+                <div className="text-xs font-bold font-serif text-slate-900 dark:text-white">My Legacy Contacts</div>
+                <div className="text-[10px] font-normal text-slate-500 dark:text-slate-400 font-sans">Memorial Contacts & Custodians</div>
               </div>
             </div>
           </button>
         </nav>
       </div>
+
+      <ExhaustedCreditsModal
+        isOpen={showExhaustedCreditsModal}
+        onClose={() => setShowExhaustedCreditsModal(false)}
+        actionAttempted="Voice Translation"
+      />
     </div>
   );
 }

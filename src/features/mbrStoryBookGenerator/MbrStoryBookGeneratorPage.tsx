@@ -50,6 +50,8 @@ import {
 import { CdSelect } from '@/src/components/CdSelect';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { analytics } from '@/src/services/analytics';
+import { useMemberCredits } from '@/src/services/creditBalanceService';
+import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 import {
   generateStoryBookPdf,
   StoryBookChapterInput,
@@ -233,6 +235,8 @@ export default function MbrStoryBookGeneratorPage({
   const [saving, setSaving] = useState<boolean>(false);
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [generatingMode, setGeneratingMode] = useState<'full' | 'pod-interior' | null>(null);
+  const { isExhausted: hasExhaustedCredits } = useMemberCredits();
+  const [showExhaustedCreditsModal, setShowExhaustedCreditsModal] = useState<boolean>(false);
   const [statusBanner, setStatusBanner] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(
     null
   );
@@ -931,6 +935,11 @@ export default function MbrStoryBookGeneratorPage({
 
   // Generate PDF
   const handleGeneratePdf = async (mode: 'full' | 'pod-interior') => {
+    if (hasExhaustedCredits) {
+      setShowExhaustedCreditsModal(true);
+      return;
+    }
+
     if (includedChapters.length === 0) {
       showToast('error', 'Please include at least one story chapter before generating your book PDF.');
       return;
@@ -1220,9 +1229,20 @@ export default function MbrStoryBookGeneratorPage({
 
           <button
             type="button"
-            onClick={() => handleGeneratePdf('full')}
+            onClick={() => {
+              if (hasExhaustedCredits) {
+                setShowExhaustedCreditsModal(true);
+                return;
+              }
+              handleGeneratePdf('full');
+            }}
             disabled={generatingMode !== null || includedChapters.length === 0}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold font-serif transition-all shadow-sm cursor-pointer disabled:opacity-50"
+            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold font-serif transition-all shadow-sm cursor-pointer ${
+              hasExhaustedCredits
+                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-slate-700 opacity-60'
+                : 'bg-amber-700 hover:bg-amber-800 text-white disabled:opacity-50'
+            }`}
+            title={hasExhaustedCredits ? 'Credits exhausted - click to purchase via My Account' : 'Generate Complete Book PDF'}
           >
             {generatingMode === 'full' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -2914,6 +2934,13 @@ export default function MbrStoryBookGeneratorPage({
           </div>
         </div>
       )}
+
+      {/* Exhausted Credits Dialog */}
+      <ExhaustedCreditsModal
+        isOpen={showExhaustedCreditsModal}
+        onClose={() => setShowExhaustedCreditsModal(false)}
+        actionAttempted="Generating Complete Book PDF"
+      />
 
       <AdminComponentTag name="mbrStoryBookGenerator" />
     </div>

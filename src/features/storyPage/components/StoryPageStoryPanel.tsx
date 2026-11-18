@@ -13,6 +13,7 @@ import {
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { resolveMediaUrl, taskApi, MbrStoryLikes, MbrStoryComments, MbrMedia } from '@/src/services/api';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
+import { storyCache } from '@/src/utils/storyCache';
 
 export interface StoryPageStoryPanelProps {
   storyId?: string | null;
@@ -577,7 +578,7 @@ function CommentThreadItem({
   );
 }
 
-export default function StoryPageStoryPanel({
+function StoryPageStoryPanel({
   storyId,
   storyTitle = 'Untitled Story',
   storyContent = '',
@@ -669,7 +670,13 @@ export default function StoryPageStoryPanel({
       const targetMbrId = authorMbrId || loggedInMbrId;
       if (targetMbrId) {
         try {
-          const apiMedia = await taskApi.getMemberMedia(targetMbrId);
+          let apiMedia = storyCache.getMemberMedia(targetMbrId);
+          if (!apiMedia) {
+            apiMedia = await taskApi.getMemberMedia(targetMbrId);
+            if (Array.isArray(apiMedia)) {
+              storyCache.setMemberMedia(targetMbrId, apiMedia);
+            }
+          }
           if (Array.isArray(apiMedia)) {
             const matching = apiMedia.filter(m => m.mbrMediaSubordinateId === sId);
             matching.forEach(m => {
@@ -728,6 +735,15 @@ export default function StoryPageStoryPanel({
     return items;
   }, [layoutInfo.photoUrl, layoutInfo.caption, storyMedia]);
 
+  // Find audio narration media if present in storyMedia to pass down to player without duplicate fetch
+  const audioNarrationMedia = useMemo(() => {
+    return storyMedia.find(m =>
+      (m.mbrMediaMimeType && m.mbrMediaMimeType.toLowerCase().startsWith('audio/')) ||
+      (m.mbrMediaOriginalFilename && (m.mbrMediaOriginalFilename.toLowerCase().endsWith('.mp3') || m.mbrMediaOriginalFilename.toLowerCase().endsWith('.wav'))) ||
+      (m.mbrMediaDescription && m.mbrMediaDescription.toLowerCase().includes('narration'))
+    ) || null;
+  }, [storyMedia]);
+
   const activePhoto = useMemo(() => {
     if (carouselPhotos.length === 0) {
       return { url: layoutInfo.photoUrl, caption: layoutInfo.caption };
@@ -755,24 +771,29 @@ export default function StoryPageStoryPanel({
     }
   };
 
-  // Fetch likes on mount
+  // Fetch likes and comments concurrently on mount in a single unified effect
   useEffect(() => {
     let isCancelled = false;
-    const loadLikes = async () => {
+    const loadInteractions = async () => {
       if (!storyId || !UUID_REGEX.test(storyId)) {
         return;
       }
       try {
-        const fetchedLikes = await taskApi.getMemberStoryLikes({ mbrStoryId: storyId });
-        if (isCancelled) return;
-        setLikes(fetchedLikes || []);
-        const mine = (fetchedLikes || []).find((l) => l.mbrLikesMbrId === loggedInMbrId);
-        setUserReaction(mine || null);
+        const [fetchedLikes, fetchedComments] = await Promise.all([
+          taskApi.getMemberStoryLikes({ mbrStoryId: storyId }).catch(() => []),
+          taskApi.getStoryComments({ mbrStoryId: storyId }).catch(() => [])
+        ]);
+        if (!isCancelled) {
+          setLikes(fetchedLikes || []);
+          const mine = (fetchedLikes || []).find((l) => l.mbrLikesMbrId === loggedInMbrId);
+          setUserReaction(mine || null);
+          setComments(fetchedComments || []);
+        }
       } catch (err) {
-        console.warn('Could not load likes for story:', storyId, err);
+        console.warn('Could not load interactions for story:', storyId, err);
       }
     };
-    loadLikes();
+    loadInteractions();
     return () => {
       isCancelled = true;
       if (hideTimeoutRef.current) {
@@ -780,26 +801,6 @@ export default function StoryPageStoryPanel({
       }
     };
   }, [storyId, loggedInMbrId]);
-
-  // Fetch comments on mount
-  useEffect(() => {
-    let isCancelled = false;
-    const loadComments = async () => {
-      if (!storyId || !UUID_REGEX.test(storyId)) return;
-      try {
-        const fetchedComments = await taskApi.getStoryComments({ mbrStoryId: storyId });
-        if (!isCancelled) {
-          setComments(fetchedComments || []);
-        }
-      } catch (err) {
-        console.warn('Could not load comments for story:', storyId, err);
-      }
-    };
-    loadComments();
-    return () => {
-      isCancelled = true;
-    };
-  }, [storyId]);
 
   const handleMouseEnter = () => {
     if (hideTimeoutRef.current) {
@@ -1115,6 +1116,7 @@ export default function StoryPageStoryPanel({
             title={storyTitle}
             variant="inline-button"
             authorMbrId={authorMbrId || undefined}
+            initialAudioMedia={audioNarrationMedia}
           />
         )}
       </div>
@@ -1613,4 +1615,7 @@ export default function StoryPageStoryPanel({
   );
 }
 
-export { StoryPageStoryPanel as storyPageStoryPanel };
+const MemoizedStoryPageStoryPanel = React.memo(StoryPageStoryPanel);
+
+export default MemoizedStoryPageStoryPanel;
+export { MemoizedStoryPageStoryPanel as StoryPageStoryPanel, MemoizedStoryPageStoryPanel as storyPageStoryPanel };

@@ -36,7 +36,7 @@ import {
   Eye,
   ShieldAlert
 } from 'lucide-react';
-import { taskApi, mediaApi, MbrMedia, MEDIA_API_BASE_URL, resolveMediaUrl } from '@/src/services/api';
+import { taskApi, eventApi, mediaApi, MbrMedia, MEDIA_API_BASE_URL, resolveMediaUrl } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrAlbumPrivacyModal from '@/src/components/mbrAlbumPrivacyModal';
 
@@ -44,6 +44,7 @@ export interface MbrPhotoBookPageProps {
   isSandbox?: boolean;
   onClickBack?: () => void;
   targetMemberId?: string;
+  viewerMbrId?: string;
 }
 
 export interface PhotoAlbum {
@@ -84,10 +85,12 @@ const INITIAL_SANDBOX_PHOTOS: PhotoItem[] = [];
 export default function MbrPhotoBookPage({
   isSandbox = false,
   onClickBack,
-  targetMemberId
+  targetMemberId,
+  viewerMbrId: propViewerMbrId
 }: MbrPhotoBookPageProps) {
   // --- STATE ---
   const [currentMbrId, setCurrentMbrId] = useState<string>(targetMemberId || '');
+  const [viewerId, setViewerId] = useState<string | null>(propViewerMbrId || null);
   const [albums, setAlbums] = useState<PhotoAlbum[]>([]);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -154,19 +157,37 @@ export default function MbrPhotoBookPage({
     setTimeout(() => setToastMsg(null), 3500);
   };
 
-  // --- MEMBER RESOLUTION ---
+  // --- MEMBER & VIEWER RESOLUTION ---
   useEffect(() => {
     let resolvedId = targetMemberId;
 
-    // 1. Check sb_current_mbr (primary logged-in member session object)
-    if (!resolvedId) {
+    // Resolve logged in viewer ID
+    let resolvedViewer = propViewerMbrId || viewerId;
+    if (!resolvedViewer) {
       const currentMbrStr = sessionStorage.getItem('sb_current_mbr');
       if (currentMbrStr) {
         try {
           const parsed = JSON.parse(currentMbrStr);
-          if (parsed?.mbrId) resolvedId = parsed.mbrId;
+          if (parsed?.mbrId) resolvedViewer = parsed.mbrId;
         } catch {}
       }
+    }
+    if (!resolvedViewer) {
+      const userStr = sessionStorage.getItem('user');
+      if (userStr) {
+        try {
+          const u = JSON.parse(userStr);
+          if (u.mbr_id) resolvedViewer = u.mbr_id;
+        } catch {}
+      }
+    }
+    if (resolvedViewer) {
+      setViewerId(resolvedViewer);
+    }
+
+    // 1. Check sb_current_mbr (primary logged-in member session object)
+    if (!resolvedId) {
+      if (resolvedViewer) resolvedId = resolvedViewer;
     }
 
     // 2. Check selectedMember or legacy mbr
@@ -188,7 +209,10 @@ export default function MbrPhotoBookPage({
           const u = JSON.parse(userStr);
           if (u.user_id) {
             taskApi.getMemberByUserId(u.user_id).then((m) => {
-              if (m?.mbrId) setCurrentMbrId(m.mbrId);
+              if (m?.mbrId) {
+                setCurrentMbrId(m.mbrId);
+                setViewerId(m.mbrId);
+              }
             }).catch(() => {});
             return;
           }
@@ -199,7 +223,24 @@ export default function MbrPhotoBookPage({
     if (resolvedId) {
       setCurrentMbrId(resolvedId);
     }
-  }, [targetMemberId, isSandbox]);
+  }, [targetMemberId, propViewerMbrId, isSandbox]);
+
+  // Determine if current viewer owns this photo book / gallery
+  const isOwner = useMemo(() => {
+    if (isSandbox) return true;
+    if (!targetMemberId) return true;
+    if (!viewerId) return true;
+    return targetMemberId === viewerId;
+  }, [targetMemberId, viewerId, isSandbox]);
+
+  // Check if current user owns a specific photo or the collection
+  const canDeletePhoto = (photo: PhotoItem) => {
+    if (isSandbox) return true;
+    if (isOwner) return true;
+    const effectiveViewer = viewerId || currentMbrId;
+    if (!effectiveViewer) return true;
+    return photo.mbrId === effectiveViewer || (viewerId && photo.mbrId === viewerId);
+  };
 
   // Reset multi-select when switching views or albums
   useEffect(() => {
@@ -524,6 +565,20 @@ export default function MbrPhotoBookPage({
         }
 
         showToast(`Album "${albumFormName}" updated.`);
+
+        eventApi.logEvent({
+          eventSiteCd: 'SB',
+          eventActorId: currentMbrId || undefined,
+          eventActorTypeCd: 'MBR',
+          eventCd: 'PHOTO_ALBUM_UPDATE',
+          eventDetail: `Member updated photo album '${albumFormName.trim()}'`,
+          eventTagValue: {
+            albumId: editingAlbum.id,
+            albumName: albumFormName.trim(),
+            dateLabel: albumFormDate.trim(),
+            isSandbox,
+          }
+        }).catch(() => {});
       } else {
         // Create new album
         const defaultCover = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80';
@@ -561,6 +616,20 @@ export default function MbrPhotoBookPage({
         setAlbums(updatedAlbums);
         saveSandboxState(updatedAlbums, photos);
         showToast(`Album "${albumFormName}" created!`);
+
+        eventApi.logEvent({
+          eventSiteCd: 'SB',
+          eventActorId: currentMbrId || undefined,
+          eventActorTypeCd: 'MBR',
+          eventCd: 'PHOTO_ALBUM_CREATE',
+          eventDetail: `Member created new photo album '${albumFormName.trim()}'`,
+          eventTagValue: {
+            albumId: newAlbumId,
+            albumName: albumFormName.trim(),
+            dateLabel: albumFormDate.trim(),
+            isSandbox,
+          }
+        }).catch(() => {});
       }
 
       setIsAlbumModalOpen(false);
@@ -660,6 +729,20 @@ export default function MbrPhotoBookPage({
       }
 
       showToast(`Album "${albumPendingDelete.name}" deleted.`);
+
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: currentMbrId || undefined,
+        eventActorTypeCd: 'MBR',
+        eventCd: 'PHOTO_ALBUM_DELETE',
+        eventDetail: `Member deleted photo album '${albumPendingDelete.name}'`,
+        eventTagValue: {
+          albumId,
+          albumName: albumPendingDelete.name,
+          isSandbox,
+        }
+      }).catch(() => {});
+
       setAlbumPendingDelete(null);
     } catch (err) {
       console.error('Error deleting album:', err);
@@ -816,6 +899,22 @@ export default function MbrPhotoBookPage({
       saveSandboxState(albums, updatedPhotos);
 
       showToast(`Successfully uploaded ${stagedFiles.length} photo${stagedFiles.length > 1 ? 's' : ''}!`);
+
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: currentMbrId || undefined,
+        eventActorTypeCd: 'MBR',
+        eventCd: 'PHOTO_UPLOAD',
+        eventDetail: `Member uploaded ${stagedFiles.length} photograph${stagedFiles.length > 1 ? 's' : ''} to Heirloom Photo Book${uploadTargetAlbumId ? ` in album '${albums.find((a) => a.id === uploadTargetAlbumId)?.name || uploadTargetAlbumId}'` : ''}`,
+        eventTagValue: {
+          photoCount: stagedFiles.length,
+          albumId: uploadTargetAlbumId || undefined,
+          albumName: albums.find((a) => a.id === uploadTargetAlbumId)?.name || undefined,
+          filenames: stagedFiles.map((f) => f.file.name),
+          isSandbox,
+        }
+      }).catch((logErr) => console.warn('Could not log PHOTO_UPLOAD event:', logErr));
+
       setIsUploadModalOpen(false);
       setStagedFiles([]);
     } catch (err: any) {
@@ -948,6 +1047,24 @@ export default function MbrPhotoBookPage({
       }
 
       showToast('Photo details updated.');
+
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: currentMbrId || undefined,
+        eventActorTypeCd: 'MBR',
+        eventCd: 'PHOTO_EDIT',
+        eventDetail: `Member updated details for photo '${photoFormTitle.trim() || editingPhoto.title}'`,
+        eventTagValue: {
+          photoId: editingPhoto.id,
+          photoTitle: photoFormTitle.trim(),
+          date: photoFormDate.trim(),
+          location: photoFormLocation.trim(),
+          albumId: photoFormAlbumId || undefined,
+          isCover: photoFormIsCover,
+          isSandbox,
+        }
+      }).catch(() => {});
+
       setEditingPhoto(null);
     } catch (err) {
       console.error('Error updating photo:', err);
@@ -1032,6 +1149,21 @@ export default function MbrPhotoBookPage({
         });
 
         showToast(`Removed ${targetPhotos.length} photo${targetPhotos.length > 1 ? 's' : ''} from album.`);
+
+        eventApi.logEvent({
+          eventSiteCd: 'SB',
+          eventActorId: currentMbrId || undefined,
+          eventActorTypeCd: 'MBR',
+          eventCd: 'PHOTO_REMOVE_FROM_ALBUM',
+          eventDetail: `Member removed ${targetPhotos.length} photo${targetPhotos.length > 1 ? 's' : ''} from album '${photoActionPending.albumName || 'Album'}'`,
+          eventTagValue: {
+            removedCount: targetPhotos.length,
+            albumId: photoActionPending.albumId,
+            albumName: photoActionPending.albumName,
+            photoIds: Array.from(targetIds),
+            isSandbox,
+          }
+        }).catch((logErr) => console.warn('Could not log PHOTO_REMOVE_FROM_ALBUM event:', logErr));
       } else {
         // Permanent Delete action
         const updatedPhotos = photos.filter((p) => !targetIds.has(p.id));
@@ -1064,6 +1196,20 @@ export default function MbrPhotoBookPage({
         });
 
         showToast(`Deleted ${targetPhotos.length} photo${targetPhotos.length > 1 ? 's' : ''}.`);
+
+        eventApi.logEvent({
+          eventSiteCd: 'SB',
+          eventActorId: currentMbrId || undefined,
+          eventActorTypeCd: 'MBR',
+          eventCd: 'PHOTO_DELETE',
+          eventDetail: `Member deleted ${targetPhotos.length} photograph${targetPhotos.length > 1 ? 's' : ''} from photo collection`,
+          eventTagValue: {
+            deletedCount: targetPhotos.length,
+            photoIds: Array.from(targetIds),
+            photoTitles: targetPhotos.map((p) => p.title),
+            isSandbox,
+          }
+        }).catch((logErr) => console.warn('Could not log PHOTO_DELETE event:', logErr));
       }
 
       setPhotoActionPending(null);
@@ -1236,22 +1382,24 @@ export default function MbrPhotoBookPage({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   {/* Create New Album Action Card */}
-                  <div
-                    onClick={handleOpenCreateAlbum}
-                    className="group border-2 border-dashed border-[#E3DDD2] hover:border-amber-600 bg-white/50 hover:bg-amber-50/30 rounded-3xl p-6 flex flex-col items-center justify-center text-center gap-3 transition-all cursor-pointer min-h-[280px]"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-amber-100/70 group-hover:bg-amber-200/80 text-amber-900 flex items-center justify-center transition-all shadow-2xs">
-                      <Plus className="w-6 h-6" />
+                  {isOwner && (
+                    <div
+                      onClick={handleOpenCreateAlbum}
+                      className="group border-2 border-dashed border-[#E3DDD2] hover:border-amber-600 bg-white/50 hover:bg-amber-50/30 rounded-3xl p-6 flex flex-col items-center justify-center text-center gap-3 transition-all cursor-pointer min-h-[280px]"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-amber-100/70 group-hover:bg-amber-200/80 text-amber-900 flex items-center justify-center transition-all shadow-2xs">
+                        <Plus className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="font-serif text-sm font-bold text-slate-800 group-hover:text-amber-950">
+                          Create New Album
+                        </h3>
+                        <p className="text-[11px] text-slate-500 font-serif mt-1">
+                          Group photographs with custom title, era, and narrative
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-serif text-sm font-bold text-slate-800 group-hover:text-amber-950">
-                        Create New Album
-                      </h3>
-                      <p className="text-[11px] text-slate-500 font-serif mt-1">
-                        Group photographs with custom title, era, and narrative
-                      </p>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Album Cards */}
                   {albums.map((album) => {
@@ -1310,38 +1458,40 @@ export default function MbrPhotoBookPage({
                               View Album &rarr;
                             </span>
 
-                            <div className="flex items-center gap-1">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setPrivacyTargetAlbum(album);
-                                }}
-                                className="p-1.5 text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer"
-                                title="Album Privacy Settings"
-                              >
-                                <ShieldAlert className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenEditAlbum(album);
-                                }}
-                                className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
-                                title="Edit Album"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={(e) => handleOpenDeleteAlbumDialog(album, e)}
-                                className="p-1.5 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all"
-                                title="Delete Album"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
+                            {isOwner && (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPrivacyTargetAlbum(album);
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg transition-all cursor-pointer"
+                                  title="Album Privacy Settings"
+                                >
+                                  <ShieldAlert className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleOpenEditAlbum(album);
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-all"
+                                  title="Edit Album"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleOpenDeleteAlbumDialog(album, e)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-all"
+                                  title="Delete Album"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1402,7 +1552,7 @@ export default function MbrPhotoBookPage({
 
                   {/* Album Toolbar Buttons */}
                   <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                    {currentViewPhotos.length > 0 && (
+                    {isOwner && currentViewPhotos.length > 0 && (
                       <button
                         type="button"
                         onClick={
@@ -1416,26 +1566,33 @@ export default function MbrPhotoBookPage({
                         <span>{selectedPhotoIds.size === currentViewPhotos.length ? 'Deselect All' : 'Select All'}</span>
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenUploadModal(activeAlbum.id)}
-                      className="flex-1 md:flex-initial px-3.5 py-2 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-serif font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Add Photos</span>
-                    </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setIsCoverPickerOpen(true)}
-                      className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-[#E3DDD2] rounded-xl text-xs font-serif font-bold transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
-                      title="Replace Album Cover Photo"
-                    >
-                      <Camera className="w-3.5 h-3.5 text-amber-800" />
-                      <span>Change Cover</span>
-                    </button>
+                    {isOwner ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenUploadModal(activeAlbum.id)}
+                          className="flex-1 md:flex-initial px-3.5 py-2 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-serif font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Add Photos</span>
+                        </button>
 
-
+                        <button
+                          type="button"
+                          onClick={() => setIsCoverPickerOpen(true)}
+                          className="px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-[#E3DDD2] rounded-xl text-xs font-serif font-bold transition-all shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          title="Replace Album Cover Photo"
+                        >
+                          <Camera className="w-3.5 h-3.5 text-amber-800" />
+                          <span>Change Cover</span>
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-[10px] font-serif font-bold text-amber-900 bg-amber-100 border border-amber-200/80 px-2.5 py-1 rounded-xl">
+                        Viewing Album
+                      </span>
+                    )}
 
                     <button
                       type="button"
@@ -1452,32 +1609,36 @@ export default function MbrPhotoBookPage({
                       <span>Slideshow</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setPrivacyTargetAlbum(activeAlbum)}
-                      className="p-2 text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-xl transition-all cursor-pointer"
-                      title="Album Privacy Settings"
-                    >
-                      <ShieldAlert className="w-4 h-4" />
-                    </button>
+                    {isOwner && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setPrivacyTargetAlbum(activeAlbum)}
+                          className="p-2 text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 rounded-xl transition-all cursor-pointer"
+                          title="Album Privacy Settings"
+                        >
+                          <ShieldAlert className="w-4 h-4" />
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditAlbum(activeAlbum)}
-                      className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-                      title="Edit Album Information"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditAlbum(activeAlbum)}
+                          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                          title="Edit Album Information"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleOpenDeleteAlbumDialog(activeAlbum)}
-                      className="p-2 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
-                      title="Delete Album"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDeleteAlbumDialog(activeAlbum)}
+                          className="p-2 text-slate-500 hover:text-rose-700 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                          title="Delete Album"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -1495,14 +1656,16 @@ export default function MbrPhotoBookPage({
                         Upload photographs with stories, captions, and dates to build this chapter of your photo book.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenUploadModal(activeAlbum.id)}
-                      className="px-4 py-2 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-serif font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload First Photo</span>
-                    </button>
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenUploadModal(activeAlbum.id)}
+                        className="px-4 py-2 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-serif font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload First Photo</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -1510,13 +1673,13 @@ export default function MbrPhotoBookPage({
                       <PhotoCard
                         key={photo.id}
                         photo={photo}
-                        isSelected={selectedPhotoIds.has(photo.id)}
-                        onToggleSelect={(e) => togglePhotoSelection(photo.id, e)}
+                        isSelected={isOwner && selectedPhotoIds.has(photo.id)}
+                        onToggleSelect={isOwner ? (e) => togglePhotoSelection(photo.id, e) : undefined}
                         onClick={() => openLightbox(idx)}
-                        onEdit={(e) => handleOpenEditPhoto(photo, e)}
-                        onDelete={(e) => handleOpenDeletePhotosDialog([photo], e)}
-                        onRemoveFromAlbum={(e) => handleOpenRemoveFromAlbumDialog([photo], e)}
-                        onSetAsCover={activeAlbum ? (e) => handleSetAlbumCoverPhoto(activeAlbum.id, photo, e) : undefined}
+                        onEdit={canDeletePhoto(photo) ? (e) => handleOpenEditPhoto(photo, e) : undefined}
+                        onDelete={canDeletePhoto(photo) ? (e) => handleOpenDeletePhotosDialog([photo], e) : undefined}
+                        onRemoveFromAlbum={isOwner ? (e) => handleOpenRemoveFromAlbumDialog([photo], e) : undefined}
+                        onSetAsCover={isOwner && activeAlbum ? (e) => handleSetAlbumCoverPhoto(activeAlbum.id, photo, e) : undefined}
                       />
                     ))}
                   </div>
@@ -1538,7 +1701,7 @@ export default function MbrPhotoBookPage({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    {currentViewPhotos.length > 0 && (
+                    {isOwner && currentViewPhotos.length > 0 && (
                       <button
                         type="button"
                         onClick={
@@ -1552,14 +1715,16 @@ export default function MbrPhotoBookPage({
                         <span>{selectedPhotoIds.size === currentViewPhotos.length ? 'Deselect All' : 'Select All'}</span>
                       </button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenUploadModal()}
-                      className="px-3.5 py-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-serif font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Photo</span>
-                    </button>
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenUploadModal()}
+                        className="px-3.5 py-1.5 bg-amber-800 hover:bg-amber-900 text-white rounded-xl text-xs font-serif font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>Upload Photo</span>
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -1574,13 +1739,13 @@ export default function MbrPhotoBookPage({
                         key={photo.id}
                         photo={photo}
                         albumName={albums.find((a) => a.id === photo.albumId)?.name}
-                        isSelected={selectedPhotoIds.has(photo.id)}
-                        onToggleSelect={(e) => togglePhotoSelection(photo.id, e)}
+                        isSelected={isOwner && selectedPhotoIds.has(photo.id)}
+                        onToggleSelect={isOwner ? (e) => togglePhotoSelection(photo.id, e) : undefined}
                         onClick={() => openLightbox(idx)}
-                        onEdit={(e) => handleOpenEditPhoto(photo, e)}
-                        onDelete={(e) => handleOpenDeletePhotosDialog([photo], e)}
-                        onRemoveFromAlbum={photo.albumId ? (e) => handleOpenRemoveFromAlbumDialog([photo], e) : undefined}
-                        onSetAsCover={photo.albumId ? (e) => handleSetAlbumCoverPhoto(photo.albumId!, photo, e) : undefined}
+                        onEdit={canDeletePhoto(photo) ? (e) => handleOpenEditPhoto(photo, e) : undefined}
+                        onDelete={canDeletePhoto(photo) ? (e) => handleOpenDeletePhotosDialog([photo], e) : undefined}
+                        onRemoveFromAlbum={isOwner && photo.albumId ? (e) => handleOpenRemoveFromAlbumDialog([photo], e) : undefined}
+                        onSetAsCover={isOwner && photo.albumId ? (e) => handleSetAlbumCoverPhoto(photo.albumId!, photo, e) : undefined}
                       />
                     ))}
                   </div>
@@ -1593,7 +1758,7 @@ export default function MbrPhotoBookPage({
       </main>
 
       {/* --- FLOATING BULK SELECTION ACTIONS BAR --- */}
-      {selectedPhotoIds.size > 0 && (
+      {isOwner && selectedPhotoIds.size > 0 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 backdrop-blur-md text-white border border-slate-700/80 px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center gap-2 pr-3 border-r border-slate-700 text-xs font-serif font-bold">
             <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center text-[11px] font-extrabold">
@@ -1655,7 +1820,7 @@ export default function MbrPhotoBookPage({
 
       {/* --- CONFIRM PHOTO ACTION MODAL (REMOVE FROM ALBUM OR DELETE PHOTO) --- */}
       {photoActionPending && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-[#EAE5DC] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="flex items-start justify-between pb-2 border-b border-[#F2EEE9]">
@@ -1813,7 +1978,7 @@ export default function MbrPhotoBookPage({
 
       {/* --- CONFIRM DELETE ALBUM DIALOG --- */}
       {albumPendingDelete && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-[#EAE5DC] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-start justify-between pb-2 border-b border-[#F2EEE9]">
               <div className="flex items-center gap-3">
@@ -1905,7 +2070,7 @@ export default function MbrPhotoBookPage({
 
       {/* --- CREATE / EDIT ALBUM MODAL --- */}
       {isAlbumModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-[#EAE5DC] rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#F2EEE9]">
               <div className="flex items-center gap-2">
@@ -2042,7 +2207,7 @@ export default function MbrPhotoBookPage({
 
       {/* --- UPLOAD PHOTOS MODAL --- */}
       {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-[#EAE5DC] rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 my-8">
             <div className="flex items-center justify-between pb-3 border-b border-[#F2EEE9]">
               <div className="flex items-center gap-2">
@@ -2237,7 +2402,7 @@ export default function MbrPhotoBookPage({
 
       {/* --- EDIT PHOTO DETAILS MODAL --- */}
       {editingPhoto && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-[#EAE5DC] rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#F2EEE9]">
               <div className="flex items-center gap-2">
@@ -2404,52 +2569,56 @@ export default function MbrPhotoBookPage({
                 <span>{isSlideshowPlaying ? 'Pause Slideshow' : 'Play Slideshow'}</span>
               </button>
 
-              {currentViewPhotos[lightboxIndex].albumId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const currentPhoto = currentViewPhotos[lightboxIndex];
-                    if (currentPhoto.albumId) {
-                      handleSetAlbumCoverPhoto(currentPhoto.albumId, currentPhoto);
-                    }
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-serif font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    currentViewPhotos[lightboxIndex].isCover
-                      ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
-                      : 'bg-white/10 hover:bg-white/20 text-white'
-                  }`}
-                  title={currentViewPhotos[lightboxIndex].isCover ? 'Current Album Cover Photo' : 'Set as Album Cover Photo'}
-                >
-                  <Camera className="w-3.5 h-3.5 text-amber-300" />
-                  <span>{currentViewPhotos[lightboxIndex].isCover ? 'Cover Photo' : 'Set as Cover'}</span>
-                </button>
+              {isOwner && (
+                <>
+                  {currentViewPhotos[lightboxIndex].albumId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentPhoto = currentViewPhotos[lightboxIndex];
+                        if (currentPhoto.albumId) {
+                          handleSetAlbumCoverPhoto(currentPhoto.albumId, currentPhoto);
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-serif font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                        currentViewPhotos[lightboxIndex].isCover
+                          ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
+                          : 'bg-white/10 hover:bg-white/20 text-white'
+                      }`}
+                      title={currentViewPhotos[lightboxIndex].isCover ? 'Current Album Cover Photo' : 'Set as Album Cover Photo'}
+                    >
+                      <Camera className="w-3.5 h-3.5 text-amber-300" />
+                      <span>{currentViewPhotos[lightboxIndex].isCover ? 'Cover Photo' : 'Set as Cover'}</span>
+                    </button>
+                  )}
+                  {currentViewPhotos[lightboxIndex].albumId && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenRemoveFromAlbumDialog([currentViewPhotos[lightboxIndex]])}
+                      className="p-2 bg-white/10 hover:bg-white/20 text-amber-300 rounded-xl transition-all cursor-pointer"
+                      title="Remove from Album (Keep in Library)"
+                    >
+                      <FolderMinus className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenDeletePhotosDialog([currentViewPhotos[lightboxIndex]])}
+                    className="p-2 bg-rose-600/80 hover:bg-rose-600 text-white rounded-xl transition-all cursor-pointer shadow-xs"
+                    title="Delete Photo"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditPhoto(currentViewPhotos[lightboxIndex])}
+                    className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all cursor-pointer"
+                    title="Edit Photo Details"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
+                </>
               )}
-              {currentViewPhotos[lightboxIndex].albumId && (
-                <button
-                  type="button"
-                  onClick={() => handleOpenRemoveFromAlbumDialog([currentViewPhotos[lightboxIndex]])}
-                  className="p-2 bg-white/10 hover:bg-white/20 text-amber-300 rounded-xl transition-all cursor-pointer"
-                  title="Remove from Album (Keep in Library)"
-                >
-                  <FolderMinus className="w-4 h-4" />
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => handleOpenDeletePhotosDialog([currentViewPhotos[lightboxIndex]])}
-                className="p-2 bg-white/10 hover:bg-rose-500/30 text-rose-300 hover:text-rose-200 rounded-xl transition-all cursor-pointer"
-                title="Delete Photo"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleOpenEditPhoto(currentViewPhotos[lightboxIndex])}
-                className="p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all cursor-pointer"
-                title="Edit Photo Details"
-              >
-                <Edit3 className="w-4 h-4" />
-              </button>
 
               <button
                 type="button"
@@ -2524,7 +2693,7 @@ export default function MbrPhotoBookPage({
 
       {/* --- REPLACE ALBUM COVER MODAL --- */}
       {isCoverPickerOpen && activeAlbum && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white border border-[#EAE5DC] rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#F2EEE9]">
               <div className="flex items-center gap-2">
@@ -2652,8 +2821,8 @@ interface PhotoCardProps {
   isSelected?: boolean;
   onToggleSelect?: (e: React.MouseEvent) => void;
   onClick: () => void;
-  onEdit: (e: React.MouseEvent) => void;
-  onDelete: (e: React.MouseEvent) => void;
+  onEdit?: (e: React.MouseEvent) => void;
+  onDelete?: (e: React.MouseEvent) => void;
   onRemoveFromAlbum?: (e: React.MouseEvent) => void;
   onSetAsCover?: (e: React.MouseEvent) => void;
 }
@@ -2691,7 +2860,11 @@ function PhotoCard({
         {onToggleSelect && (
           <button
             type="button"
-            onClick={onToggleSelect}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSelect(e);
+            }}
             className={`absolute top-2.5 left-2.5 z-20 w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
               isSelected
                 ? 'bg-amber-800 text-white shadow-md ring-2 ring-white opacity-100'
@@ -2720,60 +2893,120 @@ function PhotoCard({
         </div>
 
         {/* Action icons on hover */}
-        <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 z-20">
-          {onSetAsCover && !photo.isCover && (
-            <button
-              type="button"
-              onClick={onSetAsCover}
-              className="p-1.5 bg-white/95 hover:bg-amber-100 text-amber-900 rounded-lg shadow-xs transition-all cursor-pointer"
-              title="Set as Album Cover Photo"
-            >
-              <Camera className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {onRemoveFromAlbum && (
-            <button
-              type="button"
-              onClick={onRemoveFromAlbum}
-              className="p-1.5 bg-white/95 hover:bg-white text-amber-900 hover:text-amber-950 rounded-lg shadow-xs transition-all cursor-pointer"
-              title="Remove from Album (Keep in Collection)"
-            >
-              <FolderMinus className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onEdit}
-            className="p-1.5 bg-white/95 hover:bg-white text-slate-800 rounded-lg shadow-xs transition-all cursor-pointer"
-            title="Edit Photo Details"
-          >
-            <Edit3 className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            className="p-1.5 bg-white/95 hover:bg-white text-rose-700 hover:text-rose-800 rounded-lg shadow-xs transition-all cursor-pointer"
-            title="Delete Photo"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        {(onSetAsCover || onRemoveFromAlbum || onEdit || onDelete) && (
+          <div className="absolute bottom-2 right-2 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center gap-1 z-20">
+            {onSetAsCover && !photo.isCover && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSetAsCover(e);
+                }}
+                className="p-1.5 bg-white/95 hover:bg-amber-100 text-amber-900 rounded-lg shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
+                title="Set as Album Cover Photo"
+              >
+                <Camera className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onRemoveFromAlbum && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onRemoveFromAlbum(e);
+                }}
+                className="p-1.5 bg-white/95 hover:bg-white text-amber-900 hover:text-amber-950 rounded-lg shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
+                title="Remove from Album (Keep in Collection)"
+              >
+                <FolderMinus className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onEdit && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEdit(e);
+                }}
+                className="p-1.5 bg-white/95 hover:bg-white text-slate-800 rounded-lg shadow-xs transition-all cursor-pointer hover:scale-105 active:scale-95"
+                title="Edit Photo Details"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onDelete(e);
+                }}
+                className="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg shadow-md transition-all cursor-pointer hover:scale-110 active:scale-95"
+                title="Delete Photo"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="p-3.5 flex-1 flex flex-col justify-between gap-2">
-        <div className="space-y-1">
-          <h4 className="font-serif text-xs font-bold text-slate-900 group-hover:text-amber-950 truncate">
-            {photo.title}
-          </h4>
-          {(photo.date || photo.location) && (
-            <p className="text-[10px] font-serif text-slate-500 truncate">
-              {[photo.location, photo.date].filter(Boolean).join(' • ')}
-            </p>
-          )}
-          {photo.description && (
-            <p className="text-[11px] font-serif text-slate-600 line-clamp-2 leading-relaxed">
-              {photo.description}
-            </p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="space-y-1 min-w-0 flex-1">
+            <h4 className="font-serif text-xs font-bold text-slate-900 group-hover:text-amber-950 truncate" title={photo.title}>
+              {photo.title}
+            </h4>
+            {(photo.date || photo.location) && (
+              <p className="text-[10px] font-serif text-slate-500 truncate">
+                {[photo.location, photo.date].filter(Boolean).join(' • ')}
+              </p>
+            )}
+            {photo.description && (
+              <p className="text-[11px] font-serif text-slate-600 line-clamp-2 leading-relaxed">
+                {photo.description}
+              </p>
+            )}
+          </div>
+
+          {/* Direct Card Actions (Direct Delete & Edit in Image List) */}
+          {(onDelete || onEdit) && (
+            <div className="flex items-center gap-1 shrink-0 -mt-0.5">
+              {onEdit && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onEdit(e);
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-all cursor-pointer hover:scale-105 active:scale-95"
+                  title="Edit Photo Details"
+                  aria-label="Edit Photo Details"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDelete(e);
+                  }}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer hover:scale-110 active:scale-95 group/del"
+                  title="Delete Photo"
+                  aria-label="Delete Photo"
+                >
+                  <Trash2 className="w-4 h-4 text-slate-400 group-hover/del:text-rose-600 transition-colors" />
+                </button>
+              )}
+            </div>
           )}
         </div>
       </div>

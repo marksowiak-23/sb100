@@ -7,6 +7,8 @@ import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrConnectPanel from '@/src/components/mbrConnectPanel';
 import MbrProfilePrivacyModal from '@/src/components/mbrProfilePrivacyModal';
+import { useMemberCredits } from '@/src/services/creditBalanceService';
+import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 
 export interface MbrProfilePanelProps {
   key?: React.Key;
@@ -80,6 +82,8 @@ export default function MbrProfilePanel({
 
   // Resolved viewer member ID
   const [resolvedViewerId, setResolvedViewerId] = useState<string | null>(propViewerMbrId || null);
+  const { isExhausted: hasExhaustedCredits } = useMemberCredits(resolvedViewerId || undefined);
+  const [showExhaustedCreditsModal, setShowExhaustedCreditsModal] = useState(false);
 
   useEffect(() => {
     if (propViewerMbrId) {
@@ -1194,6 +1198,10 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                if (hasExhaustedCredits) {
+                  setShowExhaustedCreditsModal(true);
+                  return;
+                }
                 const targetMbrId = profile?.mbrId || profile?.id || memberId || '';
                 if (onClickReadStory && targetMbrId) {
                   onClickReadStory(targetMbrId);
@@ -1201,8 +1209,12 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
                   window.dispatchEvent(new CustomEvent('open-member-story', { detail: { memberId: targetMbrId } }));
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-serif font-bold rounded-xl shadow-xs hover:shadow transition-all duration-150 cursor-pointer active:scale-95 group shrink-0"
-              title="Read member's stories"
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-serif font-bold rounded-xl shadow-xs transition-all duration-150 cursor-pointer active:scale-95 group shrink-0 ${
+                hasExhaustedCredits
+                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 opacity-70'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white hover:shadow'
+              }`}
+              title={hasExhaustedCredits ? 'Credits exhausted - click to purchase via My Account' : "Read member's stories"}
             >
               <BookOpen className="w-3.5 h-3.5 text-blue-200 group-hover:text-white transition-colors" />
               <span>Read Stories</span>
@@ -1211,6 +1223,12 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
           )}
         </div>
       </div>
+
+      <ExhaustedCreditsModal
+        isOpen={showExhaustedCreditsModal}
+        onClose={() => setShowExhaustedCreditsModal(false)}
+        actionAttempted="Reading member stories"
+      />
 
       <AdminComponentTag name="mbrProfilePanel" />
     </div>

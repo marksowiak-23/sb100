@@ -607,11 +607,29 @@ export default function MbrPhotoGalleryPanel({
                     transition={{ duration: 0.2 }}
                     className="flex flex-col items-center justify-center max-h-[58vh] w-full"
                   >
-                    <img
-                      src={resolveMediaUrl(currentPhoto?.mbrMediaPath)}
-                      alt={currentPhoto?.mbrMediaOriginalFilename || `${categoryTitle} Gallery Photo`}
-                      className="max-h-[44vh] max-w-full object-contain rounded-2xl shadow-xl border border-slate-800"
-                    />
+                    <div className="relative group max-h-[44vh] max-w-full">
+                      <img
+                        src={resolveMediaUrl(currentPhoto?.mbrMediaPath)}
+                        alt={currentPhoto?.mbrMediaOriginalFilename || `${categoryTitle} Gallery Photo`}
+                        className="max-h-[44vh] max-w-full object-contain rounded-2xl shadow-xl border border-slate-800"
+                      />
+                      {canUpload && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePhoto(currentPhoto.mbrMediaId)}
+                          disabled={deletingMediaId === currentPhoto.mbrMediaId}
+                          className="absolute top-2.5 right-2.5 p-2 bg-rose-600/90 hover:bg-rose-600 text-white rounded-xl shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95 z-20"
+                          title="Delete photo from gallery"
+                          aria-label="Delete photo from gallery"
+                        >
+                          {deletingMediaId === currentPhoto.mbrMediaId ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
+                    </div>
 
                     {/* Photo Description Editable Control */}
                     {currentPhoto && (

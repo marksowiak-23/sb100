@@ -1055,6 +1055,21 @@ export default function StoryMatePanel({
       onApplyStory(trimmed);
     }
 
+    eventApi.logEvent({
+      eventSiteCd: 'SB',
+      eventActorId: resolvedMbrId || undefined,
+      eventActorTypeCd: 'MBR',
+      eventCd: 'STORY_APPLY_AI_DRAFT',
+      eventDetail: `User applied StoryMate AI draft (${trimmed.length} chars) into Story Editor for ${storyTitle || resolvedTopicCustomName || componentName}`,
+      eventTagValue: {
+        componentName,
+        storyTitle: storyTitle || undefined,
+        personaName,
+        charCount: trimmed.length,
+        wordCount: trimmed.split(/\s+/).filter(Boolean).length
+      }
+    }).catch(() => {});
+
     setAppliedSuccess(true);
     setTimeout(() => setAppliedSuccess(false), 4000);
   };

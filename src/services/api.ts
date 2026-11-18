@@ -971,6 +971,90 @@ export interface MbrContact {
   mbrContactUpdatedAt?: string;
 }
 
+export interface MbrMemorialContact {
+  mbrMemorialContactId: string;
+  mbrId: string;
+  contactMbrId?: string | null;
+  contactFirstName: string;
+  contactLastName: string;
+  contactEmail: string;
+  contactPhone?: string | null;
+  contactRelationshipCd: string;
+  contactPriorityOrder: number;
+  contactStatusCd: string;
+  allowStoryPublishFlag: boolean;
+  allowStoryEditFlag: boolean;
+  allowPhotoManageFlag: boolean;
+  allowBookOrderFlag: boolean;
+  allowDownloadArchiveFlag: boolean;
+  personalMessage?: string | null;
+  verificationToken?: string | null;
+  contactNotifiedDt?: string | null;
+  contactConfirmedDt?: string | null;
+  activationRequestedDt?: string | null;
+  activationApprovedDt?: string | null;
+  activationNotes?: string | null;
+  mbrMemorialContactCreatedAt?: string;
+  mbrMemorialContactUpdatedAt?: string;
+}
+
+export interface MbrAcct {
+  mbrAcctId: string;
+  mbrId: string;
+  mbrAcctCreditBalance: number;
+  mbrAcctLifetimeCreditsEarned: number;
+  mbrAcctLifetimeCreditsUsed: number;
+  mbrAcctStatusCd: string;
+  mbrAcctTypeCd: string;
+  mbrAcctLastActivityDate?: string | null;
+  mbrAcctCreatedAt?: string;
+  mbrAcctUpdatedAt?: string;
+}
+
+export interface MbrAcctActivity {
+  mbrAcctActivityId: string;
+  mbrAcctId: string;
+  mbrId: string;
+  mbrAcctActivityTypeCd: string;
+  mbrAcctActivityDirectionCd: 'ADD' | 'SUB' | string;
+  creditAmount: number;
+  creditDelta: number;
+  balanceBefore: number;
+  balanceAfter: number;
+  mbrAcctActivityDesc?: string | null;
+  referenceTypeCd?: string | null;
+  referenceId?: string | null;
+  activityMetadata?: Record<string, any> | null;
+  mbrAcctActivityCreatedAt?: string;
+}
+
+export interface CreditAdjustmentRequest {
+  mbrId: string;
+  creditAmount: number;
+  directionCd: 'ADD' | 'SUB' | string;
+  activityTypeCd: string;
+  description?: string;
+  referenceTypeCd?: string;
+  referenceId?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface CreditAdjustmentResponse {
+  account: MbrAcct;
+  activity: MbrAcctActivity;
+}
+
+export interface AcctEventCredit {
+  acctEventCreditId: string;
+  eventCd: string;
+  acctEventCdAmt: number;
+  acctEventCreditDesc?: string | null;
+  acctEventCreditCategoryCd: string;
+  activeFlag: boolean;
+  acctEventCreditCreatedAt?: string;
+  acctEventCreditUpdatedAt?: string;
+}
+
 export interface MbrStoryActivity {
   actId: string;
   mbrId: string;
@@ -3788,6 +3872,98 @@ export const taskApi = {
   },
 
   /**
+   * Fetch member memorial contacts for a specific member profile.
+   */
+  async getMemberMemorialContacts(mbrId: string): Promise<MbrMemorialContact[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-memorial-contacts/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    return handleResponse<MbrMemorialContact[]>(response);
+  },
+
+  /**
+   * Fetch a single member memorial contact by ID.
+   */
+  async getMemberMemorialContact(contactId: string): Promise<MbrMemorialContact> {
+    const response = await fetch(`${API_BASE_URL}/mbr-memorial-contacts/${contactId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    return handleResponse<MbrMemorialContact>(response);
+  },
+
+  /**
+   * Fetch all member memorial contact records with optional filtering.
+   */
+  async getAllMemberMemorialContacts(params?: { mbrId?: string; contactStatusCd?: string; skip?: number; limit?: number }): Promise<MbrMemorialContact[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.contactStatusCd) searchParams.append('contact_status_cd', params.contactStatusCd);
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const response = await fetch(`${API_BASE_URL}/mbr-memorial-contacts?${searchParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    return handleResponse<MbrMemorialContact[]>(response);
+  },
+
+  /**
+   * Create a member memorial contact record.
+   */
+  async createMemberMemorialContact(contact: Partial<MbrMemorialContact>): Promise<MbrMemorialContact> {
+    const response = await fetch(`${API_BASE_URL}/mbr-memorial-contacts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(contact)
+    });
+    return handleResponse<MbrMemorialContact>(response);
+  },
+
+  /**
+   * Update a member memorial contact record.
+   */
+  async updateMemberMemorialContact(contactId: string, contact: Partial<MbrMemorialContact>): Promise<MbrMemorialContact> {
+    const response = await fetch(`${API_BASE_URL}/mbr-memorial-contacts/${contactId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(contact)
+    });
+    return handleResponse<MbrMemorialContact>(response);
+  },
+
+  /**
+   * Delete a member memorial contact record.
+   */
+  async deleteMemberMemorialContact(contactId: string): Promise<MbrMemorialContact> {
+    const response = await fetch(`${API_BASE_URL}/mbr-memorial-contacts/${contactId}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+    return handleResponse<MbrMemorialContact>(response);
+  },
+
+  /**
    * Fetch member story likes and reactions.
    */
   async getMemberStoryLikes(params?: { mbrStoryId?: string; mbrLikesMbrId?: string; skip?: number; limit?: number }): Promise<MbrStoryLikes[]> {
@@ -4306,6 +4482,339 @@ export const taskApi = {
       body: JSON.stringify(credentials)
     });
     return handleResponse(response);
+  },
+
+  /**
+   * Fetch member credit account by member ID (auto-provisions if not yet created).
+   */
+  async getMemberAccount(mbrId: string): Promise<MbrAcct> {
+    const response = await fetch(`${API_BASE_URL}/mbr-accts/member/${mbrId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrAcct>(response);
+  },
+
+  /**
+   * Fetch all member accounts with optional pagination.
+   */
+  async getAllMemberAccounts(params?: { skip?: number; limit?: number }): Promise<MbrAcct[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-accts${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrAcct[]>(response);
+  },
+
+  /**
+   * Fetch member account by account ID.
+   */
+  async getMemberAccountById(mbrAcctId: string): Promise<MbrAcct> {
+    const response = await fetch(`${API_BASE_URL}/mbr-accts/${mbrAcctId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrAcct>(response);
+  },
+
+  /**
+   * Create a new member account.
+   */
+  async createMemberAccount(acct: Partial<MbrAcct>): Promise<MbrAcct> {
+    const response = await fetch(`${API_BASE_URL}/mbr-accts`, {
+      method: 'POST',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(acct)
+    });
+    return handleResponse<MbrAcct>(response);
+  },
+
+  /**
+   * Update an existing member account.
+   */
+  async updateMemberAccount(mbrAcctId: string, acct: Partial<MbrAcct>): Promise<MbrAcct> {
+    const response = await fetch(`${API_BASE_URL}/mbr-accts/${mbrAcctId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(acct)
+    });
+    return handleResponse<MbrAcct>(response);
+  },
+
+  /**
+   * Delete a member account.
+   */
+  async deleteMemberAccount(mbrAcctId: string): Promise<MbrAcct> {
+    const response = await fetch(`${API_BASE_URL}/mbr-accts/${mbrAcctId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders({
+        'Accept': 'application/json'
+      })
+    });
+    return handleResponse<MbrAcct>(response);
+  },
+
+  /**
+   * Atomically adjust member credits (add or subtract) with double-entry activity logging.
+   */
+  async adjustMemberCredits(req: CreditAdjustmentRequest): Promise<CreditAdjustmentResponse> {
+    const response = await fetch(`${API_BASE_URL}/mbr-accts/adjust-credits`, {
+      method: 'POST',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(req)
+    });
+    return handleResponse<CreditAdjustmentResponse>(response);
+  },
+
+  /**
+   * Fetch member account activity ledger entries with filtering and pagination.
+   */
+  async getMemberAccountActivities(params?: { mbrId?: string; mbrAcctId?: string; skip?: number; limit?: number }): Promise<MbrAcctActivity[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.mbrId) searchParams.append('mbr_id', params.mbrId);
+    if (params?.mbrAcctId) searchParams.append('mbr_acct_id', params.mbrAcctId);
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/mbr-acct-activities${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrAcctActivity[]>(response);
+  },
+
+  /**
+   * Fetch single member account activity entry by ID.
+   */
+  async getMemberAccountActivity(activityId: string): Promise<MbrAcctActivity> {
+    const response = await fetch(`${API_BASE_URL}/mbr-acct-activities/${activityId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<MbrAcctActivity>(response);
+  },
+
+  /**
+   * Create a member account activity entry directly.
+   */
+  async createMemberAccountActivity(activity: Partial<MbrAcctActivity>): Promise<MbrAcctActivity> {
+    const response = await fetch(`${API_BASE_URL}/mbr-acct-activities`, {
+      method: 'POST',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(activity)
+    });
+    return handleResponse<MbrAcctActivity>(response);
+  },
+
+  /**
+   * Fetch all event credit rate rules with optional active filter and pagination.
+   */
+  async getAllAcctEventCredits(params?: { activeOnly?: boolean; categoryCd?: string; skip?: number; limit?: number }): Promise<AcctEventCredit[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.activeOnly !== undefined) searchParams.append('active_only', params.activeOnly.toString());
+    if (params?.categoryCd) searchParams.append('category_cd', params.categoryCd);
+    if (params?.skip !== undefined) searchParams.append('skip', params.skip.toString());
+    if (params?.limit !== undefined) searchParams.append('limit', params.limit.toString());
+    searchParams.append('t', Date.now().toString());
+
+    const queryString = searchParams.toString();
+    const url = `${API_BASE_URL}/acct-event-credits${queryString ? `?${queryString}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<AcctEventCredit[]>(response);
+  },
+
+  /**
+   * Fetch cached dictionary map of active event codes to credit amounts.
+   */
+  async getAcctEventCreditRates(): Promise<Record<string, number>> {
+    const response = await fetch(`${API_BASE_URL}/acct-event-credits/rates?t=${Date.now()}`, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<Record<string, number>>(response);
+  },
+
+  /**
+   * Fetch single event credit rate rule by ID.
+   */
+  async getAcctEventCredit(creditId: string): Promise<AcctEventCredit> {
+    const response = await fetch(`${API_BASE_URL}/acct-event-credits/${creditId}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<AcctEventCredit>(response);
+  },
+
+  /**
+   * Fetch event credit rate rule by event code.
+   */
+  async getAcctEventCreditByCode(eventCd: string): Promise<AcctEventCredit> {
+    const response = await fetch(`${API_BASE_URL}/acct-event-credits/by-code/${encodeURIComponent(eventCd)}?t=${Date.now()}`, {
+      method: 'GET',
+      headers: getAuthHeaders({
+        'Accept': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }),
+      cache: 'no-cache'
+    });
+    return handleResponse<AcctEventCredit>(response);
+  },
+
+  /**
+   * Create a new event credit rate rule.
+   */
+  async createAcctEventCredit(credit: Partial<AcctEventCredit>): Promise<AcctEventCredit> {
+    const response = await fetch(`${API_BASE_URL}/acct-event-credits`, {
+      method: 'POST',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(credit)
+    });
+    return handleResponse<AcctEventCredit>(response);
+  },
+
+  /**
+   * Update an existing event credit rate rule.
+   */
+  async updateAcctEventCredit(creditId: string, credit: Partial<AcctEventCredit>): Promise<AcctEventCredit> {
+    const response = await fetch(`${API_BASE_URL}/acct-event-credits/${creditId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(credit)
+    });
+    return handleResponse<AcctEventCredit>(response);
+  },
+
+  /**
+   * Delete an event credit rate rule.
+   */
+  async deleteAcctEventCredit(creditId: string): Promise<AcctEventCredit> {
+    const response = await fetch(`${API_BASE_URL}/acct-event-credits/${creditId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders({
+        'Accept': 'application/json'
+      })
+    });
+    return handleResponse<AcctEventCredit>(response);
+  },
+
+  /**
+   * Refresh in-memory event credit rates from database.
+   */
+  async refreshAcctEventCreditRates(): Promise<Record<string, number>> {
+    const response = await fetch(`${API_BASE_URL}/acct-event-credits/refresh`, {
+      method: 'POST',
+      headers: getAuthHeaders({
+        'Accept': 'application/json'
+      })
+    });
+    return handleResponse<Record<string, number>>(response);
+  },
+
+  /**
+   * Create a Stripe Checkout Session for purchasing credits.
+   */
+  async createStripeCheckoutSession(params: {
+    mbr_id: string;
+    credits: number;
+    success_url?: string;
+    cancel_url?: string;
+    customer_email?: string;
+    ui_mode?: 'hosted' | 'embedded_page';
+  }): Promise<{ checkoutUrl?: string | null; clientSecret?: string | null; sessionId: string; uiMode?: string; credits: number; amountCents: number; currency: string }> {
+    const response = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
+      method: 'POST',
+      headers: getAuthHeaders({
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }),
+      body: JSON.stringify(params)
+    });
+    return handleResponse<{ checkoutUrl?: string | null; clientSecret?: string | null; sessionId: string; uiMode?: string; credits: number; amountCents: number; currency: string }>(response);
+  },
+
+  /**
+   * Verify and fulfill a completed Stripe Checkout session.
+   */
+  async verifyStripeSession(sessionId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/payments/verify-session/${sessionId}`, {
+      method: 'POST',
+      headers: getAuthHeaders({
+        'Accept': 'application/json'
+      })
+    });
+    return handleResponse<any>(response);
   }
 };
 
@@ -6627,4 +7136,52 @@ export const voiceCloneApi = {
     });
     return handleResponse<VoiceCloneEnrollResponse>(response);
   },
+};
+
+export const mbrMemorialContactApi = {
+  getMemberMemorialContacts: (mbrId: string) => taskApi.getMemberMemorialContacts(mbrId),
+  getMemberMemorialContact: (contactId: string) => taskApi.getMemberMemorialContact(contactId),
+  getAllMemberMemorialContacts: (params?: { mbrId?: string; contactStatusCd?: string; skip?: number; limit?: number }) => taskApi.getAllMemberMemorialContacts(params),
+  createMemberMemorialContact: (contact: Partial<MbrMemorialContact>) => taskApi.createMemberMemorialContact(contact),
+  updateMemberMemorialContact: (contactId: string, contact: Partial<MbrMemorialContact>) => taskApi.updateMemberMemorialContact(contactId, contact),
+  deleteMemberMemorialContact: (contactId: string) => taskApi.deleteMemberMemorialContact(contactId),
+};
+
+export const mbrAcctApi = {
+  getMemberAccount: (mbrId: string) => taskApi.getMemberAccount(mbrId),
+  getAllMemberAccounts: (params?: { skip?: number; limit?: number }) => taskApi.getAllMemberAccounts(params),
+  getMemberAccountById: (mbrAcctId: string) => taskApi.getMemberAccountById(mbrAcctId),
+  createMemberAccount: (acct: Partial<MbrAcct>) => taskApi.createMemberAccount(acct),
+  updateMemberAccount: (mbrAcctId: string, acct: Partial<MbrAcct>) => taskApi.updateMemberAccount(mbrAcctId, acct),
+  deleteMemberAccount: (mbrAcctId: string) => taskApi.deleteMemberAccount(mbrAcctId),
+  adjustMemberCredits: (req: CreditAdjustmentRequest) => taskApi.adjustMemberCredits(req),
+};
+
+export const mbrAcctActivityApi = {
+  getMemberAccountActivities: (params?: { mbrId?: string; mbrAcctId?: string; skip?: number; limit?: number }) => taskApi.getMemberAccountActivities(params),
+  getMemberAccountActivity: (activityId: string) => taskApi.getMemberAccountActivity(activityId),
+  createMemberAccountActivity: (activity: Partial<MbrAcctActivity>) => taskApi.createMemberAccountActivity(activity),
+};
+
+export const acctEventCreditApi = {
+  getAllAcctEventCredits: (params?: { activeOnly?: boolean; categoryCd?: string; skip?: number; limit?: number }) => taskApi.getAllAcctEventCredits(params),
+  getAcctEventCreditRates: () => taskApi.getAcctEventCreditRates(),
+  getAcctEventCredit: (creditId: string) => taskApi.getAcctEventCredit(creditId),
+  getAcctEventCreditByCode: (eventCd: string) => taskApi.getAcctEventCreditByCode(eventCd),
+  createAcctEventCredit: (credit: Partial<AcctEventCredit>) => taskApi.createAcctEventCredit(credit),
+  updateAcctEventCredit: (creditId: string, credit: Partial<AcctEventCredit>) => taskApi.updateAcctEventCredit(creditId, credit),
+  deleteAcctEventCredit: (creditId: string) => taskApi.deleteAcctEventCredit(creditId),
+  refreshAcctEventCreditRates: () => taskApi.refreshAcctEventCreditRates(),
+};
+
+export const paymentsApi = {
+  createStripeCheckoutSession: (params: {
+    mbr_id: string;
+    credits: number;
+    success_url?: string;
+    cancel_url?: string;
+    customer_email?: string;
+    ui_mode?: 'hosted' | 'embedded_page';
+  }) => taskApi.createStripeCheckoutSession(params),
+  verifyStripeSession: (sessionId: string) => taskApi.verifyStripeSession(sessionId)
 };

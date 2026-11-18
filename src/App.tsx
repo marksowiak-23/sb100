@@ -43,6 +43,7 @@ import { AdminUserAIUsageFeature } from '@/src/features/adminUserAIUsagePage';
 import { AdminTopicSparksFeature, TopicSparksAdmin, AdminTopicSparksPage } from '@/src/features/adminTopicSparksPage';
 import { MbrStoryBookGeneratorFeature } from '@/src/features/mbrStoryBookGenerator';
 import { MbrPhotoBookFeature } from '@/src/features/mbrPhotoBook';
+import { MbrAccountFeature } from '@/src/features/mbrAccountPage';
 
 
 // Define a TypeScript type to restrict activeTab to only these string values.
@@ -82,6 +83,8 @@ type TabType =
   | 'mbrPreferences'
   | 'mbrPrivacySettingsPage'
   | 'mbrPrivacy'
+  | 'mbrAccountPage'
+  | 'mbrAccount'
   | 'mbrConnectionPage'
   | 'mbrConnections'
   | 'adminDbPage'
@@ -190,6 +193,8 @@ const getInitialNavState = (): InitialNavState => {
           'mbrPreferences',
           'mbrPrivacySettingsPage',
           'mbrPrivacy',
+          'mbrAccountPage',
+          'mbrAccount',
           'mbrConnectionPage',
           'mbrConnections',
         ];
@@ -524,15 +529,28 @@ export default function App() {
     const handlePhotoBookEvent = () => {
       navigateTo('mbrPhotoBook');
     };
+    const handleAccountEvent = () => {
+      handleTabChange('mbrAccountPage');
+    };
+    const handleNavigateTab = (e: Event) => {
+      const customEvent = e as CustomEvent<{ tab: TabType }>;
+      if (customEvent.detail?.tab) {
+        handleTabChange(customEvent.detail.tab);
+      }
+    };
     window.addEventListener('open-member-story', handleStoryEvent);
     window.addEventListener('open-member-profile', handleProfileEvent);
     window.addEventListener('open-storybook-generator', handleStoryBookGeneratorEvent);
     window.addEventListener('open-photo-book', handlePhotoBookEvent);
+    window.addEventListener('open-member-account', handleAccountEvent);
+    window.addEventListener('navigate-tab', handleNavigateTab);
     return () => {
       window.removeEventListener('open-member-story', handleStoryEvent);
       window.removeEventListener('open-member-profile', handleProfileEvent);
       window.removeEventListener('open-storybook-generator', handleStoryBookGeneratorEvent);
       window.removeEventListener('open-photo-book', handlePhotoBookEvent);
+      window.removeEventListener('open-member-account', handleAccountEvent);
+      window.removeEventListener('navigate-tab', handleNavigateTab);
     };
   }, [activeTab]);
 
@@ -935,6 +953,22 @@ export default function App() {
               isSandbox={isSandbox}
               onClickBack={() => forceNavigateAway()}
               onDirtyChange={setIsProfileDirty}
+            />
+          </motion.div>
+        )}
+        {/* If the active tab is 'mbrAccountPage' or legacy 'mbrAccount', render the member account & credit ledger screen */}
+        {(activeTab === 'mbrAccountPage' || activeTab === 'mbrAccount') && (
+          <motion.div
+            key="mbrAccountPage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <MbrAccountFeature
+              isSandbox={isSandbox}
+              onClickBack={() => forceNavigateAway()}
             />
           </motion.div>
         )}

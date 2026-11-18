@@ -19,6 +19,22 @@ export interface RegisterPayload {
   mbrGenderCd?: string;
 }
 
+export function getClientBrowserMetadata(): Record<string, any> {
+  if (typeof window === 'undefined') return {};
+  try {
+    return {
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      screenResolution: `${window.screen?.width || 0}x${window.screen?.height || 0}`,
+      windowSize: `${window.innerWidth || 0}x${window.innerHeight || 0}`,
+      language: navigator.language,
+      platform: (navigator as any).userAgentData?.platform || navigator.platform || '',
+      colorDepth: window.screen?.colorDepth ? `${window.screen.colorDepth}-bit` : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export const userManager = {
   /**
    * Retrieves the current stored JWT access token.
@@ -124,7 +140,11 @@ export const userManager = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          client_metadata: getClientBrowserMetadata(),
+        }),
       });
 
       if (response.ok) {
@@ -300,7 +320,10 @@ export const userManager = {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({
+          email: email.trim(),
+          client_metadata: getClientBrowserMetadata(),
+        }),
       });
       
       if (response.ok) {

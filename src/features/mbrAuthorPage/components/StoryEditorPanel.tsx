@@ -15,6 +15,8 @@ import AiVoiceModal from '@/src/components/AiVoiceModal';
 import StoryPdfPrintModal from './StoryPdfPrintModal';
 import MbrStoryPrivacyModal from '@/src/components/mbrStoryPrivacyModal';
 import SparkQuestionModal from './SparkQuestionModal';
+import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
+import { useMemberCredits } from '@/src/services/creditBalanceService';
 
 interface StoryEditorPanelProps {
   topicTitle?: string;
@@ -956,6 +958,8 @@ export default function StoryEditorPanel({
   const [showAiVoiceModal, setShowAiVoiceModal] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [showStoryPrivacyModal, setShowStoryPrivacyModal] = useState(false);
+  const [showExhaustedCreditsModal, setShowExhaustedCreditsModal] = useState(false);
+  const [exhaustedActionAttempted, setExhaustedActionAttempted] = useState<string>('');
   const [storyPhotosCountMap, setStoryPhotosCountMap] = useState<Record<string, number>>({});
   const [resolvedMbrId, setResolvedMbrId] = useState<string>(() => {
     if (memberId && memberId !== 'm1' && isUuid(memberId)) return memberId;
@@ -982,6 +986,8 @@ export default function StoryEditorPanel({
     }
     return '9edb4311-a4bc-428a-8317-833f0f08fea1';
   });
+
+  const { isExhausted: hasExhaustedCredits } = useMemberCredits(resolvedMbrId);
 
   const resolvedCategoryCd = useMemo(() => {
     const t = (topicId || topicTitle || '').toLowerCase();
@@ -1063,6 +1069,12 @@ export default function StoryEditorPanel({
   }, [memberId, resolvedMbrId, activeStory?.mbrMbrId, readOnly]);
 
   const handlePrintToPdf = () => {
+    if (hasExhaustedCredits) {
+      setExhaustedActionAttempted('Printing story to PDF');
+      setShowExhaustedCreditsModal(true);
+      return;
+    }
+
     const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
     const effectiveTitle = title || activeStory?.mbrStoryTitle || '';
     const effectiveContent = content || activeStory?.mbrStoryText || '';
@@ -1918,6 +1930,12 @@ Output Rules:
   };
 
   const handleAddNewStoryClick = async () => {
+    if (hasExhaustedCredits) {
+      setExhaustedActionAttempted('Creating a new story');
+      setShowExhaustedCreditsModal(true);
+      return;
+    }
+
     const isSparkTopic =
       topicId?.toLowerCase() === 'sparks' ||
       topicId?.toLowerCase() === 'question spark' ||
@@ -1979,6 +1997,11 @@ Output Rules:
   };
 
   const handleConfirmCustomTopicSelection = (topicToUse?: TopicCustom) => {
+    if (hasExhaustedCredits) {
+      setExhaustedActionAttempted('Creating a new story');
+      setShowExhaustedCreditsModal(true);
+      return;
+    }
     const target = topicToUse || selectedCustomTopic;
     if (!target) return;
     const customTopicId = target.topicCustomId || target.mbrCustomTopicId || `ct_${Date.now()}`;
@@ -2012,6 +2035,12 @@ Output Rules:
   };
 
   const handleCreateCustomTopicInline = async () => {
+    if (hasExhaustedCredits) {
+      setExhaustedActionAttempted('Creating a new story');
+      setShowExhaustedCreditsModal(true);
+      return;
+    }
+
     const trimmedName = newCustomTopicName.trim();
     if (!trimmedName) return;
     if (trimmedName.length > 22) {
@@ -2981,7 +3010,12 @@ Output Rules:
           {!readOnly && !isEditing && (
             <button
               onClick={handleAddNewStoryClick}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all duration-150 cursor-pointer shadow-sm active:scale-95 border border-blue-600 font-sans"
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl transition-all duration-150 cursor-pointer shadow-sm active:scale-95 border font-sans ${
+                hasExhaustedCredits
+                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 border-slate-300 dark:border-slate-600 opacity-70'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+              }`}
+              title={hasExhaustedCredits ? 'Credits exhausted. Purchase additional credits via My Account.' : 'Create a new story'}
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New Story</span>
@@ -3176,7 +3210,12 @@ Output Rules:
           {!readOnly && (
             <button
               onClick={handleAddNewStoryClick}
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-blue-500/10 active:scale-95 border border-blue-600 font-sans"
+              className={`inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer shadow-md shadow-blue-500/10 active:scale-95 border font-sans ${
+                hasExhaustedCredits
+                  ? 'bg-slate-200 dark:bg-slate-700 text-slate-500 border-slate-300 dark:border-slate-600 opacity-70'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
+              }`}
+              title={hasExhaustedCredits ? 'Credits exhausted. Purchase additional credits via My Account.' : 'Add Story'}
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Story</span>
@@ -4433,6 +4472,13 @@ Output Rules:
         status={status}
         onSuccess={(msg) => setSuccessMsg(msg)}
         onError={(err) => setError(err)}
+      />
+
+      {/* Credits Exhausted Dialog Message Box */}
+      <ExhaustedCreditsModal
+        isOpen={showExhaustedCreditsModal}
+        onClose={() => setShowExhaustedCreditsModal(false)}
+        actionAttempted={exhaustedActionAttempted}
       />
 
       {/* Story Group Privacy Settings Modal Dialog */}

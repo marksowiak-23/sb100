@@ -40,6 +40,8 @@ type TabType =
   | 'mbrPreferences'
   | 'mbrPrivacySettingsPage'
   | 'mbrPrivacy'
+  | 'mbrAccountPage'
+  | 'mbrAccount'
   | 'mbrConnectionPage'
   | 'mbrConnections'
   | 'mbrLogonPage'
@@ -624,7 +626,7 @@ export default function MainLayout({
                   setIsNotificationsOpen(false);
                 }}
                 className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[58px] px-2 relative transition-all cursor-pointer group ${
-                  isDropdownOpen || ['mbrProfilePage', 'mbrProfile', 'mbrPreferencesPage', 'mbrPreferences', 'mbrPrivacySettingsPage', 'mbrPrivacy', 'mbrConnectionPage', 'mbrConnections'].includes(activeTab)
+                  isDropdownOpen || ['mbrProfilePage', 'mbrProfile', 'mbrAccountPage', 'mbrAccount', 'mbrPreferencesPage', 'mbrPreferences', 'mbrPrivacySettingsPage', 'mbrPrivacy', 'mbrConnectionPage', 'mbrConnections'].includes(activeTab)
                     ? 'text-white border-b-2 border-white font-bold'
                     : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
                 }`}
@@ -689,6 +691,19 @@ export default function MainLayout({
                       }`}
                     >
                       My Profile
+                    </div>
+                    <div
+                      onClick={() => {
+                        setActiveTab('mbrAccountPage');
+                        setDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                        activeTab === 'mbrAccountPage' || activeTab === 'mbrAccount'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      My Account
                     </div>
                     <div
                       onClick={() => {
@@ -956,6 +971,21 @@ export default function MainLayout({
                 }`}
               >
                 <span>My Profile</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('mbrAccountPage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer flex items-center justify-between ${
+                  activeTab === 'mbrAccountPage' || activeTab === 'mbrAccount'
+                    ? 'bg-white/10 text-white font-bold'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span>My Account</span>
               </button>
 
               <button
@@ -1392,6 +1422,19 @@ export default function MainLayout({
                   }`}
                 >
                   My Profile
+                </div>
+                <div
+                  onClick={() => {
+                    setActiveTab('mbrAccountPage');
+                    setIsMobileAccountOpen(false);
+                  }}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-colors ${
+                    activeTab === 'mbrAccountPage' || activeTab === 'mbrAccount'
+                      ? 'bg-white/10 text-white font-bold'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  My Account
                 </div>
                 <div
                   onClick={() => {

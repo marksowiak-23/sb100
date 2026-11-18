@@ -8,3 +8,4 @@ export { default as AdminAccounts } from './components/AccountLookup';
 export { default as AdminAccountsPage } from './components/AccountLookup';
 export { default as AdminUserAdminPage } from './components/AccountLookup';
 export { default as UserAdministration } from './components/AccountLookup';
+export { generateAccountLookupPdf } from './utils/generateAccountLookupPdf';

@@ -5,6 +5,7 @@
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { eventApi } from '@/src/services/api';
 
 export interface TableField {
   name: string;
@@ -32,6 +33,7 @@ interface GenerateAdminDbPdfOptions {
 
 // Table friendly title and description mapping
 const TABLE_TITLE_MAP: Record<string, string> = {
+  acctEventCredit: 'Event Credit Cost & Reward Rates (acctEventCredit)',
   cd: 'System Reference Codes & Enums (cd)',
   chInst: 'AI System Instructions Configuration (chInst)',
   chIntent: 'AI Conversation Intents (chIntent)',
@@ -41,10 +43,13 @@ const TABLE_TITLE_MAP: Record<string, string> = {
   groupCustom: 'Member Custom Relationship Groups (groupCustom)',
   groupGlobal: 'System Global Circles & Groups (groupGlobal)',
   mbr: 'Registered Members Directory (mbr)',
+  mbrAcct: 'Member Accounts & Credit Balances (mbrAcct)',
+  mbrAcctActivity: 'Member Account Activity & Ledger Logs (mbrAcctActivity)',
   mbrTopicAchievements: 'Member Achievements & Honors (mbrTopicAchievements)',
   mbrTopicActivity: 'Member Hobbies & Activities (mbrTopicActivity)',
   mbrConnection: 'Member Direct Connections (mbrConnection)',
   mbrContact: 'Member Contact Messages & Inquiries (mbrContact)',
+  mbrMemorialContact: 'Member Memorial Contacts (mbrMemorialContact)',
   mbrConnectionGrp: 'Member Group Connection Mappings (mbrConnectionGrp)',
   mbrTopicCustom: 'Member Custom Story Topics (mbrTopicCustom)',
   mbrTopicEducation: 'Member Education & Alma Maters (mbrTopicEducation)',
@@ -773,4 +778,20 @@ export function generateAdminDbPdf({
   // Save the generated PDF file
   const dateStr = new Date().toISOString().slice(0, 10);
   doc.save(`storybook-db-${table.id}-${dateStr}.pdf`);
+
+  // Log admin print-to-pdf event
+  eventApi.logEvent({
+    eventSiteCd: 'SB_ADMIN',
+    eventActorTypeCd: 'ADM',
+    eventCd: 'ADMIN_DB_PDF',
+    eventDetail: `Admin generated PDF report for table '${table.name}' (${data.length} records, ${isSandbox ? 'Sandbox' : 'Live'})`,
+    eventTagValue: {
+      tableId: table.id,
+      tableName: table.name,
+      endpoint: table.endpoint,
+      rowCount: data.length,
+      searchQuery: searchQuery || undefined,
+      isSandbox,
+    }
+  }).catch((err) => console.warn('Could not log ADMIN_DB_PDF event:', err));
 }

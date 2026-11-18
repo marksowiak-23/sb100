@@ -624,7 +624,7 @@ export default function MbrAlbumPrivacyModal({
         {isOpen && (
           <div
             key="album-privacy-backdrop"
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
+            className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 handleRequestClose();

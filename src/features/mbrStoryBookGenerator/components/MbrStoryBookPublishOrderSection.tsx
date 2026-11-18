@@ -30,6 +30,8 @@ import {
   LuluCostQuoteResponse,
 } from '@/src/services/api';
 import { analytics } from '@/src/services/analytics';
+import { useMemberCredits } from '@/src/services/creditBalanceService';
+import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 import {
   generateStoryBookPdf,
   generateStoryBookCoverSpread,
@@ -86,6 +88,8 @@ export function MbrStoryBookPublishOrderSection({
   const [orderSuccessMessage, setOrderSuccessMessage] = useState<string | null>(null);
   const [downloadingInterior, setDownloadingInterior] = useState<boolean>(false);
   const [downloadingCover, setDownloadingCover] = useState<boolean>(false);
+  const { isExhausted: hasExhaustedCredits } = useMemberCredits(mbrId);
+  const [showExhaustedCreditsModal, setShowExhaustedCreditsModal] = useState<boolean>(false);
 
   // Past Orders History
   const [orders, setOrders] = useState<MbrStoryBookOrder[]>([]);
@@ -378,6 +382,10 @@ export function MbrStoryBookPublishOrderSection({
 
   // Download Print Proofs
   const handleDownloadInterior = async () => {
+    if (hasExhaustedCredits) {
+      setShowExhaustedCreditsModal(true);
+      return;
+    }
     setDownloadingInterior(true);
     try {
       await generateStoryBookPdf({
@@ -418,6 +426,10 @@ export function MbrStoryBookPublishOrderSection({
   };
 
   const handleDownloadCoverSpread = async () => {
+    if (hasExhaustedCredits) {
+      setShowExhaustedCreditsModal(true);
+      return;
+    }
     setDownloadingCover(true);
     try {
       await generateStoryBookCoverSpread({
@@ -991,6 +1003,12 @@ export function MbrStoryBookPublishOrderSection({
           </div>
         )}
       </div>
+
+      <ExhaustedCreditsModal
+        isOpen={showExhaustedCreditsModal}
+        onClose={() => setShowExhaustedCreditsModal(false)}
+        actionAttempted="Downloading Book Proof PDF"
+      />
     </div>
   );
 }

@@ -5,11 +5,12 @@
 
 import React, { useState, useEffect, FormEvent } from 'react';
 import { motion } from 'motion/react';
-import { User, Search, Loader2, AlertCircle, X, Info, Mail, ShieldCheck } from 'lucide-react';
+import { User, Search, Loader2, AlertCircle, X, Info, Mail, ShieldCheck, Printer } from 'lucide-react';
 import { taskApi, User as ApiUser } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { SANDBOX_USERS } from '../constants/mockUsers';
 import { matchUser } from '../utils/search';
+import { generateAccountLookupPdf } from '../utils/generateAccountLookupPdf';
 import UserCard from './UserCard';
 
 interface AccountLookupProps {
@@ -31,6 +32,7 @@ export default function AccountLookup({ isSandbox, setActiveTab, onSwitchUser }:
   const [searchUsersResults, setSearchUsersResults] = useState<ApiUser[]>([]);
   // Boolean flag displaying a loading spinner during network roundtrips.
   const [searchLoading, setSearchLoading] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
   // Holds errors if backend rejects the queries.
   const [searchError, setSearchError] = useState<string | null>(null);
   // Stores the currently logged-in user profile from session storage.
@@ -81,6 +83,23 @@ export default function AccountLookup({ isSandbox, setActiveTab, onSwitchUser }:
     handleSearchUsers();
   }, [isSandbox]);
 
+  const handlePrintPdf = () => {
+    if (searchUsersResults.length === 0) return;
+    setGeneratingPdf(true);
+    try {
+      generateAccountLookupPdf({
+        users: searchUsersResults,
+        searchQuery: searchEmail.trim(),
+        isSandbox
+      });
+    } catch (err: any) {
+      console.error('Failed to generate user accounts PDF:', err);
+      setSearchError(`Failed to generate PDF: ${err.message}`);
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-5xl space-y-8 relative">
       {/* --- STATUS CONNECTION HEADER --- */}
@@ -97,8 +116,8 @@ export default function AccountLookup({ isSandbox, setActiveTab, onSwitchUser }:
           </div>
         </div>
         
-        {/* Connection mode details */}
-        <div className="flex items-center gap-3">
+        {/* Connection mode details & Print PDF */}
+        <div className="flex items-center gap-2.5">
           <span
             className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full border ${
               isSandbox
@@ -109,6 +128,21 @@ export default function AccountLookup({ isSandbox, setActiveTab, onSwitchUser }:
             <span className={`w-2 h-2 rounded-full ${isSandbox ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'}`}></span>
             {isSandbox ? 'Sandbox Mock Data' : 'Live DB Connected'}
           </span>
+
+          <button
+            type="button"
+            onClick={handlePrintPdf}
+            disabled={searchLoading || searchUsersResults.length === 0 || generatingPdf}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#EFECE7] bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold shadow-xs"
+            title={`Print and export ${searchUsersResults.length} users to PDF`}
+          >
+            {generatingPdf ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-600" />
+            ) : (
+              <Printer className="w-3.5 h-3.5 text-slate-500" />
+            )}
+            <span className="hidden sm:inline">Print to PDF</span>
+          </button>
         </div>
       </div>
 
@@ -208,6 +242,26 @@ export default function AccountLookup({ isSandbox, setActiveTab, onSwitchUser }:
           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">
             Results ({searchUsersResults.length})
           </h3>
+
+          <button
+            type="button"
+            onClick={handlePrintPdf}
+            disabled={searchLoading || searchUsersResults.length === 0 || generatingPdf}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl shadow-sm transition-all cursor-pointer active:scale-95"
+            title={`Generate and download PDF table report for ${searchUsersResults.length} user records`}
+          >
+            {generatingPdf ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Printer className="w-3.5 h-3.5 text-slate-300" />
+            )}
+            <span>Print to PDF</span>
+            {searchUsersResults.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-slate-700 text-slate-200 font-mono">
+                {searchUsersResults.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Dynamic loading vs. empty vs. list renders using nested ternary statements */}

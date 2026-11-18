@@ -34,6 +34,9 @@ import {
   StoryPdfMargin,
   StoryPdfColorTheme,
 } from '../utils/generateStoryPdf';
+import { eventApi } from '@/src/services/api';
+import { useMemberCredits } from '@/src/services/creditBalanceService';
+import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 
 interface StoryPdfPrintModalProps {
   isOpen: boolean;
@@ -87,6 +90,8 @@ export default function StoryPdfPrintModal({
 
   const [activeTab, setActiveTab] = useState<'page' | 'style' | 'layout' | 'meta'>('page');
   const [isGenerating, setIsGenerating] = useState(false);
+  const { isExhausted: hasExhaustedCredits } = useMemberCredits();
+  const [showExhaustedCreditsModal, setShowExhaustedCreditsModal] = useState(false);
 
   // Keep synced when storyTitle or author changes
   React.useEffect(() => {
@@ -159,6 +164,11 @@ export default function StoryPdfPrintModal({
   };
 
   const handleGeneratePdf = () => {
+    if (hasExhaustedCredits) {
+      setShowExhaustedCreditsModal(true);
+      return;
+    }
+
     try {
       setIsGenerating(true);
       generateStoryPdf({
@@ -186,6 +196,25 @@ export default function StoryPdfPrintModal({
       });
 
       onSuccess?.(`Story PDF generated successfully (${pageSize.toUpperCase()}, ${orientation})!`);
+
+      // Log print-to-pdf event
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorTypeCd: 'MBR',
+        eventCd: 'STORY_PRINT_PDF',
+        eventDetail: `Member generated PDF printout for story '${customTitle || storyTitle || 'Untitled Story'}' (${pageSize.toUpperCase()}, ${orientation})`,
+        eventTagValue: {
+          storyTitle: customTitle || storyTitle,
+          pageSize,
+          orientation,
+          fontFamily,
+          fontSize,
+          wordCount: countOfWords,
+          topicTitle: customTopic,
+          colorTheme,
+        }
+      }).catch((logErr) => console.warn('Could not log STORY_PRINT_PDF event:', logErr));
+
       onClose();
     } catch (err: any) {
       console.error('Error generating customized PDF:', err);
@@ -845,6 +874,12 @@ export default function StoryPdfPrintModal({
           </div>
         </motion.div>
       </div>
+
+      <ExhaustedCreditsModal
+        isOpen={showExhaustedCreditsModal}
+        onClose={() => setShowExhaustedCreditsModal(false)}
+        actionAttempted="Printing story to PDF"
+      />
     </AnimatePresence>
   );
 }
