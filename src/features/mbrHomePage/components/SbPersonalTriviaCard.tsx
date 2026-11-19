@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Sparkles, RefreshCw, Bookmark, BookmarkCheck, Feather, History, MapPin, GraduationCap, Briefcase, Award, Compass, Clock, X, ChevronRight } from 'lucide-react';
-import { mbrPersonalTriviaApi, MbrPersonalTrivia } from '@/src/services/api';
+import { mbrPersonalTriviaApi, MbrPersonalTrivia, eventApi } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { useMemberCredits } from '@/src/services/creditBalanceService';
@@ -152,6 +152,18 @@ export default function SbPersonalTriviaCard({ onClickAuthorPage }: SbPersonalTr
     try {
       setGenerating(true);
       setError(null);
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: activeMbrId,
+        eventActorTypeCd: 'MBR',
+        eventCd: 'PERSONAL_TRIVIA_GENERATE',
+        eventDetail: 'Member clicked Surprise Me With Another on Personal Trivia card',
+        eventTagValue: {
+          component: 'SbPersonalTriviaCard',
+          previousTriviaId: trivia?.mbrTriviaId || undefined,
+        }
+      }).catch((err) => console.warn('Could not log PERSONAL_TRIVIA_GENERATE event:', err));
+
       const newTrivia = await mbrPersonalTriviaApi.generateNewTrivia(activeMbrId);
       setTrivia(newTrivia);
       setCachedDailyTrivia(activeMbrId, newTrivia);

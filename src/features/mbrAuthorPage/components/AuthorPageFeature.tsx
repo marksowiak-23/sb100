@@ -9,6 +9,9 @@ import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import AuthorMobileMenuBar from './AuthorMobileMenuBar';
 import AuthorHowToCard from './AuthorHowToCard';
+import AuthorPageHeaderPanel from './AuthorPageHeaderPanel';
+import AuthorTopicHeaderPanel from './AuthorTopicHeaderPanel';
+import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 
 interface AuthorPageFeatureProps {
@@ -43,6 +46,16 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
     }
   });
   const [storyContents, setStoryContents] = useState<Record<string, string[]>>(STORY_CONTENTS);
+  const [isHowToHidden, setIsHowToHidden] = useState<boolean>(() => {
+    try {
+      const mbr = userManager.getStoredMember();
+      if (mbr?.mbrId) {
+        const cached = sessionStorage.getItem(`sb_hide_howto_author_${mbr.mbrId}`);
+        if (cached !== null) return JSON.parse(cached) === true;
+      }
+    } catch {}
+    return false;
+  });
 
   const handleSetActiveSection = (sec: string) => {
     setActiveSection(sec);
@@ -86,6 +99,20 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
         setActiveSection={handleSetActiveSection}
       />
 
+      {/* Desktop Top Row: Author Page Header & (How-To Card OR Topic Header Panel when How-To is hidden) */}
+      <div className={`hidden lg:grid lg:grid-cols-12 gap-8 max-w-7xl w-full mx-auto lg:mb-6 ${isHowToHidden ? 'items-start' : 'items-center'}`}>
+        <div className="lg:col-span-3">
+          <AuthorPageHeaderPanel />
+        </div>
+        <div className="lg:col-span-6">
+          <AuthorHowToCard onVisibilityChange={setIsHowToHidden} />
+          {isHowToHidden && (
+            <AuthorTopicHeaderPanel activeSection={activeSection} className="!mb-0" />
+          )}
+        </div>
+        <div className="lg:col-span-3" />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 max-w-7xl w-full mx-auto items-start">
         
         {/* Left Column Sidebar (Desktop only) */}
@@ -107,6 +134,7 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
             onClickBack={onClickBack}
             onSaveActiveContent={handleSaveActiveContent}
             onClickAuthorProfile={onClickAuthorProfile}
+            hideDesktopHeader={isHowToHidden}
           />
         </div>
 

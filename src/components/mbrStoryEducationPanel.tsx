@@ -24,7 +24,7 @@ import {
   ArrowUpDown,
   MoreVertical
 } from 'lucide-react';
-import { taskApi, MbrMedia, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
+import { taskApi, MbrMedia, DEFAULT_TOPIC_LOOKUP, isAudioMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -246,6 +246,7 @@ export default function MbrStoryEducationPanel({
             const parsedMedia: MbrMedia[] = JSON.parse(savedMedia);
             if (Array.isArray(parsedMedia)) {
               parsedMedia.forEach((m) => {
+                if (isAudioMedia(m)) return;
                 const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
                 if (cat === 'education' || cat === 'educations') {
                   if (m.mbrMediaSubordinateId) {
@@ -280,12 +281,13 @@ export default function MbrStoryEducationPanel({
       } else {
         try {
           const [mediaList, storyList] = await Promise.all([
-            taskApi.getMemberMedia(targetMbrId).catch(() => []),
+            taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
             taskApi.getStories(targetMbrId).catch(() => [])
           ]);
 
           if (Array.isArray(mediaList)) {
             mediaList.forEach((m) => {
+              if (isAudioMedia(m)) return;
               const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
               if (cat === 'education' || cat === 'educations') {
                 if (m.mbrMediaSubordinateId) {

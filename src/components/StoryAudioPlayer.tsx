@@ -14,7 +14,7 @@ import {
   Gauge
 } from 'lucide-react';
 import { useTextToSpeech } from '@/src/hooks/useTextToSpeech';
-import { taskApi, resolveMediaUrl, MbrMedia } from '@/src/services/api';
+import { taskApi, resolveMediaUrl, MbrMedia, eventApi } from '@/src/services/api';
 
 export interface StoryAudioPlayerProps {
   text: string;
@@ -209,6 +209,29 @@ export default function StoryAudioPlayer({
     }
   };
 
+  const logAudioPlayEvent = (id?: string, narrationTitle?: string, source: 'saved_mp3' | 'browser_tts' = 'browser_tts') => {
+    let actorId: string | undefined;
+    try {
+      const mbrStr = sessionStorage.getItem('sb_current_mbr') || sessionStorage.getItem('mbr') || sessionStorage.getItem('sandbox_mbr');
+      if (mbrStr) {
+        const parsed = JSON.parse(mbrStr);
+        actorId = parsed?.mbrId || parsed?.id;
+      }
+    } catch {}
+    eventApi.logEvent({
+      eventSiteCd: 'SB',
+      eventActorId: actorId,
+      eventActorTypeCd: 'MBR',
+      eventCd: 'STORY_AUDIO_PLAY',
+      eventDetail: `Member played story audio narration for '${narrationTitle || id || 'story'}' (${source === 'saved_mp3' ? 'AI Audio' : 'Browser TTS'})`,
+      eventTagValue: {
+        mbrStoryId: id || undefined,
+        mbrStoryTitle: narrationTitle || undefined,
+        audioSource: source
+      }
+    }).catch(() => {});
+  };
+
   const togglePlay = (narrationText: string, id?: string, narrationTitle?: string) => {
     const savedUrl = savedAudioMedia?.mbrMediaPath ? resolveMediaUrl(savedAudioMedia.mbrMediaPath) : '';
     if (savedUrl) {
@@ -225,6 +248,7 @@ export default function StoryAudioPlayer({
         return;
       }
 
+      logAudioPlayEvent(id, narrationTitle, 'saved_mp3');
       const audio = new Audio(savedUrl);
       audioRef.current = audio;
       audio.playbackRate = playbackRate;
@@ -255,6 +279,9 @@ export default function StoryAudioPlayer({
       return;
     }
 
+    if (!(ttsPlaying && currentId === storyId)) {
+      logAudioPlayEvent(id, narrationTitle, 'browser_tts');
+    }
     ttsTogglePlay(narrationText, id, narrationTitle);
   };
 

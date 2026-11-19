@@ -25,7 +25,7 @@ import {
   MoreVertical,
   Layers
 } from 'lucide-react';
-import { taskApi, MbrMedia, TopicCustom, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
+import { taskApi, MbrMedia, TopicCustom, DEFAULT_TOPIC_LOOKUP, isAudioMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -179,6 +179,7 @@ export default function MbrStoryCustomPanel({
             const parsedMedia: MbrMedia[] = JSON.parse(savedMedia);
             if (Array.isArray(parsedMedia)) {
               parsedMedia.forEach((m) => {
+                if (isAudioMedia(m)) return;
                 const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
                 if (cat === 'custom' || cat === 'other') {
                   if (m.mbrMediaSubordinateId) {
@@ -214,12 +215,13 @@ export default function MbrStoryCustomPanel({
       } else {
         try {
           const [mediaList, storyList] = await Promise.all([
-            taskApi.getMemberMedia(targetMbrId).catch(() => []),
+            taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
             taskApi.getStories(targetMbrId).catch(() => [])
           ]);
 
           if (Array.isArray(mediaList)) {
             mediaList.forEach((m) => {
+              if (isAudioMedia(m)) return;
               const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
               if (cat === 'custom' || cat === 'other') {
                 if (m.mbrMediaSubordinateId) {

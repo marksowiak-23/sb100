@@ -23,7 +23,7 @@ export const MEMBER_STORIES: MemberStory[] = [
     joinedDate: 'Oct 2020',
     tags: ['Family', 'Childhood', 'Pacific NW'],
     excerpt: 'The rain was different in those days — softer, somehow. We would run down to the docks without coats, our mother calling after us...',
-    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=80&h=80&fit=crop&auto=format'
+    avatarUrl: '/assets/avatars/default_avatar_female_1.jpg'
   },
   {
     id: 'm2',
@@ -33,7 +33,7 @@ export const MEMBER_STORIES: MemberStory[] = [
     joinedDate: 'Jan 2022',
     tags: ['Music', 'Heritage', '1970s'],
     excerpt: "Every Sunday, the brass would start up on Claiborne Avenue. You didn't just hear it; you felt it right in the center of your chest...",
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&h=80&fit=crop&auto=format'
+    avatarUrl: '/assets/avatars/default_avatar_male_1.jpg'
   },
   {
     id: 'm3',
@@ -43,7 +43,7 @@ export const MEMBER_STORIES: MemberStory[] = [
     joinedDate: 'Sep 2021',
     tags: ['Travel', 'Career', 'Immigration'],
     excerpt: "Arriving at O'Hare with two suitcases and a heart full of equations was a beginning I couldn't have written better myself...",
-    avatarUrl: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=80&h=80&fit=crop&auto=format'
+    avatarUrl: '/assets/avatars/default_avatar_female_2.jpg'
   },
   {
     id: 'm4',
@@ -53,6 +53,6 @@ export const MEMBER_STORIES: MemberStory[] = [
     joinedDate: 'Jun 2023',
     tags: ['Sea', 'Family', 'Sailing'],
     excerpt: 'The wind caught the mainsail, and for a moment, we were weightless. My father held the tiller with a calm that taught me everything...',
-    avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&h=80&fit=crop&auto=format'
+    avatarUrl: '/assets/avatars/default_avatar_male_2.jpg'
   }
 ];

@@ -10,7 +10,7 @@ import {
   AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, 
   Images, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical 
 } from 'lucide-react';
-import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
+import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL, DEFAULT_TOPIC_LOOKUP, isAudioMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -156,6 +156,7 @@ export default function MbrStoryAchievementPanel({ isSandbox = false, memberId, 
             const parsedMedia: MbrMedia[] = JSON.parse(savedMedia);
             if (Array.isArray(parsedMedia)) {
               parsedMedia.forEach((m) => {
+                if (isAudioMedia(m)) return;
                 const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
                 if (cat === 'achievement' || cat === 'achievements') {
                   if (m.mbrMediaSubordinateId) {
@@ -190,12 +191,13 @@ export default function MbrStoryAchievementPanel({ isSandbox = false, memberId, 
       } else {
         try {
           const [mediaList, storyList] = await Promise.all([
-            taskApi.getMemberMedia(targetMbrId).catch(() => []),
+            taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
             taskApi.getStories(targetMbrId).catch(() => [])
           ]);
 
           if (Array.isArray(mediaList)) {
             mediaList.forEach((m) => {
+              if (isAudioMedia(m)) return;
               const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
               if (cat === 'achievement' || cat === 'achievements') {
                 if (m.mbrMediaSubordinateId) {

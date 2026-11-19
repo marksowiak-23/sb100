@@ -20,7 +20,8 @@ import {
   Radio,
   Check,
   Headphones,
-  VolumeX
+  VolumeX,
+  Trash2
 } from 'lucide-react';
 import {
   textToSpeechApi,
@@ -266,8 +267,10 @@ export default function AiVoiceModal({
 
   // Generation & Player State
   const [generating, setGenerating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteSuccessMsg, setDeleteSuccessMsg] = useState<string | null>(null);
   const [existingMedia, setExistingMedia] = useState<MbrMedia | null>(null);
   const [generatedMedia, setGeneratedMedia] = useState<MbrMedia | null>(null);
   const [localAudioUrl, setLocalAudioUrl] = useState<string | null>(null);
@@ -923,9 +926,83 @@ export default function AiVoiceModal({
     }
   };
 
+  const handleDeleteAudio = async () => {
+    const targetMedia = generatedMedia || existingMedia;
+    if (!targetMedia || deleting || generating) return;
+
+    stopAllAudio();
+    setDeleting(true);
+    setError(null);
+    setDeleteSuccessMsg(null);
+
+    try {
+      if (!isSandbox && targetMedia.mbrMediaId) {
+        // Attempt GCS file cleanup if path points to bucket object
+        const rawPath = targetMedia.mbrMediaPath || '';
+        const gcsPrefix = 'https://storage.googleapis.com/sb-media-01/';
+        const readPrefix = '/media/read/';
+        let objectName = '';
+        if (rawPath.startsWith(gcsPrefix)) {
+          objectName = rawPath.substring(gcsPrefix.length);
+        } else if (rawPath.includes(readPrefix)) {
+          objectName = rawPath.substring(rawPath.indexOf(readPrefix) + readPrefix.length);
+        }
+        if (objectName) {
+          await mediaApi.deleteMedia(objectName).catch(() => {});
+        }
+        await taskApi.deleteMemberMedia(targetMedia.mbrMediaId);
+      } else {
+        const existingStr = sessionStorage.getItem('sandbox_media');
+        if (existingStr) {
+          try {
+            const existingList: MbrMedia[] = JSON.parse(existingStr);
+            const filteredList = existingList.filter(
+              (m) => m.mbrMediaId !== targetMedia.mbrMediaId && !isMatchingStoryAudio(m)
+            );
+            sessionStorage.setItem('sandbox_media', JSON.stringify(filteredList));
+          } catch {}
+        }
+        eventApi.logEvent({
+          eventSiteCd: 'SB',
+          eventActorId: mbrId || undefined,
+          eventActorTypeCd: 'MBR',
+          eventCd: 'AUDIO_DELETE',
+          eventDetail: `Member deleted AI voice narration audio for story '${storyTitle || storyId}'`,
+          eventTagValue: {
+            storyId,
+            storyTitle: storyTitle || undefined,
+            mbrMediaId: targetMedia.mbrMediaId,
+            categoryCd,
+            isSandbox,
+          }
+        }).catch(() => {});
+      }
+
+      if (localAudioUrl && localAudioUrl.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(localAudioUrl);
+        } catch {}
+      }
+      setLocalAudioUrl(null);
+      setGeneratedMedia(null);
+      setExistingMedia(null);
+      setGeneratedVoiceId(null);
+      setDeleteSuccessMsg('AI Voice narration deleted for this story.');
+
+      window.dispatchEvent(new CustomEvent('media-updated', { detail: { storyId, mbrId } }));
+      window.dispatchEvent(new CustomEvent('update-story-editor-content', { detail: { storyId } }));
+    } catch (err: any) {
+      console.error('Failed to delete AI Voice audio:', err);
+      setError(`Failed to delete audio: ${err?.message || 'Unknown error'}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleClose = () => {
     stopAllAudio();
     setError(null);
+    setDeleteSuccessMsg(null);
     onClose();
   };
 
@@ -1308,21 +1385,64 @@ export default function AiVoiceModal({
           </div>
         </div>
 
+        {/* Delete confirmation banner */}
+        {deleteSuccessMsg && (
+          <div className="mx-5 sm:mx-6 mb-3 px-3.5 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{deleteSuccessMsg}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDeleteSuccessMsg(null)}
+              className="text-emerald-600 hover:text-emerald-800 cursor-pointer"
+              aria-label="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Modal Footer Actions */}
-        <div className="px-5 sm:px-6 py-4 bg-slate-50/70 border-t border-[#EFECE7] flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={generating}
-            className="px-4 py-2 bg-white border border-[#EFECE7] hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
-          >
-            {generatedMedia ? 'Done' : 'Cancel'}
-          </button>
+        <div className="px-5 sm:px-6 py-4 bg-slate-50/70 border-t border-[#EFECE7] flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleClose}
+              disabled={generating || deleting}
+              className="px-4 py-2 bg-white border border-[#EFECE7] hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {generatedMedia ? 'Done' : 'Cancel'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDeleteAudio}
+              disabled={!(existingMedia || generatedMedia) || generating || deleting}
+              title={(existingMedia || generatedMedia) ? 'Delete saved AI Voice narration for this story' : 'No existing AI Voice narration to delete'}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-rose-50"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Audio</span>
+                </>
+              )}
+            </button>
+          </div>
 
           <button
             type="button"
-            onClick={handleGenerateAudio}
-            disabled={generating || !storyContent.trim()}
+            onClick={() => {
+              setDeleteSuccessMsg(null);
+              handleGenerateAudio();
+            }}
+            disabled={generating || deleting || !storyContent.trim()}
             className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-serif font-bold shadow-md shadow-purple-500/20 transition-all cursor-pointer disabled:opacity-50 active:scale-95 border border-purple-600"
           >
             {generating ? (

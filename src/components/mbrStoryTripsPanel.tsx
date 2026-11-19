@@ -15,7 +15,8 @@ import {
   taskApi, 
   MbrTopicTrip, 
   DEFAULT_TOPIC_LOOKUP, 
-  Cd 
+  Cd,
+  isAudioMedia
 } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
@@ -193,12 +194,13 @@ export default function MbrStoryTripsPanel({
         setTripPhotosMap({});
         return;
       }
-      const mediaList: any[] = await taskApi.getMemberMedia(targetMbrId).catch(() => []);
+      const mediaList: any[] = await taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []);
       if (Array.isArray(mediaList)) {
         const photoMap: Record<string, number> = {};
         let headerPhotos = 0;
 
         mediaList.forEach((m) => {
+          if (isAudioMedia(m)) return;
           const category = (m.mbrMediaCategoryCd || '').toLowerCase();
           if (category.includes('trip') || category.includes('vacation') || category.includes('travel')) {
             headerPhotos++;

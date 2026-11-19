@@ -44,7 +44,7 @@ const MOCK_MEDIA_ITEMS: MediaObject[] = [
     size: 245120,
     content_type: 'image/jpeg',
     updated: '2026-07-22T18:30:00Z',
-    public_url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=600&fit=crop&auto=format',
+    public_url: '/assets/avatars/default_avatar_female_1.jpg',
     metadata: { original_filename: 'portrait_1.jpg', uploader: 'admin' }
   },
   {
@@ -52,7 +52,7 @@ const MOCK_MEDIA_ITEMS: MediaObject[] = [
     size: 1048576,
     content_type: 'image/png',
     updated: '2026-07-21T14:15:00Z',
-    public_url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=600&h=400&fit=crop&auto=format',
+    public_url: '/storybook_book_output.jpg',
     metadata: { original_filename: 'memoir_family_roots.png', uploader: 'system' }
   },
   {
@@ -60,7 +60,7 @@ const MOCK_MEDIA_ITEMS: MediaObject[] = [
     size: 512000,
     content_type: 'image/jpeg',
     updated: '2026-07-20T09:45:00Z',
-    public_url: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?w=600&h=400&fit=crop&auto=format',
+    public_url: '/carousel_shared_history.jpg',
     metadata: { original_filename: 'vintage_car_1965.jpg', uploader: 'member_m1' }
   },
   {
@@ -68,7 +68,7 @@ const MOCK_MEDIA_ITEMS: MediaObject[] = [
     size: 389120,
     content_type: 'image/webp',
     updated: '2026-07-19T11:20:00Z',
-    public_url: 'https://images.unsplash.com/photo-1455390582262-044cdead277a?w=600&h=400&fit=crop&auto=format',
+    public_url: '/carousel_life_book.jpg',
     metadata: { original_filename: 'recipes_page.webp', uploader: 'member_m2' }
   }
 ];
@@ -243,7 +243,7 @@ export default function AdminMediaManagement({ isSandbox = false }: AdminMediaMa
           size: selectedFile.size,
           content_type: selectedFile.type,
           updated: new Date().toISOString(),
-          public_url: filePreviewUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=600&fit=crop&auto=format',
+          public_url: filePreviewUrl || '/assets/avatars/default_avatar_female_1.jpg',
           metadata: { original_filename: selectedFile.name, uploader: 'admin' }
         };
         MOCK_MEDIA_ITEMS.unshift(newMockItem);
@@ -339,7 +339,7 @@ export default function AdminMediaManagement({ isSandbox = false }: AdminMediaMa
     if (isServiceOnline) {
       return mediaApi.getReadUrl(item.name);
     }
-    return item.public_url || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&auto=format';
+    return item.public_url || '/assets/avatars/default_avatar_female_1.jpg';
   };
 
   // Filter items by client search query
@@ -657,7 +657,7 @@ export default function AdminMediaManagement({ isSandbox = false }: AdminMediaMa
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           // Fallback to placeholder if image fails to load
-                          (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&auto=format';
+                          (e.target as HTMLImageElement).src = '/assets/avatars/default_avatar_female_1.jpg';
                         }}
                       />
                       <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">

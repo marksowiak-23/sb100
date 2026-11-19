@@ -1182,8 +1182,8 @@ const getInitialMockData = (tableId: string): any[] => {
       ];
     case 'mbr':
       return [
-        { mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', mbrFirstName: 'Eleanor', mbrLastName: 'Ross', mbrMiddleName: 'Grace', mbrBirthDate: '1945-05-12', mbrGenderCd: 'Female', mbrIntroduction: 'Born in Chicago, Eleanor lived through the space age and taught English for 35 years.', mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format', mbrAiProfileInd: false, mbrCreatedAt: now, mbrUpdatedAt: now },
-        { mbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341', user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', mbrFirstName: 'James', mbrLastName: 'Carter', mbrMiddleName: 'Dean', mbrBirthDate: '1952-11-20', mbrGenderCd: 'Male', mbrIntroduction: 'Retired mechanical engineer and grandfather of four. Enthusiast of sailing and history.', mbrProfilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&auto=format', mbrAiProfileInd: false, mbrCreatedAt: now, mbrUpdatedAt: now }
+        { mbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0', user_id: 'e1a3c61d-389f-4318-ba28-7ee82c4fdbd1', mbrFirstName: 'Eleanor', mbrLastName: 'Ross', mbrMiddleName: 'Grace', mbrBirthDate: '1945-05-12', mbrGenderCd: 'Female', mbrIntroduction: 'Born in Chicago, Eleanor lived through the space age and taught English for 35 years.', mbrProfilePic: '/assets/avatars/default_avatar_female_1.jpg', mbrAiProfileInd: false, mbrCreatedAt: now, mbrUpdatedAt: now },
+        { mbrId: 'f87a329c-982a-4a56-8a03-9bb54fc82341', user_id: 'b4a8e32c-39ff-43f1-a1e8-780c85c2901a', mbrFirstName: 'James', mbrLastName: 'Carter', mbrMiddleName: 'Dean', mbrBirthDate: '1952-11-20', mbrGenderCd: 'Male', mbrIntroduction: 'Retired mechanical engineer and grandfather of four. Enthusiast of sailing and history.', mbrProfilePic: '/assets/avatars/default_avatar_male_1.jpg', mbrAiProfileInd: false, mbrCreatedAt: now, mbrUpdatedAt: now }
       ];
     case 'cd':
       return [
@@ -1391,7 +1391,7 @@ const getInitialMockData = (tableId: string): any[] => {
           albumName: 'Family Roots & Ancestry',
           albumDateLabel: '1961 – 1978',
           albumDesc: 'Ancestral homes, grandfather Harold on the Coos Bay docks, and Sunday gatherings.',
-          albumCoverPhotoUrl: 'https://images.unsplash.com/photo-1511895426328-dc8714191300',
+          albumCoverPhotoUrl: '/storybook_book_output.jpg',
           albumSortOrder: 1,
           albumCreatedAt: now,
           albumUpdatedAt: now

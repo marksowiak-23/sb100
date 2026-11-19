@@ -35,7 +35,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'm2',
     authorName: 'Marcus Delacroix',
     authorLocation: 'New Orleans, LA',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_male_1.jpg',
     authorInitials: 'MD',
     connectionGrpName: 'Friends',
     isConnection: true
@@ -50,7 +50,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'm3',
     authorName: 'Priya Chandrasekaran',
     authorLocation: 'Chicago, IL',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_female_2.jpg',
     authorInitials: 'PC',
     connectionGrpName: 'Colleagues',
     isConnection: true
@@ -65,7 +65,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
     authorName: 'Eleanor Hartwell',
     authorLocation: 'Portland, OR',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_female_1.jpg',
     authorInitials: 'EH',
     connectionGrpName: 'Family',
     isConnection: true
@@ -80,7 +80,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'm5',
     authorName: 'David Miller',
     authorLocation: 'Vancouver, WA',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_male_3.jpg',
     authorInitials: 'DM',
     connectionGrpName: 'Public',
     isConnection: false
@@ -95,7 +95,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'm4',
     authorName: 'Thomas Wakefield',
     authorLocation: 'Boston, MA',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_male_2.jpg',
     authorInitials: 'TW',
     connectionGrpName: 'Family',
     isConnection: true
@@ -110,7 +110,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
     authorName: 'Eleanor Hartwell',
     authorLocation: 'Portland, OR',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_female_1.jpg',
     authorInitials: 'EH',
     connectionGrpName: 'Family',
     isConnection: true
@@ -125,7 +125,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'm2',
     authorName: 'Marcus Delacroix',
     authorLocation: 'New Orleans, LA',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_male_1.jpg',
     authorInitials: 'MD',
     connectionGrpName: 'Friends',
     isConnection: true
@@ -140,7 +140,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'm6',
     authorName: 'Clara Vance',
     authorLocation: 'Palm Springs, CA',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_female_3.jpg',
     authorInitials: 'CV',
     connectionGrpName: 'Public',
     isConnection: false
@@ -155,7 +155,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
     authorName: 'Eleanor Hartwell',
     authorLocation: 'Portland, OR',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_female_1.jpg',
     authorInitials: 'EH',
     connectionGrpName: 'Family',
     isConnection: true
@@ -170,7 +170,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'm3',
     authorName: 'Priya Chandrasekaran',
     authorLocation: 'Chicago, IL',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_female_2.jpg',
     authorInitials: 'PC',
     connectionGrpName: 'Colleagues',
     isConnection: true
@@ -185,7 +185,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
     authorName: 'Eleanor Hartwell',
     authorLocation: 'Portland, OR',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_female_1.jpg',
     authorInitials: 'EH',
     connectionGrpName: 'Family',
     isConnection: true
@@ -200,7 +200,7 @@ const SANDBOX_FEED_STORIES: FeedStoryItem[] = [
     authorMbrId: 'm4',
     authorName: 'Thomas Wakefield',
     authorLocation: 'Boston, MA',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_male_2.jpg',
     authorInitials: 'TW',
     connectionGrpName: 'Family',
     isConnection: true

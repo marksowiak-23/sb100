@@ -177,6 +177,7 @@ export function MbrStoryBookPublishOrderSection({
   }, [isSandbox, mbrId, bookConfig.bookId, pageCount, bookConfig.bookAuthorDisplayName]);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     loadOrders();
   }, [loadOrders]);
 
@@ -298,36 +299,38 @@ export function MbrStoryBookPublishOrderSection({
         createdOrder = created;
       }
 
-      // Log print order placement event
-      eventApi.logEvent({
-        eventSiteCd: 'SB',
-        eventActorId: mbrId || bookConfig.mbrId || undefined,
-        eventActorTypeCd: 'MBR',
-        eventCd: 'STORYBOOK_PRINT_ORDER_PLACE',
-        eventDetail: `Member placed storybook physical print order for '${bookConfig.bookTitle || 'My Life Stories'}' (${quantity} ${quantity === 1 ? 'copy' : 'copies'}, ${bindingType}, Job #${newOrderPayload.luluPrintJobId})`,
-        eventTagValue: {
-          orderId: createdOrder.orderId,
-          bookId: bookConfig.bookId,
-          bookTitle: bookConfig.bookTitle,
-          luluPrintJobId: newOrderPayload.luluPrintJobId,
-          bindingTypeCd: bindingType,
-          podPackageId: resolvedPodPackageId,
-          paperTypeCd: paperType,
-          coverFinishCd: coverFinish,
-          quantity,
-          pageCount: evenPageCount,
-          unitCost: quote.unitCost,
-          shippingCost: quote.shippingCost,
-          totalCost: quote.totalCost,
-          currency: quote.currency || 'USD',
-          shippingLevel,
-          recipientName: address.recipientName,
-          shippingCity: address.city,
-          shippingState: address.stateCode,
-          shippingZip: address.postcode,
-          isSandbox,
-        },
-      }).catch((err) => console.warn('Could not log print order event:', err));
+      // Log print order placement event in sandbox mode only (live mode already logs STORYBOOK_ORDER_CREATE on the backend)
+      if (isSandbox) {
+        eventApi.logEvent({
+          eventSiteCd: 'SB',
+          eventActorId: mbrId || bookConfig.mbrId || undefined,
+          eventActorTypeCd: 'MBR',
+          eventCd: 'STORYBOOK_PRINT_ORDER_PLACE',
+          eventDetail: `Member placed storybook physical print order for '${bookConfig.bookTitle || 'My Life Stories'}' (${quantity} ${quantity === 1 ? 'copy' : 'copies'}, ${bindingType}, Job #${newOrderPayload.luluPrintJobId})`,
+          eventTagValue: {
+            orderId: createdOrder.orderId,
+            bookId: bookConfig.bookId,
+            bookTitle: bookConfig.bookTitle,
+            luluPrintJobId: newOrderPayload.luluPrintJobId,
+            bindingTypeCd: bindingType,
+            podPackageId: resolvedPodPackageId,
+            paperTypeCd: paperType,
+            coverFinishCd: coverFinish,
+            quantity,
+            pageCount: evenPageCount,
+            unitCost: quote.unitCost,
+            shippingCost: quote.shippingCost,
+            totalCost: quote.totalCost,
+            currency: quote.currency || 'USD',
+            shippingLevel,
+            recipientName: address.recipientName,
+            shippingCity: address.city,
+            shippingState: address.stateCode,
+            shippingZip: address.postcode,
+            isSandbox,
+          },
+        }).catch((err) => console.warn('Could not log print order event:', err));
+      }
 
       // Dispatch GA4 / GTM E-Commerce Purchase
       analytics.purchase({
@@ -517,11 +520,9 @@ export function MbrStoryBookPublishOrderSection({
       )}
 
       {/* Main 4-Step Order Form */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Configuration & Address (7 cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* STEP 1: Format & Binding */}
-          <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-xs space-y-5">
+      <div className="space-y-6">
+        {/* STEP 1: Format & Binding */}
+        <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-xs space-y-5">
             <div className="flex items-center justify-between border-b border-[#EFECE7] pb-3">
               <div className="flex items-center gap-2.5">
                 <span className="w-6 h-6 rounded-full bg-amber-800 text-white text-xs font-serif font-bold flex items-center justify-center">
@@ -531,7 +532,10 @@ export function MbrStoryBookPublishOrderSection({
               </div>
               <button
                 type="button"
-                onClick={onSwitchToStudioTab}
+                onClick={() => {
+                  onSwitchToStudioTab();
+                  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                }}
                 className="text-xs font-serif text-amber-800 hover:text-amber-900 underline flex items-center gap-1 cursor-pointer"
               >
                 <BookOpen className="w-3.5 h-3.5" />
@@ -799,120 +803,129 @@ export function MbrStoryBookPublishOrderSection({
               </div>
             )}
           </div>
-        </div>
 
-        {/* Right Column: Order Summary, Proofs & Checkout (5 cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Order Cost Breakdown Card */}
+          {/* STEP 4: Order Summary & Checkout (Positioned below Step 3 Delivery Speed & Live Quote) */}
           <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 shadow-xs space-y-5">
-            <h3 className="text-base font-serif font-bold text-slate-800 border-b border-[#EFECE7] pb-3">
-              Order Summary
-            </h3>
-
-            {quote ? (
-              <div className="space-y-3 font-serif">
-                <div className="flex justify-between text-xs text-slate-600">
-                  <span>
-                    Print & Binding ({quantity} × ${quote.unitCost.toFixed(2)})
-                  </span>
-                  <span className="font-semibold text-slate-800">
-                    ${(quote.unitCost * quantity).toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex justify-between text-xs text-slate-600">
-                  <span>Shipping ({shippingLevel.replace('_', ' ')})</span>
-                  <span className="font-semibold text-slate-800">${quote.shippingCost.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-slate-600">
-                  <span>Packaging & Fulfillment</span>
-                  <span className="font-semibold text-slate-800">${quote.fulfillmentCost.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-xs text-slate-600">
-                  <span>Sales Tax</span>
-                  <span className="font-semibold text-slate-800">${quote.taxCost.toFixed(2)}</span>
-                </div>
-                <div className="border-t border-slate-200 pt-3 flex justify-between text-base font-black text-amber-900">
-                  <span>Total Order</span>
-                  <span>${quote.totalCost.toFixed(2)} USD</span>
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-center space-y-1">
-                <Info className="w-5 h-5 text-amber-700 mx-auto" />
-                <p className="text-xs font-serif text-amber-900 font-semibold">Live Quote Pending</p>
-                <p className="text-[11px] font-serif text-amber-700">
-                  Enter your address and click <strong>Calculate Live Quote</strong> to retrieve real-time rates from Lulu.
-                </p>
-              </div>
-            )}
-
-            {/* Digital Proof Download Options */}
-            <div className="border-t border-[#EFECE7] pt-4 space-y-2">
-              <label className="text-xs font-serif font-bold text-slate-700">Verify Print Proofs (Lulu POD)</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={handleDownloadInterior}
-                  disabled={downloadingInterior}
-                  className="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-[11px] font-serif font-semibold text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {downloadingInterior ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                  <span>Interior PDF</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadCoverSpread}
-                  disabled={downloadingCover}
-                  className="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-[11px] font-serif font-semibold text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  {downloadingCover ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                  <span>Cover Spread</span>
-                </button>
-              </div>
+            <div className="flex items-center gap-2.5 border-b border-[#EFECE7] pb-3">
+              <span className="w-6 h-6 rounded-full bg-amber-800 text-white text-xs font-serif font-bold flex items-center justify-center">
+                4
+              </span>
+              <h3 className="text-base font-serif font-bold text-slate-800">
+                Order Summary
+              </h3>
             </div>
 
-            {/* Proof Approval Checkbox */}
-            <div className="border-t border-[#EFECE7] pt-4">
-              <label className="flex items-start gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={proofApproved}
-                  onChange={(e) => setProofApproved(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 text-amber-800 rounded border-slate-300 focus:ring-amber-700"
-                />
-                <span className="text-xs font-serif text-slate-600 leading-tight">
-                  I have previewed my book chapters and approve this heirloom book configuration for physical printing and shipment.
-                </span>
-              </label>
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Column: Itemized Cost Breakdown */}
+              <div className="lg:col-span-7 space-y-4">
+                {quote ? (
+                  <div className="space-y-3 font-serif bg-slate-50/70 p-4 rounded-2xl border border-slate-200/70">
+                    <div className="flex justify-between text-xs text-slate-600">
+                      <span>
+                        Print & Binding ({quantity} × ${quote.unitCost.toFixed(2)})
+                      </span>
+                      <span className="font-semibold text-slate-800">
+                        ${(quote.unitCost * quantity).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-600">
+                      <span>Shipping ({shippingLevel.replace('_', ' ')})</span>
+                      <span className="font-semibold text-slate-800">${quote.shippingCost.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-600">
+                      <span>Packaging & Fulfillment</span>
+                      <span className="font-semibold text-slate-800">${quote.fulfillmentCost.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-600">
+                      <span>Sales Tax</span>
+                      <span className="font-semibold text-slate-800">${quote.taxCost.toFixed(2)}</span>
+                    </div>
+                    <div className="border-t border-slate-200 pt-3 flex justify-between text-base font-black text-amber-900">
+                      <span>Total Order</span>
+                      <span>${quote.totalCost.toFixed(2)} USD</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 rounded-2xl bg-amber-50/70 border border-amber-200/80 text-center space-y-2">
+                    <Info className="w-5 h-5 text-amber-700 mx-auto" />
+                    <p className="text-xs font-serif text-amber-900 font-semibold">Live Quote Pending</p>
+                    <p className="text-[11px] font-serif text-amber-700 max-w-md mx-auto">
+                      Enter your address in Step 2, select your delivery speed in Step 3, and click <strong>Calculate Live Print & Shipping Quote</strong> to retrieve real-time rates from Lulu.
+                    </p>
+                  </div>
+                )}
+              </div>
 
-            {/* Place Print Order Button */}
-            <button
-              type="button"
-              onClick={handlePlaceOrder}
-              disabled={placingOrder || !proofApproved || !quote}
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-amber-800 hover:bg-amber-900 text-white font-serif font-black text-sm transition-all shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {placingOrder ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Submitting to Lulu Direct...</span>
-                </>
-              ) : (
-                <>
-                  <Package className="w-4 h-4" />
-                  <span>Place Print Order (${quote ? quote.totalCost.toFixed(2) : '0.00'})</span>
-                </>
-              )}
-            </button>
+              {/* Right Column: Digital Proofs & Checkout Submission */}
+              <div className="lg:col-span-5 space-y-4">
+                {/* Digital Proof Download Options */}
+                <div className="space-y-2">
+                  <label className="text-xs font-serif font-bold text-slate-700">Verify Print Proofs (Lulu POD)</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDownloadInterior}
+                      disabled={downloadingInterior}
+                      className="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-[11px] font-serif font-semibold text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {downloadingInterior ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                      <span>Interior PDF</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDownloadCoverSpread}
+                      disabled={downloadingCover}
+                      className="px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-[11px] font-serif font-semibold text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {downloadingCover ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                      <span>Cover Spread</span>
+                    </button>
+                  </div>
+                </div>
 
-            <div className="flex items-center justify-center gap-1.5 text-[11px] font-serif text-slate-400">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Archival Quality Guarantee &bull; Tracked Carrier Shipping</span>
+                {/* Proof Approval Checkbox */}
+                <div className="border-t border-[#EFECE7] pt-3">
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={proofApproved}
+                      onChange={(e) => setProofApproved(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 text-amber-800 rounded border-slate-300 focus:ring-amber-700"
+                    />
+                    <span className="text-xs font-serif text-slate-600 leading-tight">
+                      I have previewed my book chapters and approve this heirloom book configuration for physical printing and shipment.
+                    </span>
+                  </label>
+                </div>
+
+                {/* Place Print Order Button */}
+                <button
+                  type="button"
+                  onClick={handlePlaceOrder}
+                  disabled={placingOrder || !proofApproved || !quote}
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-amber-800 hover:bg-amber-900 text-white font-serif font-black text-sm transition-all shadow-md cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {placingOrder ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Submitting to Lulu Direct...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Package className="w-4 h-4" />
+                      <span>Place Print Order (${quote ? quote.totalCost.toFixed(2) : '0.00'})</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="flex items-center justify-center gap-1.5 text-[11px] font-serif text-slate-400">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Archival Quality Guarantee &bull; Tracked Carrier Shipping</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Past Print Orders History Card */}
       <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-6 sm:p-8 shadow-xs space-y-5">

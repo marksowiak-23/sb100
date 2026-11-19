@@ -11,7 +11,7 @@ import {
   AlertTriangle, X, Heart, MapPin, Briefcase, GraduationCap, Home, Plus, Trash2, Check,
   Sliders, ShieldCheck, Eye, RotateCcw, Mic, HeartHandshake
 } from 'lucide-react';
-import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, API_BASE_URL, MEDIA_API_BASE_URL } from '@/src/services/api';
+import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, API_BASE_URL, MEDIA_API_BASE_URL, isAudioMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryMatePanel from '@/src/features/mbrAuthorPage/components/StoryMatePanel';
 import ImageCropModal from './ImageCropModal';
@@ -188,7 +188,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
             mbrStudiedAt: 'University of Washington',
             mbrEmailAddress: 'eleanor.hartwell@example.com',
             mbrIntroduction: 'Eleanor Hartwell was born in the coastal town of Coos Bay, Oregon...',
-            mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format'
+            mbrProfilePic: '/assets/avatars/default_avatar_female_1.jpg'
           };
           sessionStorage.setItem('sandbox_mbr', JSON.stringify({ ...defaultMbr, mbrId: 'sandbox-id-eleanor' }));
           setMbrId('sandbox-id-eleanor');
@@ -478,10 +478,10 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
     if (!targetMbrId || isSandbox) return;
     setLoadingGallery(true);
     try {
-      const mediaList = await taskApi.getMemberMedia(targetMbrId);
-      // Filter gallery photos (mbrMediaCategoryCd === 'Profile' or general category)
+      const mediaList = await taskApi.getMemberMedia(targetMbrId, { excludeAudio: true });
+      // Filter gallery photos (mbrMediaCategoryCd === 'Profile' or general category), strictly excluding audio
       const profileMedia = mediaList.filter(
-        item => !item.mbrMediaCategoryCd || item.mbrMediaCategoryCd === 'Profile'
+        item => !isAudioMedia(item) && (!item.mbrMediaCategoryCd || item.mbrMediaCategoryCd === 'Profile')
       );
       setGalleryItems(profileMedia);
     } catch (err) {

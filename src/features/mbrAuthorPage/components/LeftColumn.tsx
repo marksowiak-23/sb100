@@ -4,7 +4,6 @@
  */
 
 import React from 'react';
-import AuthorPageHeaderPanel from './AuthorPageHeaderPanel';
 import MbrStoryIndexPanel from '@/src/components/mbrStoryIndexPanel';
 import SbMbrStats from './SbMbrStats';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
@@ -19,9 +18,6 @@ interface LeftColumnProps {
 export default function LeftColumn({ activeSection, setActiveSection }: LeftColumnProps) {
   return (
     <div className="space-y-6 flex flex-col relative">
-      {/* --- PAGE HEADER --- */}
-      <AuthorPageHeaderPanel />
-
       {/* --- STORY INDEX PANEL --- */}
       <MbrStoryIndexPanel
         activeSection={activeSection}

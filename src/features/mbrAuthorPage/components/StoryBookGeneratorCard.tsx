@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { BookOpen, Sparkles, Lock } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { eventApi } from '@/src/services/api';
 import { useMemberCredits } from '@/src/services/creditBalanceService';
 import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 
@@ -28,6 +29,18 @@ export default function StoryBookGeneratorCard({
       setShowExhaustedCreditsModal(true);
       return;
     }
+
+    eventApi.logEvent({
+      eventSiteCd: 'SB',
+      eventActorId: memberId || undefined,
+      eventActorTypeCd: 'MBR',
+      eventCd: 'STORYBOOK_STUDIO_OPEN',
+      eventDetail: 'Member clicked Configure & Print My Book from the Author page',
+      eventTagValue: {
+        source: 'AuthorPage',
+        component: 'StoryBookGeneratorCard'
+      }
+    }).catch((err) => console.warn('Could not log STORYBOOK_STUDIO_OPEN event:', err));
 
     if (onOpenStoryBookGenerator) {
       onOpenStoryBookGenerator();

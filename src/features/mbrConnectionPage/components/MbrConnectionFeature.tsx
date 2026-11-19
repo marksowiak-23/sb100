@@ -237,7 +237,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             mbrEmailAddress: 'eleanor.vance@storybook.ai',
             mbrLivesCityState: 'Boston, MA',
             mbrFromCityState: 'Concord, NH',
-            mbrProfilePic: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+            mbrProfilePic: '/assets/avatars/default_avatar_female_1.jpg',
             mbrWorkAt: 'Architectural Historian'
           },
           {
@@ -247,7 +247,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             mbrEmailAddress: 'thomas.sterling@storybook.ai',
             mbrLivesCityState: 'New York, NY',
             mbrFromCityState: 'Philadelphia, PA',
-            mbrProfilePic: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+            mbrProfilePic: '/assets/avatars/default_avatar_male_1.jpg',
             mbrWorkAt: 'University Professor'
           },
           {
@@ -257,7 +257,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             mbrEmailAddress: 'clara.oswald@storybook.ai',
             mbrLivesCityState: 'London, UK',
             mbrFromCityState: 'Blackpool, UK',
-            mbrProfilePic: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+            mbrProfilePic: '/assets/avatars/default_avatar_female_2.jpg',
             mbrWorkAt: 'High School Literature Teacher'
           },
           {
@@ -267,7 +267,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             mbrEmailAddress: 'arthur.pendelton@storybook.ai',
             mbrLivesCityState: 'Chicago, IL',
             mbrFromCityState: 'Detroit, MI',
-            mbrProfilePic: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+            mbrProfilePic: '/assets/avatars/default_avatar_male_2.jpg',
             mbrWorkAt: 'Senior Civil Engineer'
           },
           {
@@ -277,7 +277,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             mbrEmailAddress: 'miriam.mansoor@storybook.ai',
             mbrLivesCityState: 'Toronto, ON',
             mbrFromCityState: 'Dubai, UAE',
-            mbrProfilePic: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+            mbrProfilePic: '/assets/avatars/default_avatar_female_3.jpg',
             mbrWorkAt: 'Biomedical Researcher'
           },
           {
@@ -287,7 +287,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             mbrEmailAddress: 'samuel.rivers@storybook.ai',
             mbrLivesCityState: 'Austin, TX',
             mbrFromCityState: 'Nashville, TN',
-            mbrProfilePic: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
+            mbrProfilePic: '/assets/avatars/default_avatar_male_3.jpg',
             mbrWorkAt: 'Music Producer & Composer'
           },
           {
@@ -297,7 +297,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             mbrEmailAddress: 'beatrice.fontaine@storybook.ai',
             mbrLivesCityState: 'Montreal, QC',
             mbrFromCityState: 'Paris, France',
-            mbrProfilePic: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80',
+            mbrProfilePic: '/assets/avatars/default_avatar_female_1.jpg',
             mbrWorkAt: 'Documentary Filmmaker'
           },
           {
@@ -307,7 +307,7 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
             mbrEmailAddress: 'henry.zimmerman@storybook.ai',
             mbrLivesCityState: 'San Francisco, CA',
             mbrFromCityState: 'Seattle, WA',
-            mbrProfilePic: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+            mbrProfilePic: '/assets/avatars/default_avatar_male_1.jpg',
             mbrWorkAt: 'Software Architect'
           }
         ];

@@ -177,7 +177,7 @@ export default function MainLayout({
               setProfilePic(mbr.mbrProfilePic || null);
               if (mbr.mbrFirstName) setUserName(`${mbr.mbrFirstName} ${mbr.mbrLastName || ''}`.trim());
             } else {
-              setProfilePic('https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format');
+              setProfilePic('/assets/avatars/default_avatar_female_1.jpg');
             }
           } else {
             const mbrProfile = await taskApi.getMemberByUserId(u.user_id);

@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Users, Trash2, Edit3, Save, X, Plus, Loader2, AlertCircle, AlertTriangle, CheckCircle2, ShieldAlert, Images, ChevronLeft, ChevronRight, Upload, ArrowUpDown, ArrowUp, ArrowDown, MoreVertical } from 'lucide-react';
-import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL, DEFAULT_TOPIC_LOOKUP } from '@/src/services/api';
+import { taskApi, mediaApi, resolveMediaUrl, MbrMedia, MEDIA_API_BASE_URL, DEFAULT_TOPIC_LOOKUP, isAudioMedia } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -260,6 +260,7 @@ export default function MbrStoryFamilyPanel({
             const parsedMedia: MbrMedia[] = JSON.parse(savedMedia);
             if (Array.isArray(parsedMedia)) {
               parsedMedia.forEach((m) => {
+                if (isAudioMedia(m)) return;
                 if ((m.mbrMediaCategoryCd || '').toLowerCase() === 'family') {
                   if (m.mbrMediaSubordinateId) {
                     photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
@@ -293,12 +294,13 @@ export default function MbrStoryFamilyPanel({
       } else {
         try {
           const [mediaList, storyList] = await Promise.all([
-            taskApi.getMemberMedia(targetMbrId).catch(() => []),
+            taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
             taskApi.getStories(targetMbrId).catch(() => [])
           ]);
 
           if (Array.isArray(mediaList)) {
             mediaList.forEach((m) => {
+              if (isAudioMedia(m)) return;
               if ((m.mbrMediaCategoryCd || '').toLowerCase() === 'family') {
                 if (m.mbrMediaSubordinateId) {
                   photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;

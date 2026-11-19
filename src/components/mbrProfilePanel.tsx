@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home, Compass, Briefcase, GraduationCap, Calendar, Heart, Loader2, ChevronDown, ChevronUp, BookOpen, Images, ChevronLeft, ChevronRight, X, Edit3, Save, Users, UserCheck, UserPlus, Clock, User, ShieldAlert } from 'lucide-react';
-import { taskApi, mbrStatApi, mbrSettingsApi, resolveMediaUrl, MbrMedia, MbrStat, MbrSettings } from '@/src/services/api';
+import { taskApi, mbrStatApi, mbrSettingsApi, resolveMediaUrl, MbrMedia, MbrStat, MbrSettings, isAudioMedia } from '@/src/services/api';
 import { MEMBER_STORIES } from '@/src/features/publicPage/constants/memberData';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
@@ -604,7 +604,7 @@ export default function MbrProfilePanel({
 She spent her childhood in the company of her grandfather, Harold, a taciturn man who had served in the Pacific and come home carrying something he never named. He taught Eleanor to fish, to mend nets, and to sit quietly with discomfort — lessons she would draw on for the rest of her life.
 
 When Harold died the summer Eleanor turned twelve, she began writing. Not because anyone encouraged her, but because silence had to go somewhere. The chapters that follow are Eleanor's attempt to trace the invisible threads connecting her childhood on the Oregon coast to the woman she became: a schoolteacher, a gardener, a painter, and a grandmother.`,
-            mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format',
+            mbrProfilePic: '/assets/avatars/default_avatar_female_1.jpg',
             mbrCreatedAt: '2020-10-01T00:00:00Z'
           };
           setProfile(defaultMbr);
@@ -637,10 +637,10 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
   const fetchGallery = async (targetMbrId: string) => {
     if (!targetMbrId) return;
     try {
-      const media = await taskApi.getMemberMedia(targetMbrId);
+      const media = await taskApi.getMemberMedia(targetMbrId, { excludeAudio: true });
       if (media && media.length > 0) {
         const profilePhotos = media.filter(
-          (m) => (m.mbrMediaCategoryCd || '').toLowerCase() === 'profile'
+          (m) => !isAudioMedia(m) && (m.mbrMediaCategoryCd || '').toLowerCase() === 'profile'
         );
         setGalleryItems(profilePhotos);
       }
@@ -670,7 +670,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
       return [];
     }
     // Only in sandbox mode do we show sample showcase photos
-    const mainPic = profile?.mbrProfilePic || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=600&fit=crop';
+    const mainPic = profile?.mbrProfilePic || '/assets/avatars/default_avatar_female_1.jpg';
     return [
       {
         mbrMediaId: 'f1',
@@ -683,7 +683,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
       {
         mbrMediaId: 'f2',
         mbrId: profile?.mbrId || 'mbr-1',
-        mbrMediaPath: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=800&h=600&fit=crop',
+        mbrMediaPath: '/storybook_family_sharing.jpg',
         mbrMediaOriginalFilename: 'Family_Harbor_1965.jpg',
         mbrMediaDescription: 'Sunday mornings near the harbor in Coos Bay',
         mbrMediaCategoryCd: 'Profile'
@@ -691,7 +691,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
       {
         mbrMediaId: 'f3',
         mbrId: profile?.mbrId || 'mbr-1',
-        mbrMediaPath: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=800&h=600&fit=crop',
+        mbrMediaPath: '/carousel_shared_history.jpg',
         mbrMediaOriginalFilename: 'Oregon_Coastline.jpg',
         mbrMediaDescription: 'Walking along the coastal headlands',
         mbrMediaCategoryCd: 'Profile'
@@ -699,7 +699,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
       {
         mbrMediaId: 'f4',
         mbrId: profile?.mbrId || 'mbr-1',
-        mbrMediaPath: 'https://images.unsplash.com/photo-1516541196182-6bdb0516ed27?w=800&h=600&fit=crop',
+        mbrMediaPath: '/storybook_friends_connection.jpg',
         mbrMediaOriginalFilename: 'Teaching_Classroom.jpg',
         mbrMediaDescription: 'Teaching years at Lincoln Elementary School',
         mbrMediaCategoryCd: 'Profile'

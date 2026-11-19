@@ -35,7 +35,7 @@ export default function PageSeo({
   canonicalUrl,
   ogTitle,
   ogDescription,
-  ogImage = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=1200&h=630&fit=crop',
+  ogImage = '/backstory_splash_collage.jpg',
   ogType = 'website',
   ogUrl,
   twitterTitle,

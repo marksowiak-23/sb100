@@ -193,7 +193,7 @@ const SANDBOX_FALLBACK_STORIES = [
     mbrStoryContent:
       'Every Sunday after morning services, our family gathered near the Coos Bay harbor. Grandfather Harold would untie the weathered cedar skiff and guide us past the breakwater to watch the coastal fog lift off the headlands.\n\nHe spoke very little on the water, yet every knot he tied and every current he pointed out felt like an heirloom passed quietly into our hands. Those mornings taught us patience, gratitude, and the enduring pull of home.',
     mbrStoryHeaderPhotoUrl:
-      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&auto=format&fit=crop&q=80',
+      '/carousel_shared_history.jpg',
     mbrStoryHeaderPhotoCaption: 'Morning mist along the Oregon coastline, summer of 1968.',
   },
   {
@@ -240,6 +240,11 @@ export default function MbrStoryBookGeneratorPage({
   const [statusBanner, setStatusBanner] = useState<{ type: 'success' | 'info' | 'error'; message: string } | null>(
     null
   );
+
+  // Scroll to top whenever switching between Studio and Publish Order views
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [mainMode]);
 
   const isLoadedRef = useRef<boolean>(false);
   const lastSavedPayloadRef = useRef<string>('');
@@ -1177,81 +1182,24 @@ export default function MbrStoryBookGeneratorPage({
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-12">
       {/* Top Studio Header Bar */}
-      <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 sm:p-6 shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onClickBack}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Author Page</span>
-            </button>
-            <span className="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
-              Heirloom Publishing Studio
-            </span>
-          </div>
-          <h1 className="font-serif text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2.5 pt-1">
-            <BookOpen className="w-7 h-7 text-amber-800 shrink-0" />
-            <span>BackStory Book Studio</span>
-          </h1>
-          <p className="font-serif text-xs sm:text-sm text-slate-600">
-            Curate your published stories by topic category, customize your book cover and front/back matter, and export print-ready PDFs.
-          </p>
-        </div>
-
-        {/* Primary Action & Auto-Save Indicator */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-serif shadow-2xs">
-            {saving || autoSaveStatus === 'saving' ? (
-              <>
-                <Loader2 className="w-3.5 h-3.5 text-amber-700 animate-spin" />
-                <span className="text-slate-600 font-medium">Saving changes...</span>
-              </>
-            ) : autoSaveStatus === 'saved' ? (
-              <>
-                <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-emerald-800 font-medium">All changes saved</span>
-              </>
-            ) : autoSaveStatus === 'error' ? (
-              <>
-                <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                <span className="text-rose-700 font-medium">Auto-save error</span>
-              </>
-            ) : (
-              <>
-                <Cloud className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-slate-500">Auto-saved</span>
-              </>
-            )}
-          </div>
-
+      <div className="bg-[#FDFCFB] border border-[#EFECE7] rounded-3xl p-5 sm:p-6 shadow-xs space-y-1">
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => {
-              if (hasExhaustedCredits) {
-                setShowExhaustedCreditsModal(true);
-                return;
-              }
-              handleGeneratePdf('full');
-            }}
-            disabled={generatingMode !== null || includedChapters.length === 0}
-            className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold font-serif transition-all shadow-sm cursor-pointer ${
-              hasExhaustedCredits
-                ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-slate-700 opacity-60'
-                : 'bg-amber-700 hover:bg-amber-800 text-white disabled:opacity-50'
-            }`}
-            title={hasExhaustedCredits ? 'Credits exhausted - click to purchase via My Account' : 'Generate Complete Book PDF'}
+            onClick={onClickBack}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
           >
-            {generatingMode === 'full' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
-            <span>Generate Complete Book PDF</span>
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Author Page</span>
           </button>
         </div>
+        <h1 className="font-serif text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2.5 pt-1">
+          <BookOpen className="w-7 h-7 text-amber-800 shrink-0" />
+          <span>BackStory Book Studio</span>
+        </h1>
+        <p className="font-serif text-xs sm:text-sm text-slate-600">
+          Curate your published stories by topic category, customize your book cover and front/back matter, and export print-ready PDFs.
+        </p>
       </div>
 
       {/* Status Toast Banner */}
@@ -1314,7 +1262,10 @@ export default function MbrStoryBookGeneratorPage({
       <div className="flex flex-wrap border-b border-[#EFECE7] gap-2 pt-2">
         <button
           type="button"
-          onClick={() => setMainMode('studio')}
+          onClick={() => {
+            setMainMode('studio');
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          }}
           className={`flex items-center gap-2 px-5 py-3 border-b-2 font-serif font-bold text-xs sm:text-sm transition-all cursor-pointer ${
             mainMode === 'studio'
               ? 'border-amber-700 text-amber-900 bg-amber-50/60 rounded-t-2xl shadow-2xs'
@@ -1327,7 +1278,10 @@ export default function MbrStoryBookGeneratorPage({
 
         <button
           type="button"
-          onClick={() => setMainMode('publishOrder')}
+          onClick={() => {
+            setMainMode('publishOrder');
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          }}
           className={`flex items-center gap-2 px-5 py-3 border-b-2 font-serif font-bold text-xs sm:text-sm transition-all cursor-pointer ${
             mainMode === 'publishOrder'
               ? 'border-amber-700 text-amber-900 bg-amber-50/60 rounded-t-2xl shadow-2xs'
@@ -2726,6 +2680,52 @@ export default function MbrStoryBookGeneratorPage({
             </div>
           </div>
 
+          {/* Generate Book PDF Callout Card */}
+          <div className="bg-gradient-to-br from-amber-50 to-amber-100/60 border border-amber-200/80 rounded-3xl p-5 space-y-3 shadow-2xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-800 text-white flex items-center justify-center shrink-0">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-serif font-bold text-amber-950">
+                  Generate Book PDF
+                </h4>
+                <p className="text-[11px] font-serif text-amber-800">
+                  Compile and export your print-ready high-resolution digital book PDF.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (hasExhaustedCredits) {
+                  setShowExhaustedCreditsModal(true);
+                  return;
+                }
+                handleGeneratePdf('full');
+              }}
+              disabled={generatingMode !== null || includedChapters.length === 0}
+              className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-serif font-bold shadow-2xs transition-all cursor-pointer ${
+                hasExhaustedCredits
+                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-slate-700 opacity-60'
+                  : 'bg-amber-800 hover:bg-amber-900 text-white disabled:opacity-50'
+              }`}
+              title={hasExhaustedCredits ? 'Credits exhausted - click to purchase via My Account' : 'Generate Book PDF'}
+            >
+              {generatingMode === 'full' ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating Book PDF...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Generate Book PDF</span>
+                </>
+              )}
+            </button>
+          </div>
+
           {/* Lulu Physical Print Keepsake Callout Card */}
           <div className="bg-gradient-to-br from-amber-50 to-amber-100/60 border border-amber-200/80 rounded-3xl p-5 space-y-3 shadow-2xs">
             <div className="flex items-center gap-2.5">
@@ -2743,7 +2743,10 @@ export default function MbrStoryBookGeneratorPage({
             </div>
             <button
               type="button"
-              onClick={() => setMainMode('publishOrder')}
+              onClick={() => {
+                setMainMode('publishOrder');
+                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+              }}
               className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-xs font-serif font-bold shadow-2xs transition-all cursor-pointer"
             >
               <span>Publish, Print & Ship Book</span>
@@ -2939,7 +2942,7 @@ export default function MbrStoryBookGeneratorPage({
       <ExhaustedCreditsModal
         isOpen={showExhaustedCreditsModal}
         onClose={() => setShowExhaustedCreditsModal(false)}
-        actionAttempted="Generating Complete Book PDF"
+        actionAttempted="Generating Book PDF"
       />
 
       <AdminComponentTag name="mbrStoryBookGenerator" />

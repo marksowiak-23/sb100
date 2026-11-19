@@ -1221,7 +1221,7 @@ async function ensureSessionToken(forceRefresh = false): Promise<string | null> 
       _tokenRefreshPromise = _nativeFetch(`${API_BASE_URL}/users/social-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email, is_token_refresh: true })
       })
         .then(async (res) => {
           if (!res.ok) return null;
@@ -1246,7 +1246,7 @@ async function ensureSessionToken(forceRefresh = false): Promise<string | null> 
 const fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const headers = new Headers(init?.headers);
   const urlStr = typeof input === 'string' ? input : input.toString();
-  const isAuthOrHealth = urlStr.includes('/users/login') || urlStr.includes('/users/social-login') || urlStr.includes('/health');
+  const isAuthOrHealth = urlStr.includes('/users/login') || urlStr.includes('/users/social-login') || urlStr.includes('/admins/login') || urlStr.includes('/health');
   try {
     if (typeof window !== 'undefined' && !headers.has('x-session-id')) {
       let sid = sessionStorage.getItem('sb_session_id');
@@ -5802,6 +5802,33 @@ export function resolveMediaUrl(url: string | null | undefined): string {
   return url;
 }
 
+/**
+ * Utility to identify whether a media record represents an audio/voice narration asset.
+ */
+export function isAudioMedia(m: Partial<MbrMedia> | null | undefined): boolean {
+  if (!m) return false;
+  const mime = (m.mbrMediaMimeType || '').toLowerCase();
+  const path = (m.mbrMediaPath || '').toLowerCase();
+  const filename = (m.mbrMediaOriginalFilename || '').toLowerCase();
+  const desc = (m.mbrMediaDescription || '').toLowerCase();
+  const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
+  return (
+    mime.startsWith('audio/') ||
+    path.endsWith('.wav') || path.endsWith('.mp3') || path.endsWith('.ogg') || path.endsWith('.m4a') ||
+    filename.endsWith('.wav') || filename.endsWith('.mp3') || filename.endsWith('.ogg') || filename.endsWith('.m4a') ||
+    filename.startsWith('narration_') || filename.startsWith('voice_sample_') ||
+    desc.includes('voice narration') || desc.includes('ai voice narration') ||
+    cat === 'voiceprofile' || cat === 'narration'
+  );
+}
+
+/**
+ * Utility to identify whether a media record represents a photo/image asset.
+ */
+export function isPhotoMedia(m: Partial<MbrMedia> | null | undefined): boolean {
+  return !isAudioMedia(m);
+}
+
 export interface SysConfig {
   configId: string;
   configTag: string;
@@ -6073,6 +6100,17 @@ export const eventApi = {
    * Log an event explicitly from the frontend client.
    */
   async logEvent(event: EventCreate): Promise<EventRecord> {
+    let resolvedActorId = event.eventActorId;
+    if (!resolvedActorId && typeof window !== 'undefined') {
+      try {
+        const mbrRaw = sessionStorage.getItem('sb_current_mbr') || sessionStorage.getItem('mbr') || sessionStorage.getItem('sandbox_mbr');
+        if (mbrRaw) {
+          const parsedMbr = JSON.parse(mbrRaw);
+          resolvedActorId = parsedMbr?.mbrId || parsedMbr?.id || undefined;
+        }
+      } catch {}
+    }
+
     const response = await fetch(`${API_BASE_URL}/events`, {
       method: 'POST',
       headers: {
@@ -6082,6 +6120,7 @@ export const eventApi = {
       body: JSON.stringify({
         eventSiteCd: event.eventSiteCd || 'SB',
         ...event,
+        eventActorId: resolvedActorId,
       }),
     });
     return handleResponse<EventRecord>(response);

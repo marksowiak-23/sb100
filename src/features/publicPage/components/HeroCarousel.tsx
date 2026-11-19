@@ -25,14 +25,14 @@ const SLIDES = [
     subtitle: 'Uncover the wisdom of your ancestors and document your personal journey.'
   },
   {
-    image: '/carousel_shared_history.jpg',
-    title: 'Co-Author Your Shared History.',
-    subtitle: 'Collaborate with family members to write chapters of shared events and experiences.'
+    image: '/carousel_friends_family.jpg',
+    title: 'Share the Stories That Bring Us Together.',
+    subtitle: 'Swap memories, share laughs, and celebrate every milestone with the friends and family who lived them with you.'
   },
   {
-    image: '/carousel_legacy_wisdom.jpg',
-    title: 'Create a Legacy of Wisdom.',
-    subtitle: 'Pass down lessons, advice, and values in a beautiful, structured format.'
+    image: '/carousel_contemporary_life.jpg',
+    title: 'Live the Adventure. Chronicle the Ride.',
+    subtitle: 'From road trips and creative leaps to modern milestones — capture your vibe, your voice, and your life today.'
   }
 ];
 

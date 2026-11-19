@@ -266,7 +266,7 @@ export default function SbPublicPageFeature({ setActiveTab, onClickReadStory, on
         ogType="website"
         ogTitle="Explore Stories, Voices & Connections | BackStory"
         ogDescription="Discover real stories, adventures, and creative journeys from people of all ages. Share your voice on BackStory."
-        ogImage="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&h=630&fit=crop"
+        ogImage="/backstory_splash_collage.jpg"
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "CollectionPage",

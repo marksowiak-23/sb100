@@ -22,6 +22,7 @@ import { taskApi } from '@/src/services/api';
 
 interface AuthorHowToCardProps {
   className?: string;
+  onVisibilityChange?: (isHidden: boolean) => void;
 }
 
 interface StepItem {
@@ -37,7 +38,7 @@ interface StepItem {
   borderColor: string;
 }
 
-export default function AuthorHowToCard({ className = '' }: AuthorHowToCardProps) {
+export default function AuthorHowToCard({ className = '', onVisibilityChange }: AuthorHowToCardProps) {
   const [activeMbrId, setActiveMbrId] = useState<string | null>(() => {
     const mbr = userManager.getStoredMember();
     return mbr?.mbrId || null;
@@ -53,6 +54,10 @@ export default function AuthorHowToCard({ className = '' }: AuthorHowToCardProps
     }
     return false;
   });
+
+  useEffect(() => {
+    onVisibilityChange?.(isHiddenByPref);
+  }, [isHiddenByPref, onVisibilityChange]);
 
   const [isOpen, setIsOpen] = useState(false);
   const [showHideConfirmDialog, setShowHideConfirmDialog] = useState<boolean>(false);

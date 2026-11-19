@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer, ArrowUpDown, ArrowUp, ArrowDown, Layout, Newspaper, Camera, Image as ImageIcon, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
-import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark, resolveMediaUrl, mediaApi, MEDIA_API_BASE_URL } from '@/src/services/api';
+import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark, resolveMediaUrl, mediaApi, MEDIA_API_BASE_URL, isAudioMedia, eventApi } from '@/src/services/api';
 import { FALLBACK_PERSONAS, WriterPersona } from '@/src/features/mbrPreferencesPage/types';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
@@ -894,6 +894,8 @@ export default function StoryEditorPanel({
   const [publishing, setPublishing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showUnpublishEditModal, setShowUnpublishEditModal] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [activeThreadId, setActiveThreadId] = useState<string | undefined>(undefined);
@@ -1068,6 +1070,46 @@ export default function StoryEditorPanel({
     };
   }, [memberId, resolvedMbrId, activeStory?.mbrMbrId, readOnly]);
 
+  const logStoryEditorEvent = (
+    eventCd: string,
+    eventDetail: string,
+    extraTags?: Record<string, any>
+  ) => {
+    eventApi.logEvent({
+      eventSiteCd: 'SB',
+      eventActorId: resolvedMbrId || undefined,
+      eventActorTypeCd: 'MBR',
+      eventCd,
+      eventDetail,
+      eventTagValue: {
+        mbrStoryId: activeStoryId || undefined,
+        mbrStoryTitle: title || undefined,
+        topicId: resolvedTopicId || topicId || undefined,
+        topicTitle: topicTitle || undefined,
+        isSandbox,
+        ...(extraTags || {})
+      }
+    }).catch((err) => console.warn(`Failed to log ${eventCd} event:`, err));
+  };
+
+  const handleOpenPhotoGallery = (source: 'icon' | 'menu' = 'icon') => {
+    logStoryEditorEvent(
+      'STORY_PHOTO_GALLERY_OPEN',
+      `Member opened Story Photos gallery for '${title || activeStoryId || topicTitle}'`,
+      { source, photoCount: activePhotoCount }
+    );
+    setShowPhotoGalleryModal(true);
+  };
+
+  const handleOpenAiVoiceModal = (source: 'icon' | 'menu' = 'icon') => {
+    logStoryEditorEvent(
+      'STORY_AI_VOICE_OPEN',
+      `Member opened AI Voice Narration modal for '${title || activeStoryId || topicTitle}'`,
+      { source }
+    );
+    setShowAiVoiceModal(true);
+  };
+
   const handlePrintToPdf = () => {
     if (hasExhaustedCredits) {
       setExhaustedActionAttempted('Printing story to PDF');
@@ -1083,6 +1125,10 @@ export default function StoryEditorPanel({
       setError('Please write some story content or enter a title before generating a PDF.');
       return;
     }
+    logStoryEditorEvent(
+      'STORY_PRINT_PDF_OPEN',
+      `Member opened Print to PDF modal for '${effectiveTitle || activeStoryId || topicTitle}'`
+    );
     setShowPdfModal(true);
   };
 
@@ -1097,8 +1143,9 @@ export default function StoryEditorPanel({
           try {
             const list: MbrMedia[] = JSON.parse(savedMedia);
             if (Array.isArray(list)) {
-              setAvailableStoryPhotos(list);
-              list.forEach((m) => {
+              const photoOnlyList = list.filter((m) => !isAudioMedia(m));
+              setAvailableStoryPhotos(photoOnlyList);
+              photoOnlyList.forEach((m) => {
                 if (m.mbrMediaSubordinateId) {
                   counts[m.mbrMediaSubordinateId] = (counts[m.mbrMediaSubordinateId] || 0) + 1;
                 }
@@ -1107,10 +1154,11 @@ export default function StoryEditorPanel({
           } catch {}
         }
       } else {
-        const list = await taskApi.getMemberMedia(mbr).catch(() => []);
+        const list = await taskApi.getMemberMedia(mbr, { excludeAudio: true }).catch(() => []);
         if (Array.isArray(list)) {
-          setAvailableStoryPhotos(list);
-          list.forEach((m) => {
+          const photoOnlyList = list.filter((m) => !isAudioMedia(m));
+          setAvailableStoryPhotos(photoOnlyList);
+          photoOnlyList.forEach((m) => {
             if (m.mbrMediaSubordinateId) {
               counts[m.mbrMediaSubordinateId] = (counts[m.mbrMediaSubordinateId] || 0) + 1;
             }
@@ -1796,7 +1844,7 @@ Output Rules:
 
   const recordedViewsRef = React.useRef<Set<string>>(new Set());
 
-  const selectStory = (story: Partial<MbrStory>) => {
+  const selectStory = (story: Partial<MbrStory>, isUserClick = false) => {
     setActiveStoryId(story.mbrStoryId || null);
     setTitle(story.mbrStoryTitle || '');
     const parsed = parseStoryLayout(story.mbrStoryContent || '', story.mbrStoryId, story);
@@ -1812,39 +1860,60 @@ Output Rules:
     setError(null);
     setSuccessMsg(null);
 
-    // Record View Activity if viewing another member's story
+    // Record View Activity & STORY_READ event if viewing another member's story
     if (story.mbrStoryId && !story.mbrStoryId.startsWith('temp_')) {
       (async () => {
         try {
-          let viewerMbrId: string | null = null;
-          const storedMbr = sessionStorage.getItem('sb_current_mbr');
-          if (storedMbr) {
-            try {
-              const parsed = JSON.parse(storedMbr);
-              if (parsed.mbrId) viewerMbrId = parsed.mbrId;
-            } catch {}
+          let currentViewerMbrId: string | null = propViewerMbrId || null;
+          if (!currentViewerMbrId) {
+            const storedMbr = sessionStorage.getItem('sb_current_mbr');
+            if (storedMbr) {
+              try {
+                const parsed = JSON.parse(storedMbr);
+                if (parsed.mbrId) currentViewerMbrId = parsed.mbrId;
+              } catch {}
+            }
           }
-          if (!viewerMbrId) {
+          if (!currentViewerMbrId) {
             const userStr = sessionStorage.getItem('user');
             if (userStr) {
               try {
                 const u = JSON.parse(userStr);
                 const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-                if (mbrProfile && mbrProfile.mbrId) viewerMbrId = mbrProfile.mbrId;
+                if (mbrProfile && mbrProfile.mbrId) currentViewerMbrId = mbrProfile.mbrId;
               } catch {}
             }
           }
 
           const storyOwnerMbrId = story.mbrMbrId || (memberId === 'm1' ? 'e20986fa-0fb9-4081-ae5d-35bc8f504df0' : memberId);
-          if (viewerMbrId && storyOwnerMbrId && viewerMbrId !== storyOwnerMbrId) {
-            const viewKey = `${viewerMbrId}_${story.mbrStoryId}`;
+          if (currentViewerMbrId && storyOwnerMbrId && currentViewerMbrId !== storyOwnerMbrId) {
+            if (isUserClick) {
+              eventApi.logEvent({
+                eventSiteCd: 'SB',
+                eventActorId: currentViewerMbrId,
+                eventActorTypeCd: 'MBR',
+                eventCd: 'STORY_READ',
+                eventDetail: `Member read story '${story.mbrStoryTitle || 'Untitled Story'}' by ${authorName || storyOwnerMbrId}`,
+                eventTagValue: {
+                  mbrStoryId: story.mbrStoryId,
+                  mbrStoryTitle: story.mbrStoryTitle || undefined,
+                  authorMbrId: storyOwnerMbrId,
+                  topicId: resolvedTopicId || topicId || undefined,
+                  topicTitle: story.mbrStoryTopicName || topicTitle || undefined,
+                  source: 'StoryEditorPanelGrid',
+                  isSandbox,
+                }
+              }).catch((err) => console.warn('Could not log STORY_READ event:', err));
+            }
+
+            const viewKey = `${currentViewerMbrId}_${story.mbrStoryId}`;
             if (!recordedViewsRef.current.has(viewKey)) {
               recordedViewsRef.current.add(viewKey);
               if (!isSandbox) {
                 await mbrStoryActivityApi.createStoryActivity({
                   mbrId: storyOwnerMbrId,
                   mbrStoryId: story.mbrStoryId,
-                  actMbrId: viewerMbrId,
+                  actMbrId: currentViewerMbrId,
                   actTypeCd: 'VIEW',
                   actDate: new Date().toISOString()
                 });
@@ -1935,6 +2004,11 @@ Output Rules:
       setShowExhaustedCreditsModal(true);
       return;
     }
+
+    logStoryEditorEvent(
+      'STORY_NEW_OPEN',
+      `Member started a new story in topic '${topicTitle}'`
+    );
 
     const isSparkTopic =
       topicId?.toLowerCase() === 'sparks' ||
@@ -2371,6 +2445,11 @@ Output Rules:
           const updatedTarget = nextList.find((s) => s.mbrStoryId === originalId) || { ...updatedOriginalStory, mbrStoryId: originalId };
           selectStory(updatedTarget);
           setSuccessMsg('Published draft changes to original story, and removed draft copy!');
+          logStoryEditorEvent(
+            'STORY_PUBLISH',
+            `Member published story '${updatedOriginalStory.mbrStoryTitle}'`,
+            { mbrStoryId: originalId, publishStatus: 'Published' }
+          );
         } else {
           const savedResult = await taskApi.updateStory(originalId, updatedOriginalStory);
           if (activeStoryId && activeStoryId !== originalId && !activeStoryId.startsWith('temp_')) {
@@ -2432,6 +2511,15 @@ Output Rules:
         setStories(nextList);
         sessionStorage.setItem(sandboxKey, JSON.stringify(nextList));
         setSuccessMsg('Story saved successfully to Sandbox!');
+        const isExistingSandboxStory = Boolean(activeStoryId && !activeStoryId.startsWith('temp_'));
+        const sandboxEventCd = (status || '').toLowerCase() === 'published'
+          ? 'STORY_PUBLISH'
+          : (isExistingSandboxStory ? 'STORY_UPDATE' : 'STORY_CREATE');
+        logStoryEditorEvent(
+          sandboxEventCd,
+          `Member ${sandboxEventCd === 'STORY_CREATE' ? 'created' : sandboxEventCd === 'STORY_PUBLISH' ? 'published' : 'updated'} story '${sandboxStory.mbrStoryTitle}'`,
+          { mbrStoryId: sandboxStory.mbrStoryId, publishStatus: status }
+        );
       } else {
         let savedResult: MbrStory;
         if (activeStoryId && !activeStoryId.startsWith('temp_')) {
@@ -2663,6 +2751,11 @@ Output Rules:
           const updatedTarget = nextList.find((s) => s.mbrStoryId === originalId) || { ...updatedOriginalStory, mbrStoryId: originalId };
           selectStory(updatedTarget);
           setSuccessMsg('Published draft changes to original story, and removed draft copy!');
+          logStoryEditorEvent(
+            'STORY_PUBLISH',
+            `Member published story '${updatedOriginalStory.mbrStoryTitle}'`,
+            { mbrStoryId: originalId, publishStatus: 'Published' }
+          );
         } else {
           const savedResult = await taskApi.updateStory(originalId, updatedOriginalStory);
           if (activeStoryId && activeStoryId !== originalId && !activeStoryId.startsWith('temp_')) {
@@ -2754,7 +2847,78 @@ Output Rules:
   const handleEditClick = () => {
     setError(null);
     setSuccessMsg(null);
+    if ((status || '').toLowerCase() === 'published') {
+      setShowUnpublishEditModal(true);
+      return;
+    }
+    logStoryEditorEvent(
+      'STORY_EDIT_OPEN',
+      `Member opened story editor for '${title || activeStoryId || topicTitle}'`
+    );
     setIsEditing(true);
+  };
+
+  const executeUnpublishAndEdit = async () => {
+    if (!activeStoryId) {
+      setShowUnpublishEditModal(false);
+      return;
+    }
+    setUnpublishing(true);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
+      if (isSandbox) {
+        const finalStoryTypeCd =
+          (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly')
+            ? 'sbMbrStryFamly'
+            : (componentName || componentNameMap[topicId?.toLowerCase()] || topicId || 'sbMbrStryCustom');
+        const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
+        const updatedList = stories.map((s) =>
+          s.mbrStoryId === activeStoryId
+            ? { ...s, mbrStoryPublishStatusCd: 'Draft' }
+            : s
+        );
+        setStories(updatedList);
+        sessionStorage.setItem(sandboxKey, JSON.stringify(updatedList));
+        logStoryEditorEvent(
+          'STORY_UNPUBLISH',
+          `Member unpublished story '${title || activeStoryId}' and converted it to Draft`,
+          { publishStatus: 'Draft' }
+        );
+      } else if (!activeStoryId.startsWith('temp_')) {
+        const updatedResult = await taskApi.updateStory(activeStoryId, {
+          mbrStoryPublishStatusCd: 'Draft'
+        });
+        setStories((prev) =>
+          prev.map((s) =>
+            s.mbrStoryId === activeStoryId
+              ? { ...s, ...updatedResult, mbrStoryPublishStatusCd: 'Draft' }
+              : s
+          )
+        );
+        window.dispatchEvent(new CustomEvent('stats-updated'));
+      } else if (activeStory) {
+        setStories((prev) =>
+          prev.map((s) =>
+            s.mbrStoryId === activeStoryId ? { ...s, mbrStoryPublishStatusCd: 'Draft' } : s
+          )
+        );
+      }
+
+      setStatus('Draft');
+      setShowUnpublishEditModal(false);
+      logStoryEditorEvent(
+        'STORY_EDIT_OPEN',
+        `Member opened story editor for '${title || activeStoryId || topicTitle}' after unpublishing to Draft`
+      );
+      setIsEditing(true);
+    } catch (err: any) {
+      setError(`Failed to unpublish story: ${err?.message || 'Unknown error'}`);
+      setShowUnpublishEditModal(false);
+    } finally {
+      setUnpublishing(false);
+    }
   };
 
   const handleCancel = () => {
@@ -2835,6 +2999,11 @@ Output Rules:
           const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
           const currentList = stories.map((s) => (s.mbrStoryId === activeStoryId ? updated : s));
           sessionStorage.setItem(sandboxKey, JSON.stringify(currentList));
+          logStoryEditorEvent(
+            'STORY_LAYOUT_TOGGLE',
+            `Member switched story '${title || activeStoryId}' layout to ${newLayout}`,
+            { layout: newLayout }
+          );
         }
       }
     }
@@ -2979,6 +3148,10 @@ Output Rules:
       setError('Please select or create a story first before configuring group privacy.');
       return;
     }
+    logStoryEditorEvent(
+      'STORY_PRIVACY_OPEN',
+      `Member opened Privacy Settings for story '${title || activeStoryId}'`
+    );
     setShowStoryPrivacyModal(true);
   };
 
@@ -3152,7 +3325,7 @@ Output Rules:
                   return (
                     <tr
                       key={s.mbrStoryId}
-                      onClick={() => selectStory(s)}
+                      onClick={() => selectStory(s, true)}
                       className={`cursor-pointer transition-colors duration-150 ${
                         isActive
                           ? 'bg-blue-50/70 font-bold text-slate-900'
@@ -3519,6 +3692,11 @@ Output Rules:
                   const customDesc = matchedCustom?.topicCustomTopicDesc || matchedCustom?.mbrCustomTopicDesc || (matchedCustom as any)?.topicCustomTipicDesc;
                   const finalCustomId = matchedCustom?.topicCustomId || matchedCustom?.mbrCustomTopicId || targetCustomId;
 
+                  logStoryEditorEvent(
+                    'STORY_STORYMATE_OPEN',
+                    `Member opened StoryMate AI assistant for '${title || topicTitle}'`
+                  );
+
                   window.dispatchEvent(new CustomEvent('open-story-mate', {
                     detail: {
                       componentName: compName,
@@ -3606,7 +3784,7 @@ Output Rules:
                     {/* Photo Gallery Quick Button */}
                     <button
                       type="button"
-                      onClick={() => setShowPhotoGalleryModal(true)}
+                      onClick={() => handleOpenPhotoGallery('icon')}
                       disabled={!activeStoryId}
                       title={`Story Photos${activePhotoCount > 0 ? ` (${activePhotoCount} photos)` : ''}`}
                       className="relative p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-150 rounded-xl cursor-pointer transition-colors"
@@ -3623,7 +3801,7 @@ Output Rules:
                     {isStoryPublished && (
                       <button
                         type="button"
-                        onClick={() => setShowAiVoiceModal(true)}
+                        onClick={() => handleOpenAiVoiceModal('icon')}
                         disabled={!activeStoryId}
                         title="Generate AI Voice Narration (MP3)"
                         className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 rounded-xl cursor-pointer transition-colors"
@@ -3686,28 +3864,6 @@ Output Rules:
                                 <span>Edit Story</span>
                               </button>
 
-                              {/* Toggle Story Layout */}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setShowActionMenu(false);
-                                  handleToggleStoryLayout(storyLayout === 'news_header' ? 'default' : 'news_header');
-                                }}
-                                className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 transition-colors cursor-pointer text-left"
-                              >
-                                {storyLayout === 'news_header' ? (
-                                  <>
-                                    <FileText className="w-4 h-4 text-slate-500 shrink-0" />
-                                    <span>Switch to Default Layout</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Newspaper className="w-4 h-4 text-amber-600 shrink-0" />
-                                    <span>Switch to Photo Layout</span>
-                                  </>
-                                )}
-                              </button>
-
                               {/* Publish Story */}
                               <button
                                 type="button"
@@ -3762,7 +3918,7 @@ Output Rules:
                                 type="button"
                                 onClick={() => {
                                   setShowActionMenu(false);
-                                  setShowPhotoGalleryModal(true);
+                                  handleOpenPhotoGallery('menu');
                                 }}
                                 disabled={!activeStoryId}
                                 className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors cursor-pointer text-left"
@@ -3783,7 +3939,7 @@ Output Rules:
                                   type="button"
                                   onClick={() => {
                                     setShowActionMenu(false);
-                                    setShowAiVoiceModal(true);
+                                    handleOpenAiVoiceModal('menu');
                                   }}
                                   disabled={!activeStoryId}
                                   className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer text-left"
@@ -4151,6 +4307,63 @@ Output Rules:
           </div>
         )}
       </AnimatePresence>
+
+      {/* --- UNPUBLISH TO DRAFT CONFIRMATION MODAL --- */}
+      <AnimatePresence>
+        {showUnpublishEditModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div
+              className="absolute inset-0 cursor-default"
+              onClick={() => !unpublishing && setShowUnpublishEditModal(false)}
+            />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-slate-100 rounded-3xl shadow-2xl max-w-sm w-full z-10 p-6 flex flex-col items-center text-center gap-4 relative overflow-hidden"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="font-serif text-lg font-bold text-slate-850">
+                  Unpublish Story to Edit?
+                </h3>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                  <span className="font-semibold text-slate-700">"{title || 'This story'}"</span> is currently published. Editing it will unpublish the story and convert its status back to <span className="font-semibold text-amber-700">Draft</span> mode until you publish it again.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 w-full pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowUnpublishEditModal(false)}
+                  disabled={unpublishing}
+                  className="flex-1 py-2.5 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={executeUnpublishAndEdit}
+                  disabled={unpublishing}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/15 transition-all cursor-pointer border border-amber-600 disabled:opacity-50"
+                >
+                  {unpublishing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Edit3 className="w-3.5 h-3.5" />
+                  )}
+                  <span>{unpublishing ? 'Updating...' : 'Continue'}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* --- CUSTOM TOPIC SELECTION MODAL --- */}
       <AnimatePresence>
         {showCustomTopicModal && (
@@ -4463,6 +4676,8 @@ Output Rules:
       <StoryPdfPrintModal
         isOpen={showPdfModal}
         onClose={() => setShowPdfModal(false)}
+        mbrId={resolvedMbrId || undefined}
+        storyId={activeStoryId || undefined}
         storyTitle={title || stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryTitle || 'Untitled Story'}
         storyContent={content || stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryText || ''}
         topicTitle={stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryTopicName || topicTitle || 'Story'}

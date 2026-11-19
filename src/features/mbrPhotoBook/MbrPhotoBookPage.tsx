@@ -432,7 +432,7 @@ export default function MbrPhotoBookPage({
       const coverPhoto = albumPhotos.find((p) => p.isCover) || albumPhotos[0];
       stats[a.id] = {
         count: albumPhotos.length,
-        coverUrl: a.coverPhotoUrl || coverPhoto?.url || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80'
+        coverUrl: a.coverPhotoUrl || coverPhoto?.url || '/storybook_book_output.jpg'
       };
     }
     return stats;
@@ -581,7 +581,7 @@ export default function MbrPhotoBookPage({
         }).catch(() => {});
       } else {
         // Create new album
-        const defaultCover = 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=800&auto=format&fit=crop&q=80';
+        const defaultCover = '/storybook_book_output.jpg';
         let newAlbumId = `album-${Date.now()}`;
         let liveRecordId: string | undefined;
 
@@ -900,20 +900,22 @@ export default function MbrPhotoBookPage({
 
       showToast(`Successfully uploaded ${stagedFiles.length} photo${stagedFiles.length > 1 ? 's' : ''}!`);
 
-      eventApi.logEvent({
-        eventSiteCd: 'SB',
-        eventActorId: currentMbrId || undefined,
-        eventActorTypeCd: 'MBR',
-        eventCd: 'PHOTO_UPLOAD',
-        eventDetail: `Member uploaded ${stagedFiles.length} photograph${stagedFiles.length > 1 ? 's' : ''} to Heirloom Photo Book${uploadTargetAlbumId ? ` in album '${albums.find((a) => a.id === uploadTargetAlbumId)?.name || uploadTargetAlbumId}'` : ''}`,
-        eventTagValue: {
-          photoCount: stagedFiles.length,
-          albumId: uploadTargetAlbumId || undefined,
-          albumName: albums.find((a) => a.id === uploadTargetAlbumId)?.name || undefined,
-          filenames: stagedFiles.map((f) => f.file.name),
-          isSandbox,
-        }
-      }).catch((logErr) => console.warn('Could not log PHOTO_UPLOAD event:', logErr));
+      if (isSandbox) {
+        eventApi.logEvent({
+          eventSiteCd: 'SB',
+          eventActorId: currentMbrId || undefined,
+          eventActorTypeCd: 'MBR',
+          eventCd: 'PHOTO_UPLOAD',
+          eventDetail: `Member uploaded ${stagedFiles.length} photograph${stagedFiles.length > 1 ? 's' : ''} to Photo Book${uploadTargetAlbumId ? ` in album '${albums.find((a) => a.id === uploadTargetAlbumId)?.name || uploadTargetAlbumId}'` : ''}`,
+          eventTagValue: {
+            photoCount: stagedFiles.length,
+            albumId: uploadTargetAlbumId || undefined,
+            albumName: albums.find((a) => a.id === uploadTargetAlbumId)?.name || undefined,
+            filenames: stagedFiles.map((f) => f.file.name),
+            isSandbox,
+          }
+        }).catch((logErr) => console.warn('Could not log PHOTO_UPLOAD event:', logErr));
+      }
 
       setIsUploadModalOpen(false);
       setStagedFiles([]);
@@ -1048,22 +1050,24 @@ export default function MbrPhotoBookPage({
 
       showToast('Photo details updated.');
 
-      eventApi.logEvent({
-        eventSiteCd: 'SB',
-        eventActorId: currentMbrId || undefined,
-        eventActorTypeCd: 'MBR',
-        eventCd: 'PHOTO_EDIT',
-        eventDetail: `Member updated details for photo '${photoFormTitle.trim() || editingPhoto.title}'`,
-        eventTagValue: {
-          photoId: editingPhoto.id,
-          photoTitle: photoFormTitle.trim(),
-          date: photoFormDate.trim(),
-          location: photoFormLocation.trim(),
-          albumId: photoFormAlbumId || undefined,
-          isCover: photoFormIsCover,
-          isSandbox,
-        }
-      }).catch(() => {});
+      if (isSandbox) {
+        eventApi.logEvent({
+          eventSiteCd: 'SB',
+          eventActorId: currentMbrId || undefined,
+          eventActorTypeCd: 'MBR',
+          eventCd: 'PHOTO_EDIT',
+          eventDetail: `Member updated details for photo '${photoFormTitle.trim() || editingPhoto.title}'`,
+          eventTagValue: {
+            photoId: editingPhoto.id,
+            photoTitle: photoFormTitle.trim(),
+            date: photoFormDate.trim(),
+            location: photoFormLocation.trim(),
+            albumId: photoFormAlbumId || undefined,
+            isCover: photoFormIsCover,
+            isSandbox,
+          }
+        }).catch(() => {});
+      }
 
       setEditingPhoto(null);
     } catch (err) {
@@ -1197,19 +1201,21 @@ export default function MbrPhotoBookPage({
 
         showToast(`Deleted ${targetPhotos.length} photo${targetPhotos.length > 1 ? 's' : ''}.`);
 
-        eventApi.logEvent({
-          eventSiteCd: 'SB',
-          eventActorId: currentMbrId || undefined,
-          eventActorTypeCd: 'MBR',
-          eventCd: 'PHOTO_DELETE',
-          eventDetail: `Member deleted ${targetPhotos.length} photograph${targetPhotos.length > 1 ? 's' : ''} from photo collection`,
-          eventTagValue: {
-            deletedCount: targetPhotos.length,
-            photoIds: Array.from(targetIds),
-            photoTitles: targetPhotos.map((p) => p.title),
-            isSandbox,
-          }
-        }).catch((logErr) => console.warn('Could not log PHOTO_DELETE event:', logErr));
+        if (isSandbox) {
+          eventApi.logEvent({
+            eventSiteCd: 'SB',
+            eventActorId: currentMbrId || undefined,
+            eventActorTypeCd: 'MBR',
+            eventCd: 'PHOTO_DELETE',
+            eventDetail: `Member deleted ${targetPhotos.length} photograph${targetPhotos.length > 1 ? 's' : ''} from photo collection`,
+            eventTagValue: {
+              deletedCount: targetPhotos.length,
+              photoIds: Array.from(targetIds),
+              photoTitles: targetPhotos.map((p) => p.title),
+              isSandbox,
+            }
+          }).catch((logErr) => console.warn('Could not log PHOTO_DELETE event:', logErr));
+        }
       }
 
       setPhotoActionPending(null);
@@ -1416,7 +1422,7 @@ export default function MbrPhotoBookPage({
                         {/* Cover Image Container */}
                         <div className="relative aspect-4/3 overflow-hidden bg-slate-100">
                           <img
-                            src={stats.coverUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80'}
+                            src={stats.coverUrl || '/storybook_book_output.jpg'}
                             alt={album.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             loading="lazy"

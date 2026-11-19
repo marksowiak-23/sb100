@@ -26,14 +26,14 @@ export type mbrAuthorPhotoBookPanelProps = MbrAuthorPhotoBookPanelProps;
 
 // Curated vintage heirloom fallback previews
 const FALLBACK_PREVIEWS = [
-  'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=300&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1544717305-2782549b5136?w=300&auto=format&fit=crop&q=80',
-  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=300&auto=format&fit=crop&q=80'
+  '/carousel_life_book.jpg',
+  '/storybook_book_output.jpg',
+  '/carousel_shared_memories.jpg'
 ];
 
 export default function MbrAuthorPhotoBookPanel({
   onOpenPhotoBook,
-  title = 'Heirloom Photo Book',
+  title = 'Photo Book',
   description = 'Collect, curate, and arrange cherished photographs with narratives into timeless chapters.',
   buttonText = 'Open Photo Book',
   memberId

@@ -60,7 +60,7 @@ const UserCard: React.FC<UserCardProps> = ({
           mbrLastName: 'Member',
           mbrEmail: user.email,
           userId: user.user_id,
-          mbrProfilePic: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&auto=format'
+          mbrProfilePic: '/assets/avatars/default_avatar_female_1.jpg'
         };
         sessionStorage.setItem('sandbox_mbr', JSON.stringify(mockMbr));
         sessionStorage.setItem('sb_current_mbr', JSON.stringify(mockMbr));

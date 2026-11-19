@@ -32,7 +32,7 @@ const SANDBOX_STORIES: Record<string, any> = {
     authorMbrId: 'm2',
     authorName: 'Marcus Delacroix',
     authorLocation: 'New Orleans, LA',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_male_1.jpg',
     authorInitials: 'MD',
     connectionGrpName: 'Friends'
   },
@@ -46,7 +46,7 @@ const SANDBOX_STORIES: Record<string, any> = {
     authorMbrId: 'm3',
     authorName: 'Priya Chandrasekaran',
     authorLocation: 'Chicago, IL',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1554151228-14d9def656e4?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_female_2.jpg',
     authorInitials: 'PC',
     connectionGrpName: 'Colleagues'
   },
@@ -60,7 +60,7 @@ const SANDBOX_STORIES: Record<string, any> = {
     authorMbrId: 'e20986fa-0fb9-4081-ae5d-35bc8f504df0',
     authorName: 'Eleanor Hartwell',
     authorLocation: 'Portland, OR',
-    authorAvatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&h=120&fit=crop&auto=format',
+    authorAvatarUrl: '/assets/avatars/default_avatar_female_1.jpg',
     authorInitials: 'EH',
     connectionGrpName: 'Family'
   }

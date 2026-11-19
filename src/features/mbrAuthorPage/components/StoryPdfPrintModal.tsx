@@ -41,6 +41,8 @@ import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 interface StoryPdfPrintModalProps {
   isOpen: boolean;
   onClose: () => void;
+  mbrId?: string;
+  storyId?: string;
   storyTitle: string;
   storyContent: string;
   topicTitle?: string;
@@ -55,6 +57,8 @@ interface StoryPdfPrintModalProps {
 export default function StoryPdfPrintModal({
   isOpen,
   onClose,
+  mbrId,
+  storyId,
   storyTitle,
   storyContent,
   topicTitle = 'Story',
@@ -197,13 +201,15 @@ export default function StoryPdfPrintModal({
 
       onSuccess?.(`Story PDF generated successfully (${pageSize.toUpperCase()}, ${orientation})!`);
 
-      // Log print-to-pdf event
+      // Log print-to-pdf event with resolved member actor ID
       eventApi.logEvent({
         eventSiteCd: 'SB',
+        eventActorId: mbrId || undefined,
         eventActorTypeCd: 'MBR',
         eventCd: 'STORY_PRINT_PDF',
         eventDetail: `Member generated PDF printout for story '${customTitle || storyTitle || 'Untitled Story'}' (${pageSize.toUpperCase()}, ${orientation})`,
         eventTagValue: {
+          mbrStoryId: storyId || undefined,
           storyTitle: customTitle || storyTitle,
           pageSize,
           orientation,
@@ -213,7 +219,11 @@ export default function StoryPdfPrintModal({
           topicTitle: customTopic,
           colorTheme,
         }
-      }).catch((logErr) => console.warn('Could not log STORY_PRINT_PDF event:', logErr));
+      })
+        .then(() => {
+          window.dispatchEvent(new CustomEvent('credits-updated'));
+        })
+        .catch((logErr) => console.warn('Could not log STORY_PRINT_PDF event:', logErr));
 
       onClose();
     } catch (err: any) {

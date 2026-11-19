@@ -28,7 +28,7 @@ import {
   Home
 } from 'lucide-react';
 import { userManager } from '@/src/services/userManager';
-import { taskApi, mbrRememberWhenApi } from '@/src/services/api';
+import { taskApi, mbrRememberWhenApi, eventApi } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { useMemberCredits } from '@/src/services/creditBalanceService';
 import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
@@ -1323,6 +1323,22 @@ export default function SbRememberWhenCard({ onClickAuthorPage }: SbRememberWhen
       const startYr = currentStageRange.startYear;
       const endYr = currentStageRange.endYear;
       const randomYearInStage = Math.floor(Math.random() * (endYr - startYr + 1)) + startYr;
+
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: mbrId,
+        eventActorTypeCd: 'MBR',
+        eventCd: 'AI_FLASHBACK_GENERATE',
+        eventDetail: `Member clicked AI Flashback on Remember When card (${currentStageRange.label}, ${randomYearInStage})`,
+        eventTagValue: {
+          component: 'SbRememberWhenCard',
+          birthYear,
+          lifeStage: activeLifeStage,
+          lifeStageLabel: currentStageRange.label,
+          targetYear: randomYearInStage,
+          category: activeCategory,
+        }
+      }).catch((err) => console.warn('Could not log AI_FLASHBACK_GENERATE event:', err));
 
       const aiItem = await mbrRememberWhenApi.generateAiMemory(mbrId, {
         birthYear,
