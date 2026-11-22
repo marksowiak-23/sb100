@@ -11,6 +11,7 @@ import {
   X, MessageCircle, Loader2, Clock, Reply, Pencil, Trash2, Check, Camera, Images, Image as ImageIcon
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { playUiSound } from '@/src/services/soundService';
 import { resolveMediaUrl, taskApi, MbrStoryLikes, MbrStoryComments, MbrMedia } from '@/src/services/api';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
 import { storyCache } from '@/src/utils/storyCache';
@@ -29,6 +30,7 @@ export interface FeedStoryItem {
   mbrStoryHeaderPhotoUrl?: string;
   mbrStoryHeaderPhotoCaption?: string;
   mbrStoryHeaderPhotoStyleCd?: string;
+  mbrStoryAiVoiceFlag?: boolean;
   authorMbrId: string;
   authorName: string;
   authorLocation?: string;
@@ -386,48 +388,57 @@ function CommentThreadItem({
   ];
   const avatarGradient = avatarGradients[depth % avatarGradients.length];
 
+  const isReplyTarget = activeReplyCommentId === comment.mbrCommentsId;
+
   return (
     <div
       className={
         isRoot
-          ? 'bg-slate-50/80 dark:bg-slate-800/60 rounded-lg px-2.5 py-1.5 border border-slate-200/80 dark:border-slate-750/80 space-y-1 shadow-2xs'
-          : 'bg-white/80 dark:bg-slate-900/80 rounded-md px-2 py-1 border border-slate-200/60 dark:border-slate-800 space-y-0.5 shadow-2xs'
+          ? `bg-white dark:bg-slate-800/70 rounded-2xl px-3.5 py-3 border space-y-2 shadow-2xs transition-colors ${
+              isReplyTarget
+                ? 'border-blue-300 dark:border-blue-700 ring-2 ring-blue-500/20'
+                : 'border-stone-200/80 dark:border-slate-700/80 hover:border-stone-300/90 dark:hover:border-slate-600'
+            }`
+          : `bg-stone-50/80 dark:bg-slate-900/70 rounded-xl px-3 py-2.5 border space-y-1.5 transition-colors ${
+              isReplyTarget
+                ? 'border-blue-300 dark:border-blue-700 ring-2 ring-blue-500/20'
+                : 'border-stone-200/70 dark:border-slate-800'
+            }`
       }
     >
       {/* Header with avatar, author name, replying-to metadata, timestamp & actions */}
-      <div className="flex items-center justify-between gap-1">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <div
             className={`${
-              isRoot ? 'w-5 h-5 text-[9.5px]' : 'w-4.5 h-4.5 text-[8.5px]'
-            } rounded-full bg-gradient-to-tr ${avatarGradient} text-white font-bold flex items-center justify-center shrink-0 shadow-2xs`}
+              isRoot ? 'w-7 h-7 text-xs' : 'w-6 h-6 text-[10px]'
+            } rounded-full bg-gradient-to-tr ${avatarGradient} text-white font-bold flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-xs`}
           >
             {(comment.mbrCommentsMbrName || 'M').charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
             <span
-              className={`font-semibold ${
-                isRoot ? 'text-[11.5px] text-slate-900 dark:text-white' : 'text-[10.5px] text-slate-800 dark:text-slate-200'
+              className={`font-bold ${
+                isRoot ? 'text-xs text-slate-900 dark:text-white' : 'text-[11.5px] text-slate-800 dark:text-slate-200'
               } truncate`}
             >
               {comment.mbrCommentsMbrName || 'Member'}
             </span>
             {parentComment && !isRoot && (
-              <span className="text-[9.5px] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-0.5">
-                <CornerDownRight className="w-2 h-2 inline shrink-0" />
-                <span>to</span>
+              <span className="text-[10.5px] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-0.5 bg-blue-50/80 dark:bg-blue-950/40 px-1.5 py-0.5 rounded-full">
+                <CornerDownRight className="w-2.5 h-2.5 inline shrink-0" />
                 <span className="font-semibold">@{parentComment.mbrCommentsMbrName || 'Member'}</span>
               </span>
             )}
-            <span className="text-[9px] text-slate-400 dark:text-slate-500 flex items-center gap-0.5">
-              <Clock className="w-2 h-2" />
+            <span className="text-[10.5px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+              <Clock className="w-2.5 h-2.5" />
               {formatTime(comment.mbrCommentsPostDt || comment.mbrCommentsCreatedAt)}
             </span>
           </div>
         </div>
 
         {/* Action Buttons: Edit, Delete, Reply */}
-        <div className="flex items-center gap-0.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {/* If Author: show Edit & Delete actions */}
           {isAuthor && !isEditing && !showDeleteConfirm && (
             <>
@@ -437,19 +448,19 @@ function CommentThreadItem({
                   setEditContent(comment.mbrCommentsContent);
                   setIsEditing(true);
                 }}
-                className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 cursor-pointer px-1 py-0.2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 cursor-pointer px-2 py-0.5 rounded-lg hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors"
                 title="Edit your comment"
               >
-                <Pencil className="w-2 h-2" />
+                <Pencil className="w-2.5 h-2.5" />
                 <span>Edit</span>
               </button>
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 cursor-pointer px-1 py-0.2 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 cursor-pointer px-2 py-0.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                 title="Delete your comment"
               >
-                <Trash2 className="w-2 h-2" />
+                <Trash2 className="w-2.5 h-2.5" />
                 <span>Delete</span>
               </button>
             </>
@@ -457,7 +468,7 @@ function CommentThreadItem({
 
           {/* Delete Inline Confirmation */}
           {showDeleteConfirm && (
-            <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/80 rounded px-1.5 py-0.2 text-[9.5px] animate-in fade-in duration-100">
+            <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/80 rounded-lg px-2 py-0.5 text-[10.5px] animate-in fade-in duration-100">
               <span className="text-rose-700 dark:text-rose-300 font-medium">Delete?</span>
               <button
                 type="button"
@@ -482,10 +493,10 @@ function CommentThreadItem({
             <button
               type="button"
               onClick={() => onReply(comment)}
-              className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer px-1.5 py-0.2 rounded hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 cursor-pointer px-2 py-0.5 rounded-lg bg-blue-50/70 hover:bg-blue-100/80 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 transition-colors"
               title={`Reply to ${comment.mbrCommentsMbrName || 'this comment'}`}
             >
-              <Reply className="w-2.5 h-2.5" />
+              <Reply className="w-3 h-3" />
               <span>Reply</span>
             </button>
           )}
@@ -494,12 +505,12 @@ function CommentThreadItem({
 
       {/* Comment Text Content or Inline Editor */}
       {isEditing ? (
-        <div className={`space-y-1 ${isRoot ? 'pl-6.5' : 'pl-6'}`}>
+        <div className={`space-y-1.5 ${isRoot ? 'pl-9' : 'pl-8'}`}>
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
             rows={2}
-            className="w-full resize-none px-2 py-1 text-xs rounded-md border border-blue-400 dark:border-blue-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full resize-none px-3 py-2 text-xs sm:text-[13px] rounded-xl border border-blue-400 dark:border-blue-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -510,11 +521,11 @@ function CommentThreadItem({
             }}
             autoFocus
           />
-          <div className="flex items-center gap-1 justify-end">
+          <div className="flex items-center gap-1.5 justify-end">
             <button
               type="button"
               onClick={() => setIsEditing(false)}
-              className="px-1.5 py-0.2 text-[10px] rounded font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="px-2.5 py-1 text-[11px] rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -522,17 +533,17 @@ function CommentThreadItem({
               type="button"
               disabled={!editContent.trim() || isSaving}
               onClick={handleSaveEdit}
-              className="inline-flex items-center gap-0.5 px-2 py-0.2 text-[10px] rounded font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1 px-3 py-1 text-[11px] rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors cursor-pointer shadow-2xs"
             >
-              {isSaving ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Check className="w-2.5 h-2.5" />}
+              {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
               <span>Save</span>
             </button>
           </div>
         </div>
       ) : (
         <p
-          className={`text-xs text-slate-700 dark:text-slate-200 leading-snug whitespace-pre-line ${
-            isRoot ? 'pl-6.5' : 'pl-6'
+          className={`text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line ${
+            isRoot ? 'pl-9' : 'pl-8'
           }`}
         >
           {comment.mbrCommentsContent}
@@ -541,14 +552,14 @@ function CommentThreadItem({
 
       {/* Accordion Toggle for Top-Level Comment Replies */}
       {isRoot && children.length > 0 && (
-        <div className="pl-6.5">
+        <div className="pl-9 pt-0.5">
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer py-0.2 px-1 -ml-1 rounded hover:bg-blue-50/70 dark:hover:bg-blue-950/40"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer py-0.5 px-2 -ml-2 rounded-lg hover:bg-blue-50/80 dark:hover:bg-blue-950/40"
           >
             <ChevronDown
-              className={`w-2.5 h-2.5 transition-transform duration-200 ${
+              className={`w-3 h-3 transition-transform duration-200 ${
                 isExpanded ? 'rotate-180 text-blue-700 dark:text-blue-300' : ''
               }`}
             />
@@ -560,8 +571,8 @@ function CommentThreadItem({
       {/* Nested Child Replies Indented Hierarchically (Rendered if expanded or if sub-branch) */}
       {children.length > 0 && (!isRoot || isExpanded) && (
         <div
-          className={`mt-1 pl-2 space-y-1 border-l-2 border-blue-200 dark:border-blue-900/60 ${
-            isRoot ? 'ml-2' : 'ml-1.5'
+          className={`mt-2 pl-3 space-y-2 border-l-2 border-blue-200/80 dark:border-blue-900/60 ${
+            isRoot ? 'ml-3' : 'ml-2'
           }`}
         >
           {children.map((childNode) => (
@@ -982,6 +993,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
       setTimeout(() => {
         commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
+      playUiSound('COMMENT_POST');
     } catch (err) {
       console.error('Failed to post comment:', err);
     } finally {
@@ -1078,7 +1090,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
-      className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 sm:p-7 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group ${
+      className={`bg-white dark:bg-slate-900 border rounded-2xl p-3.5 sm:px-5 sm:py-4 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group ${
         isRead
           ? 'border-emerald-200/80 dark:border-emerald-800/50 bg-emerald-50/20 dark:bg-emerald-950/10'
           : 'border-slate-200/80 dark:border-slate-800'
@@ -1094,13 +1106,13 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
       />
 
       {/* Header: Author Info & Connection Metadata */}
-      <div className="flex items-start justify-between gap-2.5 sm:gap-4 mb-4 sm:mb-5">
-        <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+      <div className="flex items-start justify-between gap-2 sm:gap-3 mb-2.5 sm:mb-3">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {/* Author Avatar */}
           <button
             type="button"
             onClick={() => (onClickViewAuthor ? onClickViewAuthor(story.authorMbrId) : onClickReadStory?.(story.mbrStoryId, story.authorMbrId))}
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full overflow-hidden bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 hover:ring-2 hover:ring-blue-500/50 transition-all focus:outline-none cursor-pointer"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-gradient-to-tr from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 border-2 border-white dark:border-slate-800 shadow-sm flex items-center justify-center shrink-0 hover:ring-2 hover:ring-blue-500/50 transition-all focus:outline-none cursor-pointer"
             title={`View ${story.authorName}'s backstory`}
           >
             {story.authorAvatarUrl ? (
@@ -1113,7 +1125,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
                 }}
               />
             ) : (
-              <span className="font-bold text-slate-600 dark:text-slate-300 text-sm sm:text-base">
+              <span className="font-bold text-slate-600 dark:text-slate-300 text-xs sm:text-sm">
                 {story.authorInitials || story.authorName.charAt(0) || 'M'}
               </span>
             )}
@@ -1121,28 +1133,28 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
 
           {/* Author Name & Subtext */}
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap leading-tight">
               <button
                 type="button"
                 onClick={() => (onClickViewAuthor ? onClickViewAuthor(story.authorMbrId) : onClickReadStory?.(story.mbrStoryId, story.authorMbrId))}
-                className="font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 text-sm sm:text-base transition-colors truncate text-left cursor-pointer"
+                className="font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 text-sm sm:text-[15px] transition-colors truncate text-left cursor-pointer"
               >
                 {story.authorName}
               </button>
 
               {story.connectionGrpName && (
-                <span className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
                   {story.isDirectShared ? (
-                    <UserCheck className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    <UserCheck className="w-3 h-3 text-indigo-500 shrink-0" />
                   ) : (
-                    <Users className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    <Users className="w-3 h-3 text-blue-500 shrink-0" />
                   )}
                   {story.connectionGrpName}
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
+            <div className="flex items-center gap-1.5 text-[11.5px] text-slate-500 dark:text-slate-400 mt-0.5 flex-wrap">
               {story.authorLocation && (
                 <span className="flex items-center gap-1 truncate">
                   <MapPin className="w-3 h-3 shrink-0 text-slate-400" />
@@ -1159,16 +1171,16 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
         </div>
 
         {/* Right Header: Topic Badge & Read Status */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           <span
-            className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border} shadow-2xs whitespace-nowrap`}
+            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${badgeStyle.bg} ${badgeStyle.text} ${badgeStyle.border} shadow-2xs whitespace-nowrap`}
           >
             Topic : {displayTopic}
           </span>
 
           {isRead && (
             <span
-              className="p-1 text-emerald-600 dark:text-emerald-400"
+              className="p-0.5 text-emerald-600 dark:text-emerald-400"
               title="You have read this story"
             >
               <CheckCircle2 className="w-4 h-4" />
@@ -1181,16 +1193,16 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
       {layoutInfo.layout === 'news_header' && (activePhoto.url || layoutInfo.photoUrl) ? (
         layoutInfo.style === 'banner' ? (
           /* HERO BANNER PHOTO LAYOUT */
-          <div className="flex flex-col gap-3 mb-3.5">
+          <div className="flex flex-col gap-2 mb-2.5">
             {/* Hero Image */}
             <div 
               onClick={handleOpenStory}
-              className="relative w-full rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-900 shadow-sm max-h-[320px] sm:max-h-[380px] group/photo cursor-pointer"
+              className="relative w-full rounded-xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-900 shadow-sm max-h-[260px] sm:max-h-[300px] group/photo cursor-pointer"
             >
               <img
                 src={resolveMediaUrl(activePhoto.url || layoutInfo.photoUrl)}
                 alt={activePhoto.caption || layoutInfo.caption || story.mbrStoryTitle}
-                className="w-full h-[200px] sm:h-[280px] md:h-[320px] object-cover transition-transform duration-500 group-hover/photo:scale-[1.02]"
+                className="w-full h-[180px] sm:h-[220px] md:h-[260px] object-cover transition-transform duration-500 group-hover/photo:scale-[1.02]"
               />
 
               {/* Carousel controls if more than 1 picture associated with story */}
@@ -1201,9 +1213,9 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
                     type="button"
                     onClick={handlePrevPhoto}
                     aria-label="Previous photo"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/photo:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/photo:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
                   >
-                    <ChevronLeft className="w-5 h-5" />
+                    <ChevronLeft className="w-4 h-4" />
                   </button>
 
                   {/* Next Button */}
@@ -1211,19 +1223,19 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
                     type="button"
                     onClick={handleNextPhoto}
                     aria-label="Next photo"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/photo:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-black/60 hover:bg-black/85 text-white backdrop-blur-xs transition-all shadow-md opacity-80 group-hover/photo:opacity-100 cursor-pointer z-10 hover:scale-105 active:scale-95"
                   >
-                    <ChevronRight className="w-5 h-5" />
+                    <ChevronRight className="w-4 h-4" />
                   </button>
 
                   {/* Indicator badge */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-[11px] font-mono text-white font-bold shadow-xs z-10">
-                    <Images className="w-3.5 h-3.5 text-amber-400" />
+                  <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[10.5px] font-mono text-white font-bold shadow-xs z-10">
+                    <Images className="w-3 h-3 text-amber-400" />
                     <span>{currentPhotoIdx + 1} / {carouselPhotos.length}</span>
                   </div>
 
                   {/* Dot navigation */}
-                  <div className={`absolute ${activePhoto.caption ? 'bottom-11' : 'bottom-3'} left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10`}>
+                  <div className={`absolute ${activePhoto.caption ? 'bottom-10' : 'bottom-2.5'} left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-10`}>
                     {carouselPhotos.map((_, idx) => (
                       <button
                         key={idx}
@@ -1242,9 +1254,9 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
               )}
 
               {activePhoto.caption && (
-                <div className="px-3.5 py-2 bg-slate-900/85 backdrop-blur-xs text-white text-xs font-sans flex items-center border-t border-white/10">
+                <div className="px-3 py-1.5 bg-slate-900/85 backdrop-blur-xs text-white text-[11.5px] font-sans flex items-center border-t border-white/10">
                   <span className="italic flex items-center gap-1.5 text-slate-200 truncate">
-                    <Camera className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <Camera className="w-3 h-3 text-amber-400 shrink-0" />
                     <span className="truncate">{activePhoto.caption}</span>
                   </span>
                 </div>
@@ -1254,37 +1266,37 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
             {/* Story Title */}
             <h3
               onClick={handleOpenStory}
-              className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer leading-snug tracking-tight"
+              className="font-serif text-lg sm:text-xl font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer leading-snug tracking-tight"
             >
               {story.mbrStoryTitle}
             </h3>
 
             {/* Narrative Excerpt */}
             {layoutInfo.cleanContent && (
-              <p className="text-slate-700 dark:text-slate-200 font-serif text-[15px] sm:text-base leading-[1.75] line-clamp-3 sm:line-clamp-4 whitespace-pre-line font-normal">
+              <p className="text-slate-700 dark:text-slate-200 font-serif text-[14.5px] sm:text-[15px] leading-[1.6] line-clamp-3 whitespace-pre-line font-normal">
                 {layoutInfo.cleanContent}
               </p>
             )}
           </div>
         ) : (
           /* SIDE-BY-SIDE SPLIT PHOTO LAYOUT */
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-5 mb-3.5 items-start">
-            <div className="md:col-span-7 flex flex-col justify-start gap-2.5">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3.5 mb-2.5 items-start">
+            <div className="md:col-span-7 flex flex-col justify-start gap-1.5">
               <h3
                 onClick={handleOpenStory}
-                className="font-serif text-xl sm:text-2xl font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer leading-snug tracking-tight"
+                className="font-serif text-lg sm:text-xl font-bold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer leading-snug tracking-tight"
               >
                 {story.mbrStoryTitle}
               </h3>
 
               {activePhoto.caption && (
-                <div className="p-2.5 bg-amber-50/70 dark:bg-amber-950/30 border-l-2 border-amber-500 rounded-r-lg text-xs font-serif italic text-amber-900 dark:text-amber-200">
+                <div className="px-2.5 py-1.5 bg-amber-50/70 dark:bg-amber-950/30 border-l-2 border-amber-500 rounded-r-lg text-[11.5px] font-serif italic text-amber-900 dark:text-amber-200">
                   “{activePhoto.caption}”
                 </div>
               )}
 
               {layoutInfo.cleanContent && (
-                <p className="text-slate-700 dark:text-slate-200 font-serif text-[14.5px] sm:text-[15px] leading-[1.7] line-clamp-4 whitespace-pre-line font-normal">
+                <p className="text-slate-700 dark:text-slate-200 font-serif text-[14px] sm:text-[14.5px] leading-[1.55] line-clamp-3 sm:line-clamp-4 whitespace-pre-line font-normal">
                   {layoutInfo.cleanContent}
                 </p>
               )}
@@ -1292,13 +1304,13 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
 
             <div 
               onClick={handleOpenStory}
-              className="md:col-span-5 flex flex-col gap-1.5 cursor-pointer group/split"
+              className="md:col-span-5 flex flex-col gap-1 cursor-pointer group/split"
             >
-              <div className="relative rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 shadow-sm max-h-[240px]">
+              <div className="relative rounded-xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-slate-100 dark:bg-slate-800 shadow-sm max-h-[195px]">
                 <img
                   src={resolveMediaUrl(activePhoto.url || layoutInfo.photoUrl)}
                   alt={activePhoto.caption || layoutInfo.caption || story.mbrStoryTitle}
-                  className="w-full h-full max-h-[220px] object-cover transition-transform duration-500 group-hover/split:scale-[1.02]"
+                  className="w-full h-full max-h-[185px] object-cover transition-transform duration-500 group-hover/split:scale-[1.02]"
                 />
 
                 {/* Carousel controls if more than 1 picture associated with story */}
@@ -1357,39 +1369,23 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
         <>
           <h3
             onClick={handleOpenStory}
-            className="font-serif text-lg sm:text-xl font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors cursor-pointer mb-2.5 leading-snug tracking-tight"
+            className="font-serif text-lg sm:text-[19px] font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors cursor-pointer mb-1.5 leading-snug tracking-tight"
           >
             {story.mbrStoryTitle}
           </h3>
 
           {layoutInfo.cleanContent && (
-            <p className="text-slate-700 dark:text-slate-200 font-serif text-[15px] sm:text-base leading-[1.75] line-clamp-4 sm:line-clamp-5 mb-3.5 whitespace-pre-line font-normal">
+            <p className="text-slate-700 dark:text-slate-200 font-serif text-[14.5px] sm:text-[15px] leading-[1.6] line-clamp-3 sm:line-clamp-4 mb-2.5 whitespace-pre-line font-normal">
               {layoutInfo.cleanContent}
             </p>
           )}
         </>
       )}
 
-      {/* Read Full Story Button (Above the line, right-justified) */}
-      <div className="flex justify-end mb-4">
-        <button
-          type="button"
-          onClick={handleOpenStory}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-colors focus:outline-none cursor-pointer ${
-            isRead
-              ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40'
-              : 'bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-300'
-          }`}
-        >
-          <span>{isRead ? 'Read Again' : 'Read Full Story'}</span>
-          <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-        </button>
-      </div>
-
       {/* Card Action Footer */}
-      <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 flex-wrap">
+      <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
         {/* Left Side: Thumbs Up / Reaction Trigger & Summary + Comment Button */}
-        <div className="flex items-center gap-2 sm:gap-3 relative flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 relative flex-wrap">
           {/* Reaction Trigger Button Container */}
           <div
             className="relative inline-flex items-center"
@@ -1463,7 +1459,7 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
               onClick={handleMainButtonClick}
               disabled={isLiking}
               aria-label={activeReactionConfig ? activeReactionConfig.label : 'Like'}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
+              className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer border ${
                 activeReactionConfig
                   ? `${activeReactionConfig.bgColor} ${activeReactionConfig.color} border-slate-200 dark:border-slate-700 shadow-xs font-bold`
                   : 'bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs'
@@ -1475,9 +1471,9 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
               }
             >
               {activeReactionConfig ? (
-                <span className="text-base leading-none">{activeReactionConfig.emoji}</span>
+                <span className="text-sm leading-none">{activeReactionConfig.emoji}</span>
               ) : (
-                <ThumbsUp className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 transition-colors" />
+                <ThumbsUp className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 transition-colors" />
               )}
               {likes.length > 0 && (
                 <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
@@ -1492,10 +1488,10 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
             type="button"
             onClick={() => setIsCommentModalOpen(true)}
             aria-label="Comments"
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs"
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer border bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80 hover:text-blue-600 dark:hover:text-blue-400 shadow-2xs"
             title="Read full story and join the conversation"
           >
-            <MessageSquare className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+            <MessageSquare className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
             {comments.length > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                 {comments.length}
@@ -1504,9 +1500,9 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
           </button>
         </div>
 
-        {/* Right Side: Audio Narration */}
-        {layoutInfo.cleanContent && (
-          <div className="flex items-center gap-2">
+        {/* Right Side: Audio Narration + Read Full Story Button */}
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {story.mbrStoryAiVoiceFlag === true && layoutInfo.cleanContent && (
             <StoryAudioPlayer
               text={`${story.mbrStoryTitle}. ${layoutInfo.cleanContent}`}
               storyId={story.mbrStoryId}
@@ -1515,8 +1511,21 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
               initialAudioMedia={storyAudioMedia}
               authorMbrId={story.authorMbrId}
             />
-          </div>
-        )}
+          )}
+
+          <button
+            type="button"
+            onClick={handleOpenStory}
+            className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold transition-colors focus:outline-none cursor-pointer ${
+              isRead
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/40'
+                : 'bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-300'
+            }`}
+          >
+            <span>{isRead ? 'Read Again' : 'Read Full Story'}</span>
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+          </button>
+        </div>
       </div>
 
       {/* --- STORY COMMENTS & CONVERSATION DIALOG MODAL --- */}
@@ -1529,84 +1538,91 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsCommentModalOpen(false)}
-              className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm"
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-md"
             />
 
             {/* Modal Dialog Window */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              initial={{ opacity: 0, scale: 0.95, y: 18 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 16 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="relative w-full max-w-xl sm:max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] z-10 overflow-hidden"
+              exit={{ opacity: 0, scale: 0.95, y: 18 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 360 }}
+              className="relative w-full max-w-xl sm:max-w-2xl bg-[#FDFCFB] dark:bg-slate-900 rounded-3xl shadow-[0_24px_64px_-12px_rgba(15,23,42,0.35)] border border-stone-200/90 dark:border-slate-800 ring-1 ring-black/5 dark:ring-white/5 flex flex-col max-h-[88vh] z-10 overflow-hidden"
             >
+              {/* Decorative Top Accent Bar */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-indigo-500 to-amber-500 shrink-0" />
+
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-3.5 py-2 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-850/90 backdrop-blur-sm shrink-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 border border-slate-300 dark:border-slate-700">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-200/80 dark:border-slate-800 bg-gradient-to-r from-[#FAF6EE]/90 via-white to-blue-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/60 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-sm">
                     {story.authorAvatarUrl ? (
                       <img src={story.authorAvatarUrl} alt={story.authorName} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="font-bold text-slate-700 dark:text-slate-200 text-[11px]">
+                      <span className="font-bold text-white text-sm">
                         {story.authorInitials || story.authorName.charAt(0) || 'M'}
                       </span>
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate">
+                    <h4 className="font-serif font-bold text-slate-900 dark:text-white text-sm sm:text-[15px] leading-tight truncate">
                       {story.authorName}
                     </h4>
-                    <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
                       <span>{formattedDate}</span>
-                      <span>•</span>
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">{displayTopic}</span>
+                      <span className="text-stone-300 dark:text-slate-600">•</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60 truncate">
+                        {displayTopic}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsCommentModalOpen(false)}
-                    className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                    title="Close"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCommentModalOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-white/80 dark:bg-slate-800/80 border border-stone-200/80 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-slate-700 shadow-2xs transition-all cursor-pointer shrink-0"
+                  title="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
               {/* Scrollable Modal Body: Full Story View + Scrollable Comments Window */}
-              <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-2.5 space-y-3 custom-scrollbar">
-                {/* 1. Story View Summary Card - Scrollable Story Section */}
-                <div className="bg-slate-50/80 dark:bg-slate-850/70 rounded-xl p-3 sm:p-3.5 border border-slate-200/80 dark:border-slate-800 space-y-2 shadow-2xs">
-                  <div className="flex items-center gap-2 pb-1.5 border-b border-slate-200/60 dark:border-slate-800/60 min-w-0">
-                    <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                    <h2 className="font-serif text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">
+              <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-5 custom-scrollbar bg-[#FDFCFB] dark:bg-slate-900">
+                {/* 1. Story View Summary Card - Editorial Excerpt */}
+                <div className="bg-gradient-to-br from-[#FAF6EE]/90 via-white to-stone-50/80 dark:from-slate-800/70 dark:via-slate-850/60 dark:to-slate-900 rounded-2xl p-4 sm:p-5 border border-stone-200/80 dark:border-slate-700/80 border-l-4 border-l-amber-500/80 dark:border-l-amber-400/70 space-y-2.5 shadow-sm">
+                  <div className="flex items-center gap-2.5 pb-2 border-b border-stone-200/70 dark:border-slate-700/60 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-amber-100/80 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                      <BookOpen className="w-3.5 h-3.5" />
+                    </div>
+                    <h2 className="font-serif text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug truncate">
                       {story.mbrStoryTitle}
                     </h2>
                   </div>
 
                   {layoutInfo.cleanContent ? (
-                    <div className="font-serif text-xs sm:text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line max-h-48 sm:max-h-60 overflow-y-auto pr-2 custom-scrollbar select-text">
+                    <div className="font-serif text-[13px] sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line max-h-44 sm:max-h-52 overflow-y-auto pr-2 custom-scrollbar select-text">
                       {layoutInfo.cleanContent}
                     </div>
                   ) : (
-                    <p className="text-[10.5px] italic text-slate-400 dark:text-slate-500">
+                    <p className="text-xs italic text-slate-400 dark:text-slate-500">
                       (No content text provided for this story chapter)
                     </p>
                   )}
                 </div>
 
                 {/* 2. Comments Header & Count */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between pb-0.5 border-b border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center gap-1.5">
-                      <MessageCircle className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                      <h4 className="text-[11px] font-bold text-slate-900 dark:text-white">
-                        Comments & Replies
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-stone-200/80 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-blue-100/80 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                        Comments &amp; Replies
                       </h4>
-                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-600/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300">
                         {comments.length}
                       </span>
                     </div>
@@ -1614,17 +1630,19 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
 
                   {/* 3. Existing Story Comments List (Scrollable Area) */}
                   {comments.length === 0 ? (
-                    <div className="py-4 text-center bg-slate-50/50 dark:bg-slate-850/30 rounded-lg border border-dashed border-slate-200 dark:border-slate-800">
-                      <MessageSquare className="w-4 h-4 mx-auto text-slate-300 dark:text-slate-600 mb-0.5" />
-                      <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
-                        No comments on this story yet.
+                    <div className="py-8 px-4 text-center bg-gradient-to-b from-stone-50/80 to-white dark:from-slate-800/40 dark:to-slate-900/40 rounded-2xl border border-dashed border-stone-300/80 dark:border-slate-700">
+                      <div className="w-11 h-11 mx-auto mb-2.5 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50 flex items-center justify-center text-blue-500 dark:text-blue-400">
+                        <MessageSquare className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        No comments on this story yet
                       </p>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                        Share your thoughts or memories below!
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                        Start the conversation by sharing your thoughts or memories below.
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-2.5">
                       {commentTree.map((rootNode) => (
                         <CommentThreadItem
                           key={rootNode.comment.mbrCommentsId}
@@ -1647,36 +1665,36 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
               </div>
 
               {/* 4. Locked / Sticky Bottom Comment Composer Section */}
-              <div className="border-t border-slate-200 dark:border-slate-800 p-1.5 sm:p-2 bg-white dark:bg-slate-900 shrink-0 space-y-1 shadow-lg">
+              <div className="border-t border-stone-200/80 dark:border-slate-800 px-4 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-t from-stone-50/90 to-white dark:from-slate-950/60 dark:to-slate-900 shrink-0 space-y-2 shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.12)]">
                 {/* Active Reply Banner */}
                 {replyToComment && (
-                  <div className="flex items-center justify-between px-2 py-0.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/80 rounded-md text-[11px] text-blue-700 dark:text-blue-300 animate-in fade-in duration-150">
-                    <span className="truncate flex items-center gap-1 min-w-0">
-                      <CornerDownRight className="w-2.5 h-2.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200/80 dark:border-blue-800/80 rounded-xl text-xs text-blue-700 dark:text-blue-300 animate-in fade-in duration-150">
+                    <span className="truncate flex items-center gap-1.5 min-w-0">
+                      <CornerDownRight className="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
                       <span className="truncate">
-                        Replying to <span className="font-semibold">@{replyToComment.mbrCommentsMbrName || 'Member'}</span>: <span className="font-medium italic">"{replyToComment.mbrCommentsContent.slice(0, 32)}{replyToComment.mbrCommentsContent.length > 32 ? '...' : ''}"</span>
+                        Replying to <span className="font-semibold">@{replyToComment.mbrCommentsMbrName || 'Member'}</span>: <span className="font-medium italic">"{replyToComment.mbrCommentsContent.slice(0, 36)}{replyToComment.mbrCommentsContent.length > 36 ? '...' : ''}"</span>
                       </span>
                     </span>
                     <button
                       type="button"
                       onClick={() => setReplyToComment(null)}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-1.5 shrink-0 p-0.5 cursor-pointer rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                      className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200 ml-2 shrink-0 p-1 cursor-pointer rounded-lg hover:bg-blue-100/80 dark:hover:bg-blue-900/40 transition-colors"
                       title="Cancel reply"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
 
                 {/* Comment Form */}
-                <form onSubmit={handlePostComment} className="flex gap-1.5 items-center">
+                <form onSubmit={handlePostComment} className="flex gap-2.5 items-end">
                   <textarea
                     ref={commentInputRef}
                     value={newCommentContent}
                     onChange={(e) => setNewCommentContent(e.target.value)}
-                    placeholder={replyToComment ? 'Write a friendly reply...' : 'Post a thoughtful comment...'}
-                    rows={1}
-                    className="flex-1 resize-none px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-400 h-8"
+                    placeholder={replyToComment ? 'Write a friendly reply...' : 'Share a thoughtful comment or memory...'}
+                    rows={2}
+                    className="flex-1 resize-none px-3.5 py-2.5 text-xs sm:text-[13px] rounded-2xl border border-stone-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white focus:outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400 shadow-inner"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -1687,16 +1705,19 @@ const MbrStoryFeedStoryPanel = React.memo(function MbrStoryFeedStoryPanel({
                   <button
                     type="submit"
                     disabled={!newCommentContent.trim() || isPostingComment}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg flex items-center gap-1 shadow-sm hover:shadow transition-all shrink-0 cursor-pointer h-8"
+                    className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all shrink-0 cursor-pointer h-10"
                   >
                     {isPostingComment ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <Send className="w-3 h-3" />
+                      <Send className="w-3.5 h-3.5" />
                     )}
                     <span>{replyToComment ? 'Reply' : 'Post'}</span>
                   </button>
                 </form>
+                <p className="hidden sm:block text-[10px] text-slate-400 dark:text-slate-500 px-1">
+                  Press <kbd className="font-sans font-semibold text-slate-500 dark:text-slate-400">Enter</kbd> to send · <kbd className="font-sans font-semibold text-slate-500 dark:text-slate-400">Shift+Enter</kbd> for a new line
+                </p>
               </div>
             </motion.div>
           </div>

@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Coins, AlertTriangle, ArrowRight, X, Sparkles } from 'lucide-react';
 import { AdminComponentTag } from './AdminComponentTag';
+import { playUiSound } from '@/src/services/soundService';
 
 interface ExhaustedCreditsModalProps {
   isOpen: boolean;
@@ -21,6 +22,12 @@ export default function ExhaustedCreditsModal({
   actionAttempted,
   onNavigateToAccount
 }: ExhaustedCreditsModalProps) {
+  useEffect(() => {
+    if (isOpen) {
+      playUiSound('WARNING_ALERT');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleGoToAccount = () => {

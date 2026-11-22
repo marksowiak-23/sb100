@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Coins, 
+  Mic,
+  Image as ImageIcon,
   Sparkles, 
   Check, 
   X, 
@@ -17,11 +19,13 @@ import {
   Lock,
   AlertCircle,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { playUiSound } from '@/src/services/soundService';
 import { taskApi } from '@/src/services/api';
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51UYbXaLUhFnC8oKZ829aYH4rarSj00sFO4UkarjhCe2l0fgB5f6NCXxF6IK8Fd2G1kOrQaQdrilNmn423Hbo83RM00ZXelkasH';
@@ -32,6 +36,7 @@ export interface CreditPackage {
   price: number;
   popular?: boolean;
   savings?: string;
+  creditType?: 'story' | 'voice' | 'image';
 }
 
 interface AccountPurchaseModalProps {
@@ -64,6 +69,7 @@ export default function AccountPurchaseModal({
   const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [sandboxProcessing, setSandboxProcessing] = useState(false);
+  const [redirectingHosted, setRedirectingHosted] = useState(false);
 
   // Initialize or reset session when modal opens or package changes
   useEffect(() => {
@@ -74,13 +80,14 @@ export default function AccountPurchaseModal({
       setSessionError(null);
       setPaymentCompleted(false);
       setVerifyingPayment(false);
+      setRedirectingHosted(false);
       return;
     }
 
     if (!isSandbox) {
       initiateEmbeddedCheckout();
     }
-  }, [isOpen, pkg?.credits, isSandbox, memberId]);
+  }, [isOpen, pkg?.credits, pkg?.creditType, isSandbox, memberId]);
 
   const initiateEmbeddedCheckout = async () => {
     if (!pkg) return;
@@ -94,6 +101,7 @@ export default function AccountPurchaseModal({
       const session = await taskApi.createStripeCheckoutSession({
         mbr_id: targetMbrId,
         credits: pkg.credits,
+        credit_type: pkg.creditType || 'story',
         customer_email: memberEmail || undefined,
         ui_mode: 'embedded_page'
       });
@@ -112,7 +120,47 @@ export default function AccountPurchaseModal({
     }
   };
 
-  const handleStripeComplete = async () => {
+  const handleHostedCheckout = async () => {
+    if (!pkg) return;
+    try {
+      setRedirectingHosted(true);
+      setSessionError(null);
+
+      const targetMbrId = memberId || 'sandbox-mbr-001';
+      const creditType = pkg.creditType || 'story';
+      const returnSubTab =
+        creditType === 'voice'
+          ? 'voice-credits'
+          : creditType === 'image'
+          ? 'image-credits'
+          : 'story-credits';
+      try {
+        sessionStorage.setItem('sb_account_return_subtab', returnSubTab);
+      } catch {
+        // ignore storage errors
+      }
+
+      const session = await taskApi.createStripeCheckoutSession({
+        mbr_id: targetMbrId,
+        credits: pkg.credits,
+        credit_type: creditType,
+        customer_email: memberEmail || undefined,
+        ui_mode: 'hosted'
+      });
+
+      if (session && session.checkoutUrl) {
+        window.location.href = session.checkoutUrl;
+      } else {
+        throw new Error('Failed to obtain hosted Stripe checkout URL from backend');
+      }
+    } catch (err: any) {
+      console.error('Error initiating hosted Stripe checkout:', err);
+      setSessionError(err?.message || 'Could not open hosted Stripe checkout. Please try again.');
+      setRedirectingHosted(false);
+    }
+  };
+
+  const handleStripeComplete = useCallback(async () => {
     if (!pkg) return;
     try {
       setPaymentCompleted(true);
@@ -127,6 +175,7 @@ export default function AccountPurchaseModal({
       }
 
       const updatedBalance = currentBalance + pkg.credits;
+      playUiSound('CREDIT_PURCHASE');
       if (onSuccess) {
         onSuccess(pkg, updatedBalance);
       }
@@ -135,7 +184,15 @@ export default function AccountPurchaseModal({
     } finally {
       setVerifyingPayment(false);
     }
-  };
+  }, [pkg, sessionId, currentBalance, onSuccess]);
+
+  const embeddedCheckoutOptions = useMemo(() => {
+    if (!clientSecret) return null;
+    return {
+      clientSecret,
+      onComplete: handleStripeComplete
+    };
+  }, [clientSecret, handleStripeComplete]);
 
   const handleSandboxPurchase = async () => {
     if (!pkg) return;
@@ -154,6 +211,8 @@ export default function AccountPurchaseModal({
 
   if (!isOpen || !pkg) return null;
 
+  const isVoicePackage = pkg.creditType === 'voice';
+  const isImagePackage = pkg.creditType === 'image';
   const newBalance = currentBalance + pkg.credits;
 
   return (
@@ -170,12 +229,18 @@ export default function AccountPurchaseModal({
           {/* Modal Header */}
           <div className="px-5 sm:px-6 pt-5 pb-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center">
-                <Coins className="w-5 h-5" />
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
+                isVoicePackage
+                  ? 'bg-purple-500/10 border-purple-500/20 text-purple-700 dark:text-purple-400'
+                  : isImagePackage
+                  ? 'bg-teal-500/10 border-teal-500/20 text-teal-700 dark:text-teal-400'
+                  : 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400'
+              }`}>
+                {isVoicePackage ? <Mic className="w-5 h-5" /> : isImagePackage ? <ImageIcon className="w-5 h-5" /> : <Coins className="w-5 h-5" />}
               </div>
               <div>
                 <h3 className="font-serif font-bold text-base sm:text-lg text-slate-900 dark:text-white leading-tight">
-                  Purchase Credits
+                  {isVoicePackage ? 'Purchase Voice Credits' : isImagePackage ? 'Purchase Image Credits' : 'Purchase Story Credits'}
                 </h3>
                 <p className="text-[11px] sm:text-xs font-serif text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5">
                   <Lock className="w-3 h-3 text-emerald-600 dark:text-emerald-400 inline" />
@@ -200,9 +265,17 @@ export default function AccountPurchaseModal({
           {/* Modal Body (Scrollable) */}
           <div className="p-5 sm:p-6 space-y-4 flex-1 overflow-y-auto">
             {/* Top Order Summary Card */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-md relative overflow-hidden">
+            <div className={`p-4 rounded-2xl text-white shadow-md relative overflow-hidden ${
+              isVoicePackage
+                ? 'bg-gradient-to-br from-purple-950 via-indigo-950 to-slate-900'
+                : isImagePackage
+                ? 'bg-gradient-to-br from-teal-950 via-emerald-950 to-slate-900'
+                : 'bg-gradient-to-br from-slate-900 to-slate-800'
+            }`}>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold">
+                <span className={`text-[10px] font-mono uppercase tracking-wider font-bold ${
+                  isVoicePackage ? 'text-purple-300' : isImagePackage ? 'text-teal-300' : 'text-amber-400'
+                }`}>
                   Order Summary
                 </span>
                 <span className="text-xl font-bold font-serif text-white">
@@ -210,10 +283,14 @@ export default function AccountPurchaseModal({
                 </span>
               </div>
               <div className="flex items-baseline gap-2 mb-3">
-                <span className="text-2xl sm:text-3xl font-extrabold font-serif text-amber-400">
+                <span className={`text-2xl sm:text-3xl font-extrabold font-serif ${
+                  isVoicePackage ? 'text-purple-300' : isImagePackage ? 'text-teal-300' : 'text-amber-400'
+                }`}>
                   +{pkg.credits.toLocaleString()}
                 </span>
-                <span className="text-xs font-serif text-slate-300">Credits</span>
+                <span className="text-xs font-serif text-slate-300">
+                  {isVoicePackage ? 'Voice Credits' : isImagePackage ? 'Image Credits' : 'Story Credits'}
+                </span>
                 {pkg.popular && (
                   <span className="ml-2 px-2 py-0.5 rounded-full text-[10px] font-sans font-bold bg-amber-400 text-slate-950">
                     Popular
@@ -261,16 +338,26 @@ export default function AccountPurchaseModal({
                   <p className="text-xs font-sans text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
                     {verifyingPayment 
                       ? 'Finalizing your balance update with Cloud SQL...' 
-                      : `Your account has been credited with +${pkg.credits.toLocaleString()} credits. Your new balance is ${newBalance.toLocaleString()} credits.`}
+                      : `Your account has been credited with +${pkg.credits.toLocaleString()} ${isVoicePackage ? 'voice' : isImagePackage ? 'image' : 'story'} credits. Your new balance is ${newBalance.toLocaleString()} credits.`}
                   </p>
                 </div>
                 {!verifyingPayment && (
                   <button
                     type="button"
                     onClick={onClose}
-                    className="mt-2 px-6 py-2 rounded-xl text-xs font-serif font-bold bg-[#13547A] hover:bg-[#0E3E5B] text-white shadow-md transition-all cursor-pointer"
+                    className={`mt-2 px-6 py-2 rounded-xl text-xs font-serif font-bold text-white shadow-md transition-all cursor-pointer ${
+                      isVoicePackage
+                        ? 'bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800'
+                        : isImagePackage
+                        ? 'bg-gradient-to-r from-teal-700 to-emerald-700 hover:from-teal-800 hover:to-emerald-800'
+                        : 'bg-[#13547A] hover:bg-[#0E3E5B]'
+                    }`}
                   >
-                    Done & Return to Account
+                    {isVoicePackage
+                      ? 'Done & Return to My Voice Credits'
+                      : isImagePackage
+                      ? 'Done & Return to My Image Credits'
+                      : 'Done & Return to My Story Credits'}
                   </button>
                 )}
               </motion.div>
@@ -317,14 +404,25 @@ export default function AccountPurchaseModal({
                       <p className="text-xs font-sans text-rose-800 dark:text-rose-200">
                         {sessionError}
                       </p>
-                      <button
-                        type="button"
-                        onClick={initiateEmbeddedCheckout}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-serif font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer"
-                      >
-                        <RefreshCw className="w-3 h-3" />
-                        <span>Retry Connection</span>
-                      </button>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={initiateEmbeddedCheckout}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-serif font-bold bg-rose-600 hover:bg-rose-700 text-white transition-colors cursor-pointer"
+                        >
+                          <RefreshCw className="w-3 h-3" />
+                          <span>Retry Connection</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleHostedCheckout}
+                          disabled={redirectingHosted}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-serif font-bold bg-slate-800 hover:bg-slate-900 text-white transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          {redirectingHosted ? <Loader2 className="w-3 h-3 animate-spin" /> : <ExternalLink className="w-3 h-3" />}
+                          <span>Open Stripe Checkout Page</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -343,19 +441,41 @@ export default function AccountPurchaseModal({
                 )}
 
                 {/* Embedded Stripe Checkout Component */}
-                {!loadingSession && clientSecret && (
+                {!loadingSession && embeddedCheckoutOptions && (
                   <div className="stripe-embedded-container rounded-2xl border border-slate-200 dark:border-slate-800 p-2 sm:p-3 bg-white dark:bg-slate-900 shadow-inner">
                     <EmbeddedCheckoutProvider
                       stripe={stripePromise}
-                      options={{
-                        clientSecret,
-                        onComplete: handleStripeComplete
-                      }}
+                      options={embeddedCheckoutOptions}
                     >
                       <EmbeddedCheckout className="w-full min-h-[360px]" />
                     </EmbeddedCheckoutProvider>
                   </div>
                 )}
+
+                {/* Hosted Stripe Checkout Fallback */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80">
+                  <span className="text-[11px] font-serif text-slate-600 dark:text-slate-300">
+                    Having trouble loading embedded checkout?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleHostedCheckout}
+                    disabled={redirectingHosted}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-serif font-bold bg-[#13547A] hover:bg-[#0E3E5B] text-white shadow-xs transition-colors cursor-pointer disabled:opacity-50 shrink-0"
+                  >
+                    {redirectingHosted ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Redirecting to Stripe...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        <span>Open Stripe Checkout Page</span>
+                      </>
+                    )}
+                  </button>
+                </div>
 
                 {/* Security Guarantee */}
                 <div className="flex items-center justify-center gap-1.5 text-[11px] font-serif text-slate-500 dark:text-slate-400 pt-1">

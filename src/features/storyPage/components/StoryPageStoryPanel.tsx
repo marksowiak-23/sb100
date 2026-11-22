@@ -25,6 +25,7 @@ export interface StoryPageStoryPanelProps {
   mbrStoryHeaderPhotoUrl?: string | null;
   mbrStoryHeaderPhotoCaption?: string | null;
   mbrStoryHeaderPhotoStyleCd?: 'banner' | 'split' | string | null;
+  mbrStoryAiVoiceFlag?: boolean;
   publishedDate?: string;
   authorName?: string;
   authorLocation?: string;
@@ -380,48 +381,57 @@ function CommentThreadItem({
   ];
   const avatarGradient = avatarGradients[depth % avatarGradients.length];
 
+  const isReplyTarget = activeReplyCommentId === comment.mbrCommentsId;
+
   return (
     <div
       className={
         isRoot
-          ? 'bg-slate-50/80 dark:bg-slate-800/60 rounded-lg px-2.5 py-1.5 border border-slate-200/80 dark:border-slate-750/80 space-y-1 shadow-2xs'
-          : 'bg-white/80 dark:bg-slate-900/80 rounded-md px-2 py-1 border border-slate-200/60 dark:border-slate-800 space-y-0.5 shadow-2xs'
+          ? `bg-white dark:bg-slate-800/70 rounded-2xl px-3.5 py-3 border space-y-2 shadow-2xs transition-colors ${
+              isReplyTarget
+                ? 'border-blue-300 dark:border-blue-700 ring-2 ring-blue-500/20'
+                : 'border-stone-200/80 dark:border-slate-700/80 hover:border-stone-300/90 dark:hover:border-slate-600'
+            }`
+          : `bg-stone-50/80 dark:bg-slate-900/70 rounded-xl px-3 py-2.5 border space-y-1.5 transition-colors ${
+              isReplyTarget
+                ? 'border-blue-300 dark:border-blue-700 ring-2 ring-blue-500/20'
+                : 'border-stone-200/70 dark:border-slate-800'
+            }`
       }
     >
       {/* Header with avatar, author name, replying-to metadata, timestamp & actions */}
-      <div className="flex items-center justify-between gap-1">
-        <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <div
             className={`${
-              isRoot ? 'w-5 h-5 text-[9.5px]' : 'w-4.5 h-4.5 text-[8.5px]'
-            } rounded-full bg-gradient-to-tr ${avatarGradient} text-white font-bold flex items-center justify-center shrink-0 shadow-2xs`}
+              isRoot ? 'w-7 h-7 text-xs' : 'w-6 h-6 text-[10px]'
+            } rounded-full bg-gradient-to-tr ${avatarGradient} text-white font-bold flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-xs`}
           >
             {(comment.mbrCommentsMbrName || 'M').charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex items-center gap-1.5 flex-wrap">
             <span
-              className={`font-semibold ${
-                isRoot ? 'text-[11.5px] text-slate-900 dark:text-white' : 'text-[10.5px] text-slate-800 dark:text-slate-200'
+              className={`font-bold ${
+                isRoot ? 'text-xs text-slate-900 dark:text-white' : 'text-[11.5px] text-slate-800 dark:text-slate-200'
               } truncate`}
             >
               {comment.mbrCommentsMbrName || 'Member'}
             </span>
             {parentComment && !isRoot && (
-              <span className="text-[9.5px] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-0.5">
-                <CornerDownRight className="w-2 h-2 inline shrink-0" />
-                <span>to</span>
+              <span className="text-[10.5px] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-0.5 bg-blue-50/80 dark:bg-blue-950/40 px-1.5 py-0.5 rounded-full">
+                <CornerDownRight className="w-2.5 h-2.5 inline shrink-0" />
                 <span className="font-semibold">@{parentComment.mbrCommentsMbrName || 'Member'}</span>
               </span>
             )}
-            <span className="text-[9px] text-slate-400 dark:text-slate-500 flex items-center gap-0.5">
-              <Clock className="w-2 h-2" />
+            <span className="text-[10.5px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
+              <Clock className="w-2.5 h-2.5" />
               {formatTime(comment.mbrCommentsPostDt || comment.mbrCommentsCreatedAt)}
             </span>
           </div>
         </div>
 
         {/* Action Buttons: Edit, Delete, Reply */}
-        <div className="flex items-center gap-0.5 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {isAuthor && !isEditing && !showDeleteConfirm && (
             <>
               <button
@@ -430,19 +440,19 @@ function CommentThreadItem({
                   setEditContent(comment.mbrCommentsContent);
                   setIsEditing(true);
                 }}
-                className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 cursor-pointer px-1 py-0.2 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 cursor-pointer px-2 py-0.5 rounded-lg hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors"
                 title="Edit your comment"
               >
-                <Pencil className="w-2 h-2" />
+                <Pencil className="w-2.5 h-2.5" />
                 <span>Edit</span>
               </button>
               <button
                 type="button"
                 onClick={() => setShowDeleteConfirm(true)}
-                className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 cursor-pointer px-1 py-0.2 rounded hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 cursor-pointer px-2 py-0.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                 title="Delete your comment"
               >
-                <Trash2 className="w-2 h-2" />
+                <Trash2 className="w-2.5 h-2.5" />
                 <span>Delete</span>
               </button>
             </>
@@ -450,7 +460,7 @@ function CommentThreadItem({
 
           {/* Delete Inline Confirmation */}
           {showDeleteConfirm && (
-            <div className="flex items-center gap-1 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/80 rounded px-1.5 py-0.2 text-[9.5px] animate-in fade-in duration-100">
+            <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800/80 rounded-lg px-2 py-0.5 text-[10.5px] animate-in fade-in duration-100">
               <span className="text-rose-700 dark:text-rose-300 font-medium">Delete?</span>
               <button
                 type="button"
@@ -475,10 +485,10 @@ function CommentThreadItem({
             <button
               type="button"
               onClick={() => onReply(comment)}
-              className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer px-1.5 py-0.2 rounded hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors"
+              className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 cursor-pointer px-2 py-0.5 rounded-lg bg-blue-50/70 hover:bg-blue-100/80 dark:bg-blue-950/40 dark:hover:bg-blue-900/50 transition-colors"
               title={`Reply to ${comment.mbrCommentsMbrName || 'this comment'}`}
             >
-              <Reply className="w-2.5 h-2.5" />
+              <Reply className="w-3 h-3" />
               <span>Reply</span>
             </button>
           )}
@@ -487,12 +497,12 @@ function CommentThreadItem({
 
       {/* Comment Text Content or Inline Editor */}
       {isEditing ? (
-        <div className={`space-y-1 ${isRoot ? 'pl-6.5' : 'pl-6'}`}>
+        <div className={`space-y-1.5 ${isRoot ? 'pl-9' : 'pl-8'}`}>
           <textarea
             value={editContent}
             onChange={(e) => setEditContent(e.target.value)}
             rows={2}
-            className="w-full resize-none px-2 py-1 text-xs rounded-md border border-blue-400 dark:border-blue-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full resize-none px-3 py-2 text-xs sm:text-[13px] rounded-xl border border-blue-400 dark:border-blue-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -503,11 +513,11 @@ function CommentThreadItem({
             }}
             autoFocus
           />
-          <div className="flex items-center gap-1 justify-end">
+          <div className="flex items-center gap-1.5 justify-end">
             <button
               type="button"
               onClick={() => setIsEditing(false)}
-              className="px-1.5 py-0.2 text-[10px] rounded font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="px-2.5 py-1 text-[11px] rounded-lg font-medium text-slate-600 dark:text-slate-400 hover:bg-stone-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               Cancel
             </button>
@@ -515,17 +525,17 @@ function CommentThreadItem({
               type="button"
               disabled={!editContent.trim() || isSaving}
               onClick={handleSaveEdit}
-              className="inline-flex items-center gap-0.5 px-2 py-0.2 text-[10px] rounded font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors cursor-pointer shadow-2xs"
+              className="inline-flex items-center gap-1 px-3 py-1 text-[11px] rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white transition-colors cursor-pointer shadow-2xs"
             >
-              {isSaving ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : <Check className="w-2.5 h-2.5" />}
+              {isSaving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
               <span>Save</span>
             </button>
           </div>
         </div>
       ) : (
         <p
-          className={`text-xs text-slate-700 dark:text-slate-200 leading-snug whitespace-pre-line ${
-            isRoot ? 'pl-6.5' : 'pl-6'
+          className={`text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line ${
+            isRoot ? 'pl-9' : 'pl-8'
           }`}
         >
           {comment.mbrCommentsContent}
@@ -534,14 +544,14 @@ function CommentThreadItem({
 
       {/* Accordion Toggle for Top-Level Comment Replies */}
       {isRoot && children.length > 0 && (
-        <div className="pl-6.5">
+        <div className="pl-9 pt-0.5">
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer py-0.2 px-1 -ml-1 rounded hover:bg-blue-50/70 dark:hover:bg-blue-950/40"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors cursor-pointer py-0.5 px-2 -ml-2 rounded-lg hover:bg-blue-50/80 dark:hover:bg-blue-950/40"
           >
             <ChevronDown
-              className={`w-2.5 h-2.5 transition-transform duration-200 ${
+              className={`w-3 h-3 transition-transform duration-200 ${
                 isExpanded ? 'rotate-180 text-blue-700 dark:text-blue-300' : ''
               }`}
             />
@@ -553,8 +563,8 @@ function CommentThreadItem({
       {/* Nested Child Replies Indented Hierarchically */}
       {children.length > 0 && (!isRoot || isExpanded) && (
         <div
-          className={`mt-1 pl-2 space-y-1 border-l-2 border-blue-200 dark:border-blue-900/60 ${
-            isRoot ? 'ml-2' : 'ml-1.5'
+          className={`mt-2 pl-3 space-y-2 border-l-2 border-blue-200/80 dark:border-blue-900/60 ${
+            isRoot ? 'ml-3' : 'ml-2'
           }`}
         >
           {children.map((childNode) => (
@@ -587,6 +597,7 @@ function StoryPageStoryPanel({
   mbrStoryHeaderPhotoUrl,
   mbrStoryHeaderPhotoCaption,
   mbrStoryHeaderPhotoStyleCd,
+  mbrStoryAiVoiceFlag,
   publishedDate,
   authorName = 'Author',
   authorMbrId,
@@ -1109,7 +1120,7 @@ function StoryPageStoryPanel({
           </span>
         </div>
 
-        {layoutInfo.cleanContent && (
+        {layoutInfo.cleanContent && (mbrStoryAiVoiceFlag === true || Boolean(audioNarrationMedia)) && (
           <StoryAudioPlayer
             text={`${storyTitle}. ${layoutInfo.cleanContent}`}
             storyId={storyId || storyTitle}
@@ -1436,84 +1447,91 @@ function StoryPageStoryPanel({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsCommentModalOpen(false)}
-              className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm"
+              className="fixed inset-0 bg-slate-950/70 backdrop-blur-md"
             />
 
             {/* Modal Dialog Window */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              initial={{ opacity: 0, scale: 0.95, y: 18 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 16 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="relative w-full max-w-xl sm:max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[90vh] z-10 overflow-hidden"
+              exit={{ opacity: 0, scale: 0.95, y: 18 }}
+              transition={{ type: 'spring', damping: 26, stiffness: 360 }}
+              className="relative w-full max-w-xl sm:max-w-2xl bg-[#FDFCFB] dark:bg-slate-900 rounded-3xl shadow-[0_24px_64px_-12px_rgba(15,23,42,0.35)] border border-stone-200/90 dark:border-slate-800 ring-1 ring-black/5 dark:ring-white/5 flex flex-col max-h-[88vh] z-10 overflow-hidden"
             >
+              {/* Decorative Top Accent Bar */}
+              <div className="h-1.5 w-full bg-gradient-to-r from-blue-600 via-indigo-500 to-amber-500 shrink-0" />
+
               {/* Modal Header */}
-              <div className="flex items-center justify-between px-3.5 py-2 border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-850/90 backdrop-blur-sm shrink-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 flex items-center justify-center shrink-0 border border-slate-300 dark:border-slate-700">
+              <div className="flex items-center justify-between px-5 py-3.5 border-b border-stone-200/80 dark:border-slate-800 bg-gradient-to-r from-[#FAF6EE]/90 via-white to-blue-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800/60 shrink-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shrink-0 ring-2 ring-white dark:ring-slate-800 shadow-sm">
                     {authorAvatarUrl ? (
                       <img src={authorAvatarUrl} alt={authorName} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="font-bold text-slate-700 dark:text-slate-200 text-[11px]">
+                      <span className="font-bold text-white text-sm">
                         {authorInitials || authorName.charAt(0) || 'M'}
                       </span>
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-bold text-slate-900 dark:text-white text-xs truncate">
+                    <h4 className="font-serif font-bold text-slate-900 dark:text-white text-sm sm:text-[15px] leading-tight truncate">
                       {authorName}
                     </h4>
-                    <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
                       <span>{formattedDate}</span>
-                      <span>•</span>
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">{displayTopic}</span>
+                      <span className="text-stone-300 dark:text-slate-600">•</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60 truncate">
+                        {displayTopic}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsCommentModalOpen(false)}
-                    className="p-1 rounded-full text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                    title="Close"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCommentModalOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-white/80 dark:bg-slate-800/80 border border-stone-200/80 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-stone-100 dark:hover:bg-slate-700 shadow-2xs transition-all cursor-pointer shrink-0"
+                  title="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
 
               {/* Scrollable Modal Body: Full Story View + Scrollable Comments Window */}
-              <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-2.5 space-y-3 custom-scrollbar">
-                {/* 1. Story View Summary Card - Scrollable Story Section */}
-                <div className="bg-slate-50/80 dark:bg-slate-850/70 rounded-xl p-3 sm:p-3.5 border border-slate-200/80 dark:border-slate-800 space-y-2 shadow-2xs">
-                  <div className="flex items-center gap-2 pb-1.5 border-b border-slate-200/60 dark:border-slate-800/60 min-w-0">
-                    <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                    <h2 className="font-serif text-xs sm:text-sm font-bold text-slate-900 dark:text-white leading-tight truncate">
+              <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-5 custom-scrollbar bg-[#FDFCFB] dark:bg-slate-900">
+                {/* 1. Story View Summary Card - Editorial Excerpt */}
+                <div className="bg-gradient-to-br from-[#FAF6EE]/90 via-white to-stone-50/80 dark:from-slate-800/70 dark:via-slate-850/60 dark:to-slate-900 rounded-2xl p-4 sm:p-5 border border-stone-200/80 dark:border-slate-700/80 border-l-4 border-l-amber-500/80 dark:border-l-amber-400/70 space-y-2.5 shadow-sm">
+                  <div className="flex items-center gap-2.5 pb-2 border-b border-stone-200/70 dark:border-slate-700/60 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-amber-100/80 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                      <BookOpen className="w-3.5 h-3.5" />
+                    </div>
+                    <h2 className="font-serif text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-snug truncate">
                       {storyTitle}
                     </h2>
                   </div>
 
                   {layoutInfo.cleanContent ? (
-                    <div className="font-serif text-xs sm:text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line max-h-48 sm:max-h-60 overflow-y-auto pr-2 custom-scrollbar select-text">
+                    <div className="font-serif text-[13px] sm:text-sm text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line max-h-44 sm:max-h-52 overflow-y-auto pr-2 custom-scrollbar select-text">
                       {layoutInfo.cleanContent}
                     </div>
                   ) : (
-                    <p className="text-[10.5px] italic text-slate-400 dark:text-slate-500">
+                    <p className="text-xs italic text-slate-400 dark:text-slate-500">
                       (No content text provided for this story chapter)
                     </p>
                   )}
                 </div>
 
                 {/* 2. Comments Header & Count */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between pb-0.5 border-b border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center gap-1.5">
-                      <MessageCircle className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                      <h4 className="text-[11px] font-bold text-slate-900 dark:text-white">
-                        Comments & Replies
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-stone-200/80 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-blue-100/80 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                        <MessageCircle className="w-3.5 h-3.5" />
+                      </div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                        Comments &amp; Replies
                       </h4>
-                      <span className="px-1.5 py-0.2 rounded-full text-[10px] font-semibold bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-600/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300">
                         {comments.length}
                       </span>
                     </div>
@@ -1521,17 +1539,19 @@ function StoryPageStoryPanel({
 
                   {/* 3. Existing Story Comments List (Scrollable Area) */}
                   {comments.length === 0 ? (
-                    <div className="py-4 text-center bg-slate-50/50 dark:bg-slate-850/30 rounded-lg border border-dashed border-slate-200 dark:border-slate-800">
-                      <MessageSquare className="w-4 h-4 mx-auto text-slate-300 dark:text-slate-600 mb-0.5" />
-                      <p className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
-                        No comments on this story yet.
+                    <div className="py-8 px-4 text-center bg-gradient-to-b from-stone-50/80 to-white dark:from-slate-800/40 dark:to-slate-900/40 rounded-2xl border border-dashed border-stone-300/80 dark:border-slate-700">
+                      <div className="w-11 h-11 mx-auto mb-2.5 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900/50 flex items-center justify-center text-blue-500 dark:text-blue-400">
+                        <MessageSquare className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        No comments on this story yet
                       </p>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500">
-                        Share your thoughts or memories below!
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                        Start the conversation by sharing your thoughts or memories below.
                       </p>
                     </div>
                   ) : (
-                    <div className="space-y-1">
+                    <div className="space-y-2.5">
                       {commentTree.map((rootNode) => (
                         <CommentThreadItem
                           key={rootNode.comment.mbrCommentsId}
@@ -1554,36 +1574,36 @@ function StoryPageStoryPanel({
               </div>
 
               {/* 4. Locked / Sticky Bottom Comment Composer Section */}
-              <div className="border-t border-slate-200 dark:border-slate-800 p-1.5 sm:p-2 bg-white dark:bg-slate-900 shrink-0 space-y-1 shadow-lg">
+              <div className="border-t border-stone-200/80 dark:border-slate-800 px-4 sm:px-5 py-3 sm:py-3.5 bg-gradient-to-t from-stone-50/90 to-white dark:from-slate-950/60 dark:to-slate-900 shrink-0 space-y-2 shadow-[0_-8px_24px_-12px_rgba(15,23,42,0.12)]">
                 {/* Active Reply Banner */}
                 {replyToComment && (
-                  <div className="flex items-center justify-between px-2 py-0.5 bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800/80 rounded-md text-[11px] text-blue-700 dark:text-blue-300 animate-in fade-in duration-150">
-                    <span className="truncate flex items-center gap-1 min-w-0">
-                      <CornerDownRight className="w-2.5 h-2.5 shrink-0 text-blue-600 dark:text-blue-400" />
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-blue-50/90 dark:bg-blue-950/50 border border-blue-200/80 dark:border-blue-800/80 rounded-xl text-xs text-blue-700 dark:text-blue-300 animate-in fade-in duration-150">
+                    <span className="truncate flex items-center gap-1.5 min-w-0">
+                      <CornerDownRight className="w-3.5 h-3.5 shrink-0 text-blue-600 dark:text-blue-400" />
                       <span className="truncate">
-                        Replying to <span className="font-semibold">@{replyToComment.mbrCommentsMbrName || 'Member'}</span>: <span className="font-medium italic">"{replyToComment.mbrCommentsContent.slice(0, 32)}{replyToComment.mbrCommentsContent.length > 32 ? '...' : ''}"</span>
+                        Replying to <span className="font-semibold">@{replyToComment.mbrCommentsMbrName || 'Member'}</span>: <span className="font-medium italic">"{replyToComment.mbrCommentsContent.slice(0, 36)}{replyToComment.mbrCommentsContent.length > 36 ? '...' : ''}"</span>
                       </span>
                     </span>
                     <button
                       type="button"
                       onClick={() => setReplyToComment(null)}
-                      className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ml-1.5 shrink-0 p-0.5 cursor-pointer rounded hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+                      className="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200 ml-2 shrink-0 p-1 cursor-pointer rounded-lg hover:bg-blue-100/80 dark:hover:bg-blue-900/40 transition-colors"
                       title="Cancel reply"
                     >
-                      <X className="w-3 h-3" />
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 )}
 
                 {/* Comment Form */}
-                <form onSubmit={handlePostComment} className="flex gap-1.5 items-center">
+                <form onSubmit={handlePostComment} className="flex gap-2.5 items-end">
                   <textarea
                     ref={commentInputRef}
                     value={newCommentContent}
                     onChange={(e) => setNewCommentContent(e.target.value)}
-                    placeholder={replyToComment ? 'Write a friendly reply...' : 'Post a thoughtful comment...'}
-                    rows={1}
-                    className="flex-1 resize-none px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-400 h-8"
+                    placeholder={replyToComment ? 'Write a friendly reply...' : 'Share a thoughtful comment or memory...'}
+                    rows={2}
+                    className="flex-1 resize-none px-3.5 py-2.5 text-xs sm:text-[13px] rounded-2xl border border-stone-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white focus:outline-none focus:border-blue-400 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-400 shadow-inner"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
@@ -1594,16 +1614,19 @@ function StoryPageStoryPanel({
                   <button
                     type="submit"
                     disabled={!newCommentContent.trim() || isPostingComment}
-                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-lg flex items-center gap-1 shadow-sm hover:shadow transition-all shrink-0 cursor-pointer h-8"
+                    className="px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all shrink-0 cursor-pointer h-10"
                   >
                     {isPostingComment ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      <Send className="w-3 h-3" />
+                      <Send className="w-3.5 h-3.5" />
                     )}
                     <span>{replyToComment ? 'Reply' : 'Post'}</span>
                   </button>
                 </form>
+                <p className="hidden sm:block text-[10px] text-slate-400 dark:text-slate-500 px-1">
+                  Press <kbd className="font-sans font-semibold text-slate-500 dark:text-slate-400">Enter</kbd> to send · <kbd className="font-sans font-semibold text-slate-500 dark:text-slate-400">Shift+Enter</kbd> for a new line
+                </p>
               </div>
             </motion.div>
           </div>

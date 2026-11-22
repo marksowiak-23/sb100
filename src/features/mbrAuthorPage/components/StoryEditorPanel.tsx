@@ -6,13 +6,17 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer, ArrowUpDown, ArrowUp, ArrowDown, Layout, Newspaper, Camera, Image as ImageIcon, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
-import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark, resolveMediaUrl, mediaApi, MEDIA_API_BASE_URL, isAudioMedia, eventApi } from '@/src/services/api';
+import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark, resolveMediaUrl, mediaApi, MEDIA_API_BASE_URL, isAudioMedia, eventApi, sysConfigApi } from '@/src/services/api';
 import { FALLBACK_PERSONAS, WriterPersona } from '@/src/features/mbrPreferencesPage/types';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import AiVoiceModal from '@/src/components/AiVoiceModal';
+import NoVoiceCreditsModal from '@/src/components/NoVoiceCreditsModal';
+import NoImageCreditsModal from '@/src/components/NoImageCreditsModal';
 import StoryPdfPrintModal from './StoryPdfPrintModal';
+import AiPhotoGeneratorModal from '@/src/components/AiPhotoGeneratorModal';
+import { playUiSound } from '@/src/services/soundService';
 import MbrStoryPrivacyModal from '@/src/components/mbrStoryPrivacyModal';
 import SparkQuestionModal from './SparkQuestionModal';
 import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
@@ -808,6 +812,63 @@ export default function StoryEditorPanel({
   const [headerPhotoCaption, setHeaderPhotoCaption] = useState<string>('');
   const [headerPhotoStyle, setHeaderPhotoStyle] = useState<HeaderPhotoStyle>('banner');
   const [showPhotoSelectorModal, setShowPhotoSelectorModal] = useState<boolean>(false);
+  const [showAiPhotoModal, setShowAiPhotoModal] = useState<boolean>(false);
+  const [showAiPhotoUnavailableModal, setShowAiPhotoUnavailableModal] = useState<boolean>(false);
+  const [showNoImageCreditsModal, setShowNoImageCreditsModal] = useState<boolean>(false);
+
+  const handleOpenAiPhotoGeneration = async () => {
+    try {
+      if (isSandbox) {
+        const sbVal = sessionStorage.getItem('sandbox_sys_config_FEATURE_AI_PHOTO_GENERATION');
+        if (sbVal !== null && ['false', '0', 'no', 'off'].includes(sbVal.trim().toLowerCase())) {
+          playUiSound('WARNING_ALERT');
+          setShowAiPhotoUnavailableModal(true);
+          return;
+        }
+      } else {
+        const cfg = await sysConfigApi.getSysConfigByTag('FEATURE_AI_PHOTO_GENERATION');
+        const val = String(cfg?.configValue ?? 'true').trim().toLowerCase();
+        const isEnabled = val === 'true' || val === '1' || val === 'yes' || val === 'on' || val === 't';
+        if (!isEnabled) {
+          playUiSound('WARNING_ALERT');
+          setShowAiPhotoUnavailableModal(true);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Could not check FEATURE_AI_PHOTO_GENERATION property:', err);
+    }
+
+    // Check member's AI Image Credit balance (mbrAcct -> mbrAcctImageCreditBalance)
+    let imageCreditBalance = 0;
+    try {
+      if (isSandbox) {
+        const savedAcctStr = resolvedMbrId ? sessionStorage.getItem(`sandbox_mbr_acct_${resolvedMbrId}`) : null;
+        if (savedAcctStr) {
+          const parsedAcct = JSON.parse(savedAcctStr);
+          imageCreditBalance = Number(parsedAcct?.mbrAcctImageCreditBalance ?? 0);
+        }
+      } else if (resolvedMbrId) {
+        const acct = await taskApi.getMemberAccount(resolvedMbrId);
+        imageCreditBalance = Number(acct?.mbrAcctImageCreditBalance ?? 0);
+      }
+    } catch (err) {
+      console.warn('Could not check mbrAcctImageCreditBalance:', err);
+      imageCreditBalance = 0;
+    }
+
+    if (imageCreditBalance <= 0) {
+      logStoryEditorEvent(
+        'STORY_AI_IMAGE_NO_CREDITS',
+        `Member clicked AI Photo Generation with 0 image credits for '${title || activeStoryId || topicTitle}'`,
+        { imageCreditBalance }
+      );
+      setShowNoImageCreditsModal(true);
+      return;
+    }
+
+    setShowAiPhotoModal(true);
+  };
   const [availableStoryPhotos, setAvailableStoryPhotos] = useState<MbrMedia[]>([]);
   const [uploadingHeaderPhoto, setUploadingHeaderPhoto] = useState<boolean>(false);
   const headerPhotoInputRef = useRef<HTMLInputElement | null>(null);
@@ -894,6 +955,7 @@ export default function StoryEditorPanel({
   const [publishing, setPublishing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showUnpublishModal, setShowUnpublishModal] = useState(false);
   const [showUnpublishEditModal, setShowUnpublishEditModal] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -958,6 +1020,7 @@ export default function StoryEditorPanel({
   // Photo Gallery & Media Modal State for Stories
   const [showPhotoGalleryModal, setShowPhotoGalleryModal] = useState(false);
   const [showAiVoiceModal, setShowAiVoiceModal] = useState(false);
+  const [showNoVoiceCreditsModal, setShowNoVoiceCreditsModal] = useState(false);
   const [showPdfModal, setShowPdfModal] = useState(false);
   const [showStoryPrivacyModal, setShowStoryPrivacyModal] = useState(false);
   const [showExhaustedCreditsModal, setShowExhaustedCreditsModal] = useState(false);
@@ -1101,11 +1164,39 @@ export default function StoryEditorPanel({
     setShowPhotoGalleryModal(true);
   };
 
-  const handleOpenAiVoiceModal = (source: 'icon' | 'menu' = 'icon') => {
+  const handleOpenAiVoiceModal = async (source: 'icon' | 'menu' = 'icon') => {
+    // Check member's Voice Credit balance before launching AI Voice Narration Studio
+    let voiceCreditBalance = 0;
+    try {
+      if (isSandbox) {
+        const savedAcctStr = sessionStorage.getItem(`sandbox_mbr_acct_${resolvedMbrId}`);
+        if (savedAcctStr) {
+          const parsedAcct = JSON.parse(savedAcctStr);
+          voiceCreditBalance = Number(parsedAcct?.mbrAcctVoiceCreditBalance ?? 0);
+        }
+      } else if (resolvedMbrId) {
+        const acct = await taskApi.getMemberAccount(resolvedMbrId);
+        voiceCreditBalance = Number(acct?.mbrAcctVoiceCreditBalance ?? 0);
+      }
+    } catch (err) {
+      console.warn('Could not check mbrAcctVoiceCreditBalance:', err);
+      voiceCreditBalance = 0;
+    }
+
+    if (voiceCreditBalance <= 0) {
+      logStoryEditorEvent(
+        'STORY_AI_VOICE_NO_CREDITS',
+        `Member attempted to open AI Voice Narration with ${voiceCreditBalance} voice credits for '${title || activeStoryId || topicTitle}'`,
+        { source, voiceCreditBalance }
+      );
+      setShowNoVoiceCreditsModal(true);
+      return;
+    }
+
     logStoryEditorEvent(
       'STORY_AI_VOICE_OPEN',
       `Member opened AI Voice Narration modal for '${title || activeStoryId || topicTitle}'`,
-      { source }
+      { source, voiceCreditBalance }
     );
     setShowAiVoiceModal(true);
   };
@@ -2511,6 +2602,7 @@ Output Rules:
         setStories(nextList);
         sessionStorage.setItem(sandboxKey, JSON.stringify(nextList));
         setSuccessMsg('Story saved successfully to Sandbox!');
+      playUiSound('STORY_SAVE');
         const isExistingSandboxStory = Boolean(activeStoryId && !activeStoryId.startsWith('temp_'));
         const sandboxEventCd = (status || '').toLowerCase() === 'published'
           ? 'STORY_PUBLISH'
@@ -2544,6 +2636,7 @@ Output Rules:
         setStories(nextList);
         setActiveStoryId(savedResult.mbrStoryId);
         setSuccessMsg('Story saved successfully to database!');
+      playUiSound('STORY_SAVE');
       }
       setIsEditing(false);
     } catch (err: any) {
@@ -2561,14 +2654,31 @@ Output Rules:
   const executeDelete = async () => {
     if (!activeStoryId) return;
     setDeleting(true);
+    const deletedStoryId = activeStoryId;
 
     try {
-      const finalStoryTypeCd = componentName || componentNameMap[topicId] || topicId;
+      const finalStoryTypeCd =
+        topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly'
+          ? 'sbMbrStryFamly'
+          : componentName || componentNameMap[topicId?.toLowerCase()] || topicId || 'sbMbrStryCustom';
 
       if (isSandbox) {
-        const nextList = stories.filter((s) => s.mbrStoryId !== activeStoryId);
+        const nextList = stories.filter((s) => s.mbrStoryId !== deletedStoryId);
         setStories(nextList);
+        sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`, JSON.stringify(nextList));
         sessionStorage.setItem(`sandbox_stories_${finalStoryTypeCd}`, JSON.stringify(nextList));
+        // Also prune from MbrStoryIndexPanel sandbox cache keys if present
+        for (const key of [resolvedMbrId ? `sb_sandbox_stories_${resolvedMbrId}` : '', 'sb_sandbox_stories'].filter(Boolean)) {
+          const raw = sessionStorage.getItem(key);
+          if (raw) {
+            try {
+              const parsed = JSON.parse(raw);
+              if (Array.isArray(parsed)) {
+                sessionStorage.setItem(key, JSON.stringify(parsed.filter((s: any) => s.mbrStoryId !== deletedStoryId)));
+              }
+            } catch {}
+          }
+        }
         if (nextList.length > 0) {
           selectStory(nextList[0]);
         } else {
@@ -2577,10 +2687,10 @@ Output Rules:
           setActiveStoryId(null);
         }
       } else {
-        if (!activeStoryId.startsWith('temp_')) {
-          await taskApi.deleteStory(activeStoryId);
+        if (!deletedStoryId.startsWith('temp_')) {
+          await taskApi.deleteStory(deletedStoryId);
         }
-        const nextList = stories.filter((s) => s.mbrStoryId !== activeStoryId);
+        const nextList = stories.filter((s) => s.mbrStoryId !== deletedStoryId);
         setStories(nextList);
         if (nextList.length > 0) {
           selectStory(nextList[0]);
@@ -2590,7 +2700,11 @@ Output Rules:
           setActiveStoryId(null);
         }
       }
+      // Notify MbrStoryIndexPanel and stats widgets so story counts update immediately
+      window.dispatchEvent(new CustomEvent('stats-updated'));
+      window.dispatchEvent(new CustomEvent('refresh-stories', { detail: { deletedStoryId } }));
       setSuccessMsg('Story deleted successfully.');
+      playUiSound('STORY_DELETE');
       setShowDeleteModal(false);
     } catch (err: any) {
       setError(`Failed to delete story: ${err.message}`);
@@ -2811,6 +2925,7 @@ Output Rules:
           await ensureDefaultStoryGroupPrivs(activeStoryId, currentMbrId);
           setStatus('Published');
           setSuccessMsg('Story published successfully in Sandbox!');
+      playUiSound('STORY_PUBLISH');
         } else {
           let savedResult: MbrStory;
           if (!activeStoryId.startsWith('temp_')) {
@@ -2826,6 +2941,7 @@ Output Rules:
           setActiveStoryId(savedResult.mbrStoryId);
           setStatus('Published');
           setSuccessMsg('Story published successfully to database!');
+      playUiSound('STORY_PUBLISH');
           window.dispatchEvent(new CustomEvent('stats-updated'));
         }
       }
@@ -2841,6 +2957,73 @@ Output Rules:
       }
     } finally {
       setPublishing(false);
+    }
+  };
+
+  const confirmUnpublish = () => {
+    if (!activeStoryId) return;
+    setError(null);
+    setSuccessMsg(null);
+    setShowUnpublishModal(true);
+  };
+
+  const executeUnpublish = async () => {
+    if (!activeStoryId) {
+      setShowUnpublishModal(false);
+      return;
+    }
+    setUnpublishing(true);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      const activeStory = stories.find((s) => s.mbrStoryId === activeStoryId);
+      if (isSandbox) {
+        const finalStoryTypeCd =
+          (topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly')
+            ? 'sbMbrStryFamly'
+            : (componentName || componentNameMap[topicId?.toLowerCase()] || topicId || 'sbMbrStryCustom');
+        const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
+        const updatedList = stories.map((s) =>
+          s.mbrStoryId === activeStoryId
+            ? { ...s, mbrStoryPublishStatusCd: 'Draft' }
+            : s
+        );
+        setStories(updatedList);
+        sessionStorage.setItem(sandboxKey, JSON.stringify(updatedList));
+        logStoryEditorEvent(
+          'STORY_UNPUBLISH',
+          `Member unpublished story '${title || activeStoryId}' and converted it back to Draft`,
+          { publishStatus: 'Draft' }
+        );
+      } else if (!activeStoryId.startsWith('temp_')) {
+        // Backend PUT /mbr-stories/{id} automatically logs STORY_UNPUBLISH when transitioning Published -> Draft
+        const updatedResult = await taskApi.updateStory(activeStoryId, {
+          mbrStoryPublishStatusCd: 'Draft'
+        });
+        setStories((prev) =>
+          prev.map((s) =>
+            s.mbrStoryId === activeStoryId
+              ? { ...s, ...updatedResult, mbrStoryPublishStatusCd: 'Draft' }
+              : s
+          )
+        );
+        window.dispatchEvent(new CustomEvent('stats-updated'));
+      } else if (activeStory) {
+        setStories((prev) =>
+          prev.map((s) =>
+            s.mbrStoryId === activeStoryId ? { ...s, mbrStoryPublishStatusCd: 'Draft' } : s
+          )
+        );
+      }
+
+      setStatus('Draft');
+      setShowUnpublishModal(false);
+      setSuccessMsg('Story unpublished and converted back to Draft mode.');
+    } catch (err: any) {
+      setError(`Failed to unpublish story: ${err?.message || 'Unknown error'}`);
+      setShowUnpublishModal(false);
+    } finally {
+      setUnpublishing(false);
     }
   };
 
@@ -3515,7 +3698,16 @@ Output Rules:
                     <Camera className="w-3.5 h-3.5 text-amber-600" />
                     <span>Story Header Photo & Caption</span>
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => void handleOpenAiPhotoGeneration()}
+                      className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-purple-600 hover:from-amber-600 hover:to-purple-700 text-white text-[11px] font-bold flex items-center gap-1.5 shadow-xs cursor-pointer transition-all"
+                      title="Generate 6 AI photos based on your story content, refine in chat, and animate"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>AI Photo Generation</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -3797,18 +3989,33 @@ Output Rules:
                       )}
                     </button>
 
-                    {/* AI Voice Narration (Published state) */}
-                    {isStoryPublished && (
+                    {/* AI Voice Narration (Enabled only when Published) */}
+                    <span
+                      title={
+                        isStoryPublished
+                          ? 'Generate AI Voice Narration (MP3)'
+                          : 'This story needs to be published first to generate AI Voice Narration'
+                      }
+                      className="inline-flex"
+                    >
                       <button
                         type="button"
                         onClick={() => handleOpenAiVoiceModal('icon')}
-                        disabled={!activeStoryId}
-                        title="Generate AI Voice Narration (MP3)"
-                        className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 border border-slate-200 hover:border-purple-200 rounded-xl cursor-pointer transition-colors"
+                        disabled={!activeStoryId || !isStoryPublished}
+                        aria-label={
+                          isStoryPublished
+                            ? 'Generate AI Voice Narration (MP3)'
+                            : 'This story needs to be published first to generate AI Voice Narration'
+                        }
+                        className={`p-2 border rounded-xl transition-colors ${
+                          isStoryPublished && activeStoryId
+                            ? 'text-slate-400 hover:text-purple-600 hover:bg-purple-50 border-slate-200 hover:border-purple-200 cursor-pointer'
+                            : 'text-slate-300 border-slate-200/80 bg-slate-50/70 opacity-55 cursor-not-allowed'
+                        }`}
                       >
-                        <Mic className="w-4 h-4 text-purple-600" />
+                        <Mic className={`w-4 h-4 ${isStoryPublished && activeStoryId ? 'text-purple-600' : 'text-slate-400'}`} />
                       </button>
-                    )}
+                    </span>
 
                     {/* Inline Story Audio Player if story has text */}
                     {content && (
@@ -3883,6 +4090,27 @@ Output Rules:
                                 <span>{isStoryPublished ? 'Published' : 'Publish Story'}</span>
                               </button>
 
+                              {/* Unpublish Story (Enabled only when story status is Published) */}
+                              {!readOnly && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!isStoryPublished) return;
+                                    setShowActionMenu(false);
+                                    confirmUnpublish();
+                                  }}
+                                  disabled={!isStoryPublished || unpublishing}
+                                  className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors text-left ${
+                                    !isStoryPublished
+                                      ? 'text-slate-300 opacity-50 cursor-not-allowed pointer-events-none'
+                                      : 'text-slate-700 hover:bg-amber-50 hover:text-amber-800 cursor-pointer'
+                                  }`}
+                                >
+                                  <AlertTriangle className={`w-4 h-4 shrink-0 ${!isStoryPublished ? 'text-slate-300' : 'text-amber-600'}`} />
+                                  <span>Unpublish Story</span>
+                                </button>
+                              )}
+
                               {/* Privacy Settings */}
                               {!readOnly && (
                                 <button
@@ -3934,20 +4162,31 @@ Output Rules:
                                 )}
                               </button>
 
-                              {isStoryPublished && (
+                              <span
+                                title={
+                                  isStoryPublished
+                                    ? 'Generate AI Voice Narration (MP3)'
+                                    : 'This story needs to be published first to generate AI Voice Narration'
+                                }
+                                className="block"
+                              >
                                 <button
                                   type="button"
                                   onClick={() => {
                                     setShowActionMenu(false);
                                     handleOpenAiVoiceModal('menu');
                                   }}
-                                  disabled={!activeStoryId}
-                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-purple-700 hover:bg-purple-50 transition-colors cursor-pointer text-left"
+                                  disabled={!activeStoryId || !isStoryPublished}
+                                  className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold transition-colors text-left ${
+                                    isStoryPublished && activeStoryId
+                                      ? 'text-purple-700 hover:bg-purple-50 cursor-pointer'
+                                      : 'text-slate-400 opacity-60 cursor-not-allowed'
+                                  }`}
                                 >
-                                  <Mic className="w-4 h-4 text-purple-600 shrink-0" />
+                                  <Mic className={`w-4 h-4 shrink-0 ${isStoryPublished && activeStoryId ? 'text-purple-600' : 'text-slate-400'}`} />
                                   <span>AI Voice Narration</span>
                                 </button>
-                              )}
+                              </span>
                             </div>
 
                             {/* Delete Story */}
@@ -4301,6 +4540,62 @@ Output Rules:
                     <Globe className="w-3.5 h-3.5" />
                   )}
                   <span>Publish Story</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* --- STANDALONE UNPUBLISH CONFIRMATION MODAL --- */}
+      <AnimatePresence>
+        {showUnpublishModal && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div
+              className="absolute inset-0 cursor-default"
+              onClick={() => !unpublishing && setShowUnpublishModal(false)}
+            />
+
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white border border-slate-100 rounded-3xl shadow-2xl max-w-sm w-full z-10 p-6 flex flex-col items-center text-center gap-4 relative overflow-hidden"
+            >
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="font-serif text-lg font-bold text-slate-850">
+                  Unpublish Story?
+                </h3>
+                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                  Are you sure you want to unpublish <span className="font-semibold text-slate-700">"{title || 'this story'}"</span>? An unpublished story is not viewable by others and its status will be changed back to <span className="font-semibold text-amber-700">Draft</span>.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 w-full pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowUnpublishModal(false)}
+                  disabled={unpublishing}
+                  className="flex-1 py-2.5 bg-white border border-[#EFECE7] text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={executeUnpublish}
+                  disabled={unpublishing}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/15 transition-all cursor-pointer border border-amber-600 disabled:opacity-50"
+                >
+                  {unpublishing ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                  )}
+                  <span>{unpublishing ? 'Unpublishing...' : 'Continue'}</span>
                 </button>
               </div>
             </motion.div>
@@ -4670,6 +4965,148 @@ Output Rules:
         mbrId={resolvedMbrId}
         categoryCd={resolvedCategoryCd}
         isSandbox={isSandbox}
+        onAiVoiceDateUpdated={(aiVoiceDate) => {
+          if (!activeStoryId) return;
+          setStories((prev) => {
+            const updatedList = prev.map((s) =>
+              s.mbrStoryId === activeStoryId
+                ? { ...s, mbrStoryAiVoiceFlag: true, mbrStoryAiVoiceDate: aiVoiceDate }
+                : s
+            );
+            if (isSandbox) {
+              const finalStoryTypeCd =
+                topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly'
+                  ? 'sbMbrStryFamly'
+                  : componentName || componentNameMap[topicId?.toLowerCase()] || topicId || 'sbMbrStryCustom';
+              const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
+              sessionStorage.setItem(sandboxKey, JSON.stringify(updatedList));
+            }
+            return updatedList;
+          });
+        }}
+      />
+
+      {/* No Voice Credits Modal Dialog */}
+      <NoVoiceCreditsModal
+        isOpen={showNoVoiceCreditsModal}
+        onClose={() => setShowNoVoiceCreditsModal(false)}
+        storyTitle={title}
+      />
+
+      {/* No AI Image Credits Modal Dialog */}
+      <NoImageCreditsModal
+        isOpen={showNoImageCreditsModal}
+        onClose={() => setShowNoImageCreditsModal(false)}
+        storyTitle={title}
+      />
+
+      {/* AI Photo Generation Unavailable Dialog */}
+      <AnimatePresence>
+        {showAiPhotoUnavailableModal && (
+          <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+            <div
+              className="fixed inset-0"
+              onClick={() => setShowAiPhotoUnavailableModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ duration: 0.16 }}
+              className="relative z-10 w-full max-w-md bg-white rounded-3xl border border-[#EFECE7] shadow-2xl overflow-hidden"
+            >
+              <div className="px-6 py-5 bg-gradient-to-r from-amber-50 via-orange-50/60 to-white border-b border-[#EFECE7] flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-lg font-bold text-slate-900">
+                      Feature Currently Unavailable
+                    </h3>
+                    <p className="text-[11px] font-mono uppercase tracking-wider text-amber-700 font-semibold">
+                      AI Photo Generation
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAiPhotoUnavailableModal(false)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  aria-label="Close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="px-6 py-5 space-y-3 text-sm text-slate-600 leading-relaxed">
+                <p>
+                  The <strong className="text-slate-800">AI Photo Generation</strong> feature is currently unavailable.
+                </p>
+                <p className="text-xs text-slate-500">
+                  You can still select existing photos from your gallery or upload new photographs directly for this story. Please check back later!
+                </p>
+              </div>
+
+              <div className="px-6 py-4 bg-slate-50/70 border-t border-[#EFECE7] flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowAiPhotoUnavailableModal(false)}
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Photo Generation Studio Modal Dialog */}
+      <AiPhotoGeneratorModal
+        isOpen={showAiPhotoModal}
+        onClose={() => setShowAiPhotoModal(false)}
+        storyId={activeStoryId || ''}
+        storyTitle={title || stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryTitle || 'Untitled Story'}
+        storyContent={content || stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryText || ''}
+        mbrId={resolvedMbrId}
+        categoryCd={resolvedCategoryCd}
+        isSandbox={isSandbox}
+        onAiImageDateUpdated={(aiImageDate) => {
+          if (!activeStoryId) return;
+          setStories((prev) => {
+            const updatedList = prev.map((s) =>
+              s.mbrStoryId === activeStoryId ? { ...s, mbrStoryAiImageDate: aiImageDate } : s
+            );
+            if (isSandbox) {
+              const finalStoryTypeCd =
+                topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly'
+                  ? 'sbMbrStryFamly'
+                  : componentName || componentNameMap[topicId?.toLowerCase()] || topicId || 'sbMbrStryCustom';
+              const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
+              sessionStorage.setItem(sandboxKey, JSON.stringify(updatedList));
+            }
+            return updatedList;
+          });
+        }}
+        onPhotosSaved={(savedMedia) => {
+          if (savedMedia.length === 0) return;
+          setAvailableStoryPhotos((prev) => [...savedMedia, ...prev]);
+          if (activeStoryId) {
+            setStoryPhotosCountMap((prev) => ({
+              ...prev,
+              [activeStoryId]: (prev[activeStoryId] || 0) + savedMedia.length,
+            }));
+          }
+          if (!headerPhotoUrl && savedMedia[0]?.mbrMediaPath) {
+            setHeaderPhotoUrl(savedMedia[0].mbrMediaPath);
+            if (!headerPhotoCaption && savedMedia[0].mbrMediaDescription) {
+              setHeaderPhotoCaption(savedMedia[0].mbrMediaDescription);
+            }
+          }
+          loadStoryPhotoCounts();
+          setSuccessMsg(`Saved ${savedMedia.length} AI-generated photo${savedMedia.length === 1 ? '' : 's'} to your story!`);
+        }}
       />
 
       {/* Story Print to PDF Customization & Page Size Modal */}
@@ -4685,6 +5122,24 @@ Output Rules:
         authorLocation={authorLocation}
         publishedDate={stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryPublishedDate || stories.find((s) => s.mbrStoryId === activeStoryId)?.mbrStoryCreatedAt}
         status={status}
+        isSandbox={isSandbox}
+        onPrintDateUpdated={(printDate) => {
+          if (!activeStoryId) return;
+          setStories((prev) => {
+            const updatedList = prev.map((s) =>
+              s.mbrStoryId === activeStoryId ? { ...s, mbrStoryPrintDate: printDate } : s
+            );
+            if (isSandbox) {
+              const finalStoryTypeCd =
+                topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly'
+                  ? 'sbMbrStryFamly'
+                  : componentName || componentNameMap[topicId?.toLowerCase()] || topicId || 'sbMbrStryCustom';
+              const sandboxKey = `sandbox_stories_${finalStoryTypeCd}_${subordinateId || 'all'}`;
+              sessionStorage.setItem(sandboxKey, JSON.stringify(updatedList));
+            }
+            return updatedList;
+          });
+        }}
         onSuccess={(msg) => setSuccessMsg(msg)}
         onError={(err) => setError(err)}
       />

@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  HeartHandshake, Trash2, Edit3, Save, X, Plus, Loader2, 
+  HeartHandshake, Trash2, Edit3, X, Plus, Loader2, 
   AlertCircle, CheckCircle2, ShieldAlert, Images, 
-  ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, MapPin, Calendar
+  ArrowUpDown, ArrowUp, ArrowDown, MoreVertical, MapPin
 } from 'lucide-react';
 import { 
   taskApi, 
@@ -85,6 +85,54 @@ const DEFAULT_RELATIONSHIP_CODES: Partial<Cd>[] = [
   { cdValue: 'NEIGHBOR', cdLabel: 'Neighbor', cdDesc: 'Neighbor or community acquaintance', cdSortOrder: 8 },
   { cdValue: 'OTHER', cdLabel: 'Other', cdDesc: 'Other meaningful connection or relationship', cdSortOrder: 9 }
 ];
+
+// Module-level cache for relationshipTypeCd lookup codes (5-minute TTL)
+const CODES_CACHE_TTL_MS = 5 * 60 * 1000;
+let cachedRelationshipCodes: Partial<Cd>[] | null = null;
+let cachedRelationshipCodesAt = 0;
+let relationshipCodesPromise: Promise<Partial<Cd>[]> | null = null;
+
+async function getCachedRelationshipCodes(): Promise<Partial<Cd>[]> {
+  if (cachedRelationshipCodes && Date.now() - cachedRelationshipCodesAt < CODES_CACHE_TTL_MS) {
+    return cachedRelationshipCodes;
+  }
+  if (!relationshipCodesPromise) {
+    relationshipCodesPromise = taskApi
+      .getCds('relationshipTypeCd')
+      .then((codes) => {
+        if (Array.isArray(codes) && codes.length > 0) {
+          cachedRelationshipCodes = codes;
+          cachedRelationshipCodesAt = Date.now();
+          return codes;
+        }
+        return DEFAULT_RELATIONSHIP_CODES;
+      })
+      .catch(() => DEFAULT_RELATIONSHIP_CODES)
+      .finally(() => {
+        relationshipCodesPromise = null;
+      });
+  }
+  return relationshipCodesPromise;
+}
+
+function computeRelationshipPhotoCounts(mediaList: any[]): { headerPhotos: number; photoMap: Record<string, number> } {
+  const photoMap: Record<string, number> = {};
+  let headerPhotos = 0;
+  if (Array.isArray(mediaList)) {
+    for (let i = 0; i < mediaList.length; i++) {
+      const m = mediaList[i];
+      if (isAudioMedia(m)) continue;
+      const category = (m.mbrMediaCategoryCd || '').toLowerCase();
+      if (!category || category.includes('relationship')) {
+        headerPhotos++;
+        if (m.mbrMediaSubordinateId) {
+          photoMap[m.mbrMediaSubordinateId] = (photoMap[m.mbrMediaSubordinateId] || 0) + 1;
+        }
+      }
+    }
+  }
+  return { headerPhotos, photoMap };
+}
 
 export default function MbrStoryRelationshipsPanel({
   isSandbox = false,
@@ -164,54 +212,41 @@ export default function MbrStoryRelationshipsPanel({
     };
   }, [activeActionMenuId, showHeaderMenu]);
 
-  // Load photo count badges
-  const loadSubordinateCounts = async (targetMbrId: string, currentRelationships: MbrTopicRelationship[]) => {
+  // Load photo count badges (filtered server-side by categoryCd='relationships')
+  const loadSubordinateCounts = useCallback(async (targetMbrId: string) => {
     try {
       if (isSandbox) {
         setHeaderPhotoCount(0);
         setMemberPhotosMap({});
         return;
       }
-      const mediaList: any[] = await taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []);
-      if (Array.isArray(mediaList)) {
-        const photoMap: Record<string, number> = {};
-        let headerPhotos = 0;
-
-        mediaList.forEach((m) => {
-          if (isAudioMedia(m)) return;
-          const category = (m.mbrMediaCategoryCd || '').toLowerCase();
-          if (category.includes('relationship')) {
-            headerPhotos++;
-            if (m.mbrMediaSubordinateId) {
-              photoMap[m.mbrMediaSubordinateId] = (photoMap[m.mbrMediaSubordinateId] || 0) + 1;
-            }
-          }
-        });
-
-        setHeaderPhotoCount(headerPhotos);
-        setMemberPhotosMap(photoMap);
-      }
+      const mediaList: any[] = await taskApi
+        .getMemberMedia(targetMbrId, { excludeAudio: true, categoryCd: 'relationships' })
+        .catch(() => []);
+      const { headerPhotos, photoMap } = computeRelationshipPhotoCounts(mediaList);
+      setHeaderPhotoCount(headerPhotos);
+      setMemberPhotosMap(photoMap);
     } catch {
       // Graceful fallback
     }
-  };
+  }, [isSandbox]);
 
-  // Re-fetch subordinate counts when story or gallery events occur
+  // Re-fetch photo counts only when relevant media events occur (avoids refetching on unrelated story edits)
   useEffect(() => {
-    const handleSync = () => {
-      loadSubordinateCounts(mbrId, relationshipList);
+    const handleMediaUpdated = (evt: Event) => {
+      const detail = (evt as CustomEvent<{ categoryCd?: string; mbrId?: string }> | undefined)?.detail;
+      if (detail?.categoryCd && !detail.categoryCd.toLowerCase().includes('relationship')) {
+        return;
+      }
+      void loadSubordinateCounts(mbrId);
     };
-    window.addEventListener('update-story-editor-content', handleSync);
-    window.addEventListener('story-saved', handleSync);
-    window.addEventListener('storage', handleSync);
+    window.addEventListener('media-updated', handleMediaUpdated);
     return () => {
-      window.removeEventListener('update-story-editor-content', handleSync);
-      window.removeEventListener('story-saved', handleSync);
-      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('media-updated', handleMediaUpdated);
     };
-  }, [mbrId, relationshipList, isSandbox]);
+  }, [mbrId, loadSubordinateCounts]);
 
-  // Primary Data Fetch
+  // Primary Data Fetch — batched concurrently with Promise.all (zero sequential waterfalls)
   useEffect(() => {
     let isMounted = true;
     const init = async () => {
@@ -247,45 +282,51 @@ export default function MbrStoryRelationshipsPanel({
         }
         if (isMounted) setMbrId(currentMbrId);
 
-        // Fetch lookup codes for relationship types
-        try {
-          const codes = await taskApi.getCds('relationshipTypeCd');
-          if (Array.isArray(codes) && codes.length > 0 && isMounted) {
-            setTypeCodes(codes);
-          }
-        } catch {
-          // fallback to defaults
-        }
-
         if (isSandbox) {
+          const codes = await getCachedRelationshipCodes();
           const local = sessionStorage.getItem('sandbox_relationships');
           const data = local ? JSON.parse(local) : SANDBOX_RELATIONSHIPS;
           if (isMounted) {
+            setTypeCodes(codes);
             setRelationshipList(data);
-            loadSubordinateCounts(currentMbrId, data);
+            setHeaderPhotoCount(0);
+            setMemberPhotosMap({});
           }
         } else {
-          try {
-            const dbData = await taskApi.getRelationships(currentMbrId);
-            if (isMounted) {
-              let list = Array.isArray(dbData) ? dbData : [];
-              if (list.length === 0 && (currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1' || memberId === 'm1')) {
-                list = SANDBOX_RELATIONSHIPS;
-              }
-              setRelationshipList(list);
-              loadSubordinateCounts(currentMbrId, list);
+          // Batch lookup codes, relationships list, and category-filtered media concurrently
+          const [codes, relResult, mediaList] = await Promise.all([
+            getCachedRelationshipCodes(),
+            taskApi.getRelationships(currentMbrId).then(
+              (data) => ({ ok: true as const, data }),
+              (err) => ({ ok: false as const, err })
+            ),
+            taskApi
+              .getMemberMedia(currentMbrId, { excludeAudio: true, categoryCd: 'relationships' })
+              .catch(() => [] as any[]),
+          ]);
+
+          if (!isMounted) return;
+          setTypeCodes(codes);
+
+          const { headerPhotos, photoMap } = computeRelationshipPhotoCounts(mediaList);
+          setHeaderPhotoCount(headerPhotos);
+          setMemberPhotosMap(photoMap);
+
+          if (relResult.ok) {
+            let list = Array.isArray(relResult.data) ? relResult.data : [];
+            if (list.length === 0 && (currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1' || memberId === 'm1')) {
+              list = SANDBOX_RELATIONSHIPS;
             }
-          } catch (err: any) {
-            if (isMounted) {
-              if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1' || err.message?.includes('Parent member profile not found')) {
-                console.warn("Falling back to sandbox relationships due to unseeded parent member:", err);
-                const local = sessionStorage.getItem('sandbox_relationships');
-                const data = local ? JSON.parse(local) : SANDBOX_RELATIONSHIPS;
-                setRelationshipList(data);
-                loadSubordinateCounts(currentMbrId, data);
-              } else {
-                setError(`Failed to load relationships: ${err.message || err}`);
-              }
+            setRelationshipList(list);
+          } else {
+            const err: any = 'err' in relResult ? relResult.err : null;
+            if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1' || err?.message?.includes('Parent member profile not found')) {
+              console.warn("Falling back to sandbox relationships due to unseeded parent member:", err);
+              const local = sessionStorage.getItem('sandbox_relationships');
+              const data = local ? JSON.parse(local) : SANDBOX_RELATIONSHIPS;
+              setRelationshipList(data);
+            } else {
+              setError(`Failed to load relationships: ${err?.message || err}`);
             }
           }
         }
@@ -300,13 +341,21 @@ export default function MbrStoryRelationshipsPanel({
     return () => { isMounted = false; };
   }, [isSandbox, memberId]);
 
-  const getTypeLabel = (cdVal?: string) => {
+  // O(1) lookup map for relationship type labels (avoids O(N*M) scans inside render & sort)
+  const typeCodeLabelMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of typeCodes) {
+      if (c?.cdValue) {
+        map.set(c.cdValue.toLowerCase(), c.cdLabel || c.cdValue);
+      }
+    }
+    return map;
+  }, [typeCodes]);
+
+  const getTypeLabel = useCallback((cdVal?: string) => {
     if (!cdVal) return 'Friend';
-    const found = typeCodes.find(
-      (c) => c?.cdValue?.toLowerCase() === cdVal?.toLowerCase()
-    );
-    return found?.cdLabel || found?.cdValue || cdVal;
-  };
+    return typeCodeLabelMap.get(cdVal.toLowerCase()) || cdVal;
+  }, [typeCodeLabelMap]);
 
   const getInitials = (first: string = '', last: string = '') => {
     const f = first ? first[0] : '';
@@ -446,15 +495,17 @@ export default function MbrStoryRelationshipsPanel({
         setShowModal(false);
       } else {
         if (editingRelationshipId) {
-          await taskApi.updateRelationship(editingRelationshipId, payload);
+          const updated = await taskApi.updateRelationship(editingRelationshipId, payload);
+          setRelationshipList((prev) =>
+            prev.map((r) => (r.mbrRelationshipId === editingRelationshipId ? { ...r, ...updated } : r))
+          );
           setSuccessMsg('Relationship updated successfully!');
         } else {
-          await taskApi.createRelationship(payload);
+          const created = await taskApi.createRelationship(payload);
+          setRelationshipList((prev) => [...prev, created]);
           setSuccessMsg('Relationship added successfully!');
         }
         setShowModal(false);
-        const refreshed = await taskApi.getRelationships(mbrId);
-        setRelationshipList(Array.isArray(refreshed) ? refreshed : []);
       }
     } catch (err: any) {
       setModalError(`Failed to save relationship: ${err.message}`);
@@ -483,8 +534,7 @@ export default function MbrStoryRelationshipsPanel({
         setSuccessMsg('Relationship deleted successfully!');
       } else {
         await taskApi.deleteRelationship(targetId);
-        const refreshed = await taskApi.getRelationships(mbrId);
-        setRelationshipList(Array.isArray(refreshed) ? refreshed : []);
+        setRelationshipList((prev) => prev.filter((r) => r.mbrRelationshipId !== targetId));
         setSuccessMsg('Relationship deleted successfully!');
       }
       setDeleteTarget(null);
@@ -506,15 +556,6 @@ export default function MbrStoryRelationshipsPanel({
     setActiveGallerySubordinateId(rel.mbrRelationshipId);
     setActiveGalleryTitle(`Relationships (${rel.mbrRelationshipFirstNm} ${rel.mbrRelationshipLastNm || ''})`.trim());
     setShowGalleryModal(true);
-  };
-
-  const formatYearOrDate = (dtStr?: string | null) => {
-    if (!dtStr) return '';
-    const parts = dtStr.split('T')[0].split('-');
-    if (parts.length >= 3) {
-      return `${parts[1]}/${parts[2]}/${parts[0]}`;
-    }
-    return dtStr;
   };
 
   return (
@@ -1232,7 +1273,7 @@ export default function MbrStoryRelationshipsPanel({
             isOpen={showGalleryModal}
             onClose={() => {
               setShowGalleryModal(false);
-              loadSubordinateCounts(mbrId, relationshipList);
+              void loadSubordinateCounts(mbrId);
             }}
           />
         )}

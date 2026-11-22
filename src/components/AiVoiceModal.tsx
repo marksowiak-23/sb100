@@ -39,6 +39,7 @@ import {
 } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { analytics } from '@/src/services/analytics';
+import { playUiSound } from '@/src/services/soundService';
 
 export interface AiVoiceModalProps {
   isOpen: boolean;
@@ -50,6 +51,7 @@ export interface AiVoiceModalProps {
   categoryCd: string;
   isSandbox?: boolean;
   onAudioGenerated?: (mediaRecord: MbrMedia) => void;
+  onAiVoiceDateUpdated?: (aiVoiceDate: string) => void;
 }
 
 export interface VoiceProfile {
@@ -255,7 +257,8 @@ export default function AiVoiceModal({
   mbrId,
   categoryCd,
   isSandbox = false,
-  onAudioGenerated
+  onAudioGenerated,
+  onAiVoiceDateUpdated
 }: AiVoiceModalProps) {
   // Voice Parameters State - Selecting voices directly by Timbre & Accent
   const [selectedVoice, setSelectedVoice] = useState<string>('en-US-Standard-C');
@@ -644,14 +647,16 @@ export default function AiVoiceModal({
     try {
       const startTime = performance.now();
 
-      // Log AUDIO_GENERATE / AUDIO_REGENERATE event
+      // Log AUDIO_GENERATE / AUDIO_REGENERATE event (triggers backend acctEventCredit deduction from mbrAcctVoiceCreditBalance)
+      const audioEventCd = isRegenerate ? 'AUDIO_REGENERATE' : 'AUDIO_GENERATE';
       eventApi.logEvent({
         eventSiteCd: 'SB',
         eventActorId: mbrId || undefined,
         eventActorTypeCd: 'MBR',
-        eventCd: isRegenerate ? 'AUDIO_REGENERATE' : 'AUDIO_GENERATE',
+        eventCd: audioEventCd,
         eventDetail: `User ${actionLabel} AI voice narration audio for story '${storyTitle || storyId}' using voice '${activeProfile.name}' (${activeProfile.accent} ${activeProfile.gender})`,
         eventTagValue: {
+          mbrStoryId: storyId,
           storyId,
           storyTitle: storyTitle || undefined,
           categoryCd,
@@ -665,9 +670,29 @@ export default function AiVoiceModal({
           textLength: fullNarrationText.length,
           estimatedSeconds
         }
-      }).catch((logErr) => {
-        console.warn('Failed to log audio event:', logErr);
-      });
+      })
+        .then(() => {
+          window.dispatchEvent(new CustomEvent('credits-updated'));
+        })
+        .catch((logErr) => {
+          console.warn('Failed to log audio event:', logErr);
+        });
+
+      // In Sandbox mode, also subtract voice credit cost from sessionStorage sandbox account
+      if (isSandbox && mbrId) {
+        try {
+          const acctKey = `sandbox_mbr_acct_${mbrId}`;
+          const savedAcctStr = sessionStorage.getItem(acctKey);
+          if (savedAcctStr) {
+            const parsedAcct = JSON.parse(savedAcctStr);
+            const voiceCost = 8;
+            const curVoiceBal = Number(parsedAcct?.mbrAcctVoiceCreditBalance ?? 0);
+            parsedAcct.mbrAcctVoiceCreditBalance = Math.max(0, curVoiceBal - voiceCost);
+            parsedAcct.mbrAcctVoiceLifetimeCreditsUsed = Number(parsedAcct?.mbrAcctVoiceLifetimeCreditsUsed ?? 0) + voiceCost;
+            sessionStorage.setItem(acctKey, JSON.stringify(parsedAcct));
+          }
+        } catch {}
+      }
 
       // Dispatch GA4 / GTM event
       analytics.aiVoice({
@@ -882,11 +907,29 @@ export default function AiVoiceModal({
           });
         }
 
+        // Flag story as having an associated AI voice narration and record today's date
+        const now = new Date();
+        const aiVoiceDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        if (storyId) {
+          await taskApi
+            .updateStory(storyId, {
+              mbrStoryAiVoiceFlag: true,
+              mbrStoryAiVoiceDate: aiVoiceDateStr,
+            })
+            .catch((err) => {
+              console.warn('Could not update mbrStoryAiVoiceFlag / mbrStoryAiVoiceDate:', err);
+            });
+        }
+        onAiVoiceDateUpdated?.(aiVoiceDateStr);
+
         setGeneratedMedia(finalMediaRecord);
         setExistingMedia(finalMediaRecord);
         if (onAudioGenerated) onAudioGenerated(finalMediaRecord);
       } else {
         // Sandbox mode: overwrite existing record for same mbrStoryId
+        const now = new Date();
+        const aiVoiceDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        onAiVoiceDateUpdated?.(aiVoiceDateStr);
         storageUrl = newBlobUrl;
         const targetMediaId = targetExisting?.mbrMediaId || `media_audio_${Date.now()}`;
         const mockMedia: MbrMedia = {
@@ -918,6 +961,7 @@ export default function AiVoiceModal({
 
       window.dispatchEvent(new CustomEvent('media-updated', { detail: { storyId, mbrId } }));
       window.dispatchEvent(new CustomEvent('update-story-editor-content', { detail: { storyId } }));
+      playUiSound('AUDIO_GENERATE');
     } catch (err: any) {
       console.error('Failed to generate AI Voice audio:', err);
       setError(`Failed to generate audio stream: ${err.message || 'Unknown error'}`);
@@ -951,6 +995,11 @@ export default function AiVoiceModal({
           await mediaApi.deleteMedia(objectName).catch(() => {});
         }
         await taskApi.deleteMemberMedia(targetMedia.mbrMediaId);
+        if (storyId) {
+          await taskApi.updateStory(storyId, { mbrStoryAiVoiceFlag: false }).catch((err) => {
+            console.warn('Could not update mbrStoryAiVoiceFlag to false:', err);
+          });
+        }
       } else {
         const existingStr = sessionStorage.getItem('sandbox_media');
         if (existingStr) {
@@ -991,6 +1040,7 @@ export default function AiVoiceModal({
 
       window.dispatchEvent(new CustomEvent('media-updated', { detail: { storyId, mbrId } }));
       window.dispatchEvent(new CustomEvent('update-story-editor-content', { detail: { storyId } }));
+      playUiSound('STORY_DELETE');
     } catch (err: any) {
       console.error('Failed to delete AI Voice audio:', err);
       setError(`Failed to delete audio: ${err?.message || 'Unknown error'}`);

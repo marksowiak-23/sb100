@@ -27,15 +27,22 @@ interface MbrProfileFeatureProps {
   isSandbox: boolean;
   onClickBack: () => void;
   onDirtyChange?: (dirty: boolean) => void;
+  initialSubTab?: ProfileSubTab;
 }
 
 
 
 
-export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChange }: MbrProfileFeatureProps) {
+export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChange, initialSubTab = 'profile' }: MbrProfileFeatureProps) {
   // --- SUB-TAB STATE ---
-  const [activeSubTab, setActiveSubTab] = useState<ProfileSubTab>('profile');
+  const [activeSubTab, setActiveSubTab] = useState<ProfileSubTab>(initialSubTab);
   const [isSettingsDirty, setIsSettingsDirty] = useState(false);
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
 
   // --- STATE DEFINITIONS ---
   const [loading, setLoading] = useState(true);
@@ -100,22 +107,23 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   // Compute dirty status (true if any field was changed from initial loaded state)
   const isProfileDirty = useMemo(() => {
     if (!initialData) return false;
+    const norm = (v?: string | null) => (v ?? '').toString();
     return (
-      formData.mbrFirstName !== initialData.formData.mbrFirstName ||
-      formData.mbrLastName !== initialData.formData.mbrLastName ||
-      formData.mbrMiddleName !== initialData.formData.mbrMiddleName ||
-      formData.mbrBirthDate !== initialData.formData.mbrBirthDate ||
-      formData.mbrDeathDate !== initialData.formData.mbrDeathDate ||
-      formData.mbrGenderCd !== initialData.formData.mbrGenderCd ||
-      formData.mbrRelationshipStatusCd !== initialData.formData.mbrRelationshipStatusCd ||
-      formData.mbrLivesCityState !== initialData.formData.mbrLivesCityState ||
-      formData.mbrFromCityState !== initialData.formData.mbrFromCityState ||
-      formData.mbrWorkAt !== initialData.formData.mbrWorkAt ||
-      formData.mbrStudiedAt !== initialData.formData.mbrStudiedAt ||
-      formData.mbrEmailAddress !== initialData.formData.mbrEmailAddress ||
-      formData.mbrIntroduction !== initialData.formData.mbrIntroduction ||
-      formData.mbrProfilePic !== initialData.formData.mbrProfilePic ||
-      previewImage !== initialData.previewImage
+      norm(formData.mbrFirstName) !== norm(initialData.formData.mbrFirstName) ||
+      norm(formData.mbrLastName) !== norm(initialData.formData.mbrLastName) ||
+      norm(formData.mbrMiddleName) !== norm(initialData.formData.mbrMiddleName) ||
+      norm(formData.mbrBirthDate) !== norm(initialData.formData.mbrBirthDate) ||
+      norm(formData.mbrDeathDate) !== norm(initialData.formData.mbrDeathDate) ||
+      norm(formData.mbrGenderCd) !== norm(initialData.formData.mbrGenderCd) ||
+      norm(formData.mbrRelationshipStatusCd) !== norm(initialData.formData.mbrRelationshipStatusCd) ||
+      norm(formData.mbrLivesCityState) !== norm(initialData.formData.mbrLivesCityState) ||
+      norm(formData.mbrFromCityState) !== norm(initialData.formData.mbrFromCityState) ||
+      norm(formData.mbrWorkAt) !== norm(initialData.formData.mbrWorkAt) ||
+      norm(formData.mbrStudiedAt) !== norm(initialData.formData.mbrStudiedAt) ||
+      norm(formData.mbrEmailAddress) !== norm(initialData.formData.mbrEmailAddress) ||
+      norm(formData.mbrIntroduction) !== norm(initialData.formData.mbrIntroduction) ||
+      norm(formData.mbrProfilePic) !== norm(initialData.formData.mbrProfilePic) ||
+      norm(previewImage) !== norm(initialData.previewImage)
     );
   }, [formData, previewImage, initialData]);
 
@@ -315,7 +323,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
 
         setSuccess("Sandbox member profile updated successfully!");
         setMbrId(updatedMbr.mbrId);
-        setInitialData({ formData: { ...payload, mbrProfilePic: payload.mbrProfilePic || '' }, previewImage: previewImage });
+        const savedSnapshot = { ...formData };
+        setInitialData({ formData: savedSnapshot, previewImage: previewImage });
       } else {
         // Save live database
         if (mbrId) {
@@ -335,7 +344,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
           } catch (e) {
             console.warn('Could not update session member object:', e);
           }
-          setInitialData({ formData: { ...payload, mbrProfilePic: payload.mbrProfilePic || '' }, previewImage: previewImage });
+          const savedSnapshot = { ...formData };
+          setInitialData({ formData: savedSnapshot, previewImage: previewImage });
         } else {
           // CREATE
           // We call taskApi to create member record using FastAPI POST /mbrs
@@ -362,7 +372,8 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
           } catch (e) {
             console.warn('Could not set session member object:', e);
           }
-          setInitialData({ formData: { ...payload, mbrProfilePic: payload.mbrProfilePic || '' }, previewImage: previewImage });
+          const savedSnapshot = { ...formData };
+          setInitialData({ formData: savedSnapshot, previewImage: previewImage });
         }
       }
 
@@ -858,10 +869,11 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                     type="button"
                     onClick={(e) => handleSubmit(e as any)}
                     disabled={!isProfileDirty || saving}
-                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold font-sans shadow-md transition-all cursor-pointer ${
+                    title={!isProfileDirty ? "Make an edit to enable saving" : "Save changes to your member profile"}
+                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold font-sans transition-all ${
                       isProfileDirty && !saving
-                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 active:scale-98'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 active:scale-98 cursor-pointer'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none opacity-65'
                     }`}
                   >
                     {saving ? (
@@ -1297,10 +1309,10 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                     type="button"
                     onClick={handleSubmit}
                     disabled={saving || !isProfileDirty}
-                    className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold font-sans shadow-md transition-all cursor-pointer ${
+                    className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold font-sans transition-all ${
                       isProfileDirty && !saving
-                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 active:scale-98'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
+                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 active:scale-98 cursor-pointer'
+                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none opacity-65'
                     }`}
                     title={!isProfileDirty ? "Make an edit to enable saving" : "Save changes to your member profile"}
                   >

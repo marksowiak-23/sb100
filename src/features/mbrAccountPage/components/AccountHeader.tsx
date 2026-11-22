@@ -6,66 +6,73 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  CreditCard,
+  BookOpen,
+  Mic,
+  Image as ImageIcon,
   RefreshCw, 
-  Download, 
-  ArrowLeft,
   CheckCircle2,
   AlertCircle,
   X
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { AccountSubTab } from './AccountNavigationMenu';
 
 export interface AccountHeaderProps {
+  activeSubTab?: AccountSubTab;
   onClickBack?: () => void;
   refreshing?: boolean;
   onRefresh?: () => void;
-  onDownloadStatement?: () => void;
-  disableDownload?: boolean;
   successMessage?: string | null;
   errorMessage?: string | null;
   onDismissError?: () => void;
 }
 
 export default function AccountHeader({
-  onClickBack,
+  activeSubTab = 'story-credits',
   refreshing = false,
   onRefresh,
-  onDownloadStatement,
-  disableDownload = false,
   successMessage = null,
   errorMessage = null,
   onDismissError
 }: AccountHeaderProps) {
+  const isVoiceTab = activeSubTab === 'voice-credits';
+  const isImageTab = activeSubTab === 'image-credits';
+
   return (
-    <div className="relative mb-3 sm:mb-6 lg:mb-8 pb-3 sm:pb-4 lg:pb-6 border-b border-slate-200 dark:border-slate-800">
+    <div className="relative mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-slate-200 dark:border-slate-800">
       <AdminComponentTag name="AccountHeader.tsx" />
 
       {/* Top Bar: Title & Action Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
         <div className="flex items-center gap-2.5 sm:gap-3">
-          {onClickBack && (
-            <button
-              type="button"
-              onClick={onClickBack}
-              className="p-1.5 -ml-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl transition-all cursor-pointer flex items-center gap-1 text-xs font-serif font-bold mr-0.5"
-              title="Go back"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Back</span>
-            </button>
-          )}
-
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white shrink-0">
-            <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div
+            className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shadow-md text-white shrink-0 ${
+              isVoiceTab
+                ? 'bg-gradient-to-tr from-purple-600 to-indigo-600 shadow-purple-600/20'
+                : isImageTab
+                ? 'bg-gradient-to-tr from-teal-600 to-emerald-600 shadow-teal-600/20'
+                : 'bg-gradient-to-tr from-[#13547A] to-blue-600 shadow-blue-600/20'
+            }`}
+          >
+            {isVoiceTab ? (
+              <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
+            ) : isImageTab ? (
+              <ImageIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+            ) : (
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5" />
+            )}
           </div>
 
           <div>
             <h1 className="text-xl sm:text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">
-              My Account
+              {isVoiceTab ? 'My Voice Credits' : isImageTab ? 'My Image Credits' : 'My Story Credits'}
             </h1>
             <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-tight sm:leading-normal">
-              Member credit balance, subscription status, and activity ledger
+              {isVoiceTab
+                ? 'Purchase and manage Voice Credits for AI voice narration of your published stories.'
+                : isImageTab
+                ? 'Purchase and manage Image Credits for 2K AI story photo generation, chat refinement, and Living Photos.'
+                : 'Purchase and manage Story Credits for AI co-writing, formatting, and printable books.'}
             </p>
           </div>
         </div>
@@ -98,19 +105,6 @@ export default function AccountHeader({
             >
               <RefreshCw className={`w-3.5 h-3.5 text-slate-600 dark:text-slate-300 ${refreshing ? 'animate-spin' : ''}`} />
               <span className="hidden md:inline">Refresh</span>
-            </button>
-          )}
-
-          {onDownloadStatement && (
-            <button
-              type="button"
-              onClick={onDownloadStatement}
-              disabled={disableDownload}
-              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-serif font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-blue-600/20"
-              title="Download Statement PDF"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Statement PDF</span>
             </button>
           )}
         </div>

@@ -6,6 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Coins,
+  Mic,
+  Image as ImageIcon,
   Sparkles,
   CheckCircle,
   Copy,
@@ -15,44 +17,79 @@ import {
   taskApi,
   eventApi,
   MbrAcct,
-  MbrAcctActivity,
-  acctEventCreditApi
+  MbrAcctActivity
 } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { setCachedCreditBalance } from '@/src/services/creditBalanceService';
-import { generateAccountStatementPdf } from '../utils/generateAccountStatementPdf';
+import { playUiSound } from '@/src/services/soundService';
 import AccountHeader from './AccountHeader';
 import AccountPageHeaderPanel from './AccountPageHeaderPanel';
 import AccountNavigationMenu, { AccountSubTab } from './AccountNavigationMenu';
 import AccountOverviewPanel from './AccountOverviewPanel';
+import AccountVoiceCreditsPanel from './AccountVoiceCreditsPanel';
+import AccountImageCreditsPanel from './AccountImageCreditsPanel';
 import AccountPurchaseModal, { CreditPackage } from './AccountPurchaseModal';
-import AccountLedgerPanel from './AccountLedgerPanel';
-import AccountRatesPanel from './AccountRatesPanel';
-import AccountPlanPanel from './AccountPlanPanel';
 
 export interface MbrAccountFeatureProps {
   isSandbox?: boolean;
   onClickBack?: () => void;
   targetMemberId?: string;
+  initialSubTab?: AccountSubTab;
 }
 
 export default function MbrAccountFeature({
   isSandbox = false,
   onClickBack,
-  targetMemberId
+  targetMemberId,
+  initialSubTab = 'story-credits'
 }: MbrAccountFeatureProps) {
   const [currentMbrId, setCurrentMbrId] = useState<string>(targetMemberId || '');
   const [memberName, setMemberName] = useState<string>('Valued Member');
   const [memberEmail, setMemberEmail] = useState<string>('');
   const [account, setAccount] = useState<MbrAcct | null>(null);
   const [activities, setActivities] = useState<MbrAcctActivity[]>([]);
-  const [rates, setRates] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Active view tab: 'overview' | 'ledger' | 'rates' | 'plan'
-  const [activeSubTab, setActiveSubTab] = useState<AccountSubTab>('overview');
+  // Active view tab: 'story-credits' | 'voice-credits' | 'image-credits'
+  const [activeSubTab, setActiveSubTab] = useState<AccountSubTab>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const creditType = params.get('credit_type');
+      if (creditType === 'voice') return 'voice-credits';
+      if (creditType === 'image') return 'image-credits';
+      if (creditType === 'story') return 'story-credits';
+      const storedReturnTab = sessionStorage.getItem('sb_account_return_subtab');
+      if (
+        storedReturnTab === 'voice-credits' ||
+        storedReturnTab === 'image-credits' ||
+        storedReturnTab === 'story-credits'
+      ) {
+        return storedReturnTab;
+      }
+    }
+    return initialSubTab;
+  });
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
+
+  // Always scroll to top when opening the Account page or switching tabs
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    const rafId = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [activeSubTab]);
 
   // Purchase modal state
   const [purchaseModalOpen, setPurchaseModalOpen] = useState<boolean>(false);
@@ -230,14 +267,6 @@ export default function MbrAccountFeature({
           setActivities(defaultActivities);
           sessionStorage.setItem(`sandbox_mbr_acct_activities_${currentMbrId}`, JSON.stringify(defaultActivities));
         }
-
-        setRates({
-          STORY_GENERATE: -50,
-          STORY_PRINT_PDF: -15,
-          STORYBOOK_PDF_GENERATE: -100,
-          AUDIO_GENERATE: -25,
-          LOGON: -10
-        });
       } else {
         // --- LIVE DB MODE ---
         let acctData = await taskApi.getMemberAccount(activeMbrId);
@@ -260,29 +289,6 @@ export default function MbrAccountFeature({
           const acts = await taskApi.getMemberAccountActivities({ mbrAcctId: acctData.mbrAcctId });
           setActivities(acts || []);
         }
-
-        try {
-          const rateMap = await acctEventCreditApi.getAcctEventCreditRates();
-          if (rateMap && typeof rateMap === 'object') {
-            setRates(rateMap);
-          } else {
-            setRates({
-              STORY_GENERATE: -50,
-              STORY_PRINT_PDF: -15,
-              STORYBOOK_PDF_GENERATE: -100,
-              AUDIO_GENERATE: -25,
-              LOGON: -10
-            });
-          }
-        } catch {
-          setRates({
-            STORY_GENERATE: -50,
-            STORY_PRINT_PDF: -15,
-            STORYBOOK_PDF_GENERATE: -100,
-            AUDIO_GENERATE: -25,
-            LOGON: -10
-          });
-        }
       }
     } catch (err) {
       console.error('Failed to load member account data:', err);
@@ -302,12 +308,46 @@ export default function MbrAccountFeature({
     const params = new URLSearchParams(window.location.search);
     const paymentStatus = params.get('payment');
     const sessionId = params.get('session_id');
+    const creditTypeParam = params.get('credit_type');
+    const storedReturnTab = sessionStorage.getItem('sb_account_return_subtab') as AccountSubTab | null;
 
     if (paymentStatus === 'success' && sessionId) {
       const activeMbrId = getResolvedMemberId();
+      const resolveReturnTab = (ct?: string | null): AccountSubTab => {
+        if (ct === 'voice' || (!ct && storedReturnTab === 'voice-credits')) return 'voice-credits';
+        if (ct === 'image' || (!ct && storedReturnTab === 'image-credits')) return 'image-credits';
+        return 'story-credits';
+      };
+      const initialReturnTab = resolveReturnTab(creditTypeParam);
+      setActiveSubTab(initialReturnTab);
+      sessionStorage.removeItem('sb_account_return_subtab');
       taskApi.verifyStripeSession(sessionId)
-        .then(() => {
-          showToast('Payment successful! Your 1,500 credits have been deposited.');
+        .then((res: any) => {
+          const addedCredits = res?.creditsAdded || res?.credits;
+          const resolvedTab = resolveReturnTab(res?.creditType || creditTypeParam);
+          setActiveSubTab(resolvedTab);
+          const isVoice = resolvedTab === 'voice-credits';
+          const isImage = resolvedTab === 'image-credits';
+          const label = isVoice ? 'voice credits' : isImage ? 'image credits' : 'story credits';
+          showToast(
+            addedCredits
+              ? `Payment successful! Your ${Number(addedCredits).toLocaleString()} ${label} have been deposited.`
+              : `Payment successful! Your ${label} have been deposited.`
+          );
+          playUiSound('CREDIT_PURCHASE');
+          eventApi.logEvent({
+            eventSiteCd: 'SB',
+            eventActorId: activeMbrId || undefined,
+            eventActorTypeCd: 'MBR',
+            eventCd: isVoice ? 'VOICE_CREDIT_PURCHASE' : isImage ? 'IMAGE_CREDIT_PURCHASE' : 'STORY_CREDIT_PURCHASE',
+            eventDetail: `Member purchased ${addedCredits || ''} ${label} via Stripe checkout`.trim(),
+            eventTagValue: {
+              creditType: isVoice ? 'voice' : isImage ? 'image' : 'story',
+              credits: addedCredits,
+              stripeSessionId: sessionId,
+              source: 'MbrAccountFeature'
+            }
+          }).catch((err) => console.warn('Could not log credit purchase event:', err));
           loadAccountData(activeMbrId);
         })
         .catch((err) => {
@@ -317,6 +357,14 @@ export default function MbrAccountFeature({
       const cleanUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, '', cleanUrl);
     } else if (paymentStatus === 'cancelled') {
+      const cancelTab: AccountSubTab =
+        creditTypeParam === 'voice' || (!creditTypeParam && storedReturnTab === 'voice-credits')
+          ? 'voice-credits'
+          : creditTypeParam === 'image' || (!creditTypeParam && storedReturnTab === 'image-credits')
+          ? 'image-credits'
+          : 'story-credits';
+      setActiveSubTab(cancelTab);
+      sessionStorage.removeItem('sb_account_return_subtab');
       showToast('Payment cancelled. No charges were made.');
       const cleanUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, '', cleanUrl);
@@ -335,53 +383,107 @@ export default function MbrAccountFeature({
 
   // --- EXECUTE CREDIT PURCHASE ---
   const handleExecutePurchase = async (pkg: CreditPackage) => {
+    const isVoice = pkg.creditType === 'voice';
+    const isImage = pkg.creditType === 'image';
+    const poolLabel = isVoice ? 'voice' : isImage ? 'image' : 'story';
+
     if (isSandbox) {
       // --- SANDBOX SIMULATION MODE ---
-      const curBal = account?.mbrAcctCreditBalance ?? 0;
+      const curBal = isVoice
+        ? (account?.mbrAcctVoiceCreditBalance ?? 0)
+        : isImage
+        ? (account?.mbrAcctImageCreditBalance ?? 0)
+        : (account?.mbrAcctCreditBalance ?? 0);
       const newBalance = curBal + pkg.credits;
-      const newEarned = (account?.mbrAcctLifetimeCreditsEarned ?? 0) + pkg.credits;
+      const newEarned = isVoice
+        ? (account?.mbrAcctLifetimeVoiceCreditsEarned ?? 0) + pkg.credits
+        : isImage
+        ? (account?.mbrImageLifetimeCreditsEarned ?? 0) + pkg.credits
+        : (account?.mbrAcctLifetimeCreditsEarned ?? 0) + pkg.credits;
 
       const newActivity: MbrAcctActivity = {
         mbrAcctActivityId: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `act-${Date.now()}`,
         mbrAcctId: account?.mbrAcctId || currentMbrId,
         mbrId: currentMbrId,
         mbrAcctActivityCreatedAt: new Date().toISOString(),
-        mbrAcctActivityTypeCd: 'PURCHASE_CREDIT',
+        mbrAcctActivityTypeCd: isVoice ? 'PURCHASE_VOICE_CREDIT' : isImage ? 'PURCHASE_IMAGE_CREDIT' : 'PURCHASE_CREDIT',
         mbrAcctActivityDirectionCd: 'ADD',
         creditAmount: pkg.credits,
         creditDelta: pkg.credits,
         balanceBefore: curBal,
         balanceAfter: newBalance,
-        mbrAcctActivityDesc: `Purchased ${pkg.credits.toLocaleString()} credits ($${pkg.price.toFixed(2)})`
+        mbrAcctActivityDesc: `Purchased ${pkg.credits.toLocaleString()} ${poolLabel} credits ($${pkg.price.toFixed(2)})`
       };
 
-      const updatedAcct: MbrAcct = {
-        ...(account || {
-          mbrAcctId: currentMbrId,
-          mbrId: currentMbrId,
-          mbrAcctTypeCd: 'STANDARD',
-          mbrAcctStatusCd: 'ACTIVE',
-          mbrAcctCreditBalance: 0,
-          mbrAcctLifetimeCreditsEarned: 0,
-          mbrAcctLifetimeCreditsUsed: 0,
-          mbrAcctCreatedAt: new Date().toISOString()
-        }),
-        mbrAcctCreditBalance: newBalance,
-        mbrAcctLifetimeCreditsEarned: newEarned
+      const baseAcct: MbrAcct = account || {
+        mbrAcctId: currentMbrId,
+        mbrId: currentMbrId,
+        mbrAcctTypeCd: 'STANDARD',
+        mbrAcctStatusCd: 'ACTIVE',
+        mbrAcctCreditBalance: 0,
+        mbrAcctLifetimeCreditsEarned: 0,
+        mbrAcctLifetimeCreditsUsed: 0,
+        mbrAcctVoiceCreditBalance: 0,
+        mbrAcctLifetimeVoiceCreditsEarned: 0,
+        mbrAcctVoiceLifetimeCreditsUsed: 0,
+        mbrAcctImageCreditBalance: 0,
+        mbrImageLifetimeCreditsEarned: 0,
+        mbrImageLifetimeCreditsUse: 0,
+        mbrAcctCreatedAt: new Date().toISOString()
       };
+
+      const updatedAcct: MbrAcct = isVoice
+        ? {
+            ...baseAcct,
+            mbrAcctVoiceCreditBalance: newBalance,
+            mbrAcctLifetimeVoiceCreditsEarned: newEarned
+          }
+        : isImage
+        ? {
+            ...baseAcct,
+            mbrAcctImageCreditBalance: newBalance,
+            mbrImageLifetimeCreditsEarned: newEarned
+          }
+        : {
+            ...baseAcct,
+            mbrAcctCreditBalance: newBalance,
+            mbrAcctLifetimeCreditsEarned: newEarned
+          };
+
       sessionStorage.setItem(`sandbox_mbr_acct_${currentMbrId}`, JSON.stringify(updatedAcct));
       const updatedActivities = [newActivity, ...activities];
       sessionStorage.setItem(`sandbox_mbr_acct_activities_${currentMbrId}`, JSON.stringify(updatedActivities));
       setAccount(updatedAcct);
       setActivities(updatedActivities);
-      setCachedCreditBalance(updatedAcct.mbrAcctCreditBalance, currentMbrId);
-      showToast(`Sandbox Top-Up: Added ${pkg.credits.toLocaleString()} credits!`);
+      if (!isVoice && !isImage) {
+        setCachedCreditBalance(updatedAcct.mbrAcctCreditBalance, currentMbrId);
+      }
+
+      eventApi.logEvent({
+        eventSiteCd: 'SB',
+        eventActorId: currentMbrId || undefined,
+        eventActorTypeCd: 'MBR',
+        eventCd: isVoice ? 'VOICE_CREDIT_PURCHASE' : isImage ? 'IMAGE_CREDIT_PURCHASE' : 'STORY_CREDIT_PURCHASE',
+        eventDetail: `Member purchased ${pkg.credits.toLocaleString()} ${poolLabel} credits ($${pkg.price.toFixed(2)})`,
+        eventTagValue: {
+          creditType: poolLabel,
+          credits: pkg.credits,
+          priceUsd: pkg.price,
+          balanceBefore: curBal,
+          balanceAfter: newBalance,
+          isSandbox: true,
+          source: 'MbrAccountFeature'
+        }
+      }).catch((err) => console.warn('Could not log credit purchase event:', err));
+
+      showToast(`Sandbox Top-Up: Added ${pkg.credits.toLocaleString()} ${poolLabel} credits!`);
     } else {
       // --- LIVE STRIPE CHECKOUT MODE ---
       try {
         const session = await taskApi.createStripeCheckoutSession({
           mbr_id: currentMbrId,
           credits: pkg.credits,
+          credit_type: pkg.creditType || 'story',
           customer_email: memberEmail || undefined
         });
 
@@ -395,23 +497,6 @@ export default function MbrAccountFeature({
         console.error('Stripe checkout error:', err);
         showToast(err.message || 'Could not initiate Stripe checkout');
       }
-    }
-  };
-
-  // --- DOWNLOAD STATEMENT PDF ---
-  const handleDownloadStatement = () => {
-    if (!account) return;
-    try {
-      generateAccountStatementPdf({
-        memberName,
-        memberEmail,
-        account,
-        activities
-      });
-      showToast('Account statement PDF downloaded');
-    } catch (err) {
-      console.error('Error generating PDF:', err);
-      showToast('Could not generate PDF statement');
     }
   };
 
@@ -431,15 +516,51 @@ export default function MbrAccountFeature({
       <AccountPurchaseModal
         isOpen={purchaseModalOpen}
         pkg={selectedPackage}
-        currentBalance={account?.mbrAcctCreditBalance ?? 0}
+        currentBalance={
+          selectedPackage?.creditType === 'voice'
+            ? (account?.mbrAcctVoiceCreditBalance ?? 0)
+            : selectedPackage?.creditType === 'image'
+            ? (account?.mbrAcctImageCreditBalance ?? 0)
+            : (account?.mbrAcctCreditBalance ?? 0)
+        }
         isSandbox={isSandbox}
         memberId={currentMbrId}
         memberEmail={memberEmail}
-        onClose={() => setPurchaseModalOpen(false)}
+        onClose={() => {
+          const returnTab: AccountSubTab =
+            selectedPackage?.creditType === 'voice'
+              ? 'voice-credits'
+              : selectedPackage?.creditType === 'image'
+              ? 'image-credits'
+              : 'story-credits';
+          setActiveSubTab(returnTab);
+          sessionStorage.removeItem('sb_account_return_subtab');
+          setPurchaseModalOpen(false);
+        }}
         onConfirmPurchase={handleExecutePurchase}
         onSuccess={async (pkg) => {
+          const isVoice = pkg.creditType === 'voice';
+          const isImage = pkg.creditType === 'image';
+          const poolLabel = isVoice ? 'voice' : isImage ? 'image' : 'story';
+          setActiveSubTab(isVoice ? 'voice-credits' : isImage ? 'image-credits' : 'story-credits');
+          sessionStorage.removeItem('sb_account_return_subtab');
+          eventApi.logEvent({
+            eventSiteCd: 'SB',
+            eventActorId: currentMbrId || undefined,
+            eventActorTypeCd: 'MBR',
+            eventCd: isVoice ? 'VOICE_CREDIT_PURCHASE' : isImage ? 'IMAGE_CREDIT_PURCHASE' : 'STORY_CREDIT_PURCHASE',
+            eventDetail: `Member purchased ${pkg.credits.toLocaleString()} ${poolLabel} credits ($${pkg.price.toFixed(2)})`,
+            eventTagValue: {
+              creditType: poolLabel,
+              credits: pkg.credits,
+              priceUsd: pkg.price,
+              isSandbox,
+              source: 'MbrAccountFeature'
+            }
+          }).catch((err) => console.warn('Could not log credit purchase event:', err));
+
           await loadAccountData();
-          showToast(`Successfully deposited ${pkg.credits.toLocaleString()} credits!`);
+          showToast(`Successfully deposited ${pkg.credits.toLocaleString()} ${poolLabel} credits!`);
         }}
       />
 
@@ -447,67 +568,92 @@ export default function MbrAccountFeature({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 lg:gap-8 max-w-7xl w-full mx-auto items-start">
 
         {/* ========================================================================= */}
-        {/* LEFT COLUMN: BRAND HEADER, CURRENT BALANCE CARD, & NAVIGATION MENU        */}
+        {/* LEFT COLUMN: BRAND HEADER, NAVIGATION MENU, & ACTIVE TAB BALANCE CARD     */}
         {/* ========================================================================= */}
         <aside className="lg:col-span-4 xl:col-span-3 space-y-3 sm:space-y-4 lg:space-y-5">
           {/* 1. Account Brand Header Panel ("Account") */}
           <AccountPageHeaderPanel />
 
-          {/* 2. Current Balance Hero Card (from mockup) */}
-          <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden border border-slate-700/80">
-            <div className="absolute -right-3 -bottom-3 opacity-10 text-amber-400">
-              <Coins className="w-24 h-24 sm:w-28 sm:h-28" />
-            </div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] sm:text-[11px] font-sans font-bold tracking-wider text-slate-300 uppercase">
-                CURRENT BALANCE
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                <Sparkles className="w-2.5 h-2.5" />
-                {account?.mbrAcctStatusCd || 'ACTIVE'}
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2 mb-2">
-              <span className="font-serif text-3xl sm:text-4xl font-extrabold text-amber-400 tracking-tight">
-                {(account?.mbrAcctCreditBalance ?? 0).toLocaleString()}
-              </span>
-              <span className="text-xs font-serif text-slate-300 font-medium">Credits</span>
-            </div>
-            <p className="text-[10px] font-sans text-slate-400 leading-normal">
-              Available for AI Co-Writing, Voice Narration &amp; books
-            </p>
-          </div>
-
-          {/* 3. Navigation Menu (Overview, Ledger, Rates, Plan) */}
+          {/* 2. Navigation Menu (My Story Credits, My Voice Credits) */}
           <AccountNavigationMenu
             activeSubTab={activeSubTab}
             onSelectTab={setActiveSubTab}
-            activityCount={activities.length}
           />
 
-          {/* 4. Lifetime Usage Summary Card */}
-          <div className="hidden lg:block bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3 shadow-2xs">
-            <h4 className="text-xs font-bold font-serif text-slate-900 dark:text-white flex items-center justify-between">
-              <span>Account Summary</span>
-              <span className="font-mono text-[10px] text-slate-400">
-                {account?.mbrAcctTypeCd || 'STANDARD'}
-              </span>
-            </h4>
-            <div className="space-y-2 text-xs font-serif">
-              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                <span>Lifetime Earned:</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white">
-                  {(account?.mbrAcctLifetimeCreditsEarned ?? 0).toLocaleString()} cr
+          {/* 3. Dynamic Current Balance Hero Card (Matches Active Tab) */}
+          {activeSubTab === 'voice-credits' ? (
+            <div className="bg-gradient-to-br from-purple-950 via-indigo-950 to-[#0F172A] rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden border border-purple-700/60 space-y-2.5">
+              <div className="absolute -right-3 -bottom-3 opacity-10 text-purple-300 pointer-events-none">
+                <Mic className="w-24 h-24 sm:w-28 sm:h-28" />
+              </div>
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-[10px] sm:text-[11px] font-sans font-bold tracking-wider text-purple-200 uppercase">
+                  VOICE CREDITS
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/25 text-purple-200 border border-purple-400/30 flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  {account?.mbrAcctStatusCd || 'ACTIVE'}
                 </span>
               </div>
-              <div className="flex items-center justify-between text-slate-600 dark:text-slate-400">
-                <span>Lifetime Used:</span>
-                <span className="font-mono font-bold text-amber-700 dark:text-amber-400">
-                  {(account?.mbrAcctLifetimeCreditsUsed ?? 0).toLocaleString()} cr
+              <div className="flex items-baseline gap-2 relative z-10">
+                <span className="font-serif text-3xl sm:text-4xl font-extrabold text-purple-300 tracking-tight">
+                  {(account?.mbrAcctVoiceCreditBalance ?? 0).toLocaleString()}
                 </span>
+                <span className="text-xs font-serif text-slate-300 font-medium">Credits</span>
               </div>
+              <p className="text-[10px] font-sans text-purple-200/75 leading-normal relative z-10">
+                Available for AI Voice Story Narration
+              </p>
             </div>
-          </div>
+          ) : activeSubTab === 'image-credits' ? (
+            <div className="bg-gradient-to-br from-teal-950 via-emerald-950 to-[#0F172A] rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden border border-teal-700/60 space-y-2.5">
+              <div className="absolute -right-3 -bottom-3 opacity-10 text-teal-300 pointer-events-none">
+                <ImageIcon className="w-24 h-24 sm:w-28 sm:h-28" />
+              </div>
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-[10px] sm:text-[11px] font-sans font-bold tracking-wider text-teal-200 uppercase">
+                  IMAGE CREDITS
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-teal-500/25 text-teal-200 border border-teal-400/30 flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  {account?.mbrAcctStatusCd || 'ACTIVE'}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 relative z-10">
+                <span className="font-serif text-3xl sm:text-4xl font-extrabold text-teal-300 tracking-tight">
+                  {(account?.mbrAcctImageCreditBalance ?? 0).toLocaleString()}
+                </span>
+                <span className="text-xs font-serif text-slate-300 font-medium">Credits</span>
+              </div>
+              <p className="text-[10px] font-sans text-teal-200/75 leading-normal relative z-10">
+                Available for 2K AI Story Photos &amp; Animations
+              </p>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-[#1E293B] to-[#0F172A] rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden border border-slate-700/80 space-y-2.5">
+              <div className="absolute -right-3 -bottom-3 opacity-10 text-amber-400 pointer-events-none">
+                <Coins className="w-24 h-24 sm:w-28 sm:h-28" />
+              </div>
+              <div className="flex items-center justify-between relative z-10">
+                <span className="text-[10px] sm:text-[11px] font-sans font-bold tracking-wider text-slate-300 uppercase">
+                  STORY CREDITS
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  {account?.mbrAcctStatusCd || 'ACTIVE'}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 relative z-10">
+                <span className="font-serif text-3xl sm:text-4xl font-extrabold text-amber-400 tracking-tight">
+                  {(account?.mbrAcctCreditBalance ?? 0).toLocaleString()}
+                </span>
+                <span className="text-xs font-serif text-slate-300 font-medium">Credits</span>
+              </div>
+              <p className="text-[10px] font-sans text-slate-400 leading-normal relative z-10">
+                Available for AI Co-Writing, PDFs &amp; Books
+              </p>
+            </div>
+          )}
         </aside>
 
         {/* ========================================================================= */}
@@ -515,11 +661,10 @@ export default function MbrAccountFeature({
         {/* ========================================================================= */}
         <main className="lg:col-span-8 xl:col-span-9 min-w-0">
           <AccountHeader
+            activeSubTab={activeSubTab}
             onClickBack={onClickBack}
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            onDownloadStatement={handleDownloadStatement}
-            disableDownload={!account || activities.length === 0}
           />
 
           {loading ? (
@@ -529,30 +674,43 @@ export default function MbrAccountFeature({
             </div>
           ) : (
             <>
-              {activeSubTab === 'overview' && (
+              {activeSubTab === 'story-credits' && (
                 <AccountOverviewPanel
                   onSelectPackage={(pkg) => {
-                    setSelectedPackage(pkg);
+                    sessionStorage.setItem('sb_account_return_subtab', 'story-credits');
+                    setSelectedPackage({ ...pkg, creditType: 'story' });
                     setPurchaseModalOpen(true);
                   }}
-                  onViewLedger={() => setActiveSubTab('ledger')}
-                  onViewRates={() => setActiveSubTab('rates')}
                 />
               )}
 
-              {activeSubTab === 'ledger' && (
-                <AccountLedgerPanel
-                  activities={activities}
-                  onDownloadStatement={handleDownloadStatement}
+              {activeSubTab === 'voice-credits' && (
+                <AccountVoiceCreditsPanel
+                  account={account}
+                  onSelectPackage={(pkg) => {
+                    sessionStorage.setItem('sb_account_return_subtab', 'voice-credits');
+                    setSelectedPackage({ ...pkg, creditType: 'voice' });
+                    setPurchaseModalOpen(true);
+                  }}
+                  onOpenVoiceStudio={() =>
+                    window.dispatchEvent(
+                      new CustomEvent('open-member-profile', {
+                        detail: { subTab: 'voice-translation' }
+                      })
+                    )
+                  }
                 />
               )}
 
-              {activeSubTab === 'rates' && (
-                <AccountRatesPanel rates={rates} />
-              )}
-
-              {activeSubTab === 'plan' && (
-                <AccountPlanPanel account={account} memberId={currentMbrId} />
+              {activeSubTab === 'image-credits' && (
+                <AccountImageCreditsPanel
+                  account={account}
+                  onSelectPackage={(pkg) => {
+                    sessionStorage.setItem('sb_account_return_subtab', 'image-credits');
+                    setSelectedPackage({ ...pkg, creditType: 'image' });
+                    setPurchaseModalOpen(true);
+                  }}
+                />
               )}
             </>
           )}

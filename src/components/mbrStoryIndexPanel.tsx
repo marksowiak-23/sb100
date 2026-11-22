@@ -632,7 +632,11 @@ export default function MbrStoryIndexPanel({
     fetchTopicsAndCategories();
     fetchStories();
 
-    const handleRefresh = () => {
+    const handleRefresh = (evt?: Event) => {
+      const deletedId = (evt as CustomEvent<{ deletedStoryId?: string }> | undefined)?.detail?.deletedStoryId;
+      if (deletedId) {
+        setStories((prev) => prev.filter((s) => s.mbrStoryId !== deletedId));
+      }
       fetchStories();
     };
 

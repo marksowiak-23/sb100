@@ -293,6 +293,7 @@ export default function SbStoryPageFeature({
             mbrStoryHeaderPhotoUrl={story?.mbrStoryHeaderPhotoUrl}
             mbrStoryHeaderPhotoCaption={story?.mbrStoryHeaderPhotoCaption}
             mbrStoryHeaderPhotoStyleCd={story?.mbrStoryHeaderPhotoStyleCd}
+            mbrStoryAiVoiceFlag={story?.mbrStoryAiVoiceFlag}
             publishedDate={story?.mbrStoryPublishedDate || story?.mbrStoryCreatedAt}
             authorName={authorName}
             authorMbrId={story?.mbrMbrId || story?.authorMbrId}

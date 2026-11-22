@@ -595,25 +595,25 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
       <div className="h-2 w-full bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500" />
 
       {/* Top Folder Tab Title Header */}
-      <div className="bg-[#FFFDF7] dark:bg-slate-900/60 border-b border-amber-100/80 dark:border-slate-800 flex items-center justify-between gap-3 px-3.5 sm:px-5 py-2 flex-wrap">
+      <div className="bg-[#FFFDF7] dark:bg-slate-900/60 border-b border-amber-100/80 dark:border-slate-800 flex items-center justify-between gap-2 px-3 sm:px-5 py-2">
         {/* Left: Folder Tab Title */}
-        <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-950 dark:text-amber-200">
+        <div className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-bold text-amber-950 dark:text-amber-200 min-w-0">
           <Rocket className="w-4 h-4 text-amber-600 shrink-0" />
-          <span className="tracking-tight text-[13px] font-bold text-[#78350F] dark:text-amber-200">
+          <span className="tracking-tight text-xs sm:text-[13px] font-bold text-[#78350F] dark:text-amber-200 truncate">
             Getting Started Guide
           </span>
         </div>
 
         {/* Right: Hide Card & Show/Collapse Steps */}
-        <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => setShowHideConfirmDialog(true)}
             title="Hide Getting Started card from Home page"
-            className="px-2.5 py-1 text-slate-500 hover:text-amber-800 hover:bg-amber-50/80 rounded-xl transition-all flex items-center gap-1.5 text-xs font-medium cursor-pointer"
+            className="px-2 sm:px-2.5 py-1 text-slate-500 hover:text-amber-800 hover:bg-amber-50/80 rounded-xl transition-all flex items-center gap-1 text-[11px] sm:text-xs font-medium cursor-pointer whitespace-nowrap"
           >
-            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
-            <span>Hide Card</span>
+            <EyeOff className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <span>Hide<span className="hidden sm:inline"> Card</span></span>
           </button>
 
           <button
@@ -631,7 +631,7 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
               });
             }}
             title={isCollapsed ? 'Expand Getting Started steps' : 'Collapse Getting Started steps'}
-            className="p-1 sm:px-2.5 sm:py-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors flex items-center gap-1 text-xs font-medium cursor-pointer"
+            className="p-1 sm:px-2.5 sm:py-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors flex items-center gap-1 text-xs font-medium cursor-pointer whitespace-nowrap"
           >
             <span className="hidden sm:inline">{isCollapsed ? 'Show Steps' : 'Collapse Steps'}</span>
             {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
@@ -639,15 +639,15 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
         </div>
       </div>
 
-      <div className="p-5 md:p-6 space-y-5">
+      <div className="p-3.5 sm:p-5 md:p-6 space-y-4 sm:space-y-5">
         {/* Card Header */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {/* Heading & Full-Width Subtitle */}
           <div className="space-y-1">
-            <h3 className="font-serif text-xl md:text-2xl font-black text-slate-900 tracking-tight leading-tight">
+            <h3 className="font-serif text-lg sm:text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
               Welcome to BackStory! Let&apos;s Get You Started
             </h3>
-            <p className="text-xs md:text-sm text-slate-600 font-serif leading-relaxed">
+            <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 font-serif leading-relaxed">
               Follow these five simple steps to bring your life story to life and start sharing cherished memories with the people you love.
             </p>
           </div>
@@ -655,10 +655,10 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
 
         {/* Visual Progress Bar & Accordion Quick Controls */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
-            <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2 flex-wrap text-xs text-slate-500 font-medium">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <span>Onboarding Progress</span>
-              <span className="font-semibold text-slate-700">{progressPercent}%</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-200">{progressPercent}%</span>
             </div>
 
             {!isCollapsed && (
@@ -667,17 +667,17 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
                   <button
                     type="button"
                     onClick={handleExpandAllSteps}
-                    className="text-amber-700 hover:text-amber-900 font-medium hover:underline transition-colors"
+                    className="text-amber-700 hover:text-amber-900 font-medium hover:underline transition-colors cursor-pointer"
                   >
-                    Expand All Steps
+                    Expand All
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={handleCollapseAllSteps}
-                    className="text-slate-500 hover:text-slate-700 font-medium hover:underline transition-colors"
+                    className="text-slate-500 hover:text-slate-700 font-medium hover:underline transition-colors cursor-pointer"
                   >
-                    Collapse All Steps
+                    Collapse All
                   </button>
                 )}
               </div>
@@ -697,7 +697,7 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
 
         {/* Steps List (Collapsible Accordion) */}
         {!isCollapsed && (
-          <div className="space-y-2.5 pt-1">
+          <div className="space-y-2.5 pt-0.5">
             {steps.map((step) => {
               const isDone = completedSteps.includes(step.id);
               const isStepCollapsed = collapsedStepIds.includes(step.id);
@@ -711,16 +711,16 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
                     isDone 
                       ? 'bg-slate-50/80 border-slate-200/80 opacity-90' 
                       : `bg-gradient-to-r ${step.bgGradient} bg-white ${step.borderColor} shadow-xs hover:shadow-sm`
-                  } ${isStepCollapsed ? 'p-3 md:p-3.5' : 'p-4'}`}
+                  } ${isStepCollapsed ? 'p-2.5 sm:p-3.5' : 'p-3 sm:p-4'}`}
                 >
                   {/* Step Accordion Header */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-start sm:items-center gap-2 sm:gap-3">
                     {/* Checkbox Button */}
                     <button
                       type="button"
                       onClick={(e) => toggleStepCompleted(step.id, e)}
                       title={isDone ? 'Mark step as incomplete' : 'Mark step as completed'}
-                      className="text-slate-400 hover:text-emerald-600 transition-colors shrink-0 focus:outline-hidden"
+                      className="text-slate-400 hover:text-emerald-600 transition-colors shrink-0 mt-0.5 sm:mt-0 focus:outline-hidden cursor-pointer"
                     >
                       {isDone ? (
                         <CheckCircle2 className="w-5 h-5 text-emerald-600 fill-emerald-100" />
@@ -732,24 +732,26 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
                     {/* Clickable Header Trigger to Toggle Accordion (Shows Title) */}
                     <div
                       onClick={() => toggleStepCollapsed(step.id)}
-                      className="flex-1 flex items-center justify-between gap-3 cursor-pointer select-none min-w-0"
+                      className="flex-1 flex items-start sm:items-center justify-between gap-2 sm:gap-3 cursor-pointer select-none min-w-0"
                     >
-                      <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-nowrap flex-1">
-                        <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg flex items-center justify-center shrink-0 ${step.iconBg} ${step.iconColor}`}>
+                      <div className="flex items-start sm:items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                        <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-md sm:rounded-lg flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 ${step.iconBg} ${step.iconColor}`}>
                           {step.icon}
                         </div>
-                        <span className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold uppercase tracking-wider border shrink-0 ${step.badgeColor}`}>
-                          Step {step.id}
-                        </span>
-                        <h4 className={`font-serif font-bold text-[13px] sm:text-sm md:text-base min-w-0 truncate sm:whitespace-normal ${isDone ? 'line-through text-slate-500' : 'text-slate-900 group-hover:text-amber-900'}`}>
-                          {step.title}
-                        </h4>
-                        <span className="text-xs text-slate-400 font-serif hidden xl:inline truncate max-w-[220px]">
-                          · {step.tagline}
-                        </span>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 min-w-0 flex-1">
+                          <span className={`inline-flex items-center self-start sm:self-auto px-1.5 sm:px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold uppercase tracking-wider border shrink-0 ${step.badgeColor}`}>
+                            Step {step.id}
+                          </span>
+                          <h4 className={`font-serif font-bold text-sm md:text-base leading-snug min-w-0 break-words ${isDone ? 'line-through text-slate-500' : 'text-slate-900 group-hover:text-amber-900'}`}>
+                            {step.title}
+                          </h4>
+                          <span className="text-xs text-slate-400 font-serif hidden xl:inline truncate max-w-[220px]">
+                            · {step.tagline}
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center shrink-0 mt-0.5 sm:mt-0">
                         <span
                           title={isStepCollapsed ? 'Expand step details' : 'Collapse step'}
                           className="p-1 rounded-lg text-slate-400 group-hover:text-slate-700 hover:bg-slate-100 transition-colors"
@@ -762,25 +764,25 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
 
                   {/* Accordion Collapsible Body */}
                   {!isStepCollapsed && (
-                    <div className="mt-3 pt-3 border-t border-slate-100/90 flex items-start justify-between gap-4 flex-wrap sm:flex-nowrap pl-8 sm:pl-10 animate-fade-in">
+                    <div className="mt-2.5 pt-2.5 sm:mt-3 sm:pt-3 border-t border-slate-100/90 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 pl-0 sm:pl-10 animate-fade-in">
                       <div className="space-y-1 min-w-0 flex-1">
-                        <p className="text-xs md:text-sm text-slate-600 font-serif leading-relaxed">
+                        <p className="text-xs sm:text-[13px] md:text-sm text-slate-600 font-serif leading-relaxed">
                           {step.description}
                         </p>
                       </div>
 
-                      <div className="shrink-0 self-center sm:self-start">
+                      <div className="w-full sm:w-auto shrink-0 sm:self-start">
                         <button
                           type="button"
                           onClick={() => handleActionClick(step.targetTab)}
-                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-2xs transition-all ${
+                          className={`w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 sm:py-1.5 rounded-xl text-xs font-semibold shadow-2xs transition-all cursor-pointer whitespace-nowrap ${
                             isDone
                               ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
                               : 'bg-slate-900 text-white hover:bg-blue-600 hover:shadow-xs'
                           }`}
                         >
                           <span>{step.actionLabel}</span>
-                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                          <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform shrink-0" />
                         </button>
                       </div>
                     </div>
@@ -792,9 +794,9 @@ export default function SbGettingStartedCard({ onNavigate, onClickAuthorPage }: 
         )}
 
         {/* Footer Quick Tip */}
-        <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-3 text-xs text-slate-500 font-serif flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+        <div className="pt-2 border-t border-slate-100 flex items-start sm:items-center justify-between gap-3 text-xs text-slate-500 font-serif flex-wrap">
+          <div className="flex items-start sm:items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5 sm:mt-0" />
             <span><strong>Pro Tip:</strong> You can click any step button to jump directly to that page!</span>
           </div>
         </div>

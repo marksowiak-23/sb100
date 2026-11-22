@@ -107,6 +107,9 @@ export interface MbrStory {
   mbrStoryStartDate?: string;
   mbrStoryEndDate?: string;
   mbrStoryPublishedDate?: string;
+  mbrStoryPrintDate?: string | null;
+  mbrStoryAiVoiceDate?: string | null;
+  mbrStoryAiImageDate?: string | null;
   mbrStoryCreatedAt: string;
   mbrStoryUpdatedAt: string;
   mbrStoryThreadID?: string;
@@ -115,6 +118,7 @@ export interface MbrStory {
   mbrStoryHeaderPhotoUrl?: string;
   mbrStoryHeaderPhotoCaption?: string;
   mbrStoryHeaderPhotoStyleCd?: string;
+  mbrStoryAiVoiceFlag?: boolean;
   mbrStorySubordinateId?: string;
   mbrMbrId: string;
   mbrId?: string;
@@ -1004,6 +1008,12 @@ export interface MbrAcct {
   mbrAcctCreditBalance: number;
   mbrAcctLifetimeCreditsEarned: number;
   mbrAcctLifetimeCreditsUsed: number;
+  mbrAcctVoiceCreditBalance?: number;
+  mbrAcctLifetimeVoiceCreditsEarned?: number;
+  mbrAcctVoiceLifetimeCreditsUsed?: number;
+  mbrAcctImageCreditBalance?: number;
+  mbrImageLifetimeCreditsEarned?: number;
+  mbrImageLifetimeCreditsUse?: number;
   mbrAcctStatusCd: string;
   mbrAcctTypeCd: string;
   mbrAcctLastActivityDate?: string | null;
@@ -1072,12 +1082,10 @@ export interface MbrStat {
   statLastPublishedDt?: string | null;
   statStoriesPublishedCnt: number;
   statStoriesViewedCnt: number;
-  statFamilyStoryCnt?: number;
-  statResidenceCnt?: number;
-  statActivityCnt?: number;
-  statAchievementsCnt?: number;
-  statEducationCnt?: number;
-  statEmploymentCnt?: number;
+  statPhotoCnt?: number;
+  statPhotoStorageMbAmt?: number;
+  statAudioCnt?: number;
+  statAudioStorageMbAmt?: number;
   statCreatedAt?: string;
   statUpdatedAt?: string;
 }
@@ -4788,11 +4796,12 @@ export const taskApi = {
   async createStripeCheckoutSession(params: {
     mbr_id: string;
     credits: number;
+    credit_type?: 'story' | 'voice' | 'image';
     success_url?: string;
     cancel_url?: string;
     customer_email?: string;
     ui_mode?: 'hosted' | 'embedded_page';
-  }): Promise<{ checkoutUrl?: string | null; clientSecret?: string | null; sessionId: string; uiMode?: string; credits: number; amountCents: number; currency: string }> {
+  }): Promise<{ checkoutUrl?: string | null; clientSecret?: string | null; sessionId: string; uiMode?: string; creditType?: string; credits: number; amountCents: number; currency: string }> {
     const response = await fetch(`${API_BASE_URL}/payments/create-checkout-session`, {
       method: 'POST',
       headers: getAuthHeaders({
@@ -6801,6 +6810,7 @@ export interface MbrStoryBook {
   bookIsbn?: string | null;
   bookStatusCd: string;
   bookLastGeneratedAt?: string | null;
+  bookPrintDate?: string | null;
   bookCreatedAt: string;
   bookUpdatedAt: string;
 }
@@ -7217,10 +7227,125 @@ export const paymentsApi = {
   createStripeCheckoutSession: (params: {
     mbr_id: string;
     credits: number;
+    credit_type?: 'story' | 'voice' | 'image';
     success_url?: string;
     cancel_url?: string;
     customer_email?: string;
     ui_mode?: 'hosted' | 'embedded_page';
   }) => taskApi.createStripeCheckoutSession(params),
   verifyStripeSession: (sessionId: string) => taskApi.verifyStripeSession(sessionId)
+};
+
+export interface UiSoundEvent {
+  uiSoundEventId: string;
+  eventCd: string;
+  eventLabel: string;
+  eventCategoryCd: string;
+  soundPresetCd: string;
+  volumeAmt: number;
+  isEnabled: boolean;
+  eventDesc?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const uiSoundEventApi = {
+  async getAll(params?: { categoryCd?: string; enabledOnly?: boolean }): Promise<UiSoundEvent[]> {
+    const query = new URLSearchParams();
+    if (params?.categoryCd) query.set('category_cd', params.categoryCd);
+    if (params?.enabledOnly) query.set('enabled_only', 'true');
+    query.set('t', String(Date.now()));
+    const response = await fetch(`${API_BASE_URL}/ui-sound-events?${query.toString()}`, {
+      headers: { Accept: 'application/json' },
+    });
+    return handleResponse<UiSoundEvent[]>(response);
+  },
+
+  async create(payload: Omit<UiSoundEvent, 'uiSoundEventId' | 'createdAt' | 'updatedAt'>): Promise<UiSoundEvent> {
+    const response = await fetch(`${API_BASE_URL}/ui-sound-events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<UiSoundEvent>(response);
+  },
+
+  async update(soundEventId: string, payload: Partial<UiSoundEvent>): Promise<UiSoundEvent> {
+    const response = await fetch(`${API_BASE_URL}/ui-sound-events/${soundEventId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<UiSoundEvent>(response);
+  },
+
+  async delete(soundEventId: string): Promise<UiSoundEvent> {
+    const response = await fetch(`${API_BASE_URL}/ui-sound-events/${soundEventId}`, {
+      method: 'DELETE',
+      headers: { Accept: 'application/json' },
+    });
+    return handleResponse<UiSoundEvent>(response);
+  },
+};
+
+export interface AiPhotoScenePlan {
+  index: number;
+  title: string;
+  caption: string;
+  prompt: string;
+  animatable: boolean;
+  suggested_motion: 'ken_burns_zoom' | 'gentle_pan' | 'cinematic_drift' | 'warm_glow' | string;
+  motion_reason: string;
+}
+
+export interface AiPhotoUsage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number;
+  model_name: string;
+  latency_ms: number;
+}
+
+export interface AiPhotoPlanResponse {
+  scenes: AiPhotoScenePlan[];
+  usage: AiPhotoUsage;
+}
+
+export interface AiPhotoGenerateResponse {
+  image_base64: string;
+  mime_type: string;
+  prompt_used: string;
+  usage: AiPhotoUsage;
+}
+
+export const aiPhotoApi = {
+  async planScenes(payload: {
+    story_title: string;
+    story_content: string;
+    count?: number;
+    style_preference?: string;
+  }): Promise<AiPhotoPlanResponse> {
+    const response = await fetch(`${AI_API_BASE_URL}/ai-photos/plan-scenes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<AiPhotoPlanResponse>(response);
+  },
+
+  async generatePhoto(payload: {
+    prompt: string;
+    refinement_instruction?: string;
+    reference_image_base64?: string;
+    reference_mime_type?: string;
+    style_hint?: string;
+  }): Promise<AiPhotoGenerateResponse> {
+    const response = await fetch(`${AI_API_BASE_URL}/ai-photos/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<AiPhotoGenerateResponse>(response);
+  },
 };

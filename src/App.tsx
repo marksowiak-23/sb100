@@ -18,6 +18,7 @@ import { taskApi, HealthCheckResponse } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { analytics } from '@/src/services/analytics';
 import { sessionReplayService } from '@/src/services/sessionReplayService';
+import { loadSoundConfig } from '@/src/services/soundService';
 
 // Import our layouts and feature components.
 import MainLayout from '@/src/layouts/MainLayout';
@@ -32,6 +33,7 @@ import { AuthorPageFeature, MbrAuthorPageFeature, SbMbrAuthorPageFeature } from 
 import { MbrLogonPageFeature, SbMbrLogonFeature } from '@/src/features/mbrLogonPage';
 import { MbrRegistrationPageFeature, SbMbrRegisterFeature } from '@/src/features/mbrRegistrationPage';
 import { MbrProfileFeature } from '@/src/features/mbrProfilePage';
+import type { ProfileSubTab } from '@/src/features/mbrProfilePage/components/ProfileNavigationMenu';
 import { MbrPreferencesFeature } from '@/src/features/mbrPreferencesPage';
 import { MbrPrivacyFeature } from '@/src/features/mbrPrivacySettingsPage';
 import { MbrConnectionFeature } from '@/src/features/mbrConnectionPage';
@@ -44,6 +46,7 @@ import { AdminTopicSparksFeature, TopicSparksAdmin, AdminTopicSparksPage } from 
 import { MbrStoryBookGeneratorFeature } from '@/src/features/mbrStoryBookGenerator';
 import { MbrPhotoBookFeature } from '@/src/features/mbrPhotoBook';
 import { MbrAccountFeature } from '@/src/features/mbrAccountPage';
+import type { AccountSubTab } from '@/src/features/mbrAccountPage/components/AccountNavigationMenu';
 
 
 // Define a TypeScript type to restrict activeTab to only these string values.
@@ -160,6 +163,20 @@ const getInitialNavState = (): InitialNavState => {
       }
     }
 
+    if (isUserLoggedIn && typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlTab = urlParams.get('tab') as TabType | null;
+      if (urlTab === 'mbrAccountPage' || urlTab === 'mbrAccount') {
+        return {
+          tab: 'mbrAccountPage',
+          selectedMemberId: savedMemberId || 'm1',
+          selectedStoryId: savedStoryId ?? null,
+          targetStoryMemberId: savedTargetMemberId ?? null,
+          logonType: savedLogonType || 'Google',
+        };
+      }
+    }
+
     if (savedTab) {
       if (isUserLoggedIn) {
         // If logged in and saved tab was a sign-in or sign-up page, redirect to member home
@@ -248,6 +265,20 @@ export default function App() {
   // or a real backend API (isSandbox === false).
   const [isSandbox, setIsSandbox] = useState(true);
   const [isProfileDirty, setIsProfileDirty] = useState(false);
+  const [profileInitialSubTab, setProfileInitialSubTab] = useState<ProfileSubTab>('profile');
+  const [accountInitialSubTab, setAccountInitialSubTab] = useState<AccountSubTab>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const creditType = params.get('credit_type');
+      if (creditType === 'voice') return 'voice-credits';
+      if (creditType === 'story') return 'story-credits';
+      const storedReturnTab = sessionStorage.getItem('sb_account_return_subtab');
+      if (storedReturnTab === 'voice-credits' || storedReturnTab === 'story-credits') {
+        return storedReturnTab;
+      }
+    }
+    return 'story-credits';
+  });
   const [isConnectionsDirty, setIsConnectionsDirty] = useState(false);
   const [showAppDiscardModal, setShowAppDiscardModal] = useState(false);
   const [pendingTab, setPendingTab] = useState<TabType | null>(null);
@@ -339,6 +370,13 @@ export default function App() {
       return;
     }
 
+    if (newTab !== 'mbrProfile' && newTab !== 'mbrProfilePage') {
+      setProfileInitialSubTab('profile');
+    }
+    if (newTab !== 'mbrAccount' && newTab !== 'mbrAccountPage') {
+      setAccountInitialSubTab('story-credits');
+    }
+
     applyNavigation(newTab, options);
   };
 
@@ -421,6 +459,7 @@ export default function App() {
 
     // Periodically re-check backend health if initially in Sandbox mode
     const healthInterval = setInterval(() => {
+      void loadSoundConfig();
       taskApi.checkHealth()
         .then((health) => {
           if (health?.status === 'healthy') {
@@ -520,7 +559,9 @@ export default function App() {
         handleReadStory(customEvent.detail.memberId);
       }
     };
-    const handleProfileEvent = () => {
+    const handleProfileEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ subTab?: ProfileSubTab }>;
+      setProfileInitialSubTab(customEvent.detail?.subTab || 'profile');
       handleTabChange('mbrProfilePage');
     };
     const handleStoryBookGeneratorEvent = () => {
@@ -529,7 +570,9 @@ export default function App() {
     const handlePhotoBookEvent = () => {
       navigateTo('mbrPhotoBook');
     };
-    const handleAccountEvent = () => {
+    const handleAccountEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ subTab?: AccountSubTab }>;
+      setAccountInitialSubTab(customEvent.detail?.subTab || 'story-credits');
       handleTabChange('mbrAccountPage');
     };
     const handleNavigateTab = (e: Event) => {
@@ -919,6 +962,7 @@ export default function App() {
               isSandbox={isSandbox}
               onClickBack={() => forceNavigateAway()}
               onDirtyChange={setIsProfileDirty}
+              initialSubTab={profileInitialSubTab}
             />
           </motion.div>
         )}
@@ -969,6 +1013,7 @@ export default function App() {
             <MbrAccountFeature
               isSandbox={isSandbox}
               onClickBack={() => forceNavigateAway()}
+              initialSubTab={accountInitialSubTab}
             />
           </motion.div>
         )}

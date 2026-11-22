@@ -34,7 +34,8 @@ import {
   StoryPdfMargin,
   StoryPdfColorTheme,
 } from '../utils/generateStoryPdf';
-import { eventApi } from '@/src/services/api';
+import { eventApi, taskApi } from '@/src/services/api';
+import { playUiSound } from '@/src/services/soundService';
 import { useMemberCredits } from '@/src/services/creditBalanceService';
 import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 
@@ -50,6 +51,8 @@ interface StoryPdfPrintModalProps {
   authorLocation?: string;
   publishedDate?: string;
   status?: string;
+  isSandbox?: boolean;
+  onPrintDateUpdated?: (printDate: string) => void;
   onSuccess?: (message: string) => void;
   onError?: (error: string) => void;
 }
@@ -66,6 +69,8 @@ export default function StoryPdfPrintModal({
   authorLocation = '',
   publishedDate,
   status = 'Draft',
+  isSandbox = false,
+  onPrintDateUpdated,
   onSuccess,
   onError,
 }: StoryPdfPrintModalProps) {
@@ -200,8 +205,14 @@ export default function StoryPdfPrintModal({
       });
 
       onSuccess?.(`Story PDF generated successfully (${pageSize.toUpperCase()}, ${orientation})!`);
+      playUiSound('STORY_PRINT_PDF');
 
-      // Log print-to-pdf event with resolved member actor ID
+      // Use local calendar date (YYYY-MM-DD) for mbrStoryPrintDate
+      const now = new Date();
+      const printDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+      // Log print-to-pdf event FIRST so backend credit evaluation checks the story's
+      // existing mbrStoryPrintDate before updating it to today's date.
       eventApi.logEvent({
         eventSiteCd: 'SB',
         eventActorId: mbrId || undefined,
@@ -223,7 +234,15 @@ export default function StoryPdfPrintModal({
         .then(() => {
           window.dispatchEvent(new CustomEvent('credits-updated'));
         })
-        .catch((logErr) => console.warn('Could not log STORY_PRINT_PDF event:', logErr));
+        .catch((logErr) => console.warn('Could not log STORY_PRINT_PDF event:', logErr))
+        .finally(() => {
+          if (!isSandbox && storyId && !storyId.startsWith('temp_')) {
+            taskApi
+              .updateStory(storyId, { mbrStoryPrintDate: printDateStr })
+              .catch((updateErr) => console.warn('Could not update mbrStoryPrintDate:', updateErr));
+          }
+          onPrintDateUpdated?.(printDateStr);
+        });
 
       onClose();
     } catch (err: any) {

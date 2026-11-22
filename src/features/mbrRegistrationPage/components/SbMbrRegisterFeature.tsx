@@ -83,6 +83,9 @@ export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId
         setIsSuccess(true);
 
         // Transition gracefully to target member story page if requested, otherwise Member Home Page
+        try {
+          sessionStorage.setItem('sb_show_early_adopter_welcome', 'true');
+        } catch {}
         setTimeout(() => {
           if (targetStoryMemberId) {
             setActiveTab('mbrStoryPage');

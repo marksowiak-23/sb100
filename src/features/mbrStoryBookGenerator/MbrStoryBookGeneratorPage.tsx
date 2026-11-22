@@ -50,6 +50,7 @@ import {
 import { CdSelect } from '@/src/components/CdSelect';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { analytics } from '@/src/services/analytics';
+import { playUiSound } from '@/src/services/soundService';
 import { useMemberCredits } from '@/src/services/creditBalanceService';
 import ExhaustedCreditsModal from '@/src/components/ExhaustedCreditsModal';
 import {
@@ -959,36 +960,53 @@ export default function MbrStoryBookGeneratorPage({
         mode,
       });
 
+      // Log PDF generation event FIRST so backend credit evaluation checks the book's
+      // existing bookPrintDate before updating it to today's date.
+      const actorId = activeBook.mbrId || memberProfile?.mbrId || undefined;
+      await eventApi
+        .logEvent({
+          eventSiteCd: 'SB',
+          eventActorId: actorId,
+          eventActorTypeCd: 'MBR',
+          eventCd: mode === 'pod-interior' ? 'STORYBOOK_PDF_INTERIOR_GENERATE' : 'STORYBOOK_PDF_GENERATE',
+          eventDetail: `Member generated ${mode === 'pod-interior' ? 'POD interior block' : 'complete heirloom'} PDF for storybook '${activeBook.bookTitle || 'My Life Stories'}' (${includedChapters.length} chapters, ${activeTrim.label})`,
+          eventTagValue: {
+            bookId: activeBook.bookId,
+            bookTitle: activeBook.bookTitle,
+            mode,
+            trimSizeCd: activeBook.bookTrimSizeCd,
+            chaptersCount: includedChapters.length,
+            estimatedPages: bookMetrics.estimatedPages,
+            coverLayoutCd: activeBook.bookCoverLayoutCd,
+            coverThemeCd: activeBook.bookCoverThemeCd,
+            fontFamilyCd: activeBook.bookFontFamilyCd,
+            isSandbox,
+          },
+        })
+        .then(() => {
+          window.dispatchEvent(new CustomEvent('credits-updated'));
+        })
+        .catch((err) => console.warn('Could not log storybook PDF generate event:', err));
+
+      // Update bookPrintDate & bookLastGeneratedAt after credit evaluation
+      const now = new Date();
+      const printDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const generatedIso = now.toISOString();
       if (!isSandbox && activeBook.bookId) {
         await taskApi
           .updateMemberStoryBook(activeBook.bookId, {
-            bookLastGeneratedAt: new Date().toISOString(),
+            bookLastGeneratedAt: generatedIso,
+            bookPrintDate: printDateStr,
             bookStatusCd: 'READY',
           })
           .catch(() => {});
       }
-
-      // Log PDF generation event
-      const actorId = activeBook.mbrId || memberProfile?.mbrId || undefined;
-      eventApi.logEvent({
-        eventSiteCd: 'SB',
-        eventActorId: actorId,
-        eventActorTypeCd: 'MBR',
-        eventCd: mode === 'pod-interior' ? 'STORYBOOK_PDF_INTERIOR_GENERATE' : 'STORYBOOK_PDF_GENERATE',
-        eventDetail: `Member generated ${mode === 'pod-interior' ? 'POD interior block' : 'complete heirloom'} PDF for storybook '${activeBook.bookTitle || 'My Life Stories'}' (${includedChapters.length} chapters, ${activeTrim.label})`,
-        eventTagValue: {
-          bookId: activeBook.bookId,
-          bookTitle: activeBook.bookTitle,
-          mode,
-          trimSizeCd: activeBook.bookTrimSizeCd,
-          chaptersCount: includedChapters.length,
-          estimatedPages: bookMetrics.estimatedPages,
-          coverLayoutCd: activeBook.bookCoverLayoutCd,
-          coverThemeCd: activeBook.bookCoverThemeCd,
-          fontFamilyCd: activeBook.bookFontFamilyCd,
-          isSandbox,
-        },
-      }).catch((err) => console.warn('Could not log storybook PDF generate event:', err));
+      setBookConfig((prev) => ({
+        ...prev,
+        bookLastGeneratedAt: generatedIso,
+        bookPrintDate: printDateStr,
+        bookStatusCd: 'READY',
+      }));
 
       // Dispatch GA4 / GTM event
       analytics.storybookPdf({
@@ -999,6 +1017,8 @@ export default function MbrStoryBookGeneratorPage({
         chaptersCount: includedChapters.length,
         estimatedPages: bookMetrics.estimatedPages,
       });
+
+      playUiSound('STORYBOOK_PDF_GENERATE');
 
       showToast(
         'success',

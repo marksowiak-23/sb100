@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Mic,
   Square,
@@ -22,6 +23,8 @@ import {
   Sliders,
   Radio,
   BookOpen,
+  Heart,
+  CreditCard,
 } from 'lucide-react';
 import {
   mbrVoiceProfileApi,
@@ -186,7 +189,17 @@ export default function MbrVoiceTranslationPanel({
   const [recordedPreviewUrl, setRecordedPreviewUrl] = useState<string | null>(null);
   const [recordedDurationSec, setRecordedDurationSec] = useState<number>(0);
   const [hasUnenrolledSample, setHasUnenrolledSample] = useState<boolean>(false);
+  const [showVoiceClonedToast, setShowVoiceClonedToast] = useState<boolean>(false);
+  const clonedToastTimerRef = useRef<number | null>(null);
   const [isPlayingSample, setIsPlayingSample] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (clonedToastTimerRef.current) {
+        window.clearTimeout(clonedToastTimerRef.current);
+      }
+    };
+  }, []);
 
   // --- Enrollment & Synthesis Playground State ---
   const [enrolling, setEnrolling] = useState(false);
@@ -557,6 +570,13 @@ export default function MbrVoiceTranslationPanel({
 
       setVoiceProfile(savedProfile);
       setHasUnenrolledSample(false);
+      setShowVoiceClonedToast(true);
+      if (clonedToastTimerRef.current) {
+        window.clearTimeout(clonedToastTimerRef.current);
+      }
+      clonedToastTimerRef.current = window.setTimeout(() => {
+        setShowVoiceClonedToast(false);
+      }, 4500);
       sessionStorage.setItem(`sb_voice_profile_${targetMbrId}`, JSON.stringify(savedProfile));
       setSuccess(
         `Your personal AI voice ("${savedProfile.voiceName}") has been enrolled with Google Cloud Vertex AI and is now available in the AI Voice Studio!`
@@ -771,6 +791,48 @@ export default function MbrVoiceTranslationPanel({
 
   return (
     <div className="space-y-6">
+      {/* ===================================================================== */}
+      {/* PREMIUM AI VOICE NARRATION INFORMATIONAL PANEL                        */}
+      {/* ===================================================================== */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#FAF6EE] via-white to-purple-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950/30 border border-amber-200/80 dark:border-purple-800/60 p-5 md:p-6 shadow-xs">
+        <div className="absolute -top-12 -right-12 w-40 h-40 bg-purple-200/25 dark:bg-purple-700/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 flex flex-col sm:flex-row items-start gap-4">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-purple-600 text-white flex items-center justify-center shadow-sm shrink-0">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="flex-1 space-y-2.5 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
+                About Personal AI Voice Narration
+              </h3>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100/90 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/50">
+                Premium Service
+              </span>
+            </div>
+
+            <p className="font-serif text-xs sm:text-[13px] text-slate-700 dark:text-slate-300 leading-relaxed">
+              AI Voice Narration is a <strong className="font-semibold text-slate-900 dark:text-white">premium service</strong>. You can build, enroll, and test your personal AI voice right here at any time. To use your voice to narrate your published stories, you&apos;ll need to purchase <strong className="font-semibold text-slate-900 dark:text-white">Story Narration credits</strong> through{' '}
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('open-member-account'))}
+                className="inline-flex items-center gap-1 font-semibold text-purple-700 dark:text-purple-300 hover:text-purple-900 dark:hover:text-purple-200 underline underline-offset-2 cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5 inline" />
+                <span>My Account</span>
+              </button>
+              .
+            </p>
+
+            <div className="flex items-start gap-2 pt-1 text-xs text-slate-600 dark:text-slate-400 font-serif leading-relaxed border-t border-amber-200/50 dark:border-slate-800">
+              <Heart className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+              <span>
+                Voice narration is a timeless, heartfelt way to preserve and leave your life stories—spoken in your own voice—for your family and friends to listen to and treasure for generations.
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Status Banner Alerts */}
       {success && (
         <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 flex items-center gap-3 shadow-xs">
@@ -816,34 +878,6 @@ export default function MbrVoiceTranslationPanel({
                 </p>
               </div>
             </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => handlePlaySamplePreview(resolveMediaUrl(voiceProfile.sampleAudioPath))}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-all cursor-pointer shadow-2xs"
-              >
-                {isPlayingSample ? <Pause className="w-3.5 h-3.5 text-indigo-600" /> : <Play className="w-3.5 h-3.5 text-indigo-600" />}
-                <span>{isPlayingSample ? 'Stop Sample' : 'Hear Recorded Sample'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleToggleVoiceActive}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-all cursor-pointer"
-              >
-                <span>{voiceProfile.isActive ? 'Disable Voice' : 'Enable Voice'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleOpenDeleteConfirm}
-                className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 transition-all cursor-pointer"
-                title="Delete Personal Voice Profile"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
       )}
@@ -858,8 +892,11 @@ export default function MbrVoiceTranslationPanel({
               <Mic className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
-                {voiceProfile ? 'Re-Record or Update Your Voice Sample' : 'Record Your Personal Voice Sample'}
+              <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white flex items-baseline gap-2 flex-wrap">
+                <span>{voiceProfile ? 'Re-Record or Update Your Voice Sample' : 'Record Your Personal Voice Sample'}</span>
+                <span className="text-xs font-sans font-medium text-emerald-600 dark:text-emerald-400">
+                  (Free to setup and sample)
+                </span>
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-serif">
                 Read the guided script below in your natural storytelling voice (recommended 20–35 seconds in a quiet room).
@@ -885,14 +922,19 @@ export default function MbrVoiceTranslationPanel({
 
         {/* Step 1: Select Calibration Script & Teleprompter Controls */}
         <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <label className="text-xs font-serif font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4 text-blue-600" />
-              <span>Step 1: Choose a Calibration Script to Read Aloud</span>
-            </label>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-2xl bg-blue-50/75 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/60 border-l-4 border-l-blue-600 dark:border-l-blue-500">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-blue-600 text-white shadow-2xs shrink-0">
+                <BookOpen className="w-3.5 h-3.5" />
+                Step 1
+              </span>
+              <span className="text-sm sm:text-[15px] font-serif font-bold text-slate-900 dark:text-white leading-snug">
+                Choose a Calibration Script to Read Aloud
+              </span>
+            </div>
 
             {/* Font size selector for comfortable reading */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-[11px] text-slate-400 font-serif mr-1">Teleprompter Size:</span>
               {(['normal', 'large', 'xlarge'] as const).map((sz) => (
                 <button
@@ -975,11 +1017,16 @@ export default function MbrVoiceTranslationPanel({
         </div>
 
         {/* Step 2: Recorder Controls & Live Waveform Meter */}
-        <div className="space-y-2">
-          <label className="text-xs font-serif font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-            <Mic className="w-4 h-4 text-rose-600" />
-            <span>Step 2: Click the start recording script button and read the above script and then click stop when complete.</span>
-          </label>
+        <div className="space-y-3">
+          <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-rose-50/75 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-800/60 border-l-4 border-l-rose-600 dark:border-l-rose-500">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-rose-600 text-white shadow-2xs shrink-0">
+              <Mic className="w-3.5 h-3.5" />
+              Step 2
+            </span>
+            <span className="text-sm sm:text-[15px] font-serif font-bold text-slate-900 dark:text-white leading-snug">
+              Click the Start Recording Script button, read the script above aloud, and click Stop when complete.
+            </span>
+          </div>
 
           <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
@@ -1069,15 +1116,27 @@ export default function MbrVoiceTranslationPanel({
       </div>
 
       {/* Step 3: Save & Activate My AI Voice */}
-      <div className="space-y-2">
-        <label className="text-xs font-serif font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-indigo-600" />
-          <span>Step 3: Save and activate your personal AI voice model.</span>
-        </label>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-indigo-50/75 dark:bg-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/60 border-l-4 border-l-indigo-600 dark:border-l-indigo-500">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-indigo-600 text-white shadow-2xs shrink-0">
+            <Sparkles className="w-3.5 h-3.5" />
+            Step 3
+          </span>
+          <span className="text-sm sm:text-[15px] font-serif font-bold text-slate-900 dark:text-white leading-snug">
+            Save and Activate Your Personal AI Voice Model
+          </span>
+        </div>
 
         <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5 text-xs font-serif text-slate-600 dark:text-slate-300">
-            {recordedWavBlob ? (
+            {recordedWavBlob && !hasUnenrolledSample && voiceProfile ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Your personal AI voice is saved and active. Record a new sample in Step 2 above if you&apos;d like to update it.
+                </span>
+              </>
+            ) : recordedWavBlob ? (
               <>
                 <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>
@@ -1094,29 +1153,60 @@ export default function MbrVoiceTranslationPanel({
             )}
           </div>
 
-          <button
-            type="button"
-            onClick={handleEnrollAndSaveVoice}
-            disabled={!recordedWavBlob || isRecording || enrolling}
-            className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-md ${
-              !recordedWavBlob || isRecording || enrolling
-                ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
-                : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/25 cursor-pointer'
-            }`}
-          >
-            {enrolling ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Enrolling Voice with Vertex AI...</span>
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                <span>Save & Activate My AI Voice</span>
-              </>
-            )}
-          </button>
+          {(() => {
+            const isCurrentSampleSaved = Boolean(recordedWavBlob && !hasUnenrolledSample && voiceProfile);
+            const isDisabled = !recordedWavBlob || isRecording || enrolling || isCurrentSampleSaved;
+            return (
+              <button
+                type="button"
+                onClick={handleEnrollAndSaveVoice}
+                disabled={isDisabled}
+                className={`w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-2xl text-xs sm:text-sm font-bold transition-all shadow-md ${
+                  isCurrentSampleSaved
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 cursor-not-allowed shadow-none'
+                    : isDisabled
+                      ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none'
+                      : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-600/25 cursor-pointer'
+                }`}
+              >
+                {enrolling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Enrolling Voice with Vertex AI...</span>
+                  </>
+                ) : isCurrentSampleSaved ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Voice Saved</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Save &amp; Activate My AI Voice</span>
+                  </>
+                )}
+              </button>
+            );
+          })()}
         </div>
+
+        {/* Fade-in / Fade-out "Voice successfully cloned" notification */}
+        <AnimatePresence>
+          {showVoiceClonedToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.45, ease: 'easeInOut' }}
+              className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 dark:from-emerald-950/60 dark:via-teal-950/50 dark:to-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 text-emerald-800 dark:text-emerald-200 shadow-sm"
+            >
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="text-xs sm:text-sm font-serif font-bold">
+                Voice successfully cloned!
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
 
@@ -1125,16 +1215,38 @@ export default function MbrVoiceTranslationPanel({
       {/* ===================================================================== */}
       {voiceProfile && (
         <div className="bg-gradient-to-br from-indigo-50/90 via-white to-blue-50/60 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30 border border-indigo-200/80 dark:border-indigo-800/60 rounded-3xl p-6 md:p-7 shadow-xs space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-indigo-100 dark:border-slate-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-indigo-100 dark:border-slate-800">
             <div className="flex items-center gap-2.5">
-              <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white">
-                Resulting Voice Information
-              </h3>
+              <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <div>
+                <h3 className="font-serif font-bold text-base text-slate-900 dark:text-white leading-tight">
+                  Resulting Voice Information
+                </h3>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-serif">
+                  Google Cloud Vertex AI Acoustic Metrics
+                </span>
+              </div>
             </div>
-            <span className="text-xs text-slate-500 dark:text-slate-400 font-serif">
-              Google Cloud Vertex AI Acoustic Metrics
-            </span>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleToggleVoiceActive}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all cursor-pointer shadow-2xs"
+              >
+                <span>{voiceProfile.isActive ? 'Disable Voice' : 'Enable Voice'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenDeleteConfirm}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/70 transition-all cursor-pointer shadow-2xs"
+                title="Delete Personal Voice Profile"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Voice</span>
+              </button>
+            </div>
           </div>
 
           {/* Extracted Vertex AI Acoustic Profile Badges */}

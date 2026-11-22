@@ -755,6 +755,7 @@ export default function SbMbrStoryFeedPageFeature({
             mbrStoryHeaderPhotoUrl: story.mbrStoryHeaderPhotoUrl,
             mbrStoryHeaderPhotoCaption: story.mbrStoryHeaderPhotoCaption,
             mbrStoryHeaderPhotoStyleCd: story.mbrStoryHeaderPhotoStyleCd,
+            mbrStoryAiVoiceFlag: Boolean(story.mbrStoryAiVoiceFlag),
             authorMbrId: authorId,
             authorName,
             authorLocation,

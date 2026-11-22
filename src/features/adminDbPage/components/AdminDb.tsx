@@ -212,6 +212,12 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrAcctCreditBalance', label: 'Credit Balance', type: 'number', required: true, placeholder: '0' },
       { name: 'mbrAcctLifetimeCreditsEarned', label: 'Lifetime Credits Earned', type: 'number', required: false, placeholder: '0' },
       { name: 'mbrAcctLifetimeCreditsUsed', label: 'Lifetime Credits Used', type: 'number', required: false, placeholder: '0' },
+      { name: 'mbrAcctVoiceCreditBalance', label: 'Voice Credit Balance', type: 'number', required: false, placeholder: '0' },
+      { name: 'mbrAcctLifetimeVoiceCreditsEarned', label: 'Lifetime Voice Credits Earned', type: 'number', required: false, placeholder: '0' },
+      { name: 'mbrAcctVoiceLifetimeCreditsUsed', label: 'Lifetime Voice Credits Used', type: 'number', required: false, placeholder: '0' },
+      { name: 'mbrAcctImageCreditBalance', label: 'Image Credit Balance', type: 'number', required: false, placeholder: '0' },
+      { name: 'mbrImageLifetimeCreditsEarned', label: 'Lifetime Image Credits Earned', type: 'number', required: false, placeholder: '0' },
+      { name: 'mbrImageLifetimeCreditsUse', label: 'Lifetime Image Credits Used', type: 'number', required: false, placeholder: '0' },
       { name: 'mbrAcctStatusCd', label: 'Status Code', type: 'string', required: true, placeholder: 'ACTIVE, SUSPENDED, CLOSED' },
       { name: 'mbrAcctTypeCd', label: 'Account Type Code', type: 'string', required: true, placeholder: 'STANDARD, PREMIUM, FOUNDER' },
       { name: 'mbrAcctLastActivityDate', label: 'Last Activity Date', type: 'date', required: false }
@@ -537,12 +543,10 @@ const TABLES: TableDefinition[] = [
       { name: 'statLastPublishedDt', label: 'Last Published Date / Time', type: 'date', required: false },
       { name: 'statStoriesPublishedCnt', label: 'Stories Published Count', type: 'number', required: true, placeholder: '0' },
       { name: 'statStoriesViewedCnt', label: 'Stories Viewed Count', type: 'number', required: true, placeholder: '0' },
-      { name: 'statFamilyStoryCnt', label: 'Family Stories Count', type: 'number', required: false, placeholder: '0' },
-      { name: 'statResidenceCnt', label: 'Residences Count', type: 'number', required: false, placeholder: '0' },
-      { name: 'statActivityCnt', label: 'Activities Count', type: 'number', required: false, placeholder: '0' },
-      { name: 'statAchievementsCnt', label: 'Achievements Count', type: 'number', required: false, placeholder: '0' },
-      { name: 'statEducationCnt', label: 'Education Count', type: 'number', required: false, placeholder: '0' },
-      { name: 'statEmploymentCnt', label: 'Employment Count', type: 'number', required: false, placeholder: '0' }
+      { name: 'statPhotoCnt', label: 'Photo Count', type: 'number', required: false, placeholder: '0' },
+      { name: 'statPhotoStorageMbAmt', label: 'Photo Storage (MB)', type: 'number', required: false, placeholder: '0.00' },
+      { name: 'statAudioCnt', label: 'Audio Count', type: 'number', required: false, placeholder: '0' },
+      { name: 'statAudioStorageMbAmt', label: 'Audio Storage (MB)', type: 'number', required: false, placeholder: '0.00' }
     ]
   },
   {
@@ -560,12 +564,17 @@ const TABLES: TableDefinition[] = [
       { name: 'mbrStoryVersion', label: 'Version', type: 'number', required: true },
       { name: 'mbrStoryStartDate', label: 'Start Date', type: 'date', required: false },
       { name: 'mbrStoryEndDate', label: 'End Date', type: 'date', required: false },
+      { name: 'mbrStoryPublishedDate', label: 'Published Date', type: 'date', required: false },
+      { name: 'mbrStoryPrintDate', label: 'Print Date', type: 'date', required: false },
+      { name: 'mbrStoryAiVoiceDate', label: 'AI Voice Date', type: 'date', required: false },
+      { name: 'mbrStoryAiImageDate', label: 'AI Image Date', type: 'date', required: false },
       { name: 'mbrStoryThreadID', label: 'Story Thread ID', type: 'string', required: false },
       { name: 'mbrStoryTopicName', label: 'Story Topic Name', type: 'string', required: false, placeholder: 'e.g. Family, Education' },
       { name: 'mbrStoryLayoutCd', label: 'Layout Code', type: 'string', required: true, placeholder: 'default | news_header' },
       { name: 'mbrStoryHeaderPhotoUrl', label: 'Header Photo URL', type: 'string', required: false },
       { name: 'mbrStoryHeaderPhotoCaption', label: 'Header Photo Caption', type: 'string', required: false },
       { name: 'mbrStoryHeaderPhotoStyleCd', label: 'Header Photo Style Code', type: 'string', required: false, placeholder: 'banner | split' },
+      { name: 'mbrStoryAiVoiceFlag', label: 'AI Voice Narration Flag', type: 'boolean', required: false },
       { name: 'topicId', label: 'Standard Topic ID (UUID)', type: 'uuid', required: false },
       { name: 'mbrCustomTopicId', label: 'Custom Topic ID (UUID)', type: 'uuid', required: false },
       { name: 'chIntentId', label: 'Chatbot Intent ID (UUID)', type: 'uuid', required: false },
@@ -625,7 +634,8 @@ const TABLES: TableDefinition[] = [
       { name: 'bookAboutAuthorPhotoUrl', label: 'About Author Photo URL', type: 'string', required: false },
       { name: 'bookCopyrightYear', label: 'Copyright Year', type: 'number', required: false },
       { name: 'bookIsbn', label: 'ISBN / Edition ID', type: 'string', required: false },
-      { name: 'bookStatusCd', label: 'Status Code', type: 'string', required: true, placeholder: 'DRAFT | READY | PUBLISHED' }
+      { name: 'bookStatusCd', label: 'Status Code', type: 'string', required: true, placeholder: 'DRAFT | READY | PUBLISHED' },
+      { name: 'bookPrintDate', label: 'Print Date', type: 'date', required: false }
     ]
   },
   {
@@ -1117,6 +1127,22 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'uiSoundEvent',
+    name: 'uiSoundEvent',
+    endpoint: '/ui-sound-events',
+    primaryKey: 'uiSoundEventId',
+    searchField: 'eventLabel',
+    fields: [
+      { name: 'eventCd', label: 'Event Code', type: 'string', required: true, placeholder: 'STORY_PUBLISH' },
+      { name: 'eventLabel', label: 'Event Label', type: 'string', required: true, placeholder: 'Story Published' },
+      { name: 'eventCategoryCd', label: 'Category Code', type: 'string', required: true, placeholder: 'STORY | AUDIO | PRINT | BILLING | SOCIAL | SYSTEM' },
+      { name: 'soundPresetCd', label: 'Sound Preset Code', type: 'string', required: true, placeholder: 'WARM_CHIME | SOFT_POP | TRIUMPH_CHORD | NONE' },
+      { name: 'volumeAmt', label: 'Volume (0.0 - 1.0)', type: 'number', required: true, placeholder: '0.15' },
+      { name: 'isEnabled', label: 'Enabled', type: 'boolean', required: true },
+      { name: 'eventDesc', label: 'Description', type: 'textarea', required: false }
+    ]
+  },
+  {
     id: 'user',
     name: 'user',
     endpoint: '/users',
@@ -1271,6 +1297,7 @@ const getInitialMockData = (tableId: string): any[] => {
           mbrStoryHeaderPhotoUrl: '',
           mbrStoryHeaderPhotoCaption: '',
           mbrStoryHeaderPhotoStyleCd: 'banner',
+          mbrStoryAiVoiceFlag: false,
           mbrStoryStartDate: '1965-06-12',
           mbrStoryCreatedAt: now,
           mbrStoryUpdatedAt: now
@@ -1284,12 +1311,10 @@ const getInitialMockData = (tableId: string): any[] => {
           statLastPublishedDt: now,
           statStoriesPublishedCnt: 5,
           statStoriesViewedCnt: 42,
-          statFamilyStoryCnt: 3,
-          statResidenceCnt: 2,
-          statActivityCnt: 4,
-          statAchievementsCnt: 1,
-          statEducationCnt: 2,
-          statEmploymentCnt: 3,
+          statPhotoCnt: 0,
+          statPhotoStorageMbAmt: 0,
+          statAudioCnt: 0,
+          statAudioStorageMbAmt: 0,
           statCreatedAt: now,
           statUpdatedAt: now
         }

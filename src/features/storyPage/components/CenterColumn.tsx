@@ -24,6 +24,7 @@ interface CenterColumnProps {
   mbrStoryHeaderPhotoUrl?: string | null;
   mbrStoryHeaderPhotoCaption?: string | null;
   mbrStoryHeaderPhotoStyleCd?: 'banner' | 'split' | string | null;
+  mbrStoryAiVoiceFlag?: boolean;
   isLoading?: boolean;
   isRestricted?: boolean;
   onClickBack?: () => void;
@@ -39,6 +40,7 @@ export default function CenterColumn({
   mbrStoryHeaderPhotoUrl,
   mbrStoryHeaderPhotoCaption,
   mbrStoryHeaderPhotoStyleCd,
+  mbrStoryAiVoiceFlag,
   publishedDate,
   authorName = 'Author',
   authorMbrId,
@@ -194,6 +196,7 @@ export default function CenterColumn({
         mbrStoryHeaderPhotoUrl={mbrStoryHeaderPhotoUrl}
         mbrStoryHeaderPhotoCaption={mbrStoryHeaderPhotoCaption}
         mbrStoryHeaderPhotoStyleCd={mbrStoryHeaderPhotoStyleCd}
+        mbrStoryAiVoiceFlag={mbrStoryAiVoiceFlag}
         publishedDate={publishedDate}
         authorName={authorName}
         authorMbrId={authorMbrId}
