@@ -156,6 +156,7 @@ export interface Topic {
 export interface TopicSpark {
   sparkId: string;
   topicId: string;
+  sparkTitle?: string | null;
   sparkQuestion: string;
   sparkCreatedAt?: string;
   sparkUpdatedAt?: string;
@@ -7347,5 +7348,45 @@ export const aiPhotoApi = {
       body: JSON.stringify(payload),
     });
     return handleResponse<AiPhotoGenerateResponse>(response);
+  },
+};
+
+export interface StorySparkAiResponse {
+  ideas: string[];
+  model_name: string;
+  latency_ms: number;
+}
+
+export interface StorySparkTitleResponse {
+  title: string;
+  model_name: string;
+  latency_ms: number;
+}
+
+export const storySparkAiApi = {
+  async generateIdeas(payload: {
+    topic_title: string;
+    topic_id?: string;
+    count?: number;
+    previous_ideas?: string[];
+  }): Promise<StorySparkAiResponse> {
+    const response = await fetch(`${AI_API_BASE_URL}/story-sparks/generate`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<StorySparkAiResponse>(response);
+  },
+
+  async generateTitle(payload: {
+    spark_question: string;
+    topic_title?: string;
+  }): Promise<StorySparkTitleResponse> {
+    const response = await fetch(`${AI_API_BASE_URL}/story-sparks/generate-title`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<StorySparkTitleResponse>(response);
   },
 };

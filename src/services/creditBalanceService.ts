@@ -8,12 +8,14 @@ import { taskApi } from './api';
 
 const DEFAULT_MEMBER_ID = '9edb4311-a4bc-428a-8317-833f0f08fea1';
 const DEFAULT_SANDBOX_BALANCE = 855;
+const inFlightBalanceRequests = new Map<string, Promise<number>>();
 
 /**
- * Helper to resolve the currently active member ID from session storage.
+ * Resolves the logged-in member ID from explicit input or session storage,
+ * returning null when no member session is active (e.g. unauthenticated Public Page).
  */
-export function getActiveMemberId(explicitMbrId?: string): string {
-  if (explicitMbrId) return explicitMbrId;
+function resolveLoggedInMemberId(explicitMbrId?: string): string | null {
+  if (explicitMbrId && explicitMbrId !== DEFAULT_MEMBER_ID) return explicitMbrId;
 
   // 1. Check sb_current_mbr
   const currentMbrStr = sessionStorage.getItem('sb_current_mbr');
@@ -47,7 +49,7 @@ export function getActiveMemberId(explicitMbrId?: string): string {
   if (userStr) {
     try {
       const u = JSON.parse(userStr);
-      if (u.mbr_id || u.mbrId || u.id) return u.mbr_id || u.mbrId || u.id;
+      if (u.mbr_id || u.mbrId) return u.mbr_id || u.mbrId;
     } catch {}
   }
 
@@ -60,7 +62,14 @@ export function getActiveMemberId(explicitMbrId?: string): string {
     } catch {}
   }
 
-  return DEFAULT_MEMBER_ID;
+  return null;
+}
+
+/**
+ * Helper to resolve the currently active member ID from session storage.
+ */
+export function getActiveMemberId(explicitMbrId?: string): string {
+  return resolveLoggedInMemberId(explicitMbrId) || explicitMbrId || DEFAULT_MEMBER_ID;
 }
 
 /**
@@ -172,25 +181,41 @@ export function setCachedCreditBalance(balance: number, mbrId?: string): void {
  * Asynchronously retrieves the member's current credit balance from Live Cloud SQL or Sandbox.
  */
 export async function getMemberCreditBalance(mbrId?: string): Promise<number> {
-  const targetId = getActiveMemberId(mbrId);
   const isSandbox = isSandboxMode();
-
   if (isSandbox) {
-    return getCachedCreditBalance(targetId);
+    return getCachedCreditBalance(getActiveMemberId(mbrId));
   }
 
-  try {
-    const acct = await taskApi.getMemberAccount(targetId);
-    if (acct && typeof acct.mbrAcctCreditBalance === 'number') {
-      setCachedCreditBalance(acct.mbrAcctCreditBalance, targetId);
-      return acct.mbrAcctCreditBalance;
+  const targetId = resolveLoggedInMemberId(mbrId);
+  if (!targetId) {
+    // Unauthenticated visitor (e.g., Public Page) — skip live /mbr-accts lookup to avoid 404 bursts
+    return getCachedCreditBalance(DEFAULT_MEMBER_ID);
+  }
+
+  const existingPromise = inFlightBalanceRequests.get(targetId);
+  if (existingPromise) {
+    return existingPromise;
+  }
+
+  const reqPromise = (async () => {
+    try {
+      const acct = await taskApi.getMemberAccount(targetId);
+      if (acct && typeof acct.mbrAcctCreditBalance === 'number') {
+        setCachedCreditBalance(acct.mbrAcctCreditBalance, targetId);
+        return acct.mbrAcctCreditBalance;
+      }
+    } catch (err) {
+      console.warn(`[creditBalanceService] Could not fetch live balance for ${targetId}:`, err);
+    } finally {
+      inFlightBalanceRequests.delete(targetId);
     }
-  } catch (err) {
-    console.warn(`[creditBalanceService] Could not fetch live balance for ${targetId}:`, err);
-  }
 
-  // Fallback to cached value
-  return getCachedCreditBalance(targetId);
+    // Fallback to cached value
+    return getCachedCreditBalance(targetId);
+  })();
+
+  inFlightBalanceRequests.set(targetId, reqPromise);
+  return reqPromise;
 }
 
 /**

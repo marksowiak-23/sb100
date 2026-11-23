@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { playUiSound } from '@/src/services/soundService';
+import { useModalA11y } from '@/src/hooks/useModalA11y';
 
 export interface NoVoiceCreditsModalProps {
   isOpen: boolean;
@@ -29,6 +30,8 @@ export default function NoVoiceCreditsModal({
   onClose,
   storyTitle
 }: NoVoiceCreditsModalProps) {
+  const { dialogProps } = useModalA11y({ isOpen, onClose });
+
   useEffect(() => {
     if (isOpen) {
       playUiSound('WARNING_ALERT');
@@ -55,7 +58,7 @@ export default function NoVoiceCreditsModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div {...dialogProps} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}

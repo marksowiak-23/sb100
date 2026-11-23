@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useModalA11y } from '@/src/hooks/useModalA11y';
 import {
   Sparkles,
   X,
@@ -178,6 +179,7 @@ export default function AiPhotoGeneratorModal({
   const [planning, setPlanning] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const { dialogProps } = useModalA11y({ isOpen, onClose, closeOnEscape: !saving });
   const [saveProgress, setSaveProgress] = useState<{ current: number; total: number } | null>(null);
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [globalStatus, setGlobalStatus] = useState<string | null>(null);
@@ -784,7 +786,7 @@ export default function AiPhotoGeneratorModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div {...dialogProps} className="fixed inset-0 z-50 bg-slate-900/65 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
         <div className="fixed inset-0" onClick={!saving ? onClose : undefined} />
 
         <motion.div

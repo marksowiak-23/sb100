@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useModalA11y } from '@/src/hooks/useModalA11y';
 import {
   Sparkles,
   Search,
@@ -59,6 +60,7 @@ export default function SparkQuestionModal({
   onSelectQuestion,
 }: SparkQuestionModalProps) {
   const [sparks, setSparks] = useState<TopicSpark[]>([]);
+  const { dialogProps } = useModalA11y({ isOpen, onClose });
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -227,6 +229,7 @@ export default function SparkQuestionModal({
   return (
     <div
       id="spark-question-modal-backdrop"
+      {...dialogProps}
       className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 animate-fade-in"
     >
       <div className="absolute inset-0 cursor-default" onClick={onClose} />

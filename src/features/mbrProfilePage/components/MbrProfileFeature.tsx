@@ -21,6 +21,7 @@ import MbrLegacyContactsPanel from './MbrLegacyContactsPanel';
 import ProfilePageHeaderPanel from './ProfilePageHeaderPanel';
 import ProfileNavigationMenu, { ProfileSubTab } from './ProfileNavigationMenu';
 import { useMemberCredits } from '@/src/services/creditBalanceService';
+import { useCoachMarks, CoachTourTriggerButton } from '@/src/features/coachMarks';
 
 
 interface MbrProfileFeatureProps {
@@ -37,6 +38,14 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
   // --- SUB-TAB STATE ---
   const [activeSubTab, setActiveSubTab] = useState<ProfileSubTab>(initialSubTab);
   const [isSettingsDirty, setIsSettingsDirty] = useState(false);
+  const { requestAutoTour } = useCoachMarks();
+
+  useEffect(() => {
+    return requestAutoTour('profile_tour', {
+      delayMs: 900,
+      blocked: activeSubTab !== 'profile'
+    });
+  }, [requestAutoTour, activeSubTab]);
 
   useEffect(() => {
     if (initialSubTab) {
@@ -783,12 +792,14 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
         <aside className="lg:col-span-4 xl:col-span-3 space-y-2.5 sm:space-y-4 lg:space-y-6">
           <ProfilePageHeaderPanel />
 
-          <ProfileNavigationMenu
-            activeSubTab={activeSubTab}
-            onSelectTab={setActiveSubTab}
-            isProfileDirty={isProfileDirty}
-            isSettingsDirty={isSettingsDirty}
-          />
+          <div data-coach-mark="profile-nav">
+            <ProfileNavigationMenu
+              activeSubTab={activeSubTab}
+              onSelectTab={setActiveSubTab}
+              isProfileDirty={isProfileDirty}
+              isSettingsDirty={isSettingsDirty}
+            />
+          </div>
 
           {/* Quick Context / Privacy Info Card */}
           <div className="hidden lg:block bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-2.5 shadow-xs">
@@ -850,46 +861,49 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                 </div>
               </div>
 
-              {/* Global Top Action Buttons (Profile Tab) */}
-              {activeSubTab === 'profile' && (
-                <div className="flex items-center gap-3">
-                  {isProfileDirty && (
+              {/* Global Top Action Buttons & Page Tour */}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <CoachTourTriggerButton tourId="profile_tour" label="Profile Tour" />
+                {activeSubTab === 'profile' && (
+                  <>
+                    {isProfileDirty && (
+                      <button
+                        type="button"
+                        onClick={handleExplicitCancel}
+                        disabled={saving}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Discard Changes</span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
-                      onClick={handleExplicitCancel}
-                      disabled={saving}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors cursor-pointer"
+                      onClick={(e) => handleSubmit(e as any)}
+                      disabled={!isProfileDirty || saving}
+                      title={!isProfileDirty ? "Make an edit to enable saving" : "Save changes to your member profile"}
+                      className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold font-sans transition-all ${
+                        isProfileDirty && !saving
+                          ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 active:scale-98 cursor-pointer'
+                          : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none opacity-65'
+                      }`}
                     >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Discard Changes</span>
+                      {saving ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Saving Profile...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-4 h-4" />
+                          <span>Save Profile</span>
+                        </>
+                      )}
                     </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={(e) => handleSubmit(e as any)}
-                    disabled={!isProfileDirty || saving}
-                    title={!isProfileDirty ? "Make an edit to enable saving" : "Save changes to your member profile"}
-                    className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold font-sans transition-all ${
-                      isProfileDirty && !saving
-                        ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 active:scale-98 cursor-pointer'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 cursor-not-allowed shadow-none opacity-65'
-                    }`}
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Saving Profile...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Save className="w-4 h-4" />
-                        <span>Save Profile</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Notifications / Feedback Alerts */}
@@ -927,7 +941,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
               <div className="space-y-8">
                 
                 {/* PROFILE PICTURE PANEL */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
+                <div data-coach-mark="profile-photo-gallery" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
                   <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
                     <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
                       <Camera className="w-4 h-4" />
@@ -1097,7 +1111,7 @@ export default function MbrProfileFeature({ isSandbox, onClickBack, onDirtyChang
                 </div>
 
                 {/* DEMOGRAPHIC NAMES SECTION */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
+                <div data-coach-mark="profile-demographics" className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-xs space-y-6">
                   <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
                     <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400">
                       <User className="w-4 h-4" />

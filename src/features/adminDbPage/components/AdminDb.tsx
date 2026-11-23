@@ -1123,6 +1123,7 @@ const TABLES: TableDefinition[] = [
     searchField: 'sparkQuestion',
     fields: [
       { name: 'topicId', label: 'Topic ID (UUID)', type: 'uuid', required: true, placeholder: 'Topic UUID' },
+      { name: 'sparkTitle', label: 'Spark Title', type: 'string', required: false, placeholder: 'e.g. Sunday Mornings at Grandma\'s' },
       { name: 'sparkQuestion', label: 'Spark Question', type: 'string', required: true, placeholder: 'e.g. What was your favorite childhood memory?' }
     ]
   },

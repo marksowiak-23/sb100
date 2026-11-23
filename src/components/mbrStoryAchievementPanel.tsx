@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Trophy, Trash2, Edit3, Save, X, Plus, Loader2, 
@@ -61,18 +61,48 @@ const sortAchievementList = (list: Achievement[]): Achievement[] => {
   });
 };
 
+function resolveStoredAchMemberId(propMemberId?: string): string | null {
+  if (propMemberId) return propMemberId;
+  try {
+    const storedMbr = sessionStorage.getItem('sb_current_mbr');
+    if (storedMbr) {
+      const parsed = JSON.parse(storedMbr);
+      if (parsed?.mbrId) return parsed.mbrId;
+    }
+  } catch {}
+  return null;
+}
+
+const getAchievementsCacheKey = (id: string, sandbox: boolean) => `sb_cache_achievements_${sandbox ? 'sbx' : 'live'}_${id}`;
+
 export default function MbrStoryAchievementPanel({ isSandbox = false, memberId, readOnly = false, topicId, chIntentId }: MbrStoryAchievementPanelProps) {
   const resolvedTopicId = topicId || DEFAULT_TOPIC_LOOKUP['achievements'].topicId;
   const resolvedChIntentId = chIntentId || DEFAULT_TOPIC_LOOKUP['achievements'].chIntentId;
+  const initialMbrId = resolveStoredAchMemberId(memberId) || '9edb4311-a4bc-428a-8317-833f0f08fea1';
 
-  // --- STATE VARIABLES ---
-  const [loading, setLoading] = useState(true);
+  // --- STATE VARIABLES (hydrated from sessionStorage cache for 0ms instant paint) ---
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem(getAchievementsCacheKey(initialMbrId, isSandbox));
+    } catch {
+      return true;
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
-  const [achievementList, setAchievementList] = useState<Achievement[]>([]);
+  const [mbrId, setMbrId] = useState<string>(initialMbrId);
+  const [achievementList, setAchievementList] = useState<Achievement[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(getAchievementsCacheKey(initialMbrId, isSandbox));
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed?.list)) return parsed.list;
+      }
+    } catch {}
+    return [];
+  });
 
   // --- MODAL STATE ---
   const [showModal, setShowModal] = useState(false);
@@ -141,15 +171,59 @@ export default function MbrStoryAchievementPanel({ isSandbox = false, memberId, 
     };
   }, [activeActionMenuId, showHeaderMenu]);
 
-  // Load Subordinate Story and Photo Counts for each achievement and header
-  const loadSubordinateCounts = async (targetMbrId: string, currentAchievements: Achievement[]) => {
-    try {
-      const photoCounts: Record<string, number> = {};
-      const storyCounts: Record<string, number> = {};
-      let hdrPhotos = 0;
-      let hdrStories = 0;
+  const computeAchCountsFromData = useCallback((mediaList: any[], storyList: any[]) => {
+    const photoCounts: Record<string, number> = {};
+    const storyCounts: Record<string, number> = {};
+    let hdrPhotos = 0;
+    let hdrStories = 0;
 
+    if (Array.isArray(mediaList)) {
+      mediaList.forEach((m) => {
+        if (isAudioMedia(m)) return;
+        const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
+        if (cat === 'achievement' || cat === 'achievements') {
+          if (m.mbrMediaSubordinateId) {
+            photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
+          } else {
+            hdrPhotos++;
+          }
+        }
+      });
+    }
+
+    if (Array.isArray(storyList)) {
+      storyList.forEach((s) => {
+        const isAchType = (
+          s.mbrStoryTypeCd === 'sbMbrStryAchievement' ||
+          s.mbrStoryTypeCd === 'achievements' ||
+          s.mbrStoryTypeCd === 'achievement'
+        );
+        if (isAchType) {
+          if (s.mbrStorySubordinateId) {
+            storyCounts[s.mbrStorySubordinateId] = (storyCounts[s.mbrStorySubordinateId] || 0) + 1;
+          } else {
+            hdrStories++;
+          }
+        }
+      });
+    }
+
+    setAchievementPhotosMap(photoCounts);
+    setAchievementStoriesMap(storyCounts);
+    setHeaderPhotoCount(hdrPhotos);
+    setHeaderStoryCount(hdrStories);
+    return { photoCounts, storyCounts, hdrPhotos, hdrStories };
+  }, []);
+
+  // Load Subordinate Story and Photo Counts for each achievement and header
+  const loadSubordinateCounts = useCallback(async (targetMbrId: string, currentAchievements: Achievement[]) => {
+    try {
       if (isSandbox) {
+        const photoCounts: Record<string, number> = {};
+        const storyCounts: Record<string, number> = {};
+        let hdrPhotos = 0;
+        let hdrStories = 0;
+
         const savedMedia = sessionStorage.getItem('sandbox_media');
         if (savedMedia) {
           try {
@@ -188,112 +262,111 @@ export default function MbrStoryAchievementPanel({ isSandbox = false, memberId, 
             } catch {}
           }
         });
+
+        setAchievementPhotosMap(photoCounts);
+        setAchievementStoriesMap(storyCounts);
+        setHeaderPhotoCount(hdrPhotos);
+        setHeaderStoryCount(hdrStories);
       } else {
-        try {
-          const [mediaList, storyList] = await Promise.all([
-            taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
-            taskApi.getStories(targetMbrId).catch(() => [])
-          ]);
-
-          if (Array.isArray(mediaList)) {
-            mediaList.forEach((m) => {
-              if (isAudioMedia(m)) return;
-              const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
-              if (cat === 'achievement' || cat === 'achievements') {
-                if (m.mbrMediaSubordinateId) {
-                  photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
-                } else {
-                  hdrPhotos++;
-                }
-              }
-            });
-          }
-
-          if (Array.isArray(storyList)) {
-            storyList.forEach((s) => {
-              const isAchType = (
-                s.mbrStoryTypeCd === 'sbMbrStryAchievement' ||
-                s.mbrStoryTypeCd === 'achievements' ||
-                s.mbrStoryTypeCd === 'achievement'
-              );
-              if (isAchType) {
-                if (s.mbrStorySubordinateId) {
-                  storyCounts[s.mbrStorySubordinateId] = (storyCounts[s.mbrStorySubordinateId] || 0) + 1;
-                } else {
-                  hdrStories++;
-                }
-              }
-            });
-          }
-        } catch (e) {
-          console.warn('Could not load achievement subordinate media and stories counts:', e);
-        }
+        const [mediaList, storyList] = await Promise.all([
+          taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
+          taskApi.getStories(targetMbrId).catch(() => [])
+        ]);
+        computeAchCountsFromData(mediaList, storyList);
       }
-
-      setAchievementPhotosMap(photoCounts);
-      setAchievementStoriesMap(storyCounts);
-      setHeaderPhotoCount(hdrPhotos);
-      setHeaderStoryCount(hdrStories);
     } catch (err) {
       console.warn('Error computing achievement content counts:', err);
     }
-  };
+  }, [isSandbox, computeAchCountsFromData]);
 
-  // Re-fetch subordinate counts when story or gallery events occur
+  // Debounced refresh ONLY when a story is saved (not on every editor keystroke)
+  const syncTimerRef = useRef<number | null>(null);
   useEffect(() => {
     const handleSync = () => {
-      loadSubordinateCounts(mbrId, achievementList);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = window.setTimeout(() => {
+        loadSubordinateCounts(mbrId, achievementList);
+      }, 300);
     };
-    window.addEventListener('update-story-editor-content', handleSync);
     window.addEventListener('story-saved', handleSync);
-    window.addEventListener('storage', handleSync);
     return () => {
-      window.removeEventListener('update-story-editor-content', handleSync);
       window.removeEventListener('story-saved', handleSync);
-      window.removeEventListener('storage', handleSync);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
     };
-  }, [mbrId, achievementList, isSandbox]);
+  }, [mbrId, achievementList, loadSubordinateCounts]);
 
-  // --- INITIAL DATA FETCH ---
+  // --- INITIAL DATA FETCH (Single concurrent Promise.all + stale-while-revalidate cache) ---
   useEffect(() => {
-    loadData();
-  }, [isSandbox, memberId]);
-
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      if (!memberId) {
-        const userStr = sessionStorage.getItem('user');
-        if (userStr && !isSandbox) {
-          try {
-            const u = JSON.parse(userStr);
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              currentMbrId = mbrProfile.mbrId;
-              setMbrId(currentMbrId);
+    let isMounted = true;
+    const runLoad = async () => {
+      setError(null);
+      try {
+        let currentMbrId = resolveStoredAchMemberId(memberId);
+        if (!currentMbrId) {
+          const userStr = sessionStorage.getItem('user');
+          if (userStr && !isSandbox) {
+            try {
+              const u = JSON.parse(userStr);
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+              if (mbrProfile && mbrProfile.mbrId) {
+                currentMbrId = mbrProfile.mbrId;
+              }
+            } catch (e) {
+              console.warn("Could not retrieve member profile ID from DB, falling back to Eleanor Hartwell UUID:", e);
             }
-          } catch (e) {
-            console.warn("Could not retrieve member profile ID from DB, falling back to Eleanor Hartwell UUID:", e);
           }
         }
-      } else {
-        setMbrId(memberId);
-      }
-
-      let loadedAchievements: Achievement[] = [];
-      if (isSandbox) {
-        const saved = sessionStorage.getItem('sandbox_achievements');
-        if (saved) {
-          loadedAchievements = sortAchievementList(JSON.parse(saved));
-        } else {
-          loadedAchievements = sortAchievementList(SANDBOX_ACHIEVEMENTS);
-          sessionStorage.setItem('sandbox_achievements', JSON.stringify(loadedAchievements));
+        if (!currentMbrId) {
+          currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
         }
-      } else {
+        if (!isMounted) return;
+        setMbrId(currentMbrId);
+
+        const cacheKey = getAchievementsCacheKey(currentMbrId, isSandbox);
+        let hasCache = false;
         try {
-          const dbAchievements = await taskApi.getAchievements(currentMbrId);
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed?.list)) {
+              setAchievementList(parsed.list);
+              if (parsed.counts) {
+                setAchievementPhotosMap(parsed.counts.photoCounts || {});
+                setAchievementStoriesMap(parsed.counts.storyCounts || {});
+                setHeaderPhotoCount(parsed.counts.hdrPhotos || 0);
+                setHeaderStoryCount(parsed.counts.hdrStories || 0);
+              }
+              setLoading(false);
+              hasCache = true;
+            }
+          }
+        } catch {}
+        if (!hasCache) setLoading(true);
+
+        if (isSandbox) {
+          const saved = sessionStorage.getItem('sandbox_achievements');
+          const loadedAchievements = saved
+            ? sortAchievementList(JSON.parse(saved))
+            : sortAchievementList(SANDBOX_ACHIEVEMENTS);
+          if (!saved) sessionStorage.setItem('sandbox_achievements', JSON.stringify(loadedAchievements));
+          if (!isMounted) return;
+          setAchievementList(loadedAchievements);
+          await loadSubordinateCounts(currentMbrId, loadedAchievements);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ list: loadedAchievements }));
+          } catch {}
+        } else {
+          const [dbAchievements, mediaList, storyList] = await Promise.all([
+            taskApi.getAchievements(currentMbrId).catch((e) => {
+              console.warn("Could not load achievements from DB, using fallback sandbox:", e);
+              return SANDBOX_ACHIEVEMENTS;
+            }),
+            taskApi.getMemberMedia(currentMbrId, { excludeAudio: true }).catch(() => []),
+            taskApi.getStories(currentMbrId).catch(() => [])
+          ]);
+          if (!isMounted) return;
+
+          let loadedAchievements: Achievement[];
           if (dbAchievements && dbAchievements.length > 0) {
             loadedAchievements = sortAchievementList(dbAchievements);
           } else if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
@@ -301,20 +374,23 @@ export default function MbrStoryAchievementPanel({ isSandbox = false, memberId, 
           } else {
             loadedAchievements = [];
           }
-        } catch (e) {
-          console.warn("Could not load achievements from DB, using fallback sandbox:", e);
-          loadedAchievements = sortAchievementList(SANDBOX_ACHIEVEMENTS);
-        }
-      }
 
-      setAchievementList(loadedAchievements);
-      await loadSubordinateCounts(currentMbrId, loadedAchievements);
-    } catch (err: any) {
-      setError(`Failed to load achievements: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+          setAchievementList(loadedAchievements);
+          const counts = computeAchCountsFromData(mediaList, storyList);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ list: loadedAchievements, counts }));
+          } catch {}
+        }
+      } catch (err: any) {
+        if (isMounted) setError(`Failed to load achievements: ${err.message}`);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    runLoad();
+    return () => { isMounted = false; };
+  }, [isSandbox, memberId, computeAchCountsFromData, loadSubordinateCounts]);
 
   // --- ADD / EDIT MODAL HANDLERS ---
   const handleOpenAddModal = () => {

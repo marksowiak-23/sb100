@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   Sparkles,
@@ -78,6 +78,20 @@ const SANDBOX_ACTIVITIES: Activity[] = [
   }
 ];
 
+function resolveStoredActivityMemberId(propMemberId?: string): string | null {
+  if (propMemberId) return propMemberId;
+  try {
+    const storedMbr = sessionStorage.getItem('sb_current_mbr');
+    if (storedMbr) {
+      const parsed = JSON.parse(storedMbr);
+      if (parsed?.mbrId) return parsed.mbrId;
+    }
+  } catch {}
+  return null;
+}
+
+const getActivitiesCacheKey = (id: string, sandbox: boolean) => `sb_cache_activities_${sandbox ? 'sbx' : 'live'}_${id}`;
+
 export default function MbrStoryActivityPanel({
   isSandbox = false,
   memberId,
@@ -87,16 +101,32 @@ export default function MbrStoryActivityPanel({
 }: MbrStoryActivityPanelProps) {
   const resolvedTopicId = topicId || DEFAULT_TOPIC_LOOKUP['activities'].topicId;
   const resolvedChIntentId = chIntentId || DEFAULT_TOPIC_LOOKUP['activities'].chIntentId;
+  const initialMbrId = resolveStoredActivityMemberId(memberId) || '9edb4311-a4bc-428a-8317-833f0f08fea1';
 
-  // --- STATE VARIABLES ---
-  const [loading, setLoading] = useState(true);
+  // --- STATE VARIABLES (hydrated from sessionStorage cache for 0ms instant paint) ---
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem(getActivitiesCacheKey(initialMbrId, isSandbox));
+    } catch {
+      return true;
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
-  const [activityList, setActivityList] = useState<Activity[]>([]);
+  const [mbrId, setMbrId] = useState<string>(initialMbrId);
+  const [activityList, setActivityList] = useState<Activity[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(getActivitiesCacheKey(initialMbrId, isSandbox));
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed?.list)) return parsed.list;
+      }
+    } catch {}
+    return [];
+  });
 
   // Sorting state (default: name ascending)
   const [sortColumn, setSortColumn] = useState<'name' | 'frequency'>('name');
@@ -137,8 +167,9 @@ export default function MbrStoryActivityPanel({
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
 
-  // Close menus on outside click
+  // Close menus on outside click (only attached while a menu is open)
   useEffect(() => {
+    if (!showHeaderMenu && !activeActionMenuId) return;
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('.activity-header-menu-container')) {
@@ -150,7 +181,7 @@ export default function MbrStoryActivityPanel({
     };
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+  }, [showHeaderMenu, activeActionMenuId]);
 
   // Check if Add/Edit form has unsaved edits
   const hasModalUnsavedChanges = useMemo(() => {
@@ -170,15 +201,60 @@ export default function MbrStoryActivityPanel({
     });
   };
 
-  // Helper to load subordinate photo & story counts
-  const loadSubordinateCounts = async (targetMbrId: string, currentActivities: Activity[]) => {
-    try {
-      const photoCounts: Record<string, number> = {};
-      const storyCounts: Record<string, number> = {};
-      let hdrPhotos = 0;
-      let hdrStories = 0;
+  const computeActivityCountsFromData = useCallback((mediaList: any[], storyList: any[]) => {
+    const photoCounts: Record<string, number> = {};
+    const storyCounts: Record<string, number> = {};
+    let hdrPhotos = 0;
+    let hdrStories = 0;
 
+    if (Array.isArray(mediaList)) {
+      mediaList.forEach((m) => {
+        if (isAudioMedia(m)) return;
+        const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
+        if (cat === 'activity' || cat === 'activities' || cat === 'hobbies') {
+          if (m.mbrMediaSubordinateId) {
+            photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
+          } else {
+            hdrPhotos++;
+          }
+        }
+      });
+    }
+
+    if (Array.isArray(storyList)) {
+      storyList.forEach((s) => {
+        const isActType = (
+          s.mbrStoryTypeCd === 'sbMbrStryActivity' ||
+          s.mbrStoryTypeCd === 'activities' ||
+          s.mbrStoryTypeCd === 'activity' ||
+          s.mbrStoryTypeCd === 'hobbies'
+        );
+        if (isActType) {
+          if (s.mbrStorySubordinateId) {
+            storyCounts[s.mbrStorySubordinateId] = (storyCounts[s.mbrStorySubordinateId] || 0) + 1;
+          } else {
+            hdrStories++;
+          }
+        }
+      });
+    }
+
+    setActivityPhotosMap(photoCounts);
+    setActivityStoriesMap(storyCounts);
+    setHeaderPhotoCount(hdrPhotos);
+    setHeaderStoryCount(hdrStories);
+    return { photoCounts, storyCounts, hdrPhotos, hdrStories };
+  }, []);
+
+  // Helper to load subordinate photo & story counts
+  const loadSubordinateCounts = useCallback(async (targetMbrId: string, currentActivities: Activity[]) => {
+    try {
       if (isSandbox) {
+        const photoCounts: Record<string, number> = {};
+        const storyCounts: Record<string, number> = {};
+        let hdrPhotos = 0;
+        let hdrStories = 0;
+
         const savedMedia = sessionStorage.getItem('sandbox_media');
         if (savedMedia) {
           try {
@@ -217,113 +293,111 @@ export default function MbrStoryActivityPanel({
             } catch {}
           }
         });
+
+        setActivityPhotosMap(photoCounts);
+        setActivityStoriesMap(storyCounts);
+        setHeaderPhotoCount(hdrPhotos);
+        setHeaderStoryCount(hdrStories);
       } else {
-        try {
-          const [mediaList, storyList] = await Promise.all([
-            taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
-            taskApi.getStories(targetMbrId).catch(() => [])
-          ]);
-
-          if (Array.isArray(mediaList)) {
-            mediaList.forEach((m) => {
-              if (isAudioMedia(m)) return;
-              const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
-              if (cat === 'activity' || cat === 'activities' || cat === 'hobbies') {
-                if (m.mbrMediaSubordinateId) {
-                  photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
-                } else {
-                  hdrPhotos++;
-                }
-              }
-            });
-          }
-
-          if (Array.isArray(storyList)) {
-            storyList.forEach((s) => {
-              const isActType = (
-                s.mbrStoryTypeCd === 'sbMbrStryActivity' ||
-                s.mbrStoryTypeCd === 'activities' ||
-                s.mbrStoryTypeCd === 'activity' ||
-                s.mbrStoryTypeCd === 'hobbies'
-              );
-              if (isActType) {
-                if (s.mbrStorySubordinateId) {
-                  storyCounts[s.mbrStorySubordinateId] = (storyCounts[s.mbrStorySubordinateId] || 0) + 1;
-                } else {
-                  hdrStories++;
-                }
-              }
-            });
-          }
-        } catch (e) {
-          console.warn('Could not load activity subordinate media and stories counts:', e);
-        }
+        const [mediaList, storyList] = await Promise.all([
+          taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
+          taskApi.getStories(targetMbrId).catch(() => [])
+        ]);
+        computeActivityCountsFromData(mediaList, storyList);
       }
-
-      setActivityPhotosMap(photoCounts);
-      setActivityStoriesMap(storyCounts);
-      setHeaderPhotoCount(hdrPhotos);
-      setHeaderStoryCount(hdrStories);
     } catch (err) {
       console.warn('Error computing activity content counts:', err);
     }
-  };
+  }, [isSandbox, computeActivityCountsFromData]);
 
-  // Re-fetch subordinate counts when story or gallery events occur
+  // Debounced refresh ONLY when a story is saved (not on every editor keystroke)
+  const syncTimerRef = useRef<number | null>(null);
   useEffect(() => {
     const handleSync = () => {
-      loadSubordinateCounts(mbrId, activityList);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = window.setTimeout(() => {
+        loadSubordinateCounts(mbrId, activityList);
+      }, 300);
     };
-    window.addEventListener('update-story-editor-content', handleSync);
     window.addEventListener('story-saved', handleSync);
-    window.addEventListener('storage', handleSync);
     return () => {
-      window.removeEventListener('update-story-editor-content', handleSync);
       window.removeEventListener('story-saved', handleSync);
-      window.removeEventListener('storage', handleSync);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
     };
-  }, [mbrId, activityList, isSandbox]);
+  }, [mbrId, activityList, loadSubordinateCounts]);
 
-  // --- INITIAL DATA FETCH ---
+  // --- INITIAL DATA FETCH (Single concurrent Promise.all + stale-while-revalidate cache) ---
   useEffect(() => {
-    loadData();
-  }, [isSandbox, memberId]);
-
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      if (!memberId) {
-        const userStr = sessionStorage.getItem('user');
-        if (userStr && !isSandbox) {
-          try {
-            const u = JSON.parse(userStr);
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              currentMbrId = mbrProfile.mbrId;
-              setMbrId(currentMbrId);
+    let isMounted = true;
+    const runLoad = async () => {
+      setError(null);
+      try {
+        let currentMbrId = resolveStoredActivityMemberId(memberId);
+        if (!currentMbrId) {
+          const userStr = sessionStorage.getItem('user');
+          if (userStr && !isSandbox) {
+            try {
+              const u = JSON.parse(userStr);
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+              if (mbrProfile && mbrProfile.mbrId) {
+                currentMbrId = mbrProfile.mbrId;
+              }
+            } catch (e) {
+              console.warn("Could not retrieve member profile ID from DB, falling back to Eleanor Hartwell UUID:", e);
             }
-          } catch (e) {
-            console.warn("Could not retrieve member profile ID from DB, falling back to Eleanor Hartwell UUID:", e);
           }
         }
-      } else {
-        setMbrId(memberId);
-      }
-
-      let loadedActivities: Activity[] = [];
-      if (isSandbox) {
-        const saved = sessionStorage.getItem('sandbox_activities');
-        if (saved) {
-          loadedActivities = sortActivityList(JSON.parse(saved));
-        } else {
-          loadedActivities = sortActivityList(SANDBOX_ACTIVITIES);
-          sessionStorage.setItem('sandbox_activities', JSON.stringify(loadedActivities));
+        if (!currentMbrId) {
+          currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
         }
-      } else {
+        if (!isMounted) return;
+        setMbrId(currentMbrId);
+
+        const cacheKey = getActivitiesCacheKey(currentMbrId, isSandbox);
+        let hasCache = false;
         try {
-          const dbActivities = await taskApi.getActivities(currentMbrId);
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed?.list)) {
+              setActivityList(parsed.list);
+              if (parsed.counts) {
+                setActivityPhotosMap(parsed.counts.photoCounts || {});
+                setActivityStoriesMap(parsed.counts.storyCounts || {});
+                setHeaderPhotoCount(parsed.counts.hdrPhotos || 0);
+                setHeaderStoryCount(parsed.counts.hdrStories || 0);
+              }
+              setLoading(false);
+              hasCache = true;
+            }
+          }
+        } catch {}
+        if (!hasCache) setLoading(true);
+
+        if (isSandbox) {
+          const saved = sessionStorage.getItem('sandbox_activities');
+          const loadedActivities = saved
+            ? sortActivityList(JSON.parse(saved))
+            : sortActivityList(SANDBOX_ACTIVITIES);
+          if (!saved) sessionStorage.setItem('sandbox_activities', JSON.stringify(loadedActivities));
+          if (!isMounted) return;
+          setActivityList(loadedActivities);
+          await loadSubordinateCounts(currentMbrId, loadedActivities);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ list: loadedActivities }));
+          } catch {}
+        } else {
+          const [dbActivities, mediaList, storyList] = await Promise.all([
+            taskApi.getActivities(currentMbrId).catch((e) => {
+              console.warn("Could not load activities from DB, using fallback sandbox:", e);
+              return SANDBOX_ACTIVITIES;
+            }),
+            taskApi.getMemberMedia(currentMbrId, { excludeAudio: true }).catch(() => []),
+            taskApi.getStories(currentMbrId).catch(() => [])
+          ]);
+          if (!isMounted) return;
+
+          let loadedActivities: Activity[];
           if (dbActivities && dbActivities.length > 0) {
             loadedActivities = sortActivityList(dbActivities);
           } else if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
@@ -331,20 +405,23 @@ export default function MbrStoryActivityPanel({
           } else {
             loadedActivities = [];
           }
-        } catch (e) {
-          console.warn("Could not load activities from DB, using fallback sandbox:", e);
-          loadedActivities = sortActivityList(SANDBOX_ACTIVITIES);
-        }
-      }
 
-      setActivityList(loadedActivities);
-      await loadSubordinateCounts(currentMbrId, loadedActivities);
-    } catch (err: any) {
-      setError(`Failed to load activities: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+          setActivityList(loadedActivities);
+          const counts = computeActivityCountsFromData(mediaList, storyList);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ list: loadedActivities, counts }));
+          } catch {}
+        }
+      } catch (err: any) {
+        if (isMounted) setError(`Failed to load activities: ${err.message}`);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    runLoad();
+    return () => { isMounted = false; };
+  }, [isSandbox, memberId, computeActivityCountsFromData, loadSubordinateCounts]);
 
   // --- ADD / EDIT MODAL HANDLERS ---
   const handleOpenAddModal = () => {

@@ -24,6 +24,7 @@ export default function LeftColumn({ onClickAuthorPage, onClickReadStory, onOpen
         {onOpenEarlyAdopter && (
           <button
             type="button"
+            data-coach-mark="home-early-adopter"
             onClick={onOpenEarlyAdopter}
             title="View your Founding Early Adopter benefits"
             className="w-full group flex items-center justify-between gap-2.5 px-3.5 py-2.5 rounded-2xl bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#1E1B4B] hover:from-slate-900 hover:to-indigo-950 border border-amber-400/45 hover:border-amber-300/80 shadow-md hover:shadow-lg transition-all cursor-pointer text-left"

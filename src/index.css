@@ -8,6 +8,42 @@
   --animate-spin-slow: spin 8s linear infinite;
 }
 
+/* --- ACCESSIBILITY & READING COMFORT --- */
+
+/* Reading Text Size scaling (Standard 100%, Large 112.5%, Extra Large 125%) */
+html[data-font-scale="standard"] {
+  font-size: 100%;
+}
+html[data-font-scale="large"] {
+  font-size: 112.5%;
+}
+html[data-font-scale="xlarge"] {
+  font-size: 125%;
+}
+
+/* Consistent keyboard focus ring across buttons, links, and inputs */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 2px !important;
+}
+
+/* Respect OS reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Custom subtle scrollbar styling */
 ::-webkit-scrollbar {
   width: 6px;

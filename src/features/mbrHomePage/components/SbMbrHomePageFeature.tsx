@@ -5,6 +5,7 @@ import CenterColumn from './CenterColumn';
 import RightColumn from './RightColumn';
 import MbrEarlyAdopter from '@/src/components/mbrEarlyAdopter';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { useCoachMarks, CoachTourTriggerButton } from '@/src/features/coachMarks';
 
 interface SbMbrHomePageFeatureProps {
   onClickReadStory?: (memberId: string) => void;
@@ -16,6 +17,18 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
   const [showEarlyAdopterModal, setShowEarlyAdopterModal] = useState(false);
   const [earlyAdopterMode, setEarlyAdopterMode] = useState<'welcome' | 'badge'>('badge');
   const [memberFirstName, setMemberFirstName] = useState<string>('');
+  const { requestAutoTour } = useCoachMarks();
+
+  useEffect(() => {
+    let pendingWelcome = false;
+    try {
+      pendingWelcome = sessionStorage.getItem('sb_show_early_adopter_welcome') === 'true';
+    } catch {}
+    return requestAutoTour('home_tour', {
+      delayMs: 900,
+      blocked: showEarlyAdopterModal || pendingWelcome
+    });
+  }, [requestAutoTour, showEarlyAdopterModal]);
 
   useEffect(() => {
     try {
@@ -51,10 +64,11 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
 
   return (
     <div className="w-full relative">
-      {/* Mobile Early Adopter Badge (< lg) */}
-      <div className="lg:hidden max-w-7xl w-full mx-auto mb-4">
+      {/* Mobile Early Adopter Badge & Page Tour (< lg) */}
+      <div className="lg:hidden max-w-7xl w-full mx-auto mb-4 flex items-center justify-between gap-2 flex-wrap">
         <button
           type="button"
+          data-coach-mark="home-early-adopter"
           onClick={handleOpenFromBadge}
           className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-gradient-to-r from-[#0F172A] via-[#1E293B] to-[#1E1B4B] border border-amber-400/50 text-amber-300 text-xs font-serif font-bold shadow-md cursor-pointer"
         >
@@ -63,6 +77,7 @@ export default function SbMbrHomePageFeature({ onClickReadStory, onClickAuthorPa
           <span className="text-[10px] font-sans font-normal text-slate-300">· Free Lifetime Member</span>
           <Sparkles className="w-3 h-3 text-amber-200" />
         </button>
+        <CoachTourTriggerButton tourId="home_tour" label="Home Tour" />
       </div>
 
       {/* 3-Column Responsive Grid Structure */}

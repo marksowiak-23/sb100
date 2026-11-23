@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { AccessTabMode } from '../types';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { CoachTourTriggerButton } from '@/src/features/coachMarks';
 
 interface PrivacyHeaderProps {
   loading: boolean;
@@ -59,6 +60,7 @@ export default function PrivacyHeader({
 
           {/* Action Buttons (visible top-right on mobile/tablet, hidden on lg where they sit right of tabs) */}
           <div className="flex lg:hidden items-center gap-1.5 shrink-0">
+            <CoachTourTriggerButton tourId="privacy_tour" label="Tour" />
             <button
               type="button"
               onClick={onRefresh}
@@ -86,7 +88,7 @@ export default function PrivacyHeader({
         {/* Navigation Tabs + Desktop Utility Buttons */}
         <div className="flex items-center justify-between lg:justify-end gap-2 w-full lg:w-auto min-w-0">
           {/* 3-Tab Switcher */}
-          <div className="grid grid-cols-3 sm:inline-flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-auto min-w-0">
+          <div data-coach-mark="privacy-tabs" className="grid grid-cols-3 sm:inline-flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl w-full sm:w-auto min-w-0">
             <button
               type="button"
               onClick={() => onTabChange('by-group')}
@@ -129,6 +131,7 @@ export default function PrivacyHeader({
 
           {/* Desktop Action Buttons */}
           <div className="hidden lg:flex items-center gap-1.5 shrink-0">
+            <CoachTourTriggerButton tourId="privacy_tour" label="Privacy Tour" />
             <button
               type="button"
               onClick={onRefresh}

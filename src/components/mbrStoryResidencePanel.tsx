@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   MapPin, Trash2, Edit3, Save, X, Plus, Loader2, 
@@ -93,18 +93,48 @@ const sortResidenceList = (list: Residence[]): Residence[] => {
   });
 };
 
+function resolveStoredResidenceMemberId(propMemberId?: string): string | null {
+  if (propMemberId) return propMemberId;
+  try {
+    const storedMbr = sessionStorage.getItem('sb_current_mbr');
+    if (storedMbr) {
+      const parsed = JSON.parse(storedMbr);
+      if (parsed?.mbrId) return parsed.mbrId;
+    }
+  } catch {}
+  return null;
+}
+
+const getResidencesCacheKey = (id: string, sandbox: boolean) => `sb_cache_residences_${sandbox ? 'sbx' : 'live'}_${id}`;
+
 export default function MbrStoryResidencePanel({ isSandbox = false, memberId, readOnly = false, topicId, chIntentId }: MbrStoryResidencePanelProps) {
   const resolvedTopicId = topicId || DEFAULT_TOPIC_LOOKUP['residencies'].topicId;
   const resolvedChIntentId = chIntentId || DEFAULT_TOPIC_LOOKUP['residencies'].chIntentId;
+  const initialMbrId = resolveStoredResidenceMemberId(memberId) || '9edb4311-a4bc-428a-8317-833f0f08fea1';
 
-  // --- STATE VARIABLES ---
-  const [loading, setLoading] = useState(true);
+  // --- STATE VARIABLES (hydrated from sessionStorage cache for 0ms instant paint) ---
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem(getResidencesCacheKey(initialMbrId, isSandbox));
+    } catch {
+      return true;
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
-  const [residenceList, setResidenceList] = useState<Residence[]>([]);
+  const [mbrId, setMbrId] = useState<string>(initialMbrId);
+  const [residenceList, setResidenceList] = useState<Residence[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(getResidencesCacheKey(initialMbrId, isSandbox));
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed?.list)) return parsed.list;
+      }
+    } catch {}
+    return [];
+  });
 
   // --- MODAL STATE ---
   const [showModal, setShowModal] = useState(false);
@@ -166,15 +196,59 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
     };
   }, [activeActionMenuId, showHeaderMenu]);
 
-  // Load Subordinate Story and Photo Counts for each residence and header
-  const loadSubordinateCounts = async (targetMbrId: string, currentResidences: Residence[]) => {
-    try {
-      const photoCounts: Record<string, number> = {};
-      const storyCounts: Record<string, number> = {};
-      let hdrPhotos = 0;
-      let hdrStories = 0;
+  const computeResidenceCountsFromData = useCallback((mediaList: any[], storyList: any[]) => {
+    const photoCounts: Record<string, number> = {};
+    const storyCounts: Record<string, number> = {};
+    let hdrPhotos = 0;
+    let hdrStories = 0;
 
+    if (Array.isArray(mediaList)) {
+      mediaList.forEach((m) => {
+        if (isAudioMedia(m)) return;
+        const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
+        if (cat === 'residence' || cat === 'residencies') {
+          if (m.mbrMediaSubordinateId) {
+            photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
+          } else {
+            hdrPhotos++;
+          }
+        }
+      });
+    }
+
+    if (Array.isArray(storyList)) {
+      storyList.forEach((s) => {
+        const isResType = (
+          s.mbrStoryTypeCd === 'sbMbrStryResidence' ||
+          s.mbrStoryTypeCd === 'residencies' ||
+          s.mbrStoryTypeCd === 'residence'
+        );
+        if (isResType) {
+          if (s.mbrStorySubordinateId) {
+            storyCounts[s.mbrStorySubordinateId] = (storyCounts[s.mbrStorySubordinateId] || 0) + 1;
+          } else {
+            hdrStories++;
+          }
+        }
+      });
+    }
+
+    setResidencePhotosMap(photoCounts);
+    setResidenceStoriesMap(storyCounts);
+    setHeaderPhotoCount(hdrPhotos);
+    setHeaderStoryCount(hdrStories);
+    return { photoCounts, storyCounts, hdrPhotos, hdrStories };
+  }, []);
+
+  // Load Subordinate Story and Photo Counts for each residence and header
+  const loadSubordinateCounts = useCallback(async (targetMbrId: string, currentResidences: Residence[]) => {
+    try {
       if (isSandbox) {
+        const photoCounts: Record<string, number> = {};
+        const storyCounts: Record<string, number> = {};
+        let hdrPhotos = 0;
+        let hdrStories = 0;
+
         const savedMedia = sessionStorage.getItem('sandbox_media');
         if (savedMedia) {
           try {
@@ -213,112 +287,115 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
             } catch {}
           }
         });
+
+        setResidencePhotosMap(photoCounts);
+        setResidenceStoriesMap(storyCounts);
+        setHeaderPhotoCount(hdrPhotos);
+        setHeaderStoryCount(hdrStories);
       } else {
-        try {
-          const [mediaList, storyList] = await Promise.all([
-            taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
-            taskApi.getStories(targetMbrId).catch(() => [])
-          ]);
-
-          if (Array.isArray(mediaList)) {
-            mediaList.forEach((m) => {
-              if (isAudioMedia(m)) return;
-              const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
-              if (cat === 'residence' || cat === 'residencies') {
-                if (m.mbrMediaSubordinateId) {
-                  photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
-                } else {
-                  hdrPhotos++;
-                }
-              }
-            });
-          }
-
-          if (Array.isArray(storyList)) {
-            storyList.forEach((s) => {
-              const isResType = (
-                s.mbrStoryTypeCd === 'sbMbrStryResidence' ||
-                s.mbrStoryTypeCd === 'residencies' ||
-                s.mbrStoryTypeCd === 'residence'
-              );
-              if (isResType) {
-                if (s.mbrStorySubordinateId) {
-                  storyCounts[s.mbrStorySubordinateId] = (storyCounts[s.mbrStorySubordinateId] || 0) + 1;
-                } else {
-                  hdrStories++;
-                }
-              }
-            });
-          }
-        } catch (e) {
-          console.warn('Could not load residence subordinate media and stories counts:', e);
-        }
+        const [mediaList, storyList] = await Promise.all([
+          taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
+          taskApi.getStories(targetMbrId).catch(() => [])
+        ]);
+        computeResidenceCountsFromData(mediaList, storyList);
       }
-
-      setResidencePhotosMap(photoCounts);
-      setResidenceStoriesMap(storyCounts);
-      setHeaderPhotoCount(hdrPhotos);
-      setHeaderStoryCount(hdrStories);
     } catch (err) {
       console.warn('Error computing residence content counts:', err);
     }
-  };
+  }, [isSandbox, computeResidenceCountsFromData]);
 
-  // Re-fetch subordinate counts when story or gallery events occur
+  // Debounced refresh ONLY when a story is saved (not on every editor keystroke)
+  const syncTimerRef = useRef<number | null>(null);
   useEffect(() => {
     const handleSync = () => {
-      loadSubordinateCounts(mbrId, residenceList);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = window.setTimeout(() => {
+        loadSubordinateCounts(mbrId, residenceList);
+      }, 300);
     };
-    window.addEventListener('update-story-editor-content', handleSync);
     window.addEventListener('story-saved', handleSync);
-    window.addEventListener('storage', handleSync);
     return () => {
-      window.removeEventListener('update-story-editor-content', handleSync);
       window.removeEventListener('story-saved', handleSync);
-      window.removeEventListener('storage', handleSync);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
     };
-  }, [mbrId, residenceList, isSandbox]);
+  }, [mbrId, residenceList, loadSubordinateCounts]);
 
-  // --- INITIAL DATA FETCH ---
+  // --- INITIAL DATA FETCH (Single concurrent Promise.all + stale-while-revalidate cache) ---
   useEffect(() => {
-    loadData();
-  }, [isSandbox, memberId]);
-
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      if (!memberId) {
-        const userStr = sessionStorage.getItem('user');
-        if (userStr && !isSandbox) {
-          try {
-            const u = JSON.parse(userStr);
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              currentMbrId = mbrProfile.mbrId;
-              setMbrId(currentMbrId);
+    let isMounted = true;
+    const runLoad = async () => {
+      setError(null);
+      try {
+        let currentMbrId = resolveStoredResidenceMemberId(memberId);
+        if (!currentMbrId) {
+          const userStr = sessionStorage.getItem('user');
+          if (userStr && !isSandbox) {
+            try {
+              const u = JSON.parse(userStr);
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+              if (mbrProfile && mbrProfile.mbrId) {
+                currentMbrId = mbrProfile.mbrId;
+              }
+            } catch (e) {
+              console.warn("Could not retrieve member profile ID from DB, falling back to default Eleanor Hartwell UUID:", e);
             }
-          } catch (e) {
-            console.warn("Could not retrieve member profile ID from DB, falling back to default Eleanor Hartwell UUID:", e);
           }
         }
-      } else {
-        setMbrId(memberId);
-      }
-
-      let loadedResidences: Residence[] = [];
-      if (isSandbox) {
-        const saved = sessionStorage.getItem('sandbox_residences');
-        if (saved) {
-          loadedResidences = sortResidenceList(JSON.parse(saved));
-        } else {
-          loadedResidences = sortResidenceList(SANDBOX_RESIDENCES);
-          sessionStorage.setItem('sandbox_residences', JSON.stringify(loadedResidences));
+        if (!currentMbrId) {
+          currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
         }
-      } else {
+        if (!isMounted) return;
+        setMbrId(currentMbrId);
+
+        const cacheKey = getResidencesCacheKey(currentMbrId, isSandbox);
+        let hasCache = false;
         try {
-          const dbResidences = await taskApi.getResidences(currentMbrId);
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed?.list)) {
+              setResidenceList(parsed.list);
+              if (parsed.counts) {
+                setResidencePhotosMap(parsed.counts.photoCounts || {});
+                setResidenceStoriesMap(parsed.counts.storyCounts || {});
+                setHeaderPhotoCount(parsed.counts.hdrPhotos || 0);
+                setHeaderStoryCount(parsed.counts.hdrStories || 0);
+              }
+              setLoading(false);
+              hasCache = true;
+            }
+          }
+        } catch {}
+        if (!hasCache) setLoading(true);
+
+        if (isSandbox) {
+          const saved = sessionStorage.getItem('sandbox_residences');
+          const loadedResidences = saved
+            ? sortResidenceList(JSON.parse(saved))
+            : sortResidenceList(SANDBOX_RESIDENCES);
+          if (!saved) sessionStorage.setItem('sandbox_residences', JSON.stringify(loadedResidences));
+          if (!isMounted) return;
+          setResidenceList(loadedResidences);
+          await loadSubordinateCounts(currentMbrId, loadedResidences);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ list: loadedResidences }));
+          } catch {}
+        } else {
+          // Single parallel batch: residences + media + stories simultaneously (zero waterfall)
+          const [dbResidences, mediaList, storyList] = await Promise.all([
+            taskApi.getResidences(currentMbrId).catch((err) => {
+              if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
+                return SANDBOX_RESIDENCES;
+              }
+              throw err;
+            }),
+            taskApi.getMemberMedia(currentMbrId, { excludeAudio: true }).catch(() => []),
+            taskApi.getStories(currentMbrId).catch(() => [])
+          ]);
+
+          if (!isMounted) return;
+
+          let loadedResidences: Residence[];
           if (dbResidences && dbResidences.length > 0) {
             loadedResidences = sortResidenceList(dbResidences);
           } else if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
@@ -326,23 +403,23 @@ export default function MbrStoryResidencePanel({ isSandbox = false, memberId, re
           } else {
             loadedResidences = [];
           }
-        } catch (err) {
-          if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
-            loadedResidences = sortResidenceList(SANDBOX_RESIDENCES);
-          } else {
-            throw err;
-          }
-        }
-      }
 
-      setResidenceList(loadedResidences);
-      await loadSubordinateCounts(currentMbrId, loadedResidences);
-    } catch (err: any) {
-      setError(`Failed to load residences: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+          setResidenceList(loadedResidences);
+          const counts = computeResidenceCountsFromData(mediaList, storyList);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ list: loadedResidences, counts }));
+          } catch {}
+        }
+      } catch (err: any) {
+        if (isMounted) setError(`Failed to load residences: ${err.message}`);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    runLoad();
+    return () => { isMounted = false; };
+  }, [isSandbox, memberId, computeResidenceCountsFromData, loadSubordinateCounts]);
 
   // --- MODAL OPEN HANDLERS ---
   const handleOpenAddModal = () => {

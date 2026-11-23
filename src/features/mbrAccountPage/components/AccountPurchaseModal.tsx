@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useModalA11y } from '@/src/hooks/useModalA11y';
 import { 
   Coins, 
   Mic,
@@ -70,6 +71,7 @@ export default function AccountPurchaseModal({
   const [verifyingPayment, setVerifyingPayment] = useState(false);
   const [sandboxProcessing, setSandboxProcessing] = useState(false);
   const [redirectingHosted, setRedirectingHosted] = useState(false);
+  const { dialogProps } = useModalA11y({ isOpen, onClose });
 
   // Initialize or reset session when modal opens or package changes
   useEffect(() => {
@@ -217,7 +219,7 @@ export default function AccountPurchaseModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+      <div {...dialogProps} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
         <motion.div
           initial={{ opacity: 0, scale: 0.96, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

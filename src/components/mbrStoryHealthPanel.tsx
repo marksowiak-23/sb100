@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   HeartPulse, Trash2, Edit3, Save, X, Plus, Loader2, 
@@ -17,6 +17,7 @@ import {
   Cd,
   isAudioMedia
 } from '@/src/services/api';
+import { useCodes } from '@/src/context/CodeContext';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -92,6 +93,20 @@ const DEFAULT_HEALTH_STATUS_CODES: Partial<Cd>[] = [
   { cdValue: 'MONITORED', cdLabel: 'Routine Monitoring', cdDesc: 'Under routine surveillance or periodic checkups', cdSortOrder: 5 }
 ];
 
+function resolveStoredHealthMemberId(propMemberId?: string): string | null {
+  if (propMemberId) return propMemberId;
+  try {
+    const storedMbr = sessionStorage.getItem('sb_current_mbr');
+    if (storedMbr) {
+      const parsed = JSON.parse(storedMbr);
+      if (parsed?.mbrId) return parsed.mbrId;
+    }
+  } catch {}
+  return null;
+}
+
+const getHealthCacheKey = (id: string, sandbox: boolean) => `sb_cache_health_${sandbox ? 'sbx' : 'live'}_${id}`;
+
 export default function MbrStoryHealthPanel({
   isSandbox = false,
   memberId,
@@ -99,16 +114,60 @@ export default function MbrStoryHealthPanel({
   topicId = DEFAULT_TOPIC_LOOKUP.health?.topicId || '273184ab-e09d-49ef-b416-3fc3ba0a8161',
   chIntentId = DEFAULT_TOPIC_LOOKUP.health?.chIntentId || 'b33d14cf-0891-4e1c-802b-05b3e2299c3b'
 }: MbrStoryHealthPanelProps) {
-  // --- STATE VARIABLES ---
-  const [loading, setLoading] = useState(true);
+  const { getCodesByTag } = useCodes();
+  const initialMbrId = resolveStoredHealthMemberId(memberId) || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+
+  // --- STATE VARIABLES (hydrated from sessionStorage cache for 0ms instant paint) ---
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem(getHealthCacheKey(initialMbrId, isSandbox));
+    } catch {
+      return true;
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
-  const [healthList, setHealthList] = useState<MbrTopicHealth[]>([]);
-  const [typeCodes, setTypeCodes] = useState<Partial<Cd>[]>(DEFAULT_HEALTH_TYPE_CODES);
-  const [statusCodes, setStatusCodes] = useState<Partial<Cd>[]>(DEFAULT_HEALTH_STATUS_CODES);
+  const [mbrId, setMbrId] = useState<string>(initialMbrId);
+  const [healthList, setHealthList] = useState<MbrTopicHealth[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(getHealthCacheKey(initialMbrId, isSandbox));
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed?.list)) return parsed.list;
+      }
+    } catch {}
+    return [];
+  });
+
+  // Derive lookup codes from cached CodeContext (0 extra network calls)
+  const typeCodes = useMemo<Partial<Cd>[]>(() => {
+    const dbCodes = getCodesByTag('healthTypeCd');
+    return dbCodes.length > 0 ? dbCodes : DEFAULT_HEALTH_TYPE_CODES;
+  }, [getCodesByTag]);
+
+  const statusCodes = useMemo<Partial<Cd>[]>(() => {
+    const dbCodes = getCodesByTag('healthStatusCd');
+    return dbCodes.length > 0 ? dbCodes : DEFAULT_HEALTH_STATUS_CODES;
+  }, [getCodesByTag]);
+
+  // O(1) lookup maps for rendering rows
+  const typeCodeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    typeCodes.forEach((c) => {
+      if (c?.cdValue) map.set(c.cdValue, c.cdLabel || c.cdValue);
+    });
+    return map;
+  }, [typeCodes]);
+
+  const statusCodeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    statusCodes.forEach((c) => {
+      if (c?.cdValue) map.set(c.cdValue, c.cdLabel || c.cdValue);
+    });
+    return map;
+  }, [statusCodes]);
 
   // --- MODAL FORM STATE ---
   const [showModal, setShowModal] = useState(false);
@@ -168,8 +227,9 @@ export default function MbrStoryHealthPanel({
     }
   };
 
-  // Close menus on outer click
+  // Close menus on outer click (only attached while a menu is open)
   useEffect(() => {
+    if (!activeActionMenuId && !showHeaderMenu) return;
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('.health-action-menu-container') && !target.closest('.health-header-menu-container')) {
@@ -185,8 +245,30 @@ export default function MbrStoryHealthPanel({
     };
   }, [activeActionMenuId, showHeaderMenu]);
 
+  const computeHealthPhotoCounts = useCallback((mediaList: any[]) => {
+    const photoMap: Record<string, number> = {};
+    let headerPhotos = 0;
+
+    if (Array.isArray(mediaList)) {
+      mediaList.forEach((m) => {
+        if (isAudioMedia(m)) return;
+        const category = (m.mbrMediaCategoryCd || '').toLowerCase();
+        if (category.includes('health') || category.includes('wellness') || m.mbrMediaTopicId === resolvedTopicId) {
+          headerPhotos++;
+          if (m.mbrMediaSubordinateId) {
+            photoMap[m.mbrMediaSubordinateId] = (photoMap[m.mbrMediaSubordinateId] || 0) + 1;
+          }
+        }
+      });
+    }
+
+    setHeaderPhotoCount(headerPhotos);
+    setHealthPhotosMap(photoMap);
+    return { photoMap, headerPhotos };
+  }, [resolvedTopicId]);
+
   // Load photo count badges for health entries
-  const loadSubordinateCounts = async (targetMbrId: string, currentRecords: MbrTopicHealth[]) => {
+  const loadSubordinateCounts = useCallback(async (targetMbrId: string, _currentRecords?: MbrTopicHealth[]) => {
     try {
       if (isSandbox) {
         setHeaderPhotoCount(0);
@@ -194,61 +276,35 @@ export default function MbrStoryHealthPanel({
         return;
       }
       const mediaList: any[] = await taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []);
-      if (Array.isArray(mediaList)) {
-        const photoMap: Record<string, number> = {};
-        let headerPhotos = 0;
-
-        mediaList.forEach((m) => {
-          if (isAudioMedia(m)) return;
-          const category = (m.mbrMediaCategoryCd || '').toLowerCase();
-          if (category.includes('health') || category.includes('wellness') || m.mbrMediaTopicId === resolvedTopicId) {
-            headerPhotos++;
-            if (m.mbrMediaSubordinateId) {
-              photoMap[m.mbrMediaSubordinateId] = (photoMap[m.mbrMediaSubordinateId] || 0) + 1;
-            }
-          }
-        });
-
-        setHeaderPhotoCount(headerPhotos);
-        setHealthPhotosMap(photoMap);
-      }
+      computeHealthPhotoCounts(mediaList);
     } catch {
       // Graceful fallback
     }
-  };
+  }, [isSandbox, computeHealthPhotoCounts]);
 
-  // Re-fetch subordinate counts when storage or sync occurs
+  // Debounced refresh ONLY when a story is saved (not on every editor keystroke)
+  const syncTimerRef = useRef<number | null>(null);
   useEffect(() => {
     const handleSync = () => {
-      loadSubordinateCounts(mbrId, healthList);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = window.setTimeout(() => {
+        loadSubordinateCounts(mbrId, healthList);
+      }, 300);
     };
-    window.addEventListener('update-story-editor-content', handleSync);
     window.addEventListener('story-saved', handleSync);
-    window.addEventListener('storage', handleSync);
     return () => {
-      window.removeEventListener('update-story-editor-content', handleSync);
       window.removeEventListener('story-saved', handleSync);
-      window.removeEventListener('storage', handleSync);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
     };
-  }, [mbrId, healthList, isSandbox]);
+  }, [mbrId, healthList, loadSubordinateCounts]);
 
-  // Primary Data Fetch
+  // Primary Data Fetch (Single concurrent Promise.all + stale-while-revalidate cache)
   useEffect(() => {
     let isMounted = true;
     const init = async () => {
-      setLoading(true);
       setError(null);
       try {
-        let currentMbrId = memberId;
-        if (!currentMbrId) {
-          const storedMbr = sessionStorage.getItem('sb_current_mbr');
-          if (storedMbr) {
-            try {
-              const parsed = JSON.parse(storedMbr);
-              if (parsed.mbrId) currentMbrId = parsed.mbrId;
-            } catch {}
-          }
-        }
+        let currentMbrId = resolveStoredHealthMemberId(memberId);
         if (!currentMbrId) {
           const userStr = sessionStorage.getItem('user');
           if (userStr && !isSandbox) {
@@ -266,23 +322,27 @@ export default function MbrStoryHealthPanel({
         if (!currentMbrId) {
           currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
         }
-        if (isMounted) setMbrId(currentMbrId);
+        if (!isMounted) return;
+        setMbrId(currentMbrId);
 
-        // Fetch lookup codes for health types and status
+        const cacheKey = getHealthCacheKey(currentMbrId, isSandbox);
+        let hasCache = false;
         try {
-          const [loadedTypes, loadedStatus] = await Promise.all([
-            taskApi.getCds('healthTypeCd').catch(() => []),
-            taskApi.getCds('healthStatusCd').catch(() => [])
-          ]);
-          if (Array.isArray(loadedTypes) && loadedTypes.length > 0 && isMounted) {
-            setTypeCodes(loadedTypes);
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed?.list)) {
+              setHealthList(parsed.list);
+              if (parsed.counts) {
+                setHealthPhotosMap(parsed.counts.photoMap || {});
+                setHeaderPhotoCount(parsed.counts.headerPhotos || 0);
+              }
+              setLoading(false);
+              hasCache = true;
+            }
           }
-          if (Array.isArray(loadedStatus) && loadedStatus.length > 0 && isMounted) {
-            setStatusCodes(loadedStatus);
-          }
-        } catch {
-          // fallback to defaults
-        }
+        } catch {}
+        if (!hasCache) setLoading(true);
 
         if (isSandbox) {
           const local = sessionStorage.getItem('sandbox_health');
@@ -290,12 +350,22 @@ export default function MbrStoryHealthPanel({
           if (isMounted) {
             setHealthList(data);
             loadSubordinateCounts(currentMbrId, data);
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify({ list: data }));
+            } catch {}
           }
         } else {
-          const records = await taskApi.getMemberHealthRecords(currentMbrId);
+          const [records, mediaList] = await Promise.all([
+            taskApi.getMemberHealthRecords(currentMbrId),
+            taskApi.getMemberMedia(currentMbrId, { excludeAudio: true }).catch(() => [])
+          ]);
           if (isMounted) {
-            setHealthList(Array.isArray(records) ? records : []);
-            loadSubordinateCounts(currentMbrId, records || []);
+            const list = Array.isArray(records) ? records : [];
+            setHealthList(list);
+            const counts = computeHealthPhotoCounts(mediaList);
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify({ list, counts }));
+            } catch {}
           }
         }
       } catch (err: any) {
@@ -311,20 +381,18 @@ export default function MbrStoryHealthPanel({
 
     init();
     return () => { isMounted = false; };
-  }, [memberId, isSandbox, resolvedTopicId]);
+  }, [memberId, isSandbox, resolvedTopicId, computeHealthPhotoCounts, loadSubordinateCounts]);
 
-  // Code helpers
-  const getTypeCodeLabel = (cdVal?: string | null) => {
+  // O(1) Code helpers
+  const getTypeCodeLabel = useCallback((cdVal?: string | null) => {
     if (!cdVal) return 'Health Story';
-    const found = typeCodes.find(c => c.cdValue === cdVal);
-    return found?.cdLabel || cdVal;
-  };
+    return typeCodeMap.get(cdVal) || cdVal;
+  }, [typeCodeMap]);
 
-  const getStatusCodeLabel = (cdVal?: string | null) => {
+  const getStatusCodeLabel = useCallback((cdVal?: string | null) => {
     if (!cdVal) return 'Resolved';
-    const found = statusCodes.find(c => c.cdValue === cdVal);
-    return found?.cdLabel || cdVal;
-  };
+    return statusCodeMap.get(cdVal) || cdVal;
+  }, [statusCodeMap]);
 
   const getStatusBadgeStyle = (statusVal?: string | null, isCurrent?: boolean) => {
     if (isCurrent) {

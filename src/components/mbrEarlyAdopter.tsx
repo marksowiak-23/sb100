@@ -12,7 +12,6 @@ import {
   Coins,
   Mic,
   Image as ImageIcon,
-  ArrowRight,
   X,
   CheckCircle2,
   Crown
@@ -195,43 +194,15 @@ export default function MbrEarlyAdopter({
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5">
-                {isWelcomeMode ? (
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-[#0F172A] to-[#1E293B] hover:from-slate-800 hover:to-slate-700 text-amber-300 border border-amber-400/35 text-xs sm:text-sm font-serif font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
-                  >
-                    Close
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onClose();
-                        if (onViewAccount) {
-                          onViewAccount();
-                        } else {
-                          window.dispatchEvent(new CustomEvent('open-member-account'));
-                        }
-                      }}
-                      className="w-full sm:flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-[#0F172A] to-[#1E293B] hover:from-slate-800 hover:to-slate-700 text-amber-300 border border-amber-400/30 text-xs sm:text-sm font-serif font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Award className="w-4 h-4" />
-                      <span>View My Account &amp; Credits</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="w-full sm:w-auto py-3 px-5 rounded-2xl bg-stone-100 hover:bg-stone-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-stone-200 dark:border-slate-700 text-xs font-serif font-semibold transition-all cursor-pointer"
-                    >
-                      Close
-                    </button>
-                  </>
-                )}
+              {/* Action Button */}
+              <div className="pt-2 flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-[#0F172A] to-[#1E293B] hover:from-slate-800 hover:to-slate-700 text-amber-300 border border-amber-400/35 text-xs sm:text-sm font-serif font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
             </div>
 

@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { AccountSubTab } from './AccountNavigationMenu';
+import { CoachTourTriggerButton } from '@/src/features/coachMarks';
 
 export interface AccountHeaderProps {
   activeSubTab?: AccountSubTab;
@@ -94,6 +95,8 @@ export default function AccountHeader({
               </motion.div>
             )}
           </AnimatePresence>
+
+          <CoachTourTriggerButton tourId="account_tour" label="Account Tour" />
 
           {onRefresh && (
             <button

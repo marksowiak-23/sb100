@@ -29,6 +29,7 @@ import AccountOverviewPanel from './AccountOverviewPanel';
 import AccountVoiceCreditsPanel from './AccountVoiceCreditsPanel';
 import AccountImageCreditsPanel from './AccountImageCreditsPanel';
 import AccountPurchaseModal, { CreditPackage } from './AccountPurchaseModal';
+import { useCoachMarks } from '@/src/features/coachMarks';
 
 export interface MbrAccountFeatureProps {
   isSandbox?: boolean;
@@ -51,6 +52,14 @@ export default function MbrAccountFeature({
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const { requestAutoTour } = useCoachMarks();
+
+  useEffect(() => {
+    return requestAutoTour('account_tour', {
+      delayMs: 900,
+      blocked: loading
+    });
+  }, [requestAutoTour, loading]);
 
   // Active view tab: 'story-credits' | 'voice-credits' | 'image-credits'
   const [activeSubTab, setActiveSubTab] = useState<AccountSubTab>(() => {
@@ -575,12 +584,15 @@ export default function MbrAccountFeature({
           <AccountPageHeaderPanel />
 
           {/* 2. Navigation Menu (My Story Credits, My Voice Credits) */}
-          <AccountNavigationMenu
-            activeSubTab={activeSubTab}
-            onSelectTab={setActiveSubTab}
-          />
+          <div data-coach-mark="account-nav">
+            <AccountNavigationMenu
+              activeSubTab={activeSubTab}
+              onSelectTab={setActiveSubTab}
+            />
+          </div>
 
           {/* 3. Dynamic Current Balance Hero Card (Matches Active Tab) */}
+          <div data-coach-mark="account-balance-card">
           {activeSubTab === 'voice-credits' ? (
             <div className="bg-gradient-to-br from-purple-950 via-indigo-950 to-[#0F172A] rounded-2xl p-4 sm:p-5 text-white shadow-md relative overflow-hidden border border-purple-700/60 space-y-2.5">
               <div className="absolute -right-3 -bottom-3 opacity-10 text-purple-300 pointer-events-none">
@@ -654,6 +666,7 @@ export default function MbrAccountFeature({
               </p>
             </div>
           )}
+          </div>
         </aside>
 
         {/* ========================================================================= */}
@@ -673,7 +686,7 @@ export default function MbrAccountFeature({
               <p className="font-serif text-xs text-slate-500">Loading your member account details...</p>
             </div>
           ) : (
-            <>
+            <div data-coach-mark="account-packages">
               {activeSubTab === 'story-credits' && (
                 <AccountOverviewPanel
                   onSelectPackage={(pkg) => {
@@ -712,7 +725,7 @@ export default function MbrAccountFeature({
                   }}
                 />
               )}
-            </>
+            </div>
           )}
 
           {/* Administration Component Tag for Traceability */}

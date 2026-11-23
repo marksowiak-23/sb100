@@ -36,6 +36,7 @@ import PrivacyByGroupView from './PrivacyByGroupView';
 import PrivacyByMemberView from './PrivacyByMemberView';
 import PrivacyByStoryView from './PrivacyByStoryView';
 import { generatePrivacyPdf } from '../utils/generatePrivacyPdf';
+import { useCoachMarks } from '@/src/features/coachMarks';
 
 function parseAccessLevel(raw?: string | null): EffectiveAccessLevel | 'NONE' | null {
   if (!raw) return null;
@@ -117,6 +118,15 @@ export default function MbrPrivacyFeature({
       onDirtyChange(false);
     }
   }, [onDirtyChange]);
+
+  const { requestAutoTour } = useCoachMarks();
+
+  useEffect(() => {
+    return requestAutoTour('privacy_tour', {
+      delayMs: 900,
+      blocked: loading || codesLoading
+    });
+  }, [requestAutoTour, loading, codesLoading]);
 
   const loadAccessData = useCallback(async () => {
     setLoading(true);
@@ -741,7 +751,7 @@ export default function MbrPrivacyFeature({
           </span>
         </div>
       ) : (
-        <>
+        <div data-coach-mark="privacy-content">
           {activeTab === 'by-group' && (
             <PrivacyByGroupView
               groups={groups}
@@ -777,7 +787,7 @@ export default function MbrPrivacyFeature({
               }
             />
           )}
-        </>
+        </div>
       )}
 
       {/* In-Place Story Privacy Editor Modal */}

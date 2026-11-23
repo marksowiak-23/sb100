@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useModalA11y } from '@/src/hooks/useModalA11y';
 import {
   Mic,
   Volume2,
@@ -261,6 +262,7 @@ export default function AiVoiceModal({
   onAiVoiceDateUpdated
 }: AiVoiceModalProps) {
   // Voice Parameters State - Selecting voices directly by Timbre & Accent
+  const { dialogProps } = useModalA11y({ isOpen, onClose });
   const [selectedVoice, setSelectedVoice] = useState<string>('en-US-Standard-C');
   const [selectedSpeed, setSelectedSpeed] = useState<number>(1.0);
   const [audioFormat] = useState<string>('Neural Studio Audio (24 kHz)');
@@ -1059,7 +1061,7 @@ export default function AiVoiceModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+    <div {...dialogProps} className="fixed inset-0 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
       <div className="absolute inset-0 cursor-default" onClick={handleClose} />
 
       <motion.div

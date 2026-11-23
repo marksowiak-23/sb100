@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   GraduationCap,
@@ -80,6 +80,20 @@ const SANDBOX_EDUCATION: Education[] = [
   }
 ];
 
+function resolveStoredEduMemberId(propMemberId?: string): string | null {
+  if (propMemberId) return propMemberId;
+  try {
+    const storedMbr = sessionStorage.getItem('sb_current_mbr');
+    if (storedMbr) {
+      const parsed = JSON.parse(storedMbr);
+      if (parsed?.mbrId) return parsed.mbrId;
+    }
+  } catch {}
+  return null;
+}
+
+const getEducationCacheKey = (id: string, sandbox: boolean) => `sb_cache_education_${sandbox ? 'sbx' : 'live'}_${id}`;
+
 export default function MbrStoryEducationPanel({
   isSandbox = false,
   memberId,
@@ -89,16 +103,32 @@ export default function MbrStoryEducationPanel({
 }: MbrStoryEducationPanelProps) {
   const resolvedTopicId = topicId || DEFAULT_TOPIC_LOOKUP['education'].topicId;
   const resolvedChIntentId = chIntentId || DEFAULT_TOPIC_LOOKUP['education'].chIntentId;
+  const initialMbrId = resolveStoredEduMemberId(memberId) || '9edb4311-a4bc-428a-8317-833f0f08fea1';
 
-  // --- STATE VARIABLES ---
-  const [loading, setLoading] = useState(true);
+  // --- STATE VARIABLES (hydrated from sessionStorage cache for 0ms instant paint) ---
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem(getEducationCacheKey(initialMbrId, isSandbox));
+    } catch {
+      return true;
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
-  const [educationList, setEducationList] = useState<Education[]>([]);
+  const [mbrId, setMbrId] = useState<string>(initialMbrId);
+  const [educationList, setEducationList] = useState<Education[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(getEducationCacheKey(initialMbrId, isSandbox));
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed?.list)) return parsed.list;
+      }
+    } catch {}
+    return [];
+  });
 
   // Sorting state (default: date descending)
   const [sortColumn, setSortColumn] = useState<'institution' | 'date' | 'degree'>('date');
@@ -145,8 +175,9 @@ export default function MbrStoryEducationPanel({
   const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
 
-  // Close menus on outside click
+  // Close menus on outside click (only attached while a menu is open)
   useEffect(() => {
+    if (!showHeaderMenu && !activeActionMenuId) return;
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('.education-header-menu-container')) {
@@ -158,7 +189,7 @@ export default function MbrStoryEducationPanel({
     };
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+  }, [showHeaderMenu, activeActionMenuId]);
 
   // Check if Add/Edit form has unsaved edits
   const hasModalUnsavedChanges = useMemo(() => {
@@ -231,15 +262,59 @@ export default function MbrStoryEducationPanel({
     });
   };
 
-  // Helper to load subordinate photo & story counts
-  const loadSubordinateCounts = async (targetMbrId: string, currentEdus: Education[]) => {
-    try {
-      const photoCounts: Record<string, number> = {};
-      const storyCounts: Record<string, number> = {};
-      let hdrPhotos = 0;
-      let hdrStories = 0;
+  const computeEduCountsFromData = useCallback((mediaList: any[], storyList: any[]) => {
+    const photoCounts: Record<string, number> = {};
+    const storyCounts: Record<string, number> = {};
+    let hdrPhotos = 0;
+    let hdrStories = 0;
 
+    if (Array.isArray(mediaList)) {
+      mediaList.forEach((m) => {
+        if (isAudioMedia(m)) return;
+        const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
+        if (cat === 'education' || cat === 'educations') {
+          if (m.mbrMediaSubordinateId) {
+            photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
+          } else {
+            hdrPhotos++;
+          }
+        }
+      });
+    }
+
+    if (Array.isArray(storyList)) {
+      storyList.forEach((s) => {
+        const isEduType = (
+          s.mbrStoryTypeCd === 'sbMbrStryEducation' ||
+          s.mbrStoryTypeCd === 'educations' ||
+          s.mbrStoryTypeCd === 'education'
+        );
+        if (isEduType) {
+          if (s.mbrStorySubordinateId) {
+            storyCounts[s.mbrStorySubordinateId] = (storyCounts[s.mbrStorySubordinateId] || 0) + 1;
+          } else {
+            hdrStories++;
+          }
+        }
+      });
+    }
+
+    setEducationPhotosMap(photoCounts);
+    setEducationStoriesMap(storyCounts);
+    setHeaderPhotoCount(hdrPhotos);
+    setHeaderStoryCount(hdrStories);
+    return { photoCounts, storyCounts, hdrPhotos, hdrStories };
+  }, []);
+
+  // Helper to load subordinate photo & story counts
+  const loadSubordinateCounts = useCallback(async (targetMbrId: string, currentEdus: Education[]) => {
+    try {
       if (isSandbox) {
+        const photoCounts: Record<string, number> = {};
+        const storyCounts: Record<string, number> = {};
+        let hdrPhotos = 0;
+        let hdrStories = 0;
+
         const savedMedia = sessionStorage.getItem('sandbox_media');
         if (savedMedia) {
           try {
@@ -278,112 +353,111 @@ export default function MbrStoryEducationPanel({
             } catch {}
           }
         });
+
+        setEducationPhotosMap(photoCounts);
+        setEducationStoriesMap(storyCounts);
+        setHeaderPhotoCount(hdrPhotos);
+        setHeaderStoryCount(hdrStories);
       } else {
-        try {
-          const [mediaList, storyList] = await Promise.all([
-            taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
-            taskApi.getStories(targetMbrId).catch(() => [])
-          ]);
-
-          if (Array.isArray(mediaList)) {
-            mediaList.forEach((m) => {
-              if (isAudioMedia(m)) return;
-              const cat = (m.mbrMediaCategoryCd || '').toLowerCase();
-              if (cat === 'education' || cat === 'educations') {
-                if (m.mbrMediaSubordinateId) {
-                  photoCounts[m.mbrMediaSubordinateId] = (photoCounts[m.mbrMediaSubordinateId] || 0) + 1;
-                } else {
-                  hdrPhotos++;
-                }
-              }
-            });
-          }
-
-          if (Array.isArray(storyList)) {
-            storyList.forEach((s) => {
-              const isEduType = (
-                s.mbrStoryTypeCd === 'sbMbrStryEducation' ||
-                s.mbrStoryTypeCd === 'educations' ||
-                s.mbrStoryTypeCd === 'education'
-              );
-              if (isEduType) {
-                if (s.mbrStorySubordinateId) {
-                  storyCounts[s.mbrStorySubordinateId] = (storyCounts[s.mbrStorySubordinateId] || 0) + 1;
-                } else {
-                  hdrStories++;
-                }
-              }
-            });
-          }
-        } catch (e) {
-          console.warn('Could not load education subordinate media and stories counts:', e);
-        }
+        const [mediaList, storyList] = await Promise.all([
+          taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
+          taskApi.getStories(targetMbrId).catch(() => [])
+        ]);
+        computeEduCountsFromData(mediaList, storyList);
       }
-
-      setEducationPhotosMap(photoCounts);
-      setEducationStoriesMap(storyCounts);
-      setHeaderPhotoCount(hdrPhotos);
-      setHeaderStoryCount(hdrStories);
     } catch (err) {
       console.warn('Error computing education content counts:', err);
     }
-  };
+  }, [isSandbox, computeEduCountsFromData]);
 
-  // Re-fetch subordinate counts when story or gallery events occur
+  // Debounced refresh ONLY when a story is saved (not on every editor keystroke)
+  const syncTimerRef = useRef<number | null>(null);
   useEffect(() => {
     const handleSync = () => {
-      loadSubordinateCounts(mbrId, educationList);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = window.setTimeout(() => {
+        loadSubordinateCounts(mbrId, educationList);
+      }, 300);
     };
-    window.addEventListener('update-story-editor-content', handleSync);
     window.addEventListener('story-saved', handleSync);
-    window.addEventListener('storage', handleSync);
     return () => {
-      window.removeEventListener('update-story-editor-content', handleSync);
       window.removeEventListener('story-saved', handleSync);
-      window.removeEventListener('storage', handleSync);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
     };
-  }, [mbrId, educationList, isSandbox]);
+  }, [mbrId, educationList, loadSubordinateCounts]);
 
-  // --- INITIAL DATA FETCH ---
+  // --- INITIAL DATA FETCH (Single concurrent Promise.all + stale-while-revalidate cache) ---
   useEffect(() => {
-    loadData();
-  }, [isSandbox, memberId]);
-
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let currentMbrId = memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1';
-      if (!memberId) {
-        const userStr = sessionStorage.getItem('user');
-        if (userStr && !isSandbox) {
-          try {
-            const u = JSON.parse(userStr);
-            const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
-            if (mbrProfile && mbrProfile.mbrId) {
-              currentMbrId = mbrProfile.mbrId;
-              setMbrId(currentMbrId);
+    let isMounted = true;
+    const runLoad = async () => {
+      setError(null);
+      try {
+        let currentMbrId = resolveStoredEduMemberId(memberId);
+        if (!currentMbrId) {
+          const userStr = sessionStorage.getItem('user');
+          if (userStr && !isSandbox) {
+            try {
+              const u = JSON.parse(userStr);
+              const mbrProfile = await taskApi.getMemberByUserId(u.user_id);
+              if (mbrProfile && mbrProfile.mbrId) {
+                currentMbrId = mbrProfile.mbrId;
+              }
+            } catch (e) {
+              console.warn("Could not retrieve member profile ID from DB, falling back to Eleanor Hartwell UUID:", e);
             }
-          } catch (e) {
-            console.warn("Could not retrieve member profile ID from DB, falling back to Eleanor Hartwell UUID:", e);
           }
         }
-      } else {
-        setMbrId(memberId);
-      }
-
-      let loadedEdus: Education[] = [];
-      if (isSandbox) {
-        const saved = sessionStorage.getItem('sandbox_education');
-        if (saved) {
-          loadedEdus = sortEducationList(JSON.parse(saved));
-        } else {
-          loadedEdus = sortEducationList(SANDBOX_EDUCATION);
-          sessionStorage.setItem('sandbox_education', JSON.stringify(loadedEdus));
+        if (!currentMbrId) {
+          currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
         }
-      } else {
+        if (!isMounted) return;
+        setMbrId(currentMbrId);
+
+        const cacheKey = getEducationCacheKey(currentMbrId, isSandbox);
+        let hasCache = false;
         try {
-          const dbEdus = await taskApi.getEducations(currentMbrId);
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed?.list)) {
+              setEducationList(parsed.list);
+              if (parsed.counts) {
+                setEducationPhotosMap(parsed.counts.photoCounts || {});
+                setEducationStoriesMap(parsed.counts.storyCounts || {});
+                setHeaderPhotoCount(parsed.counts.hdrPhotos || 0);
+                setHeaderStoryCount(parsed.counts.hdrStories || 0);
+              }
+              setLoading(false);
+              hasCache = true;
+            }
+          }
+        } catch {}
+        if (!hasCache) setLoading(true);
+
+        if (isSandbox) {
+          const saved = sessionStorage.getItem('sandbox_education');
+          const loadedEdus = saved
+            ? sortEducationList(JSON.parse(saved))
+            : sortEducationList(SANDBOX_EDUCATION);
+          if (!saved) sessionStorage.setItem('sandbox_education', JSON.stringify(loadedEdus));
+          if (!isMounted) return;
+          setEducationList(loadedEdus);
+          await loadSubordinateCounts(currentMbrId, loadedEdus);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ list: loadedEdus }));
+          } catch {}
+        } else {
+          const [dbEdus, mediaList, storyList] = await Promise.all([
+            taskApi.getEducations(currentMbrId).catch((e) => {
+              console.warn("Could not load education from DB, using fallback sandbox:", e);
+              return SANDBOX_EDUCATION;
+            }),
+            taskApi.getMemberMedia(currentMbrId, { excludeAudio: true }).catch(() => []),
+            taskApi.getStories(currentMbrId).catch(() => [])
+          ]);
+          if (!isMounted) return;
+
+          let loadedEdus: Education[];
           if (dbEdus && dbEdus.length > 0) {
             loadedEdus = sortEducationList(dbEdus);
           } else if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1') {
@@ -391,20 +465,23 @@ export default function MbrStoryEducationPanel({
           } else {
             loadedEdus = [];
           }
-        } catch (e) {
-          console.warn("Could not load education from DB, using fallback sandbox:", e);
-          loadedEdus = sortEducationList(SANDBOX_EDUCATION);
-        }
-      }
 
-      setEducationList(loadedEdus);
-      await loadSubordinateCounts(currentMbrId, loadedEdus);
-    } catch (err: any) {
-      setError(`Failed to load education records: ${err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
+          setEducationList(loadedEdus);
+          const counts = computeEduCountsFromData(mediaList, storyList);
+          try {
+            sessionStorage.setItem(cacheKey, JSON.stringify({ list: loadedEdus, counts }));
+          } catch {}
+        }
+      } catch (err: any) {
+        if (isMounted) setError(`Failed to load education records: ${err.message}`);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    runLoad();
+    return () => { isMounted = false; };
+  }, [isSandbox, memberId, computeEduCountsFromData, loadSubordinateCounts]);
 
   // --- ADD / EDIT MODAL HANDLERS ---
   const handleOpenAddModal = () => {

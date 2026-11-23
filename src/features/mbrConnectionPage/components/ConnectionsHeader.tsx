@@ -11,6 +11,15 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import HeaderBackgroundCarousel from '@/src/components/HeaderBackgroundCarousel';
+import { CoachTourTriggerButton } from '@/src/features/coachMarks';
+
+const CONNECTIONS_CAROUSEL_IMAGES = [
+  '/carousel_friends_family.jpg',
+  '/assets/topic-headers/relationships_1.jpg',
+  '/assets/topic-headers/family_1.jpg',
+  '/storybook_friends_connection.jpg',
+];
 
 interface ConnectionsHeaderProps {
   success?: string | null;
@@ -23,27 +32,32 @@ export default function ConnectionsHeader({
   error
 }: ConnectionsHeaderProps) {
   return (
-    <div className="relative mb-8 pb-6 border-b border-slate-200 dark:border-slate-800">
+    <div className="relative mb-6">
       <AdminComponentTag name="ConnectionsHeader.tsx" />
 
-      {/* Top Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white">
-              <Users className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">
-                My Connections
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Explore your personal network and search members across the BackStory community.
-              </p>
+      {/* Top Bar with Inspiring Background Carousel */}
+      <HeaderBackgroundCarousel images={CONNECTIONS_CAROUSEL_IMAGES}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white shrink-0">
+                <Users className="w-5 h-5" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold font-serif text-slate-900 dark:text-white tracking-tight">
+                  My Connections
+                </h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Explore your personal network and search members across the BackStory community.
+                </p>
+              </div>
             </div>
           </div>
+          <div className="flex items-center justify-end shrink-0">
+            <CoachTourTriggerButton tourId="connections_tour" label="Connections Tour" />
+          </div>
         </div>
-      </div>
+      </HeaderBackgroundCarousel>
 
       {/* Notifications / Feedback Alerts */}
       <AnimatePresence>

@@ -41,14 +41,14 @@ const FALLBACK_TOPICS: Topic[] = [
 
 // Fallback spark questions for sandbox simulation
 const FALLBACK_SPARKS: TopicSpark[] = [
-  { sparkId: 'spk-1', topicId: 'a01cfe18-ad54-495b-9636-4b0d5c0aa3c2', sparkQuestion: 'What was your favorite childhood tradition with your family or grandparents?', sparkCreatedAt: new Date().toISOString() },
-  { sparkId: 'spk-2', topicId: 'a01cfe18-ad54-495b-9636-4b0d5c0aa3c2', sparkQuestion: 'How did your parents meet, and what stories did they pass down about it?', sparkCreatedAt: new Date().toISOString() },
-  { sparkId: 'spk-3', topicId: '0c56cf6a-64d7-4174-abb0-0a049a40dcd5', sparkQuestion: 'What is the most vivid memory of your first childhood home or neighborhood?', sparkCreatedAt: new Date().toISOString() },
-  { sparkId: 'spk-4', topicId: '0c56cf6a-64d7-4174-abb0-0a049a40dcd5', sparkQuestion: 'What was the biggest transition you experienced when moving to a new city?', sparkCreatedAt: new Date().toISOString() },
-  { sparkId: 'spk-5', topicId: '95af15b6-ccd4-4487-8151-aef0ad82b6e8', sparkQuestion: 'What proud accomplishment took the most persistence and dedication?', sparkCreatedAt: new Date().toISOString() },
-  { sparkId: 'spk-6', topicId: '196bc8c6-2b8b-4d80-9cc6-1498d37b67a6', sparkQuestion: 'Which teacher or mentor made the biggest impact on your life and why?', sparkCreatedAt: new Date().toISOString() },
-  { sparkId: 'spk-7', topicId: '272a39fd-9b43-4fee-9c26-dccf1d8edd1e', sparkQuestion: 'What was your very first paid job and what valuable lesson did it teach you?', sparkCreatedAt: new Date().toISOString() },
-  { sparkId: 'spk-8', topicId: 'df0744af-1f72-4c4a-b141-05cfdbd2863d', sparkQuestion: 'What hobby or passion brings you the most joy, focus, and creativity?', sparkCreatedAt: new Date().toISOString() }
+  { sparkId: 'spk-1', topicId: 'a01cfe18-ad54-495b-9636-4b0d5c0aa3c2', sparkTitle: 'Porch Swings and Pocket Peppermints', sparkQuestion: 'What was your favorite childhood tradition with your family or grandparents?', sparkCreatedAt: new Date().toISOString() },
+  { sparkId: 'spk-2', topicId: 'a01cfe18-ad54-495b-9636-4b0d5c0aa3c2', sparkTitle: 'Before We Ever Entered the Picture', sparkQuestion: 'How did your parents meet, and what stories did they pass down about it?', sparkCreatedAt: new Date().toISOString() },
+  { sparkId: 'spk-3', topicId: '0c56cf6a-64d7-4174-abb0-0a049a40dcd5', sparkTitle: 'Sidewalk Chalk and Skinned Knees', sparkQuestion: 'What is the most vivid memory of your first childhood home or neighborhood?', sparkCreatedAt: new Date().toISOString() },
+  { sparkId: 'spk-4', topicId: '0c56cf6a-64d7-4174-abb0-0a049a40dcd5', sparkTitle: 'Sleeping on the Living Room Floor', sparkQuestion: 'What was the biggest transition you experienced when moving to a new city?', sparkCreatedAt: new Date().toISOString() },
+  { sparkId: 'spk-5', topicId: '95af15b6-ccd4-4487-8151-aef0ad82b6e8', sparkTitle: 'The Summit I Refused to Surrender', sparkQuestion: 'What proud accomplishment took the most persistence and dedication?', sparkCreatedAt: new Date().toISOString() },
+  { sparkId: 'spk-6', topicId: '196bc8c6-2b8b-4d80-9cc6-1498d37b67a6', sparkTitle: 'The Teacher Who Truly Saw Me', sparkQuestion: 'Which teacher or mentor made the biggest impact on your life and why?', sparkCreatedAt: new Date().toISOString() },
+  { sparkId: 'spk-7', topicId: '272a39fd-9b43-4fee-9c26-dccf1d8edd1e', sparkTitle: 'Lessons Learned for Five Bucks an Hour', sparkQuestion: 'What was your very first paid job and what valuable lesson did it teach you?', sparkCreatedAt: new Date().toISOString() },
+  { sparkId: 'spk-8', topicId: 'df0744af-1f72-4c4a-b141-05cfdbd2863d', sparkTitle: 'The Sweet Art of Disappearing', sparkQuestion: 'What hobby or passion brings you the most joy, focus, and creativity?', sparkCreatedAt: new Date().toISOString() }
 ];
 
 export default function AdminTopicSparksFeature() {
@@ -65,6 +65,7 @@ export default function AdminTopicSparksFeature() {
   const [isFormOpen, setIsFormOpen] = useState<boolean>(false);
   const [editingSpark, setEditingSpark] = useState<TopicSpark | null>(null);
   const [formTopicId, setFormTopicId] = useState<string>('');
+  const [formTitle, setFormTitle] = useState<string>('');
   const [formQuestion, setFormQuestion] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -142,10 +143,11 @@ export default function AdminTopicSparksFeature() {
       // Search query filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
+        const matchesTitle = spark.sparkTitle?.toLowerCase().includes(q);
         const matchesQuestion = spark.sparkQuestion?.toLowerCase().includes(q);
         const topicName = topicMap.get(spark.topicId)?.topicName?.toLowerCase() || '';
         const topicFullName = topicMap.get(spark.topicId)?.topicFullName?.toLowerCase() || '';
-        return matchesQuestion || topicName.includes(q) || topicFullName.includes(q);
+        return Boolean(matchesTitle || matchesQuestion || topicName.includes(q) || topicFullName.includes(q));
       }
       return true;
     });
@@ -158,6 +160,7 @@ export default function AdminTopicSparksFeature() {
       ? defaultTopic 
       : (selectedTopicId !== 'ALL' ? selectedTopicId : (topics[0]?.topicId || ''));
     setFormTopicId(initialTopic);
+    setFormTitle('');
     setFormQuestion('');
     setIsFormOpen(true);
   };
@@ -166,6 +169,7 @@ export default function AdminTopicSparksFeature() {
   const handleOpenEdit = (spark: TopicSpark) => {
     setEditingSpark(spark);
     setFormTopicId(spark.topicId);
+    setFormTitle(spark.sparkTitle || '');
     setFormQuestion(spark.sparkQuestion);
     setIsFormOpen(true);
   };
@@ -175,6 +179,11 @@ export default function AdminTopicSparksFeature() {
     e.preventDefault();
     if (!formTopicId) {
       showNotification('error', 'Please select a topic.');
+      return;
+    }
+    const cleanTitle = formTitle.trim();
+    if (cleanTitle.length > 60) {
+      showNotification('error', 'Spark title must be 60 characters or less.');
       return;
     }
     const cleanQuestion = formQuestion.trim();
@@ -193,18 +202,26 @@ export default function AdminTopicSparksFeature() {
         // Update existing spark
         const updated = await topicSparkApi.updateTopicSpark(editingSpark.sparkId, {
           topicId: formTopicId,
+          sparkTitle: cleanTitle || null,
           sparkQuestion: cleanQuestion
         });
-        setSparks((prev) => prev.map((s) => (s.sparkId === editingSpark.sparkId ? { ...s, ...updated, sparkQuestion: cleanQuestion, topicId: formTopicId } : s)));
-        showNotification('success', 'Topic spark question updated successfully.');
+        setSparks((prev) =>
+          prev.map((s) =>
+            s.sparkId === editingSpark.sparkId
+              ? { ...s, ...updated, sparkTitle: cleanTitle || null, sparkQuestion: cleanQuestion, topicId: formTopicId }
+              : s
+          )
+        );
+        showNotification('success', 'Topic spark updated successfully.');
       } else {
         // Create new spark
         const created = await topicSparkApi.createTopicSpark({
           topicId: formTopicId,
+          sparkTitle: cleanTitle || null,
           sparkQuestion: cleanQuestion
         });
         setSparks((prev) => [created, ...prev]);
-        showNotification('success', 'New topic spark question added successfully.');
+        showNotification('success', 'New topic spark added successfully.');
       }
       setIsFormOpen(false);
     } catch (err: any) {
@@ -473,10 +490,21 @@ export default function AdminTopicSparksFeature() {
                       </span>
                     </div>
 
-                    {/* Question Text */}
-                    <p className="text-xs font-serif font-bold text-slate-800 leading-relaxed group-hover:text-slate-950">
-                      "{spark.sparkQuestion}"
-                    </p>
+                    {/* Spark Title & Question Text */}
+                    <div className="space-y-1">
+                      {spark.sparkTitle ? (
+                        <h3 className="text-sm font-serif font-black text-slate-900 leading-snug group-hover:text-blue-700 transition-colors">
+                          {spark.sparkTitle}
+                        </h3>
+                      ) : (
+                        <span className="text-[11px] font-serif italic text-slate-400 block">
+                          (No spark title set)
+                        </span>
+                      )}
+                      <p className="text-xs font-serif font-medium text-slate-600 leading-relaxed group-hover:text-slate-800">
+                        "{spark.sparkQuestion}"
+                      </p>
+                    </div>
                   </div>
 
                   {/* Footer & Actions */}
@@ -566,6 +594,31 @@ export default function AdminTopicSparksFeature() {
                   </select>
                 </div>
 
+                {/* Spark Title */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                      Spark Title
+                    </label>
+                    <span className={`text-[10px] font-mono ${
+                      formTitle.length > 60 ? 'text-rose-600 font-bold' : formTitle.length > 52 ? 'text-amber-600 font-bold' : 'text-slate-400'
+                    }`}>
+                      {formTitle.length}/60 characters
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    maxLength={60}
+                    placeholder="e.g. Porch Swings and Pocket Peppermints"
+                    value={formTitle}
+                    onChange={(e) => setFormTitle(e.target.value)}
+                    className="w-full bg-[#FAF9F7] border border-[#EFECE7] text-slate-800 text-xs font-serif font-bold rounded-xl px-3.5 py-2.5 focus:outline-none focus:border-blue-500 shadow-xs"
+                  />
+                  <p className="text-[10px] text-slate-400 italic">
+                    Short, engaging chapter title pre-loaded when a member selects this spark.
+                  </p>
+                </div>
+
                 {/* Question Text */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
@@ -603,7 +656,7 @@ export default function AdminTopicSparksFeature() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting || !formQuestion.trim() || !formTopicId || formQuestion.length > 120}
+                    disabled={isSubmitting || !formQuestion.trim() || !formTopicId || formQuestion.length > 120 || formTitle.length > 60}
                     className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl cursor-pointer transition-all shadow-md shadow-blue-500/15 flex items-center gap-2 disabled:opacity-50"
                   >
                     {isSubmitting ? (
@@ -642,8 +695,11 @@ export default function AdminTopicSparksFeature() {
                 Are you sure you want to permanently delete this spark question?
               </p>
 
-              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs font-serif italic text-slate-700">
-                "{deletingSpark.sparkQuestion}"
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs font-serif space-y-1">
+                {deletingSpark.sparkTitle && (
+                  <div className="font-bold text-slate-900">{deletingSpark.sparkTitle}</div>
+                )}
+                <div className="italic text-slate-700">"{deletingSpark.sparkQuestion}"</div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2 select-none">

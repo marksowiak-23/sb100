@@ -13,6 +13,7 @@ import { MEMBER_STORIES } from '@/src/features/publicPage/constants/memberData';
 import { taskApi, resolveMediaUrl, MbrStory } from '@/src/services/api';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import PageSeo from '@/src/components/PageSeo';
+import { useCoachMarks } from '@/src/features/coachMarks';
 
 interface SbMbrStoryFeedPageFeatureProps {
   isSandbox?: boolean;
@@ -297,6 +298,14 @@ export default function SbMbrStoryFeedPageFeature({
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [connectedCirclesCount, setConnectedCirclesCount] = useState<number>(0);
   const [viewerMbrId, setViewerMbrId] = useState<string | null>(null);
+  const { requestAutoTour } = useCoachMarks();
+
+  useEffect(() => {
+    return requestAutoTour('feed_tour', {
+      delayMs: 900,
+      blocked: loading
+    });
+  }, [requestAutoTour, loading]);
 
   // Load connected member stories and enforce connection group access privileges
   useEffect(() => {

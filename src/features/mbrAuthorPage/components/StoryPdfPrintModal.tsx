@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useModalA11y } from '@/src/hooks/useModalA11y';
 import {
   Printer,
   X,
@@ -75,6 +76,7 @@ export default function StoryPdfPrintModal({
   onError,
 }: StoryPdfPrintModalProps) {
   // Config state
+  const { dialogProps } = useModalA11y({ isOpen, onClose });
   const [pageSize, setPageSize] = useState<StoryPdfPageSize>('trade-paperback');
   const [orientation, setOrientation] = useState<StoryPdfOrientation>('portrait');
   const [fontFamily, setFontFamily] = useState<StoryPdfFontFamily>('serif');
@@ -292,7 +294,7 @@ export default function StoryPdfPrintModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+      <div {...dialogProps} className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
         <div className="fixed inset-0 cursor-default" onClick={onClose} />
 
         <motion.div

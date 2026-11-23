@@ -27,6 +27,7 @@ import SbMbrSearchResults from './SbMbrSearchResults';
 import RightColumn from './RightColumn';
 import { detectUserLocation, getCachedUserLocation, UserLocation } from '@/src/utils/userLocation';
 import { generateConnectionPdf } from '../utils/generateConnectionPdf';
+import { useCoachMarks } from '@/src/features/coachMarks';
 
 const SEARCH_PAGE_SIZE = 5;
 const AUTO_SCROLL_LIMIT = 20;
@@ -96,6 +97,14 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
   const [searchLoading, setSearchLoading] = useState<boolean>(true);
   const [searchLoadingMore, setSearchLoadingMore] = useState<boolean>(false);
   const [searchHasMore, setSearchHasMore] = useState<boolean>(true);
+  const { requestAutoTour } = useCoachMarks();
+
+  useEffect(() => {
+    return requestAutoTour('connections_tour', {
+      delayMs: 900,
+      blocked: activeSection !== 'my-connections' || searchLoading
+    });
+  }, [requestAutoTour, activeSection, searchLoading]);
 
   // User location detection
   useEffect(() => {
@@ -1170,13 +1179,15 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
         {/* Left Column Section: Brand Header & "Manage my Connections" Menu (Desktop only) */}
         <aside className="hidden lg:block lg:col-span-3 space-y-6">
           <ConnectionPageHeaderPanel />
-          <ManageConnectionsMenu
-            activeSection={activeSection}
-            onSelectSection={handleSelectSection}
-            connectionsCount={totalConnectionsCount}
-            invitationsCount={pendingInvitationsCount}
-            requestsCount={pendingRequestsCount}
-          />
+          <div data-coach-mark="connections-menu">
+            <ManageConnectionsMenu
+              activeSection={activeSection}
+              onSelectSection={handleSelectSection}
+              connectionsCount={totalConnectionsCount}
+              invitationsCount={pendingInvitationsCount}
+              requestsCount={pendingRequestsCount}
+            />
+          </div>
         </aside>
 
         {/* Center Main Content Area: My Connections, Groups, Invitations, or Requests */}
@@ -1189,35 +1200,39 @@ export default function MbrConnectionFeature({ isSandbox, onClickBack, onDirtyCh
                 error={error}
               />
 
-              <SbMbrSearchCard
-                searchQuery={mbrSearchQuery}
-                setSearchQuery={setMbrSearchQuery}
-                connectionsOnly={connectionsOnly}
-                setConnectionsOnly={setConnectionsOnly}
-                connectedCount={totalConnectionsCount}
-                userLocation={userLocation}
-                onRefreshLocation={handleRefreshLocation}
-              />
-              <SbMbrSearchResults
-                searchQuery={mbrSearchQuery}
-                connectionsOnly={connectionsOnly}
-                members={searchMembers}
-                loading={searchLoading}
-                loadingMore={searchLoadingMore}
-                hasMore={searchHasMore}
-                connectionsMap={connectionsMap}
-                pendingRequestsSet={pendingRequestsSet}
-                viewerMbrId={currentMbrId}
-                onLoadMore={handleLoadMoreSearchMembers}
-                onClickReadStory={(memberId) => {
-                  if (onClickReadStory) {
-                    onClickReadStory(memberId);
-                  } else {
-                    window.dispatchEvent(new CustomEvent('open-member-story', { detail: { memberId } }));
-                  }
-                }}
-                userLocation={userLocation}
-              />
+              <div data-coach-mark="connections-search">
+                <SbMbrSearchCard
+                  searchQuery={mbrSearchQuery}
+                  setSearchQuery={setMbrSearchQuery}
+                  connectionsOnly={connectionsOnly}
+                  setConnectionsOnly={setConnectionsOnly}
+                  connectedCount={totalConnectionsCount}
+                  userLocation={userLocation}
+                  onRefreshLocation={handleRefreshLocation}
+                />
+              </div>
+              <div data-coach-mark="connections-results">
+                <SbMbrSearchResults
+                  searchQuery={mbrSearchQuery}
+                  connectionsOnly={connectionsOnly}
+                  members={searchMembers}
+                  loading={searchLoading}
+                  loadingMore={searchLoadingMore}
+                  hasMore={searchHasMore}
+                  connectionsMap={connectionsMap}
+                  pendingRequestsSet={pendingRequestsSet}
+                  viewerMbrId={currentMbrId}
+                  onLoadMore={handleLoadMoreSearchMembers}
+                  onClickReadStory={(memberId) => {
+                    if (onClickReadStory) {
+                      onClickReadStory(memberId);
+                    } else {
+                      window.dispatchEvent(new CustomEvent('open-member-story', { detail: { memberId } }));
+                    }
+                  }}
+                  userLocation={userLocation}
+                />
+              </div>
             </div>
           )}
 

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   PartyPopper, Trash2, Edit3, Save, X, Plus, Loader2, 
@@ -18,6 +18,7 @@ import {
   Cd,
   isAudioMedia
 } from '@/src/services/api';
+import { useCodes } from '@/src/context/CodeContext';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -98,6 +99,20 @@ const DEFAULT_SPECIAL_EVENT_ROLE_CODES: Partial<Cd>[] = [
   { cdValue: 'ATTENDEE', cdLabel: 'Attendee / Guest', cdDesc: 'Guest or attendee', cdSortOrder: 4 }
 ];
 
+function resolveStoredEventMemberId(propMemberId?: string): string | null {
+  if (propMemberId) return propMemberId;
+  try {
+    const storedMbr = sessionStorage.getItem('sb_current_mbr');
+    if (storedMbr) {
+      const parsed = JSON.parse(storedMbr);
+      if (parsed?.mbrId) return parsed.mbrId;
+    }
+  } catch {}
+  return null;
+}
+
+const getSpecialEventsCacheKey = (id: string, sandbox: boolean) => `sb_cache_special_events_${sandbox ? 'sbx' : 'live'}_${id}`;
+
 export default function MbrStorySpecialEventsPanel({
   isSandbox = false,
   memberId,
@@ -105,16 +120,60 @@ export default function MbrStorySpecialEventsPanel({
   topicId = DEFAULT_TOPIC_LOOKUP['special events']?.topicId || '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff',
   chIntentId = DEFAULT_TOPIC_LOOKUP['special events']?.chIntentId || '6b5b064c-844e-48b8-a04f-a7f1c3c632ae'
 }: MbrStorySpecialEventsPanelProps) {
-  // --- STATE VARIABLES ---
-  const [loading, setLoading] = useState(true);
+  const { getCodesByTag } = useCodes();
+  const initialMbrId = resolveStoredEventMemberId(memberId) || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+
+  // --- STATE VARIABLES (hydrated from sessionStorage cache for 0ms instant paint) ---
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem(getSpecialEventsCacheKey(initialMbrId, isSandbox));
+    } catch {
+      return true;
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
-  const [eventsList, setEventsList] = useState<MbrTopicSpecialEvent[]>([]);
-  const [typeCodes, setTypeCodes] = useState<Partial<Cd>[]>(DEFAULT_SPECIAL_EVENT_TYPE_CODES);
-  const [roleCodes, setRoleCodes] = useState<Partial<Cd>[]>(DEFAULT_SPECIAL_EVENT_ROLE_CODES);
+  const [mbrId, setMbrId] = useState<string>(initialMbrId);
+  const [eventsList, setEventsList] = useState<MbrTopicSpecialEvent[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(getSpecialEventsCacheKey(initialMbrId, isSandbox));
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed?.list)) return parsed.list;
+      }
+    } catch {}
+    return [];
+  });
+
+  // Derive lookup codes from cached CodeContext (0 extra network calls)
+  const typeCodes = useMemo<Partial<Cd>[]>(() => {
+    const dbCodes = getCodesByTag('specialEventTypeCd');
+    return dbCodes.length > 0 ? dbCodes : DEFAULT_SPECIAL_EVENT_TYPE_CODES;
+  }, [getCodesByTag]);
+
+  const roleCodes = useMemo<Partial<Cd>[]>(() => {
+    const dbCodes = getCodesByTag('specialEventRoleCd');
+    return dbCodes.length > 0 ? dbCodes : DEFAULT_SPECIAL_EVENT_ROLE_CODES;
+  }, [getCodesByTag]);
+
+  // O(1) lookup maps for rendering rows
+  const typeCodeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    typeCodes.forEach((c) => {
+      if (c?.cdValue) map.set(c.cdValue, c.cdLabel || c.cdValue);
+    });
+    return map;
+  }, [typeCodes]);
+
+  const roleCodeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    roleCodes.forEach((c) => {
+      if (c?.cdValue) map.set(c.cdValue, c.cdLabel || c.cdValue);
+    });
+    return map;
+  }, [roleCodes]);
 
   // --- MODAL FORM STATE ---
   const [showModal, setShowModal] = useState(false);
@@ -204,8 +263,9 @@ export default function MbrStorySpecialEventsPanel({
     }
   };
 
-  // Close menus on outer click
+  // Close menus on outer click (only attached while a menu is open)
   useEffect(() => {
+    if (!activeActionMenuId && !showHeaderMenu) return;
     const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest('.event-action-menu-container') && !target.closest('.event-header-menu-container')) {
@@ -221,83 +281,80 @@ export default function MbrStorySpecialEventsPanel({
     };
   }, [activeActionMenuId, showHeaderMenu]);
 
-  // Load photo count badges for special event entries
-  const loadSubordinateCounts = async (targetMbrId: string, currentRecords: MbrTopicSpecialEvent[]) => {
+  const computeEventCountsFromData = useCallback((mediaList: any[], stories: any[]) => {
+    const photoMap: Record<string, number> = {};
+    let headerPhotos = 0;
+    let hdrStories = 0;
+
+    if (Array.isArray(mediaList)) {
+      mediaList.forEach((m) => {
+        if (isAudioMedia(m)) return;
+        const category = (m.mbrMediaCategoryCd || '').toLowerCase();
+        if (category.includes('event') || category.includes('milestone') || category.includes('celebration') || m.mbrMediaTopicId === resolvedTopicId) {
+          headerPhotos++;
+          if (m.mbrMediaSubordinateId) {
+            photoMap[m.mbrMediaSubordinateId] = (photoMap[m.mbrMediaSubordinateId] || 0) + 1;
+          }
+        }
+      });
+    }
+
+    if (Array.isArray(stories)) {
+      const evtStories = stories.filter((s: any) =>
+        s.mbrStoryTopicId === resolvedTopicId ||
+        s.mbrStoryTypeCd === 'sbMbrStrySpecialEvents' ||
+        (s.mbrStoryTopicTitle && s.mbrStoryTopicTitle.toLowerCase().includes('special event'))
+      );
+      hdrStories = evtStories.length;
+    }
+
+    setHeaderPhotoCount(headerPhotos);
+    setEventPhotosMap(photoMap);
+    setHeaderStoryCount(hdrStories);
+    return { photoMap, headerPhotos, hdrStories };
+  }, [resolvedTopicId]);
+
+  // Load photo & story count badges for special event entries concurrently
+  const loadSubordinateCounts = useCallback(async (targetMbrId: string, _currentRecords?: MbrTopicSpecialEvent[]) => {
     try {
       if (isSandbox) {
         setHeaderPhotoCount(0);
         setEventPhotosMap({});
         return;
       }
-      const mediaList: any[] = await taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []);
-      if (Array.isArray(mediaList)) {
-        const photoMap: Record<string, number> = {};
-        let headerPhotos = 0;
-
-        mediaList.forEach((m) => {
-          if (isAudioMedia(m)) return;
-          const category = (m.mbrMediaCategoryCd || '').toLowerCase();
-          if (category.includes('event') || category.includes('milestone') || category.includes('celebration') || m.mbrMediaTopicId === resolvedTopicId) {
-            headerPhotos++;
-            if (m.mbrMediaSubordinateId) {
-              photoMap[m.mbrMediaSubordinateId] = (photoMap[m.mbrMediaSubordinateId] || 0) + 1;
-            }
-          }
-        });
-
-        setHeaderPhotoCount(headerPhotos);
-        setEventPhotosMap(photoMap);
-      }
-
-      // Fetch stories count
-      try {
-        const stories = await taskApi.getStories(targetMbrId).catch(() => []);
-        if (Array.isArray(stories)) {
-          const evtStories = stories.filter((s: any) => 
-            s.mbrStoryTopicId === resolvedTopicId || 
-            s.mbrStoryTypeCd === 'sbMbrStrySpecialEvents' ||
-            (s.mbrStoryTopicTitle && s.mbrStoryTopicTitle.toLowerCase().includes('special event'))
-          );
-          setHeaderStoryCount(evtStories.length);
-        }
-      } catch {}
+      const [mediaList, stories] = await Promise.all([
+        taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []),
+        taskApi.getStories(targetMbrId).catch(() => [])
+      ]);
+      computeEventCountsFromData(mediaList, stories);
     } catch {
       // Graceful fallback
     }
-  };
+  }, [isSandbox, computeEventCountsFromData]);
 
-  // Re-fetch subordinate counts when storage or sync occurs
+  // Debounced refresh ONLY when a story is saved (not on every editor keystroke)
+  const syncTimerRef = useRef<number | null>(null);
   useEffect(() => {
     const handleSync = () => {
-      loadSubordinateCounts(mbrId, eventsList);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = window.setTimeout(() => {
+        loadSubordinateCounts(mbrId, eventsList);
+      }, 300);
     };
-    window.addEventListener('update-story-editor-content', handleSync);
     window.addEventListener('story-saved', handleSync);
-    window.addEventListener('storage', handleSync);
     return () => {
-      window.removeEventListener('update-story-editor-content', handleSync);
       window.removeEventListener('story-saved', handleSync);
-      window.removeEventListener('storage', handleSync);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
     };
-  }, [mbrId, eventsList, isSandbox]);
+  }, [mbrId, eventsList, loadSubordinateCounts]);
 
-  // Primary Data Fetch
+  // Primary Data Fetch (Single concurrent Promise.all + stale-while-revalidate cache)
   useEffect(() => {
     let isMounted = true;
     const init = async () => {
-      setLoading(true);
       setError(null);
       try {
-        let currentMbrId = memberId;
-        if (!currentMbrId) {
-          const storedMbr = sessionStorage.getItem('sb_current_mbr');
-          if (storedMbr) {
-            try {
-              const parsed = JSON.parse(storedMbr);
-              if (parsed.mbrId) currentMbrId = parsed.mbrId;
-            } catch {}
-          }
-        }
+        let currentMbrId = resolveStoredEventMemberId(memberId);
         if (!currentMbrId) {
           const userStr = sessionStorage.getItem('user');
           if (userStr && !isSandbox) {
@@ -315,23 +372,28 @@ export default function MbrStorySpecialEventsPanel({
         if (!currentMbrId) {
           currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
         }
-        if (isMounted) setMbrId(currentMbrId);
+        if (!isMounted) return;
+        setMbrId(currentMbrId);
 
-        // Fetch lookup codes for special event types and roles
+        const cacheKey = getSpecialEventsCacheKey(currentMbrId, isSandbox);
+        let hasCache = false;
         try {
-          const [loadedTypes, loadedRoles] = await Promise.all([
-            taskApi.getCds('specialEventTypeCd').catch(() => []),
-            taskApi.getCds('specialEventRoleCd').catch(() => [])
-          ]);
-          if (Array.isArray(loadedTypes) && loadedTypes.length > 0 && isMounted) {
-            setTypeCodes(loadedTypes);
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed?.list)) {
+              setEventsList(parsed.list);
+              if (parsed.counts) {
+                setEventPhotosMap(parsed.counts.photoMap || {});
+                setHeaderPhotoCount(parsed.counts.headerPhotos || 0);
+                setHeaderStoryCount(parsed.counts.hdrStories || 0);
+              }
+              setLoading(false);
+              hasCache = true;
+            }
           }
-          if (Array.isArray(loadedRoles) && loadedRoles.length > 0 && isMounted) {
-            setRoleCodes(loadedRoles);
-          }
-        } catch {
-          // fallback to defaults
-        }
+        } catch {}
+        if (!hasCache) setLoading(true);
 
         if (isSandbox) {
           const local = sessionStorage.getItem('sandbox_special_events');
@@ -339,12 +401,23 @@ export default function MbrStorySpecialEventsPanel({
           if (isMounted) {
             setEventsList(data);
             loadSubordinateCounts(currentMbrId, data);
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify({ list: data }));
+            } catch {}
           }
         } else {
-          const records = await taskApi.getMemberSpecialEvents(currentMbrId);
+          const [records, mediaList, stories] = await Promise.all([
+            taskApi.getMemberSpecialEvents(currentMbrId),
+            taskApi.getMemberMedia(currentMbrId, { excludeAudio: true }).catch(() => []),
+            taskApi.getStories(currentMbrId).catch(() => [])
+          ]);
           if (isMounted) {
-            setEventsList(Array.isArray(records) ? records : []);
-            loadSubordinateCounts(currentMbrId, records || []);
+            const list = Array.isArray(records) ? records : [];
+            setEventsList(list);
+            const counts = computeEventCountsFromData(mediaList, stories);
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify({ list, counts }));
+            } catch {}
           }
         }
       } catch (err: any) {
@@ -360,20 +433,18 @@ export default function MbrStorySpecialEventsPanel({
 
     init();
     return () => { isMounted = false; };
-  }, [memberId, isSandbox, resolvedTopicId]);
+  }, [memberId, isSandbox, resolvedTopicId, computeEventCountsFromData, loadSubordinateCounts]);
 
-  // Code helpers
-  const getTypeCodeLabel = (cdVal?: string | null) => {
+  // O(1) Code helpers
+  const getTypeCodeLabel = useCallback((cdVal?: string | null) => {
     if (!cdVal) return 'Celebration';
-    const found = typeCodes.find(c => c.cdValue === cdVal);
-    return found?.cdLabel || cdVal;
-  };
+    return typeCodeMap.get(cdVal) || cdVal;
+  }, [typeCodeMap]);
 
-  const getRoleCodeLabel = (cdVal?: string | null) => {
+  const getRoleCodeLabel = useCallback((cdVal?: string | null) => {
     if (!cdVal) return 'Honoree';
-    const found = roleCodes.find(c => c.cdValue === cdVal);
-    return found?.cdLabel || cdVal;
-  };
+    return roleCodeMap.get(cdVal) || cdVal;
+  }, [roleCodeMap]);
 
   // --- SORT HANDLER ---
   const handleSort = (column: 'title' | 'type' | 'date') => {

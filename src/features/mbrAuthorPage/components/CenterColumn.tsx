@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import StoryMatePanel from './StoryMatePanel';
 import StoryEditorPanel from './StoryEditorPanel';
+import StorySparkCard from './StorySparkCard';
 import MbrProfilePanel from '@/src/components/mbrProfilePanel';
 import MbrStoryFamilyPanel from '@/src/components/mbrStoryFamilyPanel';
 import MbrStoryResidencePanel from '@/src/components/mbrStoryResidencePanel';
@@ -379,29 +380,51 @@ export default function CenterColumn({
         />
       )}
 
-      {/* --- STORY EDITOR PANEL (Automatically shown for topic) --- */}
+      {/* --- STORY SPARK CARD & STORY EDITOR PANEL (Automatically shown for topic) --- */}
       {isStandardTopic && (
-        <div id="story-editor-panel">
-          <StoryEditorPanel
-            topicId={currentTopicId}
-            chIntentId={currentChIntentId}
-            topicTitle={currentTopicTitle}
-            componentName={currentComponentName}
-            subordinateId={subordinateId || undefined}
-            subordinateName={subordinateName}
-            isSandbox={isSandbox}
-            onEditingChange={(editing) => {
-              setIsStoryEditing(editing);
-              if (!editing) {
-                setShowStoryMate(false);
-                setStoryMateConfig(null);
-              }
-            }}
-            onClose={() => {
-              setSubordinateId(null);
-              setSubordinateName(undefined);
-            }}
-          />
+        <div className="flex flex-col gap-3">
+          <div data-coach-mark="author-story-spark-card">
+            <StorySparkCard
+              topicId={currentTopicId}
+              topicTitle={currentTopicTitle}
+              isSandbox={isSandbox}
+              onSelectIdea={(ideaQuestion, spark) => {
+                window.dispatchEvent(
+                  new CustomEvent('start-story-from-spark-idea', {
+                    detail: {
+                      ideaQuestion,
+                      spark,
+                      topicId: currentTopicId,
+                      topicTitle: currentTopicTitle
+                    }
+                  })
+                );
+              }}
+            />
+          </div>
+
+          <div id="story-editor-panel" data-coach-mark="author-story-editor">
+            <StoryEditorPanel
+              topicId={currentTopicId}
+              chIntentId={currentChIntentId}
+              topicTitle={currentTopicTitle}
+              componentName={currentComponentName}
+              subordinateId={subordinateId || undefined}
+              subordinateName={subordinateName}
+              isSandbox={isSandbox}
+              onEditingChange={(editing) => {
+                setIsStoryEditing(editing);
+                if (!editing) {
+                  setShowStoryMate(false);
+                  setStoryMateConfig(null);
+                }
+              }}
+              onClose={() => {
+                setSubordinateId(null);
+                setSubordinateName(undefined);
+              }}
+            />
+          </div>
         </div>
       )}
 

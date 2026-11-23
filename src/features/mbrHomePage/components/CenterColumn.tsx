@@ -22,12 +22,18 @@ export default function CenterColumn({ onClickReadStory, onClickAuthorPage, onNa
 
   return (
     <div className="space-y-6 flex flex-col relative">
-      <SbHeroWelcomeCard />
+      <div data-coach-mark="home-welcome-card">
+        <SbHeroWelcomeCard />
+      </div>
       {isGettingStartedCardEnabled && (
-        <SbGettingStartedCard onNavigate={onNavigate} onClickAuthorPage={onClickAuthorPage} />
+        <div data-coach-mark="home-getting-started">
+          <SbGettingStartedCard onNavigate={onNavigate} onClickAuthorPage={onClickAuthorPage} />
+        </div>
       )}
       {isPersonalTriviaCardEnabled && (
-        <SbPersonalTriviaCard onClickAuthorPage={onClickAuthorPage} />
+        <div data-coach-mark="home-daily-sparks">
+          <SbPersonalTriviaCard onClickAuthorPage={onClickAuthorPage} />
+        </div>
       )}
       {isRememberWhenCardEnabled && (
         <SbRememberWhenCard onClickAuthorPage={onClickAuthorPage} />

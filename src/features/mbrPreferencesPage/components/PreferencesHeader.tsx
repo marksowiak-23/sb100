@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import { PreferencesSubTab } from '../types';
+import { CoachTourTriggerButton } from '@/src/features/coachMarks';
 
 interface PreferencesHeaderProps {
   activeSubTab: PreferencesSubTab;
@@ -52,8 +53,9 @@ export default function PreferencesHeader({
           </div>
         </div>
 
-        {/* Dynamic Save Notification: Pulses in on change, then fades out */}
-        <div className="flex items-center min-h-[32px] self-start sm:self-auto">
+        {/* Dynamic Save Notification & Page Tour */}
+        <div className="flex items-center gap-2 min-h-[32px] self-start sm:self-auto">
+          <CoachTourTriggerButton tourId="preferences_tour" label="Preferences Tour" />
           <AnimatePresence>
             {savedNotification && (
               <motion.div

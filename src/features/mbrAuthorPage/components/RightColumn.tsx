@@ -34,8 +34,12 @@ export default function RightColumn({
   return (
     <div className="space-y-6 flex flex-col justify-between h-full relative">
       <MbrAuthorPhotoBookPanel onOpenPhotoBook={handleLaunchPhotoBook} />
-      <MbrAuthorVoicePanel onOpenVoiceTranslation={onOpenVoiceTranslation} />
-      <MbrAuthorAiPhotoPanel />
+      <div data-coach-mark="author-voice-panel">
+        <MbrAuthorVoicePanel onOpenVoiceTranslation={onOpenVoiceTranslation} />
+      </div>
+      <div data-coach-mark="author-ai-photo-panel">
+        <MbrAuthorAiPhotoPanel />
+      </div>
       <StoryBookGeneratorCard onOpenStoryBookGenerator={onOpenStoryBookGenerator} />
       <SponsorsPanel />
       <LinksPanel />

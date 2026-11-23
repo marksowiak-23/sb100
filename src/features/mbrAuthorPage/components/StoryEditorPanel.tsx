@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { BookOpen, Edit3, Save, Plus, Trash2, X, Loader2, CheckCircle2, AlertCircle, FileText, AlertTriangle, ShieldAlert, Globe, Sparkles, MoreVertical, Layers, Check, Images, Mic, Printer, ArrowUpDown, ArrowUp, ArrowDown, Layout, Newspaper, Camera, Image as ImageIcon, Upload, ChevronLeft, ChevronRight } from 'lucide-react';
-import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark, resolveMediaUrl, mediaApi, MEDIA_API_BASE_URL, isAudioMedia, eventApi, sysConfigApi } from '@/src/services/api';
+import { taskApi, mbrStoryActivityApi, mbrStoryStatApi, MbrStory, Topic, matchTopicByName, DEFAULT_TOPIC_LOOKUP, TopicCustom, MbrMedia, chatApi, mbrAiUsageLogApi, TopicSpark, storySparkAiApi, resolveMediaUrl, mediaApi, MEDIA_API_BASE_URL, isAudioMedia, eventApi, sysConfigApi } from '@/src/services/api';
 import { FALLBACK_PERSONAS, WriterPersona } from '@/src/features/mbrPreferencesPage/types';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import StoryAudioPlayer from '@/src/components/StoryAudioPlayer';
@@ -2435,6 +2435,151 @@ Output Rules:
     setSuccessMsg(null);
     setShowCustomTopicModal(false);
   };
+
+  // Open a brand-new draft story pre-loaded with a short engaging title from a Story Spark idea
+  useEffect(() => {
+    const buildShortSparkTitle = (question: string, fallbackTopic?: string): string => {
+      const cleaned = (question || '')
+        .replace(/[?!.]+$/g, '')
+        .replace(
+          /^(?:what\s+(?:was|is|were|are|would\s+be|did|made|sounds,?\s*smells,?\s*or\s*sights)|which|who\s+(?:was|is|played)|how\s+(?:did|do|has|have)|where\s+(?:did|were|was)|when\s+(?:did|was)|describe\s+(?:a|the|your|an)|tell\s+(?:the\s+story\s+of|about)\s*(?:a|the|your)?|if\s+you\s+could\s+\w+\s*(?:one|a)?|looking\s+back,?\s*what)\s+/i,
+          ''
+        )
+        .replace(/^(?:the\s+most\s+vivid\s+memory\s+of|your\s+most\s+unforgettable\s+memory\s+related\s+to|your\s+favorite|your|a|an|the)\s+/i, '')
+        .replace(/\b(?:that\s+you|you\s+will|still\s+echo|made\s+one\s+of|taught\s+you\s+the\s+most|stands\s+out\s+most).*$/i, '')
+        .replace(/[,;:—–-].*$/, '')
+        .trim();
+
+      const words = cleaned.split(/\s+/).filter(Boolean).slice(0, 5);
+      if (words.length < 2) {
+        return fallbackTopic && fallbackTopic !== 'Section'
+          ? `Memories of ${fallbackTopic}`
+          : 'A Cherished Memory';
+      }
+      const minorWords = new Set(['a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'and', 'or', 'from', 'by']);
+      return words
+        .map((w, idx) => {
+          const lower = w.toLowerCase();
+          if (idx > 0 && minorWords.has(lower)) return lower;
+          return lower.charAt(0).toUpperCase() + lower.slice(1);
+        })
+        .join(' ');
+    };
+
+    const handleStartFromSparkIdea = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      const ideaQuestion: string | undefined = detail?.ideaQuestion;
+      const spark: TopicSpark | undefined = detail?.spark;
+      if (!ideaQuestion) return;
+
+      if (hasExhaustedCredits) {
+        setExhaustedActionAttempted('Creating a new story');
+        setShowExhaustedCreditsModal(true);
+        return;
+      }
+
+      logStoryEditorEvent(
+        'STORY_NEW_OPEN',
+        `Member started a new story from Story Spark idea in topic '${topicTitle}': "${ideaQuestion}"`
+      );
+
+      const isOtherOrCustom =
+        topicId?.toLowerCase() === 'other' ||
+        topicId?.toLowerCase() === 'custom' ||
+        topicTitle?.toLowerCase() === 'other' ||
+        topicTitle?.toLowerCase() === 'custom';
+
+      const newId = `temp_${Date.now()}`;
+      const finalStoryTypeCd =
+        topicId === 'family' || componentName === 'sbMbrStryFamilyMember' || componentName === 'sbMbrStryFamly'
+          ? 'sbMbrStryFamly'
+          : componentName || componentNameMap[topicId?.toLowerCase()] || topicId;
+      const resolvedTopicName =
+        subordinateName ||
+        (topicTitle && topicTitle !== 'Section' ? topicTitle : undefined) ||
+        matchedTopic?.topicFullName ||
+        matchedTopic?.topicName ||
+        'Story';
+
+      const dbSparkTitle = spark?.sparkTitle?.trim();
+      const initialShortTitle = dbSparkTitle || buildShortSparkTitle(ideaQuestion, resolvedTopicName);
+
+      const newStory: Partial<MbrStory> = {
+        mbrStoryId: newId,
+        mbrStoryTitle: initialShortTitle,
+        mbrStoryContent: '',
+        mbrStoryPublishStatusCd: 'Draft',
+        mbrStoryTypeCd: finalStoryTypeCd,
+        mbrStorySubordinateId: subordinateId || spark?.sparkId || undefined,
+        mbrStoryTopicName: resolvedTopicName,
+        topicId: resolvedTopicId,
+        chIntentId: resolvedChIntentId || (isOtherOrCustom ? DEFAULT_TOPIC_LOOKUP['other'].chIntentId : undefined),
+        mbrCustomTopicId: isOtherOrCustom ? subordinateId || undefined : undefined
+      };
+
+      setStories((prev) => [...prev, newStory]);
+      setActiveStoryId(newId);
+      setTitle(initialShortTitle);
+      setContent('');
+      setStoryLayout('default');
+      setHeaderPhotoUrl('');
+      setHeaderPhotoCaption('');
+      setHeaderPhotoStyle('banner');
+      setStatus('Draft');
+      setActiveIntentId(newStory.chIntentId);
+      setIsEditing(true);
+      setError(null);
+      setSuccessMsg(`Story Spark: "${ideaQuestion}"`);
+      setShowCustomTopicModal(false);
+
+      setTimeout(() => {
+        const el = document.getElementById('story-editor-panel');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+
+      // Only call AI title generator as a fallback when the topicSpark record has no pre-populated sparkTitle
+      if (!dbSparkTitle && !isSandbox) {
+        storySparkAiApi
+          .generateTitle({
+            spark_question: ideaQuestion,
+            topic_title: resolvedTopicName
+          })
+          .then((res) => {
+            const aiTitle = res?.title?.trim();
+            if (!aiTitle) return;
+            setTitle((curr) => (curr === initialShortTitle ? aiTitle : curr));
+            setStories((prev) =>
+              prev.map((s) =>
+                s.mbrStoryId === newId && s.mbrStoryTitle === initialShortTitle
+                  ? { ...s, mbrStoryTitle: aiTitle }
+                  : s
+              )
+            );
+          })
+          .catch((err) => {
+            console.warn('Could not refine short Story Spark title with AI, keeping local title:', err);
+          });
+      }
+    };
+
+    window.addEventListener('start-story-from-spark-idea', handleStartFromSparkIdea);
+    return () => {
+      window.removeEventListener('start-story-from-spark-idea', handleStartFromSparkIdea);
+    };
+  }, [
+    hasExhaustedCredits,
+    isSandbox,
+    topicId,
+    topicTitle,
+    componentName,
+    subordinateId,
+    subordinateName,
+    resolvedTopicId,
+    resolvedChIntentId,
+    matchedTopic
+  ]);
 
   const handleSave = async () => {
     if (!title.trim()) {

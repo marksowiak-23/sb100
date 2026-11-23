@@ -130,6 +130,19 @@ export default function MainLayout({
     sessionStorage.getItem('sb_current_mbr')
   );
 
+  const isAdminUser = React.useMemo(() => {
+    try {
+      if (sessionStorage.getItem('sb_current_adm')) return true;
+      const userStr = sessionStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        const role = String(u?.role || u?.user_role || '').toLowerCase();
+        if (role === 'admin' || role === 'administrator' || u?.is_admin === true) return true;
+      }
+    } catch {}
+    return false;
+  }, [activeTab]);
+
   const handleSessionTimeout = React.useCallback(() => {
     userManager.userLogout();
     setProfilePic(null);
@@ -314,8 +327,16 @@ export default function MainLayout({
   return (
     <div
       id="app-container"
-      className="min-h-screen w-full flex flex-col bg-[#FAF8F5] text-slate-800 font-sans select-none overflow-x-clip relative"
+      className="min-h-screen w-full flex flex-col bg-[#FAF8F5] text-slate-800 font-sans overflow-x-clip relative"
     >
+      {/* Skip to Main Content link for keyboard & screen-reader users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[200] focus:px-4 focus:py-2 focus:rounded-xl focus:bg-blue-600 focus:text-white focus:font-semibold focus:text-sm focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* --- HEADER SECTION --- */}
       <header
         id="app-header"
@@ -385,6 +406,7 @@ export default function MainLayout({
             {/* 2. Author */}
             <button
               type="button"
+              data-coach-mark="nav-author"
               onClick={() => {
                 setActiveTab('mbrAuthorPage');
                 setDropdownOpen(false);
@@ -405,6 +427,7 @@ export default function MainLayout({
             {/* 3. Connections */}
             <button
               type="button"
+              data-coach-mark="nav-connections"
               onClick={() => {
                 setActiveTab('mbrConnections');
                 setDropdownOpen(false);
@@ -435,6 +458,7 @@ export default function MainLayout({
             {/* 4. Stories */}
             <button
               type="button"
+              data-coach-mark="nav-stories"
               onClick={() => {
                 setActiveTab('mbrStoryFeedPage');
                 setDropdownOpen(false);
@@ -452,6 +476,8 @@ export default function MainLayout({
               <span className="text-[11px] font-sans tracking-tight leading-none">Stories</span>
             </button>
 
+            {/* 3 & 4. Messaging + Notifications group */}
+            <div className="flex items-center h-full gap-0.5 sm:gap-2 md:gap-4" data-coach-mark="nav-comms">
             {/* 3. Messaging */}
             <div className="relative h-full flex items-center">
               <button
@@ -615,9 +641,10 @@ export default function MainLayout({
                 </>
               )}
             </div>
+            </div>
 
             {/* 5. Me / Account Dropdown */}
-            <div className="relative h-full flex items-center pl-1 sm:pl-2 border-l border-slate-800/80">
+            <div className="relative h-full flex items-center pl-1 sm:pl-2 border-l border-slate-800/80" data-coach-mark="nav-me">
               <button
                 type="button"
                 onClick={() => {
@@ -1019,7 +1046,8 @@ export default function MainLayout({
               </button>
             </div>
 
-            {/* Administrator Tools (Collapsible) */}
+            {/* Administrator Tools (Collapsible - Admin users only) */}
+            {isAdminUser && (
             <div className="space-y-1 pt-2 border-t border-slate-800">
               <button
                 type="button"
@@ -1154,6 +1182,7 @@ export default function MainLayout({
                 </div>
               )}
             </div>
+            )}
 
             {/* Logout Option */}
             <div className="pt-2 border-t border-slate-800">
@@ -1178,7 +1207,7 @@ export default function MainLayout({
 
       {/* --- MAIN PORTVIEW (Content Injection Area) --- */}
       {/* We render {children} here. React inserts whatever children elements were nested within the layout container. */}
-      <main className={`flex-grow flex flex-col items-center justify-start pt-2.5 sm:pt-6 md:pt-8 ${isMemberLoggedIn ? 'pb-24 lg:pb-16' : 'pb-16'} px-1.5 sm:px-4 md:px-12 max-w-7xl w-full mx-auto`}>
+      <main id="main-content" tabIndex={-1} className={`flex-grow flex flex-col items-center justify-start pt-2.5 sm:pt-6 md:pt-8 ${isMemberLoggedIn ? 'pb-24 lg:pb-16' : 'pb-16'} px-1.5 sm:px-4 md:px-12 max-w-7xl w-full mx-auto focus:outline-none`}>
         {children}
       </main>
 
@@ -1258,6 +1287,7 @@ export default function MainLayout({
             {/* 2. Author */}
             <button
               type="button"
+              data-coach-mark="nav-author"
               onClick={() => {
                 setActiveTab('mbrAuthorPage');
                 setIsMobileAccountOpen(false);
@@ -1279,6 +1309,7 @@ export default function MainLayout({
             {/* 3. Connections */}
             <button
               type="button"
+              data-coach-mark="nav-connections"
               onClick={() => {
                 setActiveTab('mbrConnections');
                 setIsMobileAccountOpen(false);
@@ -1307,6 +1338,7 @@ export default function MainLayout({
             {/* 4. Stories */}
             <button
               type="button"
+              data-coach-mark="nav-stories"
               onClick={() => {
                 setActiveTab('mbrStoryFeedPage');
                 setIsMobileAccountOpen(false);

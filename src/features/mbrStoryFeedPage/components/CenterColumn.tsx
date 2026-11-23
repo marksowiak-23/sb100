@@ -57,7 +57,7 @@ export default function CenterColumn({
       />
 
       {/* Feed Sub-Headers: Desktop vs Mobile */}
-      <div>
+      <div data-coach-mark="feed-filters">
         <StoryFeedSubHeaderPanel
           storiesCount={stories.length}
           connectionsOnly={connectionsOnly}
@@ -126,14 +126,15 @@ export default function CenterColumn({
       {/* Stories List */}
       {!loading && stories.length > 0 && (
         <div className="space-y-3.5">
-          {stories.map((story) => (
-            <MbrStoryFeedStoryPanel
-              key={story.mbrStoryId}
-              story={story}
-              isRead={readStoryIds ? readStoryIds.has(story.mbrStoryId) : false}
-              onClickReadStory={onClickReadStory}
-              onClickViewAuthor={onClickViewAuthor}
-            />
+          {stories.map((story, idx) => (
+            <div key={story.mbrStoryId} data-coach-mark={idx === 0 ? 'feed-story-card' : undefined}>
+              <MbrStoryFeedStoryPanel
+                story={story}
+                isRead={readStoryIds ? readStoryIds.has(story.mbrStoryId) : false}
+                onClickReadStory={onClickReadStory}
+                onClickViewAuthor={onClickViewAuthor}
+              />
+            </div>
           ))}
         </div>
       )}

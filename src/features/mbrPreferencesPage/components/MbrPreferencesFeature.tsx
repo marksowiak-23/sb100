@@ -20,6 +20,7 @@ import PreferencesNavigationMenu from './PreferencesNavigationMenu';
 import PreferencesGuidancePanel from './PreferencesGuidancePanel';
 import StoryMatePersonaPanel from './StoryMatePersonaPanel';
 import WorkspacePreferencesPanel from './WorkspacePreferencesPanel';
+import { useCoachMarks } from '@/src/features/coachMarks';
 
 export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyChange }: MbrPreferencesFeatureProps) {
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,14 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   const [error, setError] = useState<string | null>(null);
   const [savedNotification, setSavedNotification] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { requestAutoTour } = useCoachMarks();
+
+  useEffect(() => {
+    return requestAutoTour('preferences_tour', {
+      delayMs: 900,
+      blocked: loading
+    });
+  }, [requestAutoTour, loading]);
 
   // Active sub-tab state: 'story-mate' or 'workspace'
   const [activeSubTab, setActiveSubTab] = useState<PreferencesSubTab>('story-mate');
@@ -42,6 +51,16 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
   const [autoSaveInd, setAutoSaveInd] = useState<boolean>(true);
   const [hideGettingStartedCard, setHideGettingStartedCard] = useState<boolean>(false);
   const [hideHowToAuthorCard, setHideHowToAuthorCard] = useState<boolean>(false);
+  const [hideStorySparkCard, setHideStorySparkCard] = useState<boolean>(false);
+  const [coachMarksDisabled, setCoachMarksDisabled] = useState<boolean>(false);
+  const [completedCoachToursCount, setCompletedCoachToursCount] = useState<number>(0);
+  const [fontScale, setFontScale] = useState<'standard' | 'large' | 'xlarge'>(() => {
+    try {
+      const saved = sessionStorage.getItem('sb_font_scale') || localStorage.getItem('sb_font_scale');
+      if (saved === 'standard' || saved === 'large' || saved === 'xlarge') return saved;
+    } catch {}
+    return 'standard';
+  });
 
   // Initial reference state
   const [initialPrefs, setInitialPrefs] = useState({
@@ -50,7 +69,10 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     notificationsInd: true,
     autoSaveInd: true,
     hideGettingStartedCard: false,
-    hideHowToAuthorCard: false
+    hideHowToAuthorCard: false,
+    hideStorySparkCard: false,
+    coachMarksDisabled: false,
+    fontScale: 'standard' as 'standard' | 'large' | 'xlarge'
   });
 
   // Calculate dirty states (always clean because changes save automatically)
@@ -64,9 +86,12 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
       notificationsInd !== initialPrefs.notificationsInd ||
       autoSaveInd !== initialPrefs.autoSaveInd ||
       hideGettingStartedCard !== initialPrefs.hideGettingStartedCard ||
-      hideHowToAuthorCard !== initialPrefs.hideHowToAuthorCard
+      hideHowToAuthorCard !== initialPrefs.hideHowToAuthorCard ||
+      hideStorySparkCard !== initialPrefs.hideStorySparkCard ||
+      coachMarksDisabled !== initialPrefs.coachMarksDisabled ||
+      fontScale !== initialPrefs.fontScale
     );
-  }, [selectedTheme, notificationsInd, autoSaveInd, hideGettingStartedCard, hideHowToAuthorCard, initialPrefs]);
+  }, [selectedTheme, notificationsInd, autoSaveInd, hideGettingStartedCard, hideHowToAuthorCard, hideStorySparkCard, coachMarksDisabled, fontScale, initialPrefs]);
 
   const isDirty = useMemo(() => {
     return isStoryMateDirty || isWorkspaceDirty;
@@ -178,10 +203,23 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
       }
       const defaultHideGettingStarted = Boolean(parsedJson?.hideGettingStartedCard);
       const defaultHideHowToAuthor = Boolean(parsedJson?.hideHowToAuthorCard);
+      const defaultHideStorySpark = Boolean(parsedJson?.hideStorySparkCard);
+      const defaultCoachMarksDisabled = Boolean(parsedJson?.coachMarksDisabled);
+      const defaultCompletedCoachTours: string[] = Array.isArray(parsedJson?.completedCoachTours)
+        ? parsedJson.completedCoachTours
+        : [];
+      const rawFontScale = parsedJson?.fontScale || sessionStorage.getItem('sb_font_scale') || localStorage.getItem('sb_font_scale') || 'standard';
+      const defaultFontScale: 'standard' | 'large' | 'xlarge' =
+        rawFontScale === 'large' || rawFontScale === 'xlarge' ? rawFontScale : 'standard';
 
       sessionStorage.setItem(`sb_pref_json_${currentMbrId}`, JSON.stringify(parsedJson || {}));
       sessionStorage.setItem(`sb_hide_getting_started_${currentMbrId}`, JSON.stringify(defaultHideGettingStarted));
       sessionStorage.setItem(`sb_hide_howto_author_${currentMbrId}`, JSON.stringify(defaultHideHowToAuthor));
+      sessionStorage.setItem(`sb_hide_story_spark_${currentMbrId}`, JSON.stringify(defaultHideStorySpark));
+      sessionStorage.setItem(`sb_coach_marks_disabled_${currentMbrId}`, JSON.stringify(defaultCoachMarksDisabled));
+      sessionStorage.setItem('sb_font_scale', defaultFontScale);
+      localStorage.setItem('sb_font_scale', defaultFontScale);
+      document.documentElement.setAttribute('data-font-scale', defaultFontScale);
 
       setMbrPrefId(prefRecord?.mbrPrefId || null);
       setSelectedWriterId(defaultWriter);
@@ -190,6 +228,10 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
       setAutoSaveInd(defaultAutoSave);
       setHideGettingStartedCard(defaultHideGettingStarted);
       setHideHowToAuthorCard(defaultHideHowToAuthor);
+      setHideStorySparkCard(defaultHideStorySpark);
+      setCoachMarksDisabled(defaultCoachMarksDisabled);
+      setCompletedCoachToursCount(defaultCompletedCoachTours.length);
+      setFontScale(defaultFontScale);
 
       setInitialPrefs({
         selectedWriterId: defaultWriter,
@@ -197,7 +239,10 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         notificationsInd: defaultNotif,
         autoSaveInd: defaultAutoSave,
         hideGettingStartedCard: defaultHideGettingStarted,
-        hideHowToAuthorCard: defaultHideHowToAuthor
+        hideHowToAuthorCard: defaultHideHowToAuthor,
+        hideStorySparkCard: defaultHideStorySpark,
+        coachMarksDisabled: defaultCoachMarksDisabled,
+        fontScale: defaultFontScale
       });
 
     } catch (err: any) {
@@ -215,6 +260,10 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     mbrPrefAutoSaveInd?: boolean;
     hideGettingStartedCard?: boolean;
     hideHowToAuthorCard?: boolean;
+    hideStorySparkCard?: boolean;
+    coachMarksDisabled?: boolean;
+    completedCoachTours?: string[];
+    fontScale?: 'standard' | 'large' | 'xlarge';
   }) => {
     setSaving(true);
     setError(null);
@@ -226,6 +275,9 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     const newAutoSave = updates.mbrPrefAutoSaveInd !== undefined ? updates.mbrPrefAutoSaveInd : autoSaveInd;
     const newHideGettingStarted = updates.hideGettingStartedCard !== undefined ? updates.hideGettingStartedCard : hideGettingStartedCard;
     const newHideHowToAuthor = updates.hideHowToAuthorCard !== undefined ? updates.hideHowToAuthorCard : hideHowToAuthorCard;
+    const newHideStorySpark = updates.hideStorySparkCard !== undefined ? updates.hideStorySparkCard : hideStorySparkCard;
+    const newCoachMarksDisabled = updates.coachMarksDisabled !== undefined ? updates.coachMarksDisabled : coachMarksDisabled;
+    const newFontScale = updates.fontScale !== undefined ? updates.fontScale : fontScale;
 
     try {
       let currentJsonObj: any = {};
@@ -237,6 +289,12 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
       }
       currentJsonObj.hideGettingStartedCard = newHideGettingStarted;
       currentJsonObj.hideHowToAuthorCard = newHideHowToAuthor;
+      currentJsonObj.hideStorySparkCard = newHideStorySpark;
+      currentJsonObj.coachMarksDisabled = newCoachMarksDisabled;
+      currentJsonObj.fontScale = newFontScale;
+      if (updates.completedCoachTours !== undefined) {
+        currentJsonObj.completedCoachTours = updates.completedCoachTours;
+      }
 
       const payload = {
         mbrId: targetMbrId,
@@ -255,14 +313,28 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         window.dispatchEvent(new Event('theme-changed'));
       }
 
+      if (updates.fontScale !== undefined) {
+        sessionStorage.setItem('sb_font_scale', newFontScale);
+        localStorage.setItem('sb_font_scale', newFontScale);
+        document.documentElement.setAttribute('data-font-scale', newFontScale);
+      }
+
       sessionStorage.setItem(`sb_pref_json_${targetMbrId}`, JSON.stringify(currentJsonObj));
       sessionStorage.setItem(`sb_hide_getting_started_${targetMbrId}`, JSON.stringify(newHideGettingStarted));
       sessionStorage.setItem(`sb_hide_howto_author_${targetMbrId}`, JSON.stringify(newHideHowToAuthor));
+      sessionStorage.setItem(`sb_hide_story_spark_${targetMbrId}`, JSON.stringify(newHideStorySpark));
+      sessionStorage.setItem(`sb_coach_marks_disabled_${targetMbrId}`, JSON.stringify(newCoachMarksDisabled));
       window.dispatchEvent(new CustomEvent('preferences-changed', {
         detail: {
           mbrId: targetMbrId,
           hideGettingStartedCard: newHideGettingStarted,
-          hideHowToAuthorCard: newHideHowToAuthor
+          hideHowToAuthorCard: newHideHowToAuthor,
+          hideStorySparkCard: newHideStorySpark,
+          coachMarksDisabled: newCoachMarksDisabled,
+          fontScale: newFontScale,
+          ...(updates.completedCoachTours !== undefined
+            ? { completedCoachTours: updates.completedCoachTours }
+            : {})
         }
       }));
 
@@ -284,7 +356,10 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
         notificationsInd: newNotif,
         autoSaveInd: newAutoSave,
         hideGettingStartedCard: newHideGettingStarted,
-        hideHowToAuthorCard: newHideHowToAuthor
+        hideHowToAuthorCard: newHideHowToAuthor,
+        hideStorySparkCard: newHideStorySpark,
+        coachMarksDisabled: newCoachMarksDisabled,
+        fontScale: newFontScale
       });
 
       if (onDirtyChange) {
@@ -328,6 +403,30 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
     savePreferencesChange({ hideHowToAuthorCard: hide });
   };
 
+  const handleToggleHideStorySparkCard = (hide: boolean) => {
+    setHideStorySparkCard(hide);
+    savePreferencesChange({ hideStorySparkCard: hide });
+  };
+
+  const handleToggleCoachMarksDisabled = (disabled: boolean) => {
+    setCoachMarksDisabled(disabled);
+    savePreferencesChange({ coachMarksDisabled: disabled });
+  };
+
+  const handleResetCoachTours = () => {
+    setCoachMarksDisabled(false);
+    setCompletedCoachToursCount(0);
+    savePreferencesChange({
+      coachMarksDisabled: false,
+      completedCoachTours: []
+    });
+  };
+
+  const handleSelectFontScale = (scale: 'standard' | 'large' | 'xlarge') => {
+    setFontScale(scale);
+    savePreferencesChange({ fontScale: scale });
+  };
+
   const handleToggleNotifications = (checked: boolean) => {
     setNotificationsInd(checked);
     savePreferencesChange({ mbrPrefNotificationsInd: checked });
@@ -356,12 +455,14 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
             {/* LEFT COLUMN: BRAND HEADER & NAVIGATION MENU */}
             <aside className="lg:col-span-4 xl:col-span-3 space-y-2.5 sm:space-y-4 lg:space-y-6">
               <PreferencesPageHeaderPanel />
-              <PreferencesNavigationMenu
-                activeSubTab={activeSubTab}
-                onSelectTab={setActiveSubTab}
-                isStoryMateDirty={isStoryMateDirty}
-                isWorkspaceDirty={isWorkspaceDirty}
-              />
+              <div data-coach-mark="preferences-nav">
+                <PreferencesNavigationMenu
+                  activeSubTab={activeSubTab}
+                  onSelectTab={setActiveSubTab}
+                  isStoryMateDirty={isStoryMateDirty}
+                  isWorkspaceDirty={isWorkspaceDirty}
+                />
+              </div>
               <PreferencesGuidancePanel />
             </aside>
 
@@ -377,6 +478,8 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
                 onDismissError={() => setError(null)}
               />
 
+              {/* Active Sub-Panel */}
+              <div data-coach-mark="preferences-main-panel">
               {/* Sub-Panel 1: Story Craft Assistant Persona */}
               {activeSubTab === 'story-mate' && (
                 <StoryMatePersonaPanel
@@ -395,8 +498,17 @@ export default function MbrPreferencesFeature({ isSandbox, onClickBack, onDirtyC
                   onToggleHideGettingStartedCard={handleToggleHideGettingStartedCard}
                   hideHowToAuthorCard={hideHowToAuthorCard}
                   onToggleHideHowToAuthorCard={handleToggleHideHowToAuthorCard}
+                  hideStorySparkCard={hideStorySparkCard}
+                  onToggleHideStorySparkCard={handleToggleHideStorySparkCard}
+                  coachMarksDisabled={coachMarksDisabled}
+                  onToggleCoachMarksDisabled={handleToggleCoachMarksDisabled}
+                  completedCoachToursCount={completedCoachToursCount}
+                  onResetCoachTours={handleResetCoachTours}
+                  fontScale={fontScale}
+                  onSelectFontScale={handleSelectFontScale}
                 />
               )}
+              </div>
 
             </main>
 

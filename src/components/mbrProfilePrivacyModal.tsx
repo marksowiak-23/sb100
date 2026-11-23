@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useModalA11y } from '@/src/hooks/useModalA11y';
 import { ShieldAlert, X, CheckCircle2, Save, Loader2, Users, UserCheck, Briefcase, Globe, Shield, AlertTriangle } from 'lucide-react';
 import { taskApi } from '@/src/services/api';
 import { CdSelect } from '@/src/components/CdSelect';
@@ -48,6 +49,7 @@ export default function MbrProfilePrivacyModal({
   onSaved
 }: MbrProfilePrivacyModalProps) {
   const [loading, setLoading] = useState(false);
+  const { dialogProps } = useModalA11y({ isOpen, onClose });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -348,7 +350,8 @@ export default function MbrProfilePrivacyModal({
         {isOpen && (
           <div 
             key="profile-privacy-backdrop"
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
+            {...dialogProps}
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 handleRequestClose();

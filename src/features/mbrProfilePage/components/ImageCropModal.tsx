@@ -6,6 +6,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ZoomIn, ZoomOut, RotateCw, RefreshCw, X, Check, Crop, Move, Maximize, Minimize } from 'lucide-react';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { useModalA11y } from '@/src/hooks/useModalA11y';
 
 interface ImageCropModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function ImageCropModal({
   onCancel,
 }: ImageCropModalProps) {
   const [zoom, setZoom] = useState<number>(1);
+  const { dialogProps } = useModalA11y({ isOpen, onClose: onCancel });
   const [rotation, setRotation] = useState<number>(0);
   const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -274,7 +276,7 @@ export default function ImageCropModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-md transition-opacity animate-in fade-in duration-200">
+    <div {...dialogProps} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-md transition-opacity animate-in fade-in duration-200">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[92vh]">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">

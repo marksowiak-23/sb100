@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Plane, Trash2, Edit3, X, Plus, Loader2, 
@@ -18,6 +18,7 @@ import {
   Cd,
   isAudioMedia
 } from '@/src/services/api';
+import { useCodes } from '@/src/context/CodeContext';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import MbrPhotoGalleryPanel from '@/src/components/mbrPhotoGalleryPanel';
 import MbrTopicPrivacyModal from '@/src/components/mbrTopicPrivacyModal';
@@ -107,6 +108,20 @@ const DEFAULT_TRAVEL_MODE_CODES: Partial<Cd>[] = [
   { cdValue: 'MULTI_MODAL', cdLabel: 'Multi-Modal / Mixed', cdDesc: 'Combination of multiple travel modes', cdSortOrder: 8 }
 ];
 
+function resolveStoredTripMemberId(propMemberId?: string): string | null {
+  if (propMemberId) return propMemberId;
+  try {
+    const storedMbr = sessionStorage.getItem('sb_current_mbr');
+    if (storedMbr) {
+      const parsed = JSON.parse(storedMbr);
+      if (parsed?.mbrId) return parsed.mbrId;
+    }
+  } catch {}
+  return null;
+}
+
+const getTripsCacheKey = (id: string, sandbox: boolean) => `sb_cache_trips_${sandbox ? 'sbx' : 'live'}_${id}`;
+
 export default function MbrStoryTripsPanel({
   isSandbox = false,
   memberId,
@@ -114,16 +129,60 @@ export default function MbrStoryTripsPanel({
   topicId = DEFAULT_TOPIC_LOOKUP.trips?.topicId || '5cd2052b-28fc-434f-9ce4-4358ff944576',
   chIntentId = DEFAULT_TOPIC_LOOKUP.trips?.chIntentId || '5cd2052b-28fc-434f-9ce4-4358ff944576'
 }: MbrStoryTripsPanelProps) {
-  // --- STATE VARIABLES ---
-  const [loading, setLoading] = useState(true);
+  const { getCodesByTag } = useCodes();
+  const initialMbrId = resolveStoredTripMemberId(memberId) || '9edb4311-a4bc-428a-8317-833f0f08fea1';
+
+  // --- STATE VARIABLES (hydrated from sessionStorage cache for 0ms instant paint) ---
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem(getTripsCacheKey(initialMbrId, isSandbox));
+    } catch {
+      return true;
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [mbrId, setMbrId] = useState<string>(memberId || '9edb4311-a4bc-428a-8317-833f0f08fea1');
-  const [tripList, setTripList] = useState<MbrTopicTrip[]>([]);
-  const [typeCodes, setTypeCodes] = useState<Partial<Cd>[]>(DEFAULT_TRIP_TYPE_CODES);
-  const [modeCodes, setModeCodes] = useState<Partial<Cd>[]>(DEFAULT_TRAVEL_MODE_CODES);
+  const [mbrId, setMbrId] = useState<string>(initialMbrId);
+  const [tripList, setTripList] = useState<MbrTopicTrip[]>(() => {
+    try {
+      const cached = sessionStorage.getItem(getTripsCacheKey(initialMbrId, isSandbox));
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed?.list)) return parsed.list;
+      }
+    } catch {}
+    return [];
+  });
+
+  // Derive lookup codes from cached CodeContext (0 extra network calls)
+  const typeCodes = useMemo<Partial<Cd>[]>(() => {
+    const dbCodes = getCodesByTag('tripTypeCd');
+    return dbCodes.length > 0 ? dbCodes : DEFAULT_TRIP_TYPE_CODES;
+  }, [getCodesByTag]);
+
+  const modeCodes = useMemo<Partial<Cd>[]>(() => {
+    const dbCodes = getCodesByTag('tripModeOfTravelCd');
+    return dbCodes.length > 0 ? dbCodes : DEFAULT_TRAVEL_MODE_CODES;
+  }, [getCodesByTag]);
+
+  // O(1) lookup maps for rendering rows
+  const typeCodeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    typeCodes.forEach((c) => {
+      if (c?.cdValue) map.set(c.cdValue.toLowerCase(), c.cdLabel || c.cdValue);
+    });
+    return map;
+  }, [typeCodes]);
+
+  const modeCodeMap = useMemo(() => {
+    const map = new Map<string, string>();
+    modeCodes.forEach((c) => {
+      if (c?.cdValue) map.set(c.cdValue.toLowerCase(), c.cdLabel || c.cdValue);
+    });
+    return map;
+  }, [modeCodes]);
 
   // --- MODAL FORM STATE ---
   const [showModal, setShowModal] = useState(false);
@@ -186,8 +245,30 @@ export default function MbrStoryTripsPanel({
     };
   }, [activeActionMenuId, showHeaderMenu]);
 
+  const computeTripPhotoCounts = useCallback((mediaList: any[]) => {
+    const photoMap: Record<string, number> = {};
+    let headerPhotos = 0;
+
+    if (Array.isArray(mediaList)) {
+      mediaList.forEach((m) => {
+        if (isAudioMedia(m)) return;
+        const category = (m.mbrMediaCategoryCd || '').toLowerCase();
+        if (category.includes('trip') || category.includes('vacation') || category.includes('travel')) {
+          headerPhotos++;
+          if (m.mbrMediaSubordinateId) {
+            photoMap[m.mbrMediaSubordinateId] = (photoMap[m.mbrMediaSubordinateId] || 0) + 1;
+          }
+        }
+      });
+    }
+
+    setHeaderPhotoCount(headerPhotos);
+    setTripPhotosMap(photoMap);
+    return { photoMap, headerPhotos };
+  }, []);
+
   // Load photo count badges for trips
-  const loadSubordinateCounts = async (targetMbrId: string, currentTrips: MbrTopicTrip[]) => {
+  const loadSubordinateCounts = useCallback(async (targetMbrId: string, _currentTrips?: MbrTopicTrip[]) => {
     try {
       if (isSandbox) {
         setHeaderPhotoCount(0);
@@ -195,61 +276,35 @@ export default function MbrStoryTripsPanel({
         return;
       }
       const mediaList: any[] = await taskApi.getMemberMedia(targetMbrId, { excludeAudio: true }).catch(() => []);
-      if (Array.isArray(mediaList)) {
-        const photoMap: Record<string, number> = {};
-        let headerPhotos = 0;
-
-        mediaList.forEach((m) => {
-          if (isAudioMedia(m)) return;
-          const category = (m.mbrMediaCategoryCd || '').toLowerCase();
-          if (category.includes('trip') || category.includes('vacation') || category.includes('travel')) {
-            headerPhotos++;
-            if (m.mbrMediaSubordinateId) {
-              photoMap[m.mbrMediaSubordinateId] = (photoMap[m.mbrMediaSubordinateId] || 0) + 1;
-            }
-          }
-        });
-
-        setHeaderPhotoCount(headerPhotos);
-        setTripPhotosMap(photoMap);
-      }
+      computeTripPhotoCounts(mediaList);
     } catch {
       // Graceful fallback
     }
-  };
+  }, [isSandbox, computeTripPhotoCounts]);
 
-  // Re-fetch subordinate counts when story or gallery events occur
+  // Debounced refresh ONLY when a story is saved (not on every editor keystroke)
+  const syncTimerRef = useRef<number | null>(null);
   useEffect(() => {
     const handleSync = () => {
-      loadSubordinateCounts(mbrId, tripList);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = window.setTimeout(() => {
+        loadSubordinateCounts(mbrId, tripList);
+      }, 300);
     };
-    window.addEventListener('update-story-editor-content', handleSync);
     window.addEventListener('story-saved', handleSync);
-    window.addEventListener('storage', handleSync);
     return () => {
-      window.removeEventListener('update-story-editor-content', handleSync);
       window.removeEventListener('story-saved', handleSync);
-      window.removeEventListener('storage', handleSync);
+      if (syncTimerRef.current) window.clearTimeout(syncTimerRef.current);
     };
-  }, [mbrId, tripList, isSandbox]);
+  }, [mbrId, tripList, loadSubordinateCounts]);
 
-  // Primary Data Fetch
+  // Primary Data Fetch (Single concurrent Promise.all + stale-while-revalidate cache)
   useEffect(() => {
     let isMounted = true;
     const init = async () => {
-      setLoading(true);
       setError(null);
       try {
-        let currentMbrId = memberId;
-        if (!currentMbrId) {
-          const storedMbr = sessionStorage.getItem('sb_current_mbr');
-          if (storedMbr) {
-            try {
-              const parsed = JSON.parse(storedMbr);
-              if (parsed.mbrId) currentMbrId = parsed.mbrId;
-            } catch {}
-          }
-        }
+        let currentMbrId = resolveStoredTripMemberId(memberId);
         if (!currentMbrId) {
           const userStr = sessionStorage.getItem('user');
           if (userStr && !isSandbox) {
@@ -267,23 +322,28 @@ export default function MbrStoryTripsPanel({
         if (!currentMbrId) {
           currentMbrId = '9edb4311-a4bc-428a-8317-833f0f08fea1';
         }
-        if (isMounted) setMbrId(currentMbrId);
+        if (!isMounted) return;
+        setMbrId(currentMbrId);
 
-        // Fetch lookup codes for trip types & modes of travel
+        // Hydrate from cache if available
+        const cacheKey = getTripsCacheKey(currentMbrId, isSandbox);
+        let hasCache = false;
         try {
-          const [tripTypes, travelModes] = await Promise.all([
-            taskApi.getCds('tripTypeCd').catch(() => []),
-            taskApi.getCds('tripModeOfTravelCd').catch(() => [])
-          ]);
-          if (Array.isArray(tripTypes) && tripTypes.length > 0 && isMounted) {
-            setTypeCodes(tripTypes);
+          const cached = sessionStorage.getItem(cacheKey);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed?.list)) {
+              setTripList(parsed.list);
+              if (parsed.counts) {
+                setTripPhotosMap(parsed.counts.photoMap || {});
+                setHeaderPhotoCount(parsed.counts.headerPhotos || 0);
+              }
+              setLoading(false);
+              hasCache = true;
+            }
           }
-          if (Array.isArray(travelModes) && travelModes.length > 0 && isMounted) {
-            setModeCodes(travelModes);
-          }
-        } catch {
-          // fallback to defaults
-        }
+        } catch {}
+        if (!hasCache) setLoading(true);
 
         if (isSandbox) {
           const local = sessionStorage.getItem('sandbox_trips');
@@ -291,34 +351,38 @@ export default function MbrStoryTripsPanel({
           if (isMounted) {
             setTripList(data);
             loadSubordinateCounts(currentMbrId, data);
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify({ list: data }));
+            } catch {}
           }
         } else {
-          try {
-            const dbData = await taskApi.getMemberTrips(currentMbrId);
-            if (isMounted) {
-              let list = Array.isArray(dbData) ? dbData : [];
-              if (list.length === 0 && (currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1' || memberId === 'm1')) {
-                list = SANDBOX_TRIPS;
-              }
-              setTripList(list);
-              loadSubordinateCounts(currentMbrId, list);
-            }
-          } catch (err: any) {
-            if (isMounted) {
+          // Single parallel batch: trips + media simultaneously (zero waterfall)
+          const [dbData, mediaList] = await Promise.all([
+            taskApi.getMemberTrips(currentMbrId).catch((err: any) => {
               if (memberId === 'm1' || currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1' || err.message?.includes('Parent member profile not found')) {
                 console.warn("Falling back to sandbox trips due to unseeded parent member:", err);
                 const local = sessionStorage.getItem('sandbox_trips');
-                const data = local ? JSON.parse(local) : SANDBOX_TRIPS;
-                setTripList(data);
-                loadSubordinateCounts(currentMbrId, data);
-              } else {
-                setError(`Failed to load trips: ${err.message || err}`);
+                return local ? JSON.parse(local) : SANDBOX_TRIPS;
               }
+              throw err;
+            }),
+            taskApi.getMemberMedia(currentMbrId, { excludeAudio: true }).catch(() => [])
+          ]);
+
+          if (isMounted) {
+            let list = Array.isArray(dbData) ? dbData : [];
+            if (list.length === 0 && (currentMbrId === '9edb4311-a4bc-428a-8317-833f0f08fea1' || memberId === 'm1')) {
+              list = SANDBOX_TRIPS;
             }
+            setTripList(list);
+            const counts = computeTripPhotoCounts(mediaList);
+            try {
+              sessionStorage.setItem(cacheKey, JSON.stringify({ list, counts }));
+            } catch {}
           }
         }
       } catch (err: any) {
-        if (isMounted) setError(`Failed to load trips: ${err.message}`);
+        if (isMounted) setError(`Failed to load trips: ${err.message || err}`);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -326,23 +390,17 @@ export default function MbrStoryTripsPanel({
 
     init();
     return () => { isMounted = false; };
-  }, [isSandbox, memberId]);
+  }, [isSandbox, memberId, computeTripPhotoCounts, loadSubordinateCounts]);
 
-  const getTypeLabel = (cdVal?: string | null) => {
+  const getTypeLabel = useCallback((cdVal?: string | null) => {
     if (!cdVal) return 'Vacation';
-    const found = typeCodes.find(
-      (c) => c?.cdValue?.toLowerCase() === cdVal?.toLowerCase()
-    );
-    return found?.cdLabel || found?.cdValue || cdVal;
-  };
+    return typeCodeMap.get(cdVal.toLowerCase()) || cdVal;
+  }, [typeCodeMap]);
 
-  const getModeLabel = (cdVal?: string | null) => {
+  const getModeLabel = useCallback((cdVal?: string | null) => {
     if (!cdVal) return '';
-    const found = modeCodes.find(
-      (c) => c?.cdValue?.toLowerCase() === cdVal?.toLowerCase()
-    );
-    return found?.cdLabel || found?.cdValue || cdVal;
-  };
+    return modeCodeMap.get(cdVal.toLowerCase()) || cdVal;
+  }, [modeCodeMap]);
 
   const getModeIcon = (cdVal?: string | null) => {
     const val = (cdVal || '').toUpperCase();

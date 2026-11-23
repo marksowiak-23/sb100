@@ -13,6 +13,7 @@ import AuthorPageHeaderPanel from './AuthorPageHeaderPanel';
 import AuthorTopicHeaderPanel from './AuthorTopicHeaderPanel';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { useCoachMarks, CoachTourTriggerButton } from '@/src/features/coachMarks';
 
 interface AuthorPageFeatureProps {
   isSandbox: boolean;
@@ -46,6 +47,11 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
     }
   });
   const [storyContents, setStoryContents] = useState<Record<string, string[]>>(STORY_CONTENTS);
+  const { requestAutoTour } = useCoachMarks();
+
+  useEffect(() => {
+    return requestAutoTour('author_tour', { delayMs: 900 });
+  }, [requestAutoTour]);
   const [isHowToHidden, setIsHowToHidden] = useState<boolean>(() => {
     try {
       const mbr = userManager.getStoredMember();
@@ -62,6 +68,7 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
     try {
       sessionStorage.setItem('sb_author_active_section', sec);
     } catch {}
+    window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
   };
 
   useEffect(() => {
@@ -69,6 +76,7 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
       const targetSec = e?.detail?.section || sessionStorage.getItem('sb_author_active_section');
       if (targetSec) {
         setActiveSection(targetSec);
+        window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
       }
     };
     window.addEventListener('author-navigate-section', handleNavSection);
@@ -88,8 +96,11 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
 
   return (
     <div className="w-full relative space-y-4 lg:space-y-0">
-      {/* Mobile View: How-To Card placed above the Mobile Menu Bar */}
-      <div className="block lg:hidden">
+      {/* Mobile View: Tour button & How-To Card placed above the Mobile Menu Bar */}
+      <div className="block lg:hidden space-y-2.5">
+        <div className="flex justify-end">
+          <CoachTourTriggerButton tourId="author_tour" label="Author Tour" />
+        </div>
         <AuthorHowToCard />
       </div>
 
@@ -116,7 +127,7 @@ export default function AuthorPageFeature({ isSandbox, onClickBack, onClickAutho
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 max-w-7xl w-full mx-auto items-start">
         
         {/* Left Column Sidebar (Desktop only) */}
-        <div className="hidden lg:block lg:col-span-3">
+        <div className="hidden lg:block lg:col-span-3" data-coach-mark="author-story-index">
           <LeftColumn
             activeSection={activeSection}
             setActiveSection={handleSetActiveSection}

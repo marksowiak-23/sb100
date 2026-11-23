@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useModalA11y } from '@/src/hooks/useModalA11y';
 import {
   ShieldAlert,
   X,
@@ -83,6 +84,7 @@ export default function MbrStoryPrivacyModal({
   onSaved
 }: MbrStoryPrivacyModalProps) {
   const [activeTab, setActiveTab] = useState<PrivacyTab>('groups');
+  const { dialogProps } = useModalA11y({ isOpen, onClose });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -592,7 +594,8 @@ export default function MbrStoryPrivacyModal({
         {isOpen && (
           <div
             key="story-privacy-backdrop"
-            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
+            {...dialogProps}
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 handleRequestClose();

@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { UserCheck, X, Users, Check, Shield, MapPin, Briefcase } from 'lucide-react';
 import { MemberInvitationItem, UnifiedGroupOption } from '../types';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { useModalA11y } from '@/src/hooks/useModalA11y';
 
 interface AcceptInvitationModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export default function AcceptInvitationModal({
   onConfirmAccept
 }: AcceptInvitationModalProps) {
   const [chosenGrpId, setChosenGrpId] = useState<string>('');
+  const { dialogProps } = useModalA11y({ isOpen: Boolean(isOpen && invitation), onClose });
 
   // Filter out 'Public' group so it is not shown as a connection group option
   const assignableGroups = groups.filter(
@@ -57,7 +59,7 @@ export default function AcceptInvitationModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+      <div {...dialogProps} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
