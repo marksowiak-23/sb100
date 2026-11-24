@@ -60,6 +60,7 @@ type TabType =
 
   | 'adminMediaPage'
   | 'adminMedia'
+  | 'adminPanelsPage'
   | 'adminProperties'
   | 'adminSystemProperties';
 
@@ -95,6 +96,21 @@ export default function MainLayout({
   const [isMobileMessagingOpen, setIsMobileMessagingOpen] = React.useState(false);
   const [isMobileAccountOpen, setIsMobileAccountOpen] = React.useState(false);
   const [isMobileAdminOpen, setIsMobileAdminOpen] = React.useState(false);
+  const easterEggTapRef = React.useRef<{ count: number; lastTap: number }>({ count: 0, lastTap: 0 });
+
+  const handleFooterSecretTap = () => {
+    const now = Date.now();
+    if (now - easterEggTapRef.current.lastTap > 2500) {
+      easterEggTapRef.current.count = 1;
+    } else {
+      easterEggTapRef.current.count += 1;
+    }
+    easterEggTapRef.current.lastTap = now;
+    if (easterEggTapRef.current.count >= 5) {
+      easterEggTapRef.current.count = 0;
+      window.dispatchEvent(new CustomEvent('storybook-easter-egg'));
+    }
+  };
   const [isTermsOpen, setIsTermsOpen] = React.useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = React.useState(false);
   const [isAboutOpen, setIsAboutOpen] = React.useState(false);
@@ -1168,6 +1184,20 @@ export default function MainLayout({
                   <button
                     type="button"
                     onClick={() => {
+                      setActiveTab('adminPanelsPage');
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-1.5 text-xs font-medium rounded-lg cursor-pointer transition-colors ${
+                      activeTab === 'adminPanelsPage'
+                        ? 'bg-white/10 text-white font-bold'
+                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    Messaging Panels
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
                       setActiveTab('adminProperties');
                       setIsMobileMenuOpen(false);
                     }}
@@ -1219,7 +1249,13 @@ export default function MainLayout({
         }`}
       >
         <div className="flex items-center gap-4">
-          <span>&copy; {new Date().getFullYear()} BackStory</span>
+          <span
+            onClick={handleFooterSecretTap}
+            className="cursor-default select-none"
+            title="BackStory"
+          >
+            &copy; {new Date().getFullYear()} BackStory
+          </span>
           <div className="flex items-center gap-3 border-l border-slate-700 pl-4 text-[11px]">
             <button
               type="button"

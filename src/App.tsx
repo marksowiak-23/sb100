@@ -12,9 +12,10 @@ import React, { useState, useEffect } from 'react';
 
 // Import animation tools from motion. AnimatePresence is used to animate components when they are unmounted/removed.
 import { motion, AnimatePresence } from 'motion/react';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, Wrench, X } from 'lucide-react';
 
-import { taskApi, HealthCheckResponse } from '@/src/services/api';
+import { taskApi, sysConfigApi, HealthCheckResponse } from '@/src/services/api';
+import { MaintenanceScreen } from '@/src/components/MaintenanceScreen';
 import { userManager } from '@/src/services/userManager';
 import { analytics } from '@/src/services/analytics';
 import { sessionReplayService } from '@/src/services/sessionReplayService';
@@ -41,6 +42,8 @@ import { AdminDb, DbAdminFeature, AdminDbPageFeature } from '@/src/features/admi
 import { AdminCacheManagement, AdminCachePage } from '@/src/features/adminCachePage';
 import { AdminMediaManagement, AdminMediaPage } from '@/src/features/adminMediaPage';
 import { AdminPropertiesFeature, SystemPropertiesFeature } from '@/src/features/adminProperties';
+import { AdminPanelsFeature } from '@/src/features/adminPanelsPage';
+import { DynamicPanelSlot } from '@/src/components/DynamicPanelSlot';
 import { AdminUserAIUsageFeature } from '@/src/features/adminUserAIUsagePage';
 import { AdminTopicSparksFeature, TopicSparksAdmin, AdminTopicSparksPage } from '@/src/features/adminTopicSparksPage';
 import { MbrStoryBookGeneratorFeature } from '@/src/features/mbrStoryBookGenerator';
@@ -101,6 +104,7 @@ type TabType =
   | 'adminCacheManagement'
   | 'adminMediaPage'
   | 'adminMedia'
+  | 'adminPanelsPage'
   | 'adminProperties'
   | 'adminSystemProperties';
 
@@ -264,6 +268,23 @@ export default function App() {
   // Flag indicating if we are running against mock local data (isSandbox === true) 
   // or a real backend API (isSandbox === false).
   const [isSandbox, setIsSandbox] = useState(true);
+  const [maintenanceMode, setMaintenanceMode] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('sb_sandbox_maintenance_mode') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [maintenanceModeMsg, setMaintenanceModeMsg] = useState<string>(() => {
+    try {
+      return sessionStorage.getItem('sb_sandbox_maintenance_mode_msg') || 'Please check back in a few minutes.';
+    } catch {
+      return 'Please check back in a few minutes.';
+    }
+  });
+  const [checkingMaintenance, setCheckingMaintenance] = useState(false);
+  const [maintenanceChecked, setMaintenanceChecked] = useState(false);
+  const [authVersion, setAuthVersion] = useState(0);
   const [isProfileDirty, setIsProfileDirty] = useState(false);
   const [profileInitialSubTab, setProfileInitialSubTab] = useState<ProfileSubTab>('profile');
   const [accountInitialSubTab, setAccountInitialSubTab] = useState<AccountSubTab>(() => {
@@ -465,6 +486,12 @@ export default function App() {
           if (health?.status === 'healthy') {
             setApiHealth(health);
             setIsSandbox(false);
+            if (typeof health.maintenance_mode === 'boolean') {
+              setMaintenanceMode(health.maintenance_mode);
+            }
+            if (typeof health.maintenance_mode_msg === 'string' && health.maintenance_mode_msg.trim()) {
+              setMaintenanceModeMsg(health.maintenance_mode_msg);
+            }
             clearInterval(healthInterval);
           }
         })
@@ -487,17 +514,30 @@ export default function App() {
     const handleUserSwitched = () => {
       applyGlobalTheme();
       userManager.applyUserThemePreference();
+      setAuthVersion((v) => v + 1);
+    };
+
+    const handleMaintenanceChanged = (e: Event) => {
+      const custom = e as CustomEvent<{ enabled?: boolean; message?: string }>;
+      if (typeof custom.detail?.enabled === 'boolean') {
+        setMaintenanceMode(custom.detail.enabled);
+      }
+      if (typeof custom.detail?.message === 'string') {
+        setMaintenanceModeMsg(custom.detail.message.trim() || 'Please check back in a few minutes.');
+      }
     };
 
     window.addEventListener('theme-changed', applyGlobalTheme);
     window.addEventListener('storage', applyGlobalTheme);
     window.addEventListener('user-switched', handleUserSwitched);
+    window.addEventListener('maintenance-mode-changed', handleMaintenanceChanged);
     return () => {
       clearInterval(healthInterval);
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('theme-changed', applyGlobalTheme);
       window.removeEventListener('storage', applyGlobalTheme);
       window.removeEventListener('user-switched', handleUserSwitched);
+      window.removeEventListener('maintenance-mode-changed', handleMaintenanceChanged);
     };
   }, []);
 
@@ -518,6 +558,14 @@ export default function App() {
       const health = await taskApi.checkHealth();
       setApiHealth(health);
       setIsSandbox(false); // Successfully reached the backend server.
+      if (typeof health.maintenance_mode === 'boolean') {
+        setMaintenanceMode(health.maintenance_mode);
+        try { sessionStorage.setItem('sb_sandbox_maintenance_mode', String(health.maintenance_mode)); } catch {}
+      }
+      if (typeof health.maintenance_mode_msg === 'string' && health.maintenance_mode_msg.trim()) {
+        setMaintenanceModeMsg(health.maintenance_mode_msg);
+        try { sessionStorage.setItem('sb_sandbox_maintenance_mode_msg', health.maintenance_mode_msg); } catch {}
+      }
     } catch (err: any) {
       // If the backend fails or times out, we catch the exception and fall back to sandbox mode.
       console.warn("Backend API not reachable, falling back to Sandbox Mode:", err);
@@ -525,6 +573,7 @@ export default function App() {
       setApiHealth({ status: 'offline', database: 'disconnected' });
     } finally {
       setLoading(false); // Done checking health.
+      setMaintenanceChecked(true);
     }
   };
 
@@ -597,6 +646,78 @@ export default function App() {
     };
   }, [activeTab]);
 
+  const isAdminUser = React.useMemo(() => {
+    try {
+      if (sessionStorage.getItem('sb_current_adm')) return true;
+      const userStr = sessionStorage.getItem('user');
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        const role = String(u?.role || u?.user_role || '').toLowerCase();
+        const userType = String(u?.user_typeCd || '').toUpperCase();
+        if (
+          role === 'admin' ||
+          role === 'administrator' ||
+          userType === 'ADMIN' ||
+          userType === 'SUPPORT' ||
+          userType === 'SUPERADMIN' ||
+          u?.is_admin === true
+        ) {
+          return true;
+        }
+      }
+    } catch {}
+    return false;
+  }, [activeTab, authVersion]);
+
+  const handleCheckMaintenance = async () => {
+    setCheckingMaintenance(true);
+    try {
+      const [modeCfg, msgCfg] = await Promise.all([
+        sysConfigApi.getSysConfigByTag('MAINTENANCE_MODE'),
+        sysConfigApi.getSysConfigByTag('MAINTENANCE_MODE_MSG').catch(() => null),
+      ]);
+      setMaintenanceMode(String(modeCfg?.configValue || '').trim().toLowerCase() === 'true');
+      if (msgCfg?.configValue && msgCfg.configValue.trim()) {
+        setMaintenanceModeMsg(msgCfg.configValue.trim());
+      }
+    } catch {
+      await loadHealth();
+    } finally {
+      setCheckingMaintenance(false);
+    }
+  };
+
+  if (
+    !maintenanceChecked &&
+    !isAdminUser &&
+    activeTab !== 'mbrLogonPage' &&
+    activeTab !== 'sbMbrLogon'
+  ) {
+    return (
+      <div
+        className="min-h-screen bg-[#F6F3ED] flex items-center justify-center"
+        aria-busy="true"
+        aria-label="Loading BackStory"
+      />
+    );
+  }
+
+  if (
+    maintenanceMode &&
+    !isAdminUser &&
+    activeTab !== 'mbrLogonPage' &&
+    activeTab !== 'sbMbrLogon'
+  ) {
+    return (
+      <MaintenanceScreen
+        onRefresh={handleCheckMaintenance}
+        onAdminSignIn={() => navigateTo('mbrLogonPage')}
+        isChecking={checkingMaintenance}
+        message={maintenanceModeMsg}
+      />
+    );
+  }
+
   // --- RENDERING (JSX) ---
   // App.tsx returns JSX (HTML-like syntax inside Javascript).
   // We compose MainLayout as our primary shell structure, then render the appropriate 
@@ -607,6 +728,22 @@ export default function App() {
       setActiveTab={handleTabChange}
       isSandbox={isSandbox}
     >
+      {maintenanceMode && isAdminUser && (
+        <div className="w-full bg-amber-500 text-slate-950 px-4 py-2 text-xs sm:text-sm font-serif font-semibold flex flex-wrap items-center justify-center gap-3 shadow-xs">
+          <span className="inline-flex items-center gap-1.5">
+            <Wrench className="w-4 h-4 shrink-0" />
+            <span>Maintenance Mode is ACTIVE — regular members currently see the maintenance screen.</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => handleTabChange('adminProperties')}
+            className="px-3 py-1 rounded-lg bg-slate-900 text-amber-300 hover:bg-slate-800 text-xs font-bold transition-colors cursor-pointer"
+          >
+            Manage Properties
+          </button>
+        </div>
+      )}
+      <DynamicPanelSlot location="GLOBAL_TOP" compact className="max-w-7xl mx-auto px-4 pt-3" />
       {/* App-level Unsaved Changes Discard Modal when navigating via top nav tabs */}
       <AnimatePresence>
         {showAppDiscardModal && (
@@ -705,6 +842,7 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="w-full"
           >
+            <DynamicPanelSlot location="PUBLIC_HERO" className="max-w-6xl mx-auto px-4 pt-4" />
             <PublicPageFeature
               setActiveTab={(tab) => {
                 navigateTo(tab, { targetStoryMemberId: null });
@@ -727,6 +865,7 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="w-full"
           >
+            <DynamicPanelSlot location="MBR_HOME_TOP" className="max-w-6xl mx-auto px-4 pt-4" />
             <MbrHomePageFeature
               onClickReadStory={handleReadStory}
               onClickAuthorPage={(initialPrompt, section, trivia) => {
@@ -790,6 +929,7 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="w-full"
           >
+            <DynamicPanelSlot location="MBR_FEED_TOP" className="max-w-6xl mx-auto px-4 pt-4" />
             <MbrStoryFeedPageFeature
               isSandbox={isSandbox}
               onClickReadStory={(storyId, authorMbrId) => {
@@ -875,6 +1015,7 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="w-full"
           >
+            <DynamicPanelSlot location="MBR_AUTHOR_TOP" className="max-w-6xl mx-auto px-4 pt-4" />
             <MbrAuthorPageFeature
               isSandbox={isSandbox}
               onClickBack={() => navigateTo('mbrHomePage')}
@@ -958,6 +1099,7 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="w-full"
           >
+            <DynamicPanelSlot location="MBR_PROFILE_TOP" className="max-w-6xl mx-auto px-4 pt-4" />
             <MbrProfileFeature
               isSandbox={isSandbox}
               onClickBack={() => forceNavigateAway()}
@@ -1010,6 +1152,7 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="w-full"
           >
+            <DynamicPanelSlot location="MBR_ACCOUNT_TOP" className="max-w-6xl mx-auto px-4 pt-4" />
             <MbrAccountFeature
               isSandbox={isSandbox}
               onClickBack={() => forceNavigateAway()}
@@ -1027,6 +1170,7 @@ export default function App() {
             transition={{ duration: 0.4 }}
             className="w-full"
           >
+            <DynamicPanelSlot location="MBR_CONNECTIONS_TOP" className="max-w-6xl mx-auto px-4 pt-4" />
             <MbrConnectionFeature
               isSandbox={isSandbox}
               onClickBack={() => forceNavigateAway()}
@@ -1100,6 +1244,19 @@ export default function App() {
             className="w-full"
           >
             <AdminMediaManagement isSandbox={isSandbox} />
+          </motion.div>
+        )}
+        {/* Dynamic Site Messaging Panels Admin Console */}
+        {activeTab === 'adminPanelsPage' && (
+          <motion.div
+            key="adminPanelsPage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <AdminPanelsFeature isSandbox={isSandbox} />
           </motion.div>
         )}
         {/* If the active tab is 'adminProperties' or legacy 'adminSystemProperties', render the Dynamic System Properties Page */}

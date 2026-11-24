@@ -5,6 +5,7 @@ import SbPersonalTriviaCard from './SbPersonalTriviaCard';
 import SbRememberWhenCard from './SbRememberWhenCard';
 import SbEasyStoryWritingCard from './SbEasyStoryWritingCard';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import { DynamicPanelSlot } from '@/src/components/DynamicPanelSlot';
 import { useHomePageCardConfigs } from '@/src/hooks/useHomePageCardConfigs';
 
 interface CenterColumnProps {
@@ -25,6 +26,7 @@ export default function CenterColumn({ onClickReadStory, onClickAuthorPage, onNa
       <div data-coach-mark="home-welcome-card">
         <SbHeroWelcomeCard />
       </div>
+      <DynamicPanelSlot location="MBR_HOME_BELOW_WELCOME" />
       {isGettingStartedCardEnabled && (
         <div data-coach-mark="home-getting-started">
           <SbGettingStartedCard onNavigate={onNavigate} onClickAuthorPage={onClickAuthorPage} />

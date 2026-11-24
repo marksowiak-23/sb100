@@ -29,6 +29,30 @@ const DEFAULT_FALLBACK_CODES: Record<string, { cdValue: string; cdLabel: string;
     { cdValue: 'WRITE', cdLabel: 'Comment on Content (Write)', cdDesc: 'Allow group members to view and comment' },
     { cdValue: 'NONE', cdLabel: 'No Access (None)', cdDesc: 'Disallow access for this group' }
   ],
+  panel_style: [
+    { cdValue: 'INFO', cdLabel: 'Info (Blue)', cdDesc: 'Informational notice in soft blue' },
+    { cdValue: 'SUCCESS', cdLabel: 'Success (Emerald)', cdDesc: 'Positive confirmation in emerald' },
+    { cdValue: 'WARNING', cdLabel: 'Warning (Amber)', cdDesc: 'Important alert in warm amber' },
+    { cdValue: 'PROMO', cdLabel: 'Promo (Blue & Gold)', cdDesc: 'Promotional highlight with brand accent' },
+    { cdValue: 'ANNOUNCEMENT', cdLabel: 'Announcement (Warm)', cdDesc: 'Editorial warm cream announcement card' }
+  ],
+  panel_location: [
+    { cdValue: 'GLOBAL_TOP', cdLabel: 'Global Top Banner', cdDesc: 'Top of MainLayout across all pages' },
+    { cdValue: 'PUBLIC_HERO', cdLabel: 'Public Landing Top', cdDesc: 'Top of the public landing page' },
+    { cdValue: 'MBR_HOME_TOP', cdLabel: 'Member Home Top', cdDesc: 'Top of the member home dashboard' },
+    { cdValue: 'MBR_HOME_BELOW_WELCOME', cdLabel: 'Home Below Welcome Card', cdDesc: 'Directly below the welcome card on member home' },
+    { cdValue: 'MBR_AUTHOR_TOP', cdLabel: 'Author Workspace Top', cdDesc: 'Top of the story authoring workspace' },
+    { cdValue: 'MBR_FEED_TOP', cdLabel: 'Story Feed Top', cdDesc: 'Top of the member story feed' },
+    { cdValue: 'MBR_CONNECTIONS_TOP', cdLabel: 'Connections Top', cdDesc: 'Top of the connections page' },
+    { cdValue: 'MBR_ACCOUNT_TOP', cdLabel: 'Account & Credits Top', cdDesc: 'Top of the account and credits page' },
+    { cdValue: 'MBR_PROFILE_TOP', cdLabel: 'Profile Top', cdDesc: 'Top of the member profile page' }
+  ],
+  panel_audience: [
+    { cdValue: 'ALL', cdLabel: 'Everyone', cdDesc: 'Public visitors and signed-in members' },
+    { cdValue: 'MEMBERS', cdLabel: 'Signed-in Members', cdDesc: 'Authenticated members only' },
+    { cdValue: 'PUBLIC', cdLabel: 'Public Visitors', cdDesc: 'Unauthenticated visitors only' },
+    { cdValue: 'ADMINS', cdLabel: 'Administrators Only', cdDesc: 'Platform administrators only' }
+  ],
   booktrimsizecd: [
     { cdValue: 'TRADE_6X9', cdLabel: 'Trade Paperback (6"x9")', cdDesc: 'Standard 6" x 9" classic memoir paperback size (KDP/Lulu/Blurb)' },
     { cdValue: 'ROYAL_614X921', cdLabel: 'Royal Hardcover (6.14x9.21)', cdDesc: 'Classic 6.14" x 9.21" hardcover memoir trim size' },

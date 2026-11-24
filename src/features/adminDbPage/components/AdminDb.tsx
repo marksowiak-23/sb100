@@ -1128,6 +1128,28 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'panel',
+    name: 'panel',
+    endpoint: '/panels',
+    primaryKey: 'panelId',
+    searchField: 'panelKey',
+    fields: [
+      { name: 'panelKey', label: 'Panel Key', type: 'string', required: true, placeholder: 'HOME_WELCOME_TIP' },
+      { name: 'panelLocationCd', label: 'Location Code', type: 'string', required: true, placeholder: 'GLOBAL_TOP | PUBLIC_HERO | MBR_HOME_TOP | MBR_AUTHOR_TOP' },
+      { name: 'panelStyleCd', label: 'Style Code', type: 'string', required: true, placeholder: 'INFO | SUCCESS | WARNING | PROMO | ANNOUNCEMENT' },
+      { name: 'panelTitle', label: 'Title', type: 'string', required: false, placeholder: 'Optional bold heading' },
+      { name: 'panelBodyText', label: 'Body Text', type: 'textarea', required: true, placeholder: 'Message text displayed inside the panel' },
+      { name: 'panelCtaLabel', label: 'CTA Label', type: 'string', required: false, placeholder: 'Learn More' },
+      { name: 'panelCtaTarget', label: 'CTA Target (Tab or URL)', type: 'string', required: false, placeholder: 'mbrAccountPage or https://...' },
+      { name: 'panelActiveFlag', label: 'Active', type: 'boolean', required: true },
+      { name: 'panelDismissibleFlag', label: 'Dismissible', type: 'boolean', required: true },
+      { name: 'panelAudienceCd', label: 'Audience Code', type: 'string', required: true, placeholder: 'ALL | MEMBERS | PUBLIC | ADMINS' },
+      { name: 'panelDisplayOrder', label: 'Display Order', type: 'number', required: true, placeholder: '100' },
+      { name: 'panelStartAt', label: 'Start At (ISO)', type: 'string', required: false },
+      { name: 'panelEndAt', label: 'End At (ISO)', type: 'string', required: false }
+    ]
+  },
+  {
     id: 'uiSoundEvent',
     name: 'uiSoundEvent',
     endpoint: '/ui-sound-events',

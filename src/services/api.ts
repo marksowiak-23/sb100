@@ -6,6 +6,8 @@
 export interface HealthCheckResponse {
   status: string;
   database: string;
+  maintenance_mode?: boolean;
+  maintenance_mode_msg?: string;
 }
 
 export interface User {
@@ -7388,5 +7390,75 @@ export const storySparkAiApi = {
       body: JSON.stringify(payload),
     });
     return handleResponse<StorySparkTitleResponse>(response);
+  },
+};
+
+export interface Panel {
+  panelId: string;
+  panelKey: string;
+  panelLocationCd: string;
+  panelStyleCd: string;
+  panelTitle?: string | null;
+  panelBodyText: string;
+  panelCtaLabel?: string | null;
+  panelCtaTarget?: string | null;
+  panelActiveFlag: boolean;
+  panelDismissibleFlag: boolean;
+  panelAudienceCd: string;
+  panelDisplayOrder: number;
+  panelStartAt?: string | null;
+  panelEndAt?: string | null;
+  panelCreatedAt: string;
+  panelUpdatedAt: string;
+  panelUpdatedBy?: string | null;
+}
+
+export type PanelCreate = Omit<Panel, 'panelId' | 'panelCreatedAt' | 'panelUpdatedAt'>;
+export type PanelUpdate = Partial<PanelCreate>;
+
+export const panelApi = {
+  async getActive(locationCd?: string): Promise<Panel[]> {
+    const qs = locationCd ? `?location_cd=${encodeURIComponent(locationCd)}` : '';
+    const response = await fetch(`${API_BASE_URL}/panels/active${qs}`, {
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<Panel[]>(response);
+  },
+
+  async getAll(params?: { location_cd?: string; active_only?: boolean }): Promise<Panel[]> {
+    const query = new URLSearchParams();
+    if (params?.location_cd) query.set('location_cd', params.location_cd);
+    if (params?.active_only) query.set('active_only', 'true');
+    const qs = query.toString() ? `?${query.toString()}` : '';
+    const response = await fetch(`${API_BASE_URL}/panels${qs}`, {
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<Panel[]>(response);
+  },
+
+  async create(payload: PanelCreate): Promise<Panel> {
+    const response = await fetch(`${API_BASE_URL}/panels`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<Panel>(response);
+  },
+
+  async update(panelId: string, payload: PanelUpdate): Promise<Panel> {
+    const response = await fetch(`${API_BASE_URL}/panels/${encodeURIComponent(panelId)}`, {
+      method: 'PUT',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<Panel>(response);
+  },
+
+  async delete(panelId: string): Promise<Panel> {
+    const response = await fetch(`${API_BASE_URL}/panels/${encodeURIComponent(panelId)}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<Panel>(response);
   },
 };

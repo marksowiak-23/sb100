@@ -97,6 +97,7 @@ const TABLE_TITLE_MAP: Record<string, string> = {
   mbrAlbumConnectionPrivs: 'Album Connection Access Privileges (mbrAlbumConnectionPrivs)',
   sysConfig: 'System Global Configurations (sysConfig)',
   topic: 'Standard Story Topics Directory (topic)',
+  panel: 'Dynamic Site Messaging Panels (panel)',
   uiSoundEvent: 'UI Feedback Sound Event Mappings (uiSoundEvent)',
   user: 'User Authentication & Accounts (user)'
 };

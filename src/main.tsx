@@ -2,7 +2,9 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import { CodeProvider } from './context/CodeContext.tsx';
+import { PanelProvider } from './context/PanelContext.tsx';
 import { CoachMarkProvider, CoachMarkOverlay } from './features/coachMarks';
+import { StorybookEasterEgg } from './components/StorybookEasterEgg.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
 import './index.css';
 
@@ -20,10 +22,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary sectionName="BackStory">
       <CodeProvider>
-        <CoachMarkProvider>
-          <App />
-          <CoachMarkOverlay />
-        </CoachMarkProvider>
+        <PanelProvider>
+          <CoachMarkProvider>
+            <App />
+            <CoachMarkOverlay />
+            <StorybookEasterEgg />
+          </CoachMarkProvider>
+        </PanelProvider>
       </CodeProvider>
     </ErrorBoundary>
   </StrictMode>,

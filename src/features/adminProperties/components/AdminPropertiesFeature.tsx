@@ -63,6 +63,7 @@ export default function AdminPropertiesFeature() {
         { configId: 'cfg-5', configTag: 'SYSTEM_APP_NAME', configValue: 'StoryBook', configType: 'STRING', configGroup: 'SYSTEM', configDesc: 'Application name displayed in headers, footers, and metadata', configCreatedAt: new Date().toISOString(), configUpdatedAt: new Date().toISOString() },
         { configId: 'cfg-6', configTag: 'SUPPORT_EMAIL', configValue: 'support@storybook.ai', configType: 'STRING', configGroup: 'SYSTEM', configDesc: 'Primary support contact email', configCreatedAt: new Date().toISOString(), configUpdatedAt: new Date().toISOString() },
         { configId: 'cfg-7', configTag: 'MAINTENANCE_MODE', configValue: 'false', configType: 'BOOLEAN', configGroup: 'SYSTEM', configDesc: 'Set to true to put the public portal into maintenance mode', configCreatedAt: new Date().toISOString(), configUpdatedAt: new Date().toISOString() },
+        { configId: 'cfg-8', configTag: 'MAINTENANCE_MODE_MSG', configValue: 'Please check back in a few minutes.', configType: 'STRING', configGroup: 'SYSTEM', configDesc: 'Custom message displayed to members when MAINTENANCE_MODE is enabled', configCreatedAt: new Date().toISOString(), configUpdatedAt: new Date().toISOString() },
         { configId: 'cfg-8', configTag: 'SESSION_TIMEOUT_MINUTES', configValue: '30', configType: 'NUMBER', configGroup: 'SYSTEM', configDesc: 'Inactivity duration in minutes before user session times out', configCreatedAt: new Date().toISOString(), configUpdatedAt: new Date().toISOString() },
         { configId: 'cfg-9', configTag: 'SHOW_COMPONENT_NAME', configValue: 'true', configType: 'BOOLEAN', configGroup: 'UI', configDesc: 'Display React component names in the lower right-hand corner of panels', configCreatedAt: new Date().toISOString(), configUpdatedAt: new Date().toISOString() },
         { configId: 'cfg-10', configTag: 'HOME_PAGE_GETTING_STARTED_CARD_ENABLED', configValue: 'true', configType: 'BOOLEAN', configGroup: 'UI', configDesc: 'Enable or disable processing and displaying the Getting Started card on the home page', configCreatedAt: new Date().toISOString(), configUpdatedAt: new Date().toISOString() },
@@ -94,6 +95,11 @@ export default function AdminPropertiesFeature() {
         configUpdatedBy: 'AdminUI'
       });
       setConfigs(prev => prev.map(c => c.configTag === config.configTag ? updated : c));
+      if (config.configTag === 'MAINTENANCE_MODE') {
+        const enabled = nextVal.trim().toLowerCase() === 'true';
+        try { sessionStorage.setItem('sb_sandbox_maintenance_mode', String(enabled)); } catch {}
+        window.dispatchEvent(new CustomEvent('maintenance-mode-changed', { detail: { enabled } }));
+      }
       showNotificationMessage('success', `Updated ${config.configTag} to ${nextVal}`);
     } catch (err: any) {
       showNotificationMessage('error', `Failed to update ${config.configTag}: ${err.message}`);
@@ -112,6 +118,15 @@ export default function AdminPropertiesFeature() {
       });
       setConfigs(prev => prev.map(c => c.configTag === configTag ? updated : c));
       setEditingTag(null);
+      if (configTag === 'MAINTENANCE_MODE') {
+        const enabled = editValue.trim().toLowerCase() === 'true';
+        try { sessionStorage.setItem('sb_sandbox_maintenance_mode', String(enabled)); } catch {}
+        window.dispatchEvent(new CustomEvent('maintenance-mode-changed', { detail: { enabled } }));
+      } else if (configTag === 'MAINTENANCE_MODE_MSG') {
+        const msg = editValue.trim() || 'Please check back in a few minutes.';
+        try { sessionStorage.setItem('sb_sandbox_maintenance_mode_msg', msg); } catch {}
+        window.dispatchEvent(new CustomEvent('maintenance-mode-changed', { detail: { message: msg } }));
+      }
       showNotificationMessage('success', `Saved changes for ${configTag}`);
     } catch (err: any) {
       showNotificationMessage('error', `Failed to save: ${err.message}`);
