@@ -774,6 +774,15 @@ export default function MainLayout({
                     >
                       My Privacy
                     </div>
+                    <div
+                      onClick={() => {
+                        setIsAboutOpen(true);
+                        setDropdownOpen(false);
+                      }}
+                      className="border-t border-slate-800 mt-1 px-4 py-2 text-xs font-medium text-slate-300 hover:bg-white/5 hover:text-white cursor-pointer transition-colors"
+                    >
+                      About
+                    </div>
                     
                     {/* Logout Action Option */}
                     <div
@@ -1529,6 +1538,15 @@ export default function MainLayout({
                   }`}
                 >
                   My Privacy
+                </div>
+                <div
+                  onClick={() => {
+                    setIsAboutOpen(true);
+                    setIsMobileAccountOpen(false);
+                  }}
+                  className="px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-white/5 hover:text-white cursor-pointer transition-colors"
+                >
+                  About
                 </div>
               </div>
 

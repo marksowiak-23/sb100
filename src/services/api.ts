@@ -171,6 +171,18 @@ export const DEFAULT_TOPIC_LOOKUP: Record<string, { topicId: string; topicName: 
     topicFullName: 'Profile',
     chIntentId: '0bf92240-a979-4c20-9d6e-4e7060539cae'
   },
+  event: {
+    topicId: '5d8f6cc7-0db2-4df5-af9b-be55758faca7',
+    topicName: 'Event',
+    topicFullName: 'Event',
+    chIntentId: '04e90094-7ec4-4644-9869-690a0e8185ca'
+  },
+  events: {
+    topicId: '5d8f6cc7-0db2-4df5-af9b-be55758faca7',
+    topicName: 'Event',
+    topicFullName: 'Event',
+    chIntentId: '04e90094-7ec4-4644-9869-690a0e8185ca'
+  },
   family: {
     topicId: 'a01cfe18-ad54-495b-9636-4b0d5c0aa3c2',
     topicName: 'Family',

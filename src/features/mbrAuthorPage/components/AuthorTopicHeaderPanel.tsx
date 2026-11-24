@@ -11,6 +11,7 @@ import ResidenciesHeaderPanel from './ResidenciesHeaderPanel';
 import TripsHeaderPanel from './TripsHeaderPanel';
 import HealthHeaderPanel from './HealthHeaderPanel';
 import SpecialEventsHeaderPanel from './SpecialEventsHeaderPanel';
+import EventHeaderPanel from './EventHeaderPanel';
 import AchievementsHeaderPanel from './AchievementsHeaderPanel';
 import EducationHeaderPanel from './EducationHeaderPanel';
 import EmploymentHeaderPanel from './EmploymentHeaderPanel';
@@ -180,6 +181,13 @@ function resolveTopicDescriptor(activeSection: string, currentTopicId?: string):
     topicId === '4cd7ccff-0617-445c-ae72-173daa059500'
   ) {
     return { key: 'life_reflections', renderHeader: (c) => <LifeReflectionsHeaderPanel className={c} /> };
+  }
+  if (
+    sec === 'event' ||
+    sec === 'events' ||
+    topicId === '5d8f6cc7-0db2-4df5-af9b-be55758faca7'
+  ) {
+    return { key: 'special_events', renderHeader: (c) => <EventHeaderPanel className={c} /> };
   }
   if (
     sec === 'sparks' ||

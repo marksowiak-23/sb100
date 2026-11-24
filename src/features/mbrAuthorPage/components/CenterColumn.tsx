@@ -42,6 +42,8 @@ const TOPIC_DETAILS: Record<string, { topicId: string; topicTitle: string; compo
   'health and wellness': { topicId: DEFAULT_TOPIC_LOOKUP['health and wellness'].topicId, topicTitle: 'Health', componentName: 'sbMbrStryHealth', chIntentId: DEFAULT_TOPIC_LOOKUP['health and wellness'].chIntentId },
   'health & wellness': { topicId: DEFAULT_TOPIC_LOOKUP['health & wellness'].topicId, topicTitle: 'Health', componentName: 'sbMbrStryHealth', chIntentId: DEFAULT_TOPIC_LOOKUP['health & wellness'].chIntentId },
   'special events': { topicId: DEFAULT_TOPIC_LOOKUP['special events'].topicId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents', chIntentId: DEFAULT_TOPIC_LOOKUP['special events'].chIntentId },
+  event: { topicId: DEFAULT_TOPIC_LOOKUP.event.topicId, topicTitle: 'Event', componentName: 'sbMbrStoryEvent', chIntentId: DEFAULT_TOPIC_LOOKUP.event.chIntentId },
+  events: { topicId: DEFAULT_TOPIC_LOOKUP.events.topicId, topicTitle: 'Event', componentName: 'sbMbrStoryEvent', chIntentId: DEFAULT_TOPIC_LOOKUP.events.chIntentId },
   'special event': { topicId: DEFAULT_TOPIC_LOOKUP['special event'].topicId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents', chIntentId: DEFAULT_TOPIC_LOOKUP['special event'].chIntentId },
   specialevents: { topicId: DEFAULT_TOPIC_LOOKUP.specialevents.topicId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents', chIntentId: DEFAULT_TOPIC_LOOKUP.specialevents.chIntentId },
   'special-events': { topicId: DEFAULT_TOPIC_LOOKUP['special-events'].topicId, topicTitle: 'Special Events', componentName: 'sbMbrStrySpecialEvents', chIntentId: DEFAULT_TOPIC_LOOKUP['special-events'].chIntentId },
@@ -173,6 +175,7 @@ export default function CenterColumn({
     'trips', 'vacations', 'trips and vacations', 'trips & vacations',
     'health', 'wellness', 'health and wellness', 'health & wellness',
     'special events', 'special event', 'specialevents', 'special-events', 'milestones', 'celebrations',
+    'event', 'events',
     'hobbies', 'activities', 'achievements', 'education', 'employment',
     'fads and trends', 'fads & trends', 'fads', 'trends',
     'movies and tv', 'movies & tv', 'movies', 'tv', 'television', 'movies and television',
@@ -185,7 +188,7 @@ export default function CenterColumn({
     'life reflections', 'life reflection', 'reflections', 'reflection',
     'sparks', 'question spark', 'spark', 'question sparks',
     'other', 'custom'
-  ].includes(sec) || currentTopicId === 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e' || currentTopicId === '5cd2052b-28fc-434f-9ce4-4358ff944576' || currentTopicId === '273184ab-e09d-49ef-b416-3fc3ba0a8161' || currentTopicId === '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff' || currentTopicId === '6635482f-24c8-4fdd-83d0-c5f86e22442f' || currentTopicId === '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e' || currentTopicId === 'b24de4f6-9029-4665-94bf-f42630baee61' || currentTopicId === '99e16767-c945-47f9-8e5e-21c309cceac3' || currentTopicId === '40b046fa-cfae-4821-b3b8-17fda934a61a' || currentTopicId === 'eeecb988-25d8-45d4-9304-e040aa14a326' || currentTopicId === '74e60a94-dd9e-4148-a084-86d41ed9998a' || currentTopicId === 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28' || currentTopicId === '4cd7ccff-0617-445c-ae72-173daa059500';
+  ].includes(sec) || currentTopicId === '5d8f6cc7-0db2-4df5-af9b-be55758faca7' || currentTopicId === 'bee8fe90-e799-4b8a-a52b-cbf390f43d2e' || currentTopicId === '5cd2052b-28fc-434f-9ce4-4358ff944576' || currentTopicId === '273184ab-e09d-49ef-b416-3fc3ba0a8161' || currentTopicId === '223c07b1-a7b0-4ed2-91fb-0bf4da9ba4ff' || currentTopicId === '6635482f-24c8-4fdd-83d0-c5f86e22442f' || currentTopicId === '04ab0c6a-a9ab-4637-ab8d-a7bf06e2937e' || currentTopicId === 'b24de4f6-9029-4665-94bf-f42630baee61' || currentTopicId === '99e16767-c945-47f9-8e5e-21c309cceac3' || currentTopicId === '40b046fa-cfae-4821-b3b8-17fda934a61a' || currentTopicId === 'eeecb988-25d8-45d4-9304-e040aa14a326' || currentTopicId === '74e60a94-dd9e-4148-a084-86d41ed9998a' || currentTopicId === 'd38d5f71-bbb1-4b84-bcc6-63ed19ce7c28' || currentTopicId === '4cd7ccff-0617-445c-ae72-173daa059500';
 
   useEffect(() => {
     const handleOpen = (e: any) => {

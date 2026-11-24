@@ -1070,7 +1070,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
               >
                 <div className="pl-3.5 border-l-2 border-slate-500">
                   <p
-                    className="text-slate-700 dark:text-slate-200 font-serif italic text-[15px] sm:text-base leading-[1.75] font-normal whitespace-pre-line"
+                    className="text-slate-700 dark:text-slate-200 font-serif text-[15px] sm:text-base leading-[1.75] font-normal whitespace-pre-line"
                     style={
                       clampIntroduction
                         ? {
@@ -1083,7 +1083,7 @@ When Harold died the summer Eleanor turned twelve, she began writing. Not becaus
                         : undefined
                     }
                   >
-                    "{introductionText}"
+                    {introductionText}
                   </p>
                 </div>
               </motion.div>
