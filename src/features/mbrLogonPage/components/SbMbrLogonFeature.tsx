@@ -9,6 +9,10 @@ import { Loader2, AlertCircle, ArrowLeft, ShieldCheck, LogIn, Mail, Lock, Eye, E
 import { userManager } from '@/src/services/userManager';
 import { sessionReplayService } from '@/src/services/sessionReplayService';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import EmailVerificationStep from '@/src/components/EmailVerificationStep';
+import MfaVerificationStep from '@/src/components/MfaVerificationStep';
+import ForgotPasswordStep from '@/src/components/ForgotPasswordStep';
+import ForgotUsernameStep from '@/src/components/ForgotUsernameStep';
 import PageSeo from '@/src/components/PageSeo';
 
 interface SbMbrLogonProps {
@@ -28,7 +32,9 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [statusState, setStatusState] = useState<'idle' | 'authenticating' | 'success' | 'failed'>('idle');
+  const [statusState, setStatusState] = useState<'idle' | 'authenticating' | 'verify-email' | 'verify-mfa' | 'forgot-password' | 'forgot-username' | 'success' | 'failed'>('idle');
+  const [challengeToken, setChallengeToken] = useState<string>('');
+  const [maskedEmail, setMaskedEmail] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // If a social logon type is explicitly passed (e.g. clicking Google or Apple on landing), run OAuth auto-flow
@@ -77,6 +83,23 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
     };
   }, [logonType, setActiveTab, targetStoryMemberId]);
 
+  const finalizeSignedInSession = async (authPayload: any) => {
+    const completed = await userManager.completeAuthResponse(authPayload);
+    if (completed.user) {
+      sessionStorage.setItem('user', JSON.stringify(completed.user));
+    }
+    const mbrId = completed.member?.mbrId;
+    sessionReplayService.init(mbrId).catch(() => {});
+    setStatusState('success');
+    setTimeout(() => {
+      if (targetStoryMemberId) {
+        setActiveTab('mbrStoryPage');
+      } else {
+        setActiveTab('mbrHomePage');
+      }
+    }, 1500);
+  };
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -95,9 +118,22 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
     try {
       const result = await userManager.userLogin(email, password);
 
+      if (result.success && result.requires_email_verification && result.challenge_token) {
+        setChallengeToken(result.challenge_token);
+        setMaskedEmail(result.masked_email || email);
+        setStatusState('verify-email');
+        return;
+      }
+
+      if (result.success && result.requires_mfa && result.challenge_token) {
+        setChallengeToken(result.challenge_token);
+        setMaskedEmail(result.masked_email || email);
+        setStatusState('verify-mfa');
+        return;
+      }
+
       if (result.success && result.user) {
         sessionStorage.setItem('user', JSON.stringify(result.user));
-        // Trigger session replay initialization for newly logged in member
         const mbrId = result.member?.mbrId;
         sessionReplayService.init(mbrId).catch(() => {});
         setStatusState('success');
@@ -108,7 +144,7 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
           } else {
             setActiveTab('mbrHomePage');
           }
-        }, 3000);
+        }, 1500);
       } else {
         setErrorMessage(result.error || 'Invalid email or password.');
       }
@@ -196,8 +232,80 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
           </motion.div>
         )}
 
+        {/* --- EMAIL VERIFICATION STEP --- */}
+        {statusState === 'verify-email' && (
+          <EmailVerificationStep
+            challengeToken={challengeToken}
+            maskedEmail={maskedEmail}
+            onVerified={(res) => {
+              if (res?.requires_mfa && res?.challenge_token) {
+                setChallengeToken(res.challenge_token);
+                setMaskedEmail(res.masked_email || maskedEmail);
+                setStatusState('verify-mfa');
+              } else {
+                void finalizeSignedInSession(res);
+              }
+            }}
+            onCancel={() => {
+              setStatusState('idle');
+              setChallengeToken('');
+            }}
+          />
+        )}
+
+        {/* --- MFA VERIFICATION STEP --- */}
+        {statusState === 'verify-mfa' && (
+          <MfaVerificationStep
+            challengeToken={challengeToken}
+            maskedEmail={maskedEmail}
+            onVerified={(res) => {
+              void finalizeSignedInSession(res);
+            }}
+            onCancel={() => {
+              setStatusState('idle');
+              setChallengeToken('');
+            }}
+          />
+        )}
+
+        {/* --- FORGOT PASSWORD STEP --- */}
+        {statusState === 'forgot-password' && (
+          <ForgotPasswordStep
+            initialEmail={email}
+            onComplete={(emailUsed) => {
+              if (emailUsed) setEmail(emailUsed);
+              setPassword('');
+              setErrorMessage(null);
+              setStatusState('idle');
+            }}
+            onCancel={() => {
+              setErrorMessage(null);
+              setStatusState('idle');
+            }}
+          />
+        )}
+
+        {/* --- FORGOT USERNAME STEP --- */}
+        {statusState === 'forgot-username' && (
+          <ForgotUsernameStep
+            onBackToLogin={() => {
+              setErrorMessage(null);
+              setStatusState('idle');
+            }}
+            onGoToForgotPassword={() => {
+              setErrorMessage(null);
+              setStatusState('forgot-password');
+            }}
+          />
+        )}
+
         {/* --- STANDARD IDLE / FORM STATE --- */}
-        {statusState !== 'authenticating' && statusState !== 'success' && (
+        {statusState !== 'authenticating' &&
+          statusState !== 'success' &&
+          statusState !== 'verify-email' &&
+          statusState !== 'verify-mfa' &&
+          statusState !== 'forgot-password' &&
+          statusState !== 'forgot-username' && (
           <>
             <div className="text-center space-y-1 mb-6">
               <h2 className="font-serif text-2xl font-black text-slate-800 tracking-tight">
@@ -222,9 +330,21 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
 
             <form onSubmit={handleEmailLogin} className="space-y-4">
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider font-mono mb-1">
-                  Email Address
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider font-mono">
+                    Email Address
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMessage(null);
+                      setStatusState('forgot-username');
+                    }}
+                    className="text-[11px] text-blue-600 hover:text-blue-700 hover:underline font-semibold transition-colors cursor-pointer"
+                  >
+                    Forgot username?
+                  </button>
+                </div>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
@@ -242,9 +362,21 @@ export default function SbMbrLogonFeature({ logonType, setActiveTab, targetStory
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider font-mono mb-1">
-                  Password
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-slate-600 uppercase tracking-wider font-mono">
+                    Password
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setErrorMessage(null);
+                      setStatusState('forgot-password');
+                    }}
+                    className="text-[11px] text-blue-600 hover:text-blue-700 hover:underline font-semibold transition-colors cursor-pointer"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input

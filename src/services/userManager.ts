@@ -2,11 +2,16 @@ import { User, API_BASE_URL, taskApi } from './api';
 
 export interface LogonResult {
   success: boolean;
+  message?: string;
   user?: User;
   member?: any;
   access_token?: string;
   token_type?: string;
   expires_in?: number;
+  requires_email_verification?: boolean;
+  requires_mfa?: boolean;
+  challenge_token?: string;
+  masked_email?: string;
   error?: string;
 }
 
@@ -130,12 +135,41 @@ export const userManager = {
   },
 
   /**
+   * Persists a completed authentication payload (after direct login, email verification, or MFA).
+   */
+  async completeAuthResponse(data: any): Promise<LogonResult> {
+    if (data.access_token) {
+      sessionStorage.setItem('sb_token', data.access_token);
+    }
+    if (data.member) {
+      sessionStorage.setItem('sb_current_mbr', JSON.stringify(data.member));
+    }
+    if (data.user) {
+      sessionStorage.setItem('user', JSON.stringify(data.user));
+    }
+    const targetMbrId = data.member?.mbrId || data.member?.id;
+    if (targetMbrId) {
+      await this.applyUserThemePreference(targetMbrId);
+    }
+    return {
+      success: true,
+      message: data.message,
+      user: data.user,
+      member: data.member,
+      access_token: data.access_token,
+      token_type: data.token_type,
+      expires_in: data.expires_in,
+    };
+  },
+
+  /**
    * Authenticates user via email and password against the POST /users/login endpoint.
    */
   async userLogin(email: string, password: string): Promise<LogonResult> {
     try {
       const response = await fetch(`${API_BASE_URL}/users/login`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -149,30 +183,17 @@ export const userManager = {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.access_token) {
-          sessionStorage.setItem('sb_token', data.access_token);
+        if (data.requires_email_verification || data.requires_mfa) {
+          return {
+            success: true,
+            message: data.message,
+            requires_email_verification: Boolean(data.requires_email_verification),
+            requires_mfa: Boolean(data.requires_mfa),
+            challenge_token: data.challenge_token,
+            masked_email: data.masked_email,
+          };
         }
-        if (data.member) {
-          sessionStorage.setItem('sb_current_mbr', JSON.stringify(data.member));
-        }
-        if (data.user) {
-          sessionStorage.setItem('user', JSON.stringify(data.user));
-        }
-
-        // Apply user's workspace theme preference immediately upon logging in
-        const targetMbrId = data.member?.mbrId || data.member?.id;
-        if (targetMbrId) {
-          await this.applyUserThemePreference(targetMbrId);
-        }
-
-        return {
-          success: true,
-          user: data.user,
-          member: data.member,
-          access_token: data.access_token,
-          token_type: data.token_type,
-          expires_in: data.expires_in
-        };
+        return this.completeAuthResponse(data);
       } else {
         let errorMsg = 'Invalid email or password';
         try {
@@ -222,6 +243,7 @@ export const userManager = {
 
       const response = await fetch(`${API_BASE_URL}/users/register`, {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -231,6 +253,17 @@ export const userManager = {
 
       if (response.ok) {
         const data = await response.json();
+        if (data.requires_email_verification) {
+          return {
+            success: true,
+            message: data.message,
+            requires_email_verification: true,
+            challenge_token: data.challenge_token,
+            masked_email: data.masked_email,
+            user: data.user,
+            member: data.member,
+          };
+        }
         if (data.access_token) {
           sessionStorage.setItem('sb_token', data.access_token);
         }

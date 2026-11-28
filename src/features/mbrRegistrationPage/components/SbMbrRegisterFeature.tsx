@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { UserPlus, Lock, Mail, User, Calendar, Eye, EyeOff, Loader2, AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
+import EmailVerificationStep from '@/src/components/EmailVerificationStep';
 import PageSeo from '@/src/components/PageSeo';
 
 interface SbMbrRegisterFeatureProps {
@@ -31,6 +32,7 @@ export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [verifyChallenge, setVerifyChallenge] = useState<{ token: string; maskedEmail: string } | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData((prev) => ({
@@ -78,7 +80,12 @@ export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId
         mbrGenderCd: formData.mbrGenderCd || undefined,
       });
 
-      if (result.success && result.user) {
+      if (result.success && result.requires_email_verification && result.challenge_token) {
+        setVerifyChallenge({
+          token: result.challenge_token,
+          maskedEmail: result.masked_email || formData.email,
+        });
+      } else if (result.success && result.user) {
         sessionStorage.setItem('user', JSON.stringify(result.user));
         setIsSuccess(true);
 
@@ -156,8 +163,30 @@ export default function SbMbrRegisterFeature({ setActiveTab, targetStoryMemberId
           </motion.div>
         )}
 
-        {/* --- SUCCESS STATE --- */}
-        {isSuccess ? (
+        {/* --- EMAIL VERIFICATION STEP --- */}
+        {verifyChallenge ? (
+          <EmailVerificationStep
+            challengeToken={verifyChallenge.token}
+            maskedEmail={verifyChallenge.maskedEmail}
+            cancelLabel="Sign In Later"
+            onCancel={() => setActiveTab('mbrLogonPage')}
+            onVerified={async (authPayload) => {
+              await userManager.completeAuthResponse(authPayload);
+              setVerifyChallenge(null);
+              setIsSuccess(true);
+              try {
+                sessionStorage.setItem('sb_show_early_adopter_welcome', 'true');
+              } catch {}
+              setTimeout(() => {
+                if (targetStoryMemberId) {
+                  setActiveTab('mbrStoryPage');
+                } else {
+                  setActiveTab('mbrHomePage');
+                }
+              }, 1200);
+            }}
+          />
+        ) : isSuccess ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}

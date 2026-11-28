@@ -28,6 +28,7 @@ import AccountNavigationMenu, { AccountSubTab } from './AccountNavigationMenu';
 import AccountOverviewPanel from './AccountOverviewPanel';
 import AccountVoiceCreditsPanel from './AccountVoiceCreditsPanel';
 import AccountImageCreditsPanel from './AccountImageCreditsPanel';
+import AccountPromoOfferCard from './AccountPromoOfferCard';
 import AccountPurchaseModal, { CreditPackage } from './AccountPurchaseModal';
 import { useCoachMarks } from '@/src/features/coachMarks';
 
@@ -667,6 +668,31 @@ export default function MbrAccountFeature({
             </div>
           )}
           </div>
+
+          {/* 4. Promotional Offers Redemption Card (Below Credits Panel) */}
+          <AccountPromoOfferCard
+            isSandbox={isSandbox}
+            memberId={currentMbrId}
+            onRedeemed={async (res) => {
+              if (res.account) {
+                setAccount(res.account);
+                setCachedCreditBalance(res.account.mbrAcctCreditBalance ?? 0);
+              } else if (isSandbox && account) {
+                const nextAcct: MbrAcct = {
+                  ...account,
+                  mbrAcctCreditBalance: (account.mbrAcctCreditBalance ?? 0) + res.storyCreditsGranted,
+                  mbrAcctVoiceCreditBalance: (account.mbrAcctVoiceCreditBalance ?? 0) + res.voiceCreditsGranted,
+                  mbrAcctImageCreditBalance: (account.mbrAcctImageCreditBalance ?? 0) + res.imageCreditsGranted,
+                };
+                setAccount(nextAcct);
+                setCachedCreditBalance(nextAcct.mbrAcctCreditBalance ?? 0);
+              }
+              if (!isSandbox) {
+                await loadAccountData();
+              }
+              showToast(res.message);
+            }}
+          />
         </aside>
 
         {/* ========================================================================= */}

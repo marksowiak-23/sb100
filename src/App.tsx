@@ -38,6 +38,7 @@ import type { ProfileSubTab } from '@/src/features/mbrProfilePage/components/Pro
 import { MbrPreferencesFeature } from '@/src/features/mbrPreferencesPage';
 import { MbrPrivacyFeature } from '@/src/features/mbrPrivacySettingsPage';
 import { MbrConnectionFeature } from '@/src/features/mbrConnectionPage';
+import { MbrMailFeature } from '@/src/features/mbrMailPage';
 import { AdminDb, DbAdminFeature, AdminDbPageFeature } from '@/src/features/adminDbPage';
 import { AdminCacheManagement, AdminCachePage } from '@/src/features/adminCachePage';
 import { AdminMediaManagement, AdminMediaPage } from '@/src/features/adminMediaPage';
@@ -49,6 +50,8 @@ import { AdminTopicSparksFeature, TopicSparksAdmin, AdminTopicSparksPage } from 
 import { MbrStoryBookGeneratorFeature } from '@/src/features/mbrStoryBookGenerator';
 import { MbrPhotoBookFeature } from '@/src/features/mbrPhotoBook';
 import { MbrAccountFeature } from '@/src/features/mbrAccountPage';
+import { MbrSecurityFeature } from '@/src/features/mbrSecurityPage';
+import { MbrHelpFeature } from '@/src/features/mbrHelpPage';
 import type { AccountSubTab } from '@/src/features/mbrAccountPage/components/AccountNavigationMenu';
 
 
@@ -91,8 +94,11 @@ type TabType =
   | 'mbrPrivacy'
   | 'mbrAccountPage'
   | 'mbrAccount'
+  | 'mbrSecurityPage'
+  | 'mbrHelpPage'
   | 'mbrConnectionPage'
   | 'mbrConnections'
+  | 'mbrMailPage'
   | 'adminDbPage'
   | 'admin-db'
   | 'adminTopicSparksPage'
@@ -216,8 +222,11 @@ const getInitialNavState = (): InitialNavState => {
           'mbrPrivacy',
           'mbrAccountPage',
           'mbrAccount',
+          'mbrSecurityPage',
+          'mbrHelpPage',
           'mbrConnectionPage',
           'mbrConnections',
+          'mbrMailPage',
         ];
         if (memberOnlyTabs.includes(savedTab)) {
           return defaultState;
@@ -1160,6 +1169,34 @@ export default function App() {
             />
           </motion.div>
         )}
+
+        {/* Member Security & MFA screen (My Username/Email, My Trusted Devices, My Password) */}
+        {activeTab === 'mbrSecurityPage' && (
+          <motion.div
+            key="mbrSecurityPage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <MbrSecurityFeature isSandbox={isSandbox} />
+          </motion.div>
+        )}
+
+        {/* Member Help Center screen */}
+        {activeTab === 'mbrHelpPage' && (
+          <motion.div
+            key="mbrHelpPage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <MbrHelpFeature isSandbox={isSandbox} onNavigateTab={(tab) => handleTabChange(tab as TabType)} />
+          </motion.div>
+        )}
         {/* If the active tab is 'mbrConnectionPage' or legacy 'mbrConnections', render the member connections & group assignment screen */}
         {(activeTab === 'mbrConnectionPage' || activeTab === 'mbrConnections') && (
           <motion.div
@@ -1177,6 +1214,22 @@ export default function App() {
               onDirtyChange={setIsConnectionsDirty}
               onNavigate={handleTabChange}
               onClickReadStory={handleReadStory}
+            />
+          </motion.div>
+        )}
+        {/* Member Mail (Private Member-to-Member Messaging Center) */}
+        {activeTab === 'mbrMailPage' && (
+          <motion.div
+            key="mbrMailPage-view"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.4 }}
+            className="w-full"
+          >
+            <MbrMailFeature
+              isSandbox={isSandbox}
+              onClickBack={() => forceNavigateAway()}
             />
           </motion.div>
         )}

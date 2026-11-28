@@ -7474,3 +7474,478 @@ export const panelApi = {
     return handleResponse<Panel>(response);
   },
 };
+
+export type MailFolder = 'inbox' | 'sent' | 'starred' | 'archive' | 'trash';
+
+export interface MbrMessageParticipant {
+  mbrId: string;
+  displayName: string;
+  profilePic?: string | null;
+  recipientTypeCd?: 'TO' | 'CC' | string;
+  isReadFlag?: boolean | null;
+}
+
+export interface MbrMessageView {
+  mbrMessageId: string;
+  mbrMessageThreadId: string;
+  parentMessageId?: string | null;
+  senderMbrId?: string | null;
+  senderName: string;
+  senderProfilePic?: string | null;
+  mbrStoryId?: string | null;
+  supportTicketId?: string | null;
+  isSupportMessage?: boolean;
+  messageSubject: string;
+  messageBody: string;
+  recipients: MbrMessageParticipant[];
+  viewerRole: 'SENDER' | 'RECIPIENT' | 'BOTH' | string;
+  isReadFlag: boolean;
+  readAt?: string | null;
+  isStarredFlag: boolean;
+  isArchivedFlag: boolean;
+  isDeletedFlag: boolean;
+  threadCount: number;
+  messageCreatedAt: string;
+  messageUpdatedAt: string;
+}
+
+export interface MbrMessageCreate {
+  recipientMbrIds: string[];
+  ccMbrIds?: string[];
+  messageSubject: string;
+  messageBody: string;
+  mbrMessageThreadId?: string;
+  parentMessageId?: string;
+  mbrStoryId?: string;
+  supportTicketId?: string;
+}
+
+export interface MbrMessageUpdate {
+  isReadFlag?: boolean;
+  isStarredFlag?: boolean;
+  isArchivedFlag?: boolean;
+  isDeletedFlag?: boolean;
+  isPurgedFlag?: boolean;
+}
+
+export interface MbrMailUnreadSummary {
+  unreadCount: number;
+  recentMessages: MbrMessageView[];
+}
+
+export const mbrMessageApi = {
+  async getUnreadSummary(): Promise<MbrMailUnreadSummary> {
+    const response = await fetch(`${API_BASE_URL}/mbr-messages/unread-count`, {
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<MbrMailUnreadSummary>(response);
+  },
+
+  async getFolder(folder: MailFolder, q?: string, skip = 0, limit = 50): Promise<MbrMessageView[]> {
+    const params = new URLSearchParams({ skip: String(skip), limit: String(limit) });
+    if (q && q.trim()) params.set('q', q.trim());
+    const response = await fetch(`${API_BASE_URL}/mbr-messages/folder/${encodeURIComponent(folder)}?${params.toString()}`, {
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<MbrMessageView[]>(response);
+  },
+
+  async getThread(threadId: string): Promise<MbrMessageView[]> {
+    const response = await fetch(`${API_BASE_URL}/mbr-messages/thread/${encodeURIComponent(threadId)}`, {
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<MbrMessageView[]>(response);
+  },
+
+  async send(payload: MbrMessageCreate): Promise<MbrMessageView> {
+    const response = await fetch(`${API_BASE_URL}/mbr-messages`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<MbrMessageView>(response);
+  },
+
+  async updateFlags(messageId: string, payload: MbrMessageUpdate): Promise<MbrMessageView> {
+    const response = await fetch(`${API_BASE_URL}/mbr-messages/${encodeURIComponent(messageId)}`, {
+      method: 'PATCH',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<MbrMessageView>(response);
+  },
+};
+
+export interface TrustedDeviceOut {
+  trustedDeviceId: string;
+  deviceLabel: string;
+  ipAddress?: string | null;
+  lastUsedAt: string;
+  expiresAt: string;
+  createdAt: string;
+  isCurrentDevice: boolean;
+}
+
+export interface SecurityStatusResponse {
+  email: string;
+  email_verified: boolean;
+  email_verified_at?: string | null;
+  mfa_enabled: boolean;
+  mfa_method_cd: string;
+  trusted_device_ttl_days: number;
+  trusted_devices: TrustedDeviceOut[];
+}
+
+export interface UserVerificationCodeRecord {
+  verificationCodeId: string;
+  user_id: string;
+  purposeCd: string;
+  targetEmail: string;
+  attemptCount: number;
+  maxAttempts: number;
+  expiresAt: string;
+  consumedAt?: string | null;
+  ipAddress?: string | null;
+  createdAt: string;
+}
+
+export interface UserTrustedDeviceRecord {
+  trustedDeviceId: string;
+  user_id: string;
+  deviceLabel: string;
+  userAgent?: string | null;
+  ipAddress?: string | null;
+  lastUsedAt: string;
+  expiresAt: string;
+  revokedAt?: string | null;
+  createdAt: string;
+}
+
+export const authSecurityApi = {
+  async verifyEmail(payload: { challenge_token?: string; code: string }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-email`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async resendVerification(payload: { challenge_token?: string; email?: string }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/auth/resend-verification`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async verifyMfa(payload: { challenge_token: string; code: string; trust_device: boolean; device_label?: string }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-mfa`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async resendMfa(payload: { challenge_token: string }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/auth/resend-mfa`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async getSecurityStatus(): Promise<SecurityStatusResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/security-status`, {
+      credentials: 'include',
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<SecurityStatusResponse>(response);
+  },
+
+  async requestEmailVerification(): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/auth/request-email-verification`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async toggleMfa(payload: { enabled: boolean; password: string }): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/auth/mfa/toggle`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async changePassword(payload: {
+    current_password: string;
+    new_password: string;
+    revoke_trusted_devices?: boolean;
+  }): Promise<{ success: boolean; revokedTrustedDevices: number; message: string }> {
+    const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<{ success: boolean; revokedTrustedDevices: number; message: string }>(response);
+  },
+
+  async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ email: email.trim() }),
+    });
+    return handleResponse<{ success: boolean; message: string }>(response);
+  },
+
+  async resetPassword(payload: {
+    email: string;
+    code: string;
+    new_password: string;
+    revoke_trusted_devices?: boolean;
+  }): Promise<{ success: boolean; revokedTrustedDevices: number; message: string }> {
+    const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<{ success: boolean; revokedTrustedDevices: number; message: string }>(response);
+  },
+
+  async forgotUsername(payload: {
+    first_name: string;
+    last_name: string;
+    birth_date: string;
+  }): Promise<{ success: boolean; message: string }> {
+    const response = await fetch(`${API_BASE_URL}/auth/forgot-username`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<{ success: boolean; message: string }>(response);
+  },
+
+  async revokeTrustedDevice(trustedDeviceId: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/auth/trusted-devices/${encodeURIComponent(trustedDeviceId)}`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async revokeAllTrustedDevices(): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/auth/trusted-devices`, {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async adminListVerificationCodes(skip = 0, limit = 100): Promise<UserVerificationCodeRecord[]> {
+    const response = await fetch(`${API_BASE_URL}/auth/admin/verification-codes?skip=${skip}&limit=${limit}`, {
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<UserVerificationCodeRecord[]>(response);
+  },
+
+  async adminDeleteVerificationCode(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/auth/admin/verification-codes/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<any>(response);
+  },
+
+  async adminListTrustedDevices(skip = 0, limit = 100): Promise<UserTrustedDeviceRecord[]> {
+    const response = await fetch(`${API_BASE_URL}/auth/admin/trusted-devices?skip=${skip}&limit=${limit}`, {
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<UserTrustedDeviceRecord[]>(response);
+  },
+
+  async adminDeleteTrustedDevice(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/auth/admin/trusted-devices/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<any>(response);
+  },
+};
+
+export interface SupportAttachmentInput {
+  fileName: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  storagePath: string;
+}
+
+export interface SupportAttachmentOut extends SupportAttachmentInput {
+  attachmentId: string;
+  ticketId: string;
+  ticketMessageId?: string | null;
+  uploadedByTypeCd: string;
+  createdAt: string;
+}
+
+export interface SupportTicketMessageOut {
+  ticketMessageId: string;
+  ticketId: string;
+  authorTypeCd: string;
+  authorMbrId?: string | null;
+  authorAdmId?: string | null;
+  authorName: string;
+  messageBody: string;
+  isInternalNoteFlag: boolean;
+  mbrMessageId?: string | null;
+  attachments: SupportAttachmentOut[];
+  createdAt: string;
+}
+
+export interface SupportTicketSummary {
+  ticketId: string;
+  ticketNumber: string;
+  mbrId: string;
+  memberName: string;
+  memberEmail?: string | null;
+  categoryCd: string;
+  priorityCd: string;
+  statusCd: string;
+  subject: string;
+  description: string;
+  assignedAdmId?: string | null;
+  assignedAdmName?: string | null;
+  mbrMessageThreadId: string;
+  messageCount: number;
+  attachmentCount: number;
+  claimedAt?: string | null;
+  firstResponseAt?: string | null;
+  resolvedAt?: string | null;
+  closedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupportTicketDetail extends SupportTicketSummary {
+  messages: SupportTicketMessageOut[];
+  attachments: SupportAttachmentOut[];
+}
+
+export const supportTicketApi = {
+  async uploadAttachment(file: File, mbrId?: string): Promise<SupportAttachmentInput> {
+    const formData = new FormData();
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const destPath = `support/${mbrId || 'member'}/${Date.now()}_${safeName}`;
+    formData.append('file', file);
+    formData.append('destination_path', destPath);
+    const response = await fetch(`${MEDIA_API_BASE_URL}/media/upload`, {
+      method: 'POST',
+      headers: getAuthHeaders({}),
+      body: formData,
+    });
+    const res = await handleResponse<any>(response);
+    const objectName = res?.data?.object_name || res?.data?.name || destPath;
+    return {
+      fileName: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      fileSizeBytes: file.size,
+      storagePath: `/media/read/${objectName}`,
+    };
+  },
+
+  async createTicket(payload: {
+    categoryCd: string;
+    priorityCd?: string;
+    subject: string;
+    description: string;
+    attachments?: SupportAttachmentInput[];
+  }): Promise<SupportTicketDetail> {
+    const response = await fetch(`${API_BASE_URL}/support-tickets`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify(payload),
+    });
+    return handleResponse<SupportTicketDetail>(response);
+  },
+
+  async listMyTickets(): Promise<SupportTicketSummary[]> {
+    const response = await fetch(`${API_BASE_URL}/support-tickets/my`, {
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<SupportTicketSummary[]>(response);
+  },
+
+  async getMyTicket(ticketId: string): Promise<SupportTicketDetail> {
+    const response = await fetch(`${API_BASE_URL}/support-tickets/my/${encodeURIComponent(ticketId)}`, {
+      headers: getAuthHeaders({ Accept: 'application/json' }),
+    });
+    return handleResponse<SupportTicketDetail>(response);
+  },
+};
+
+// ==========================================
+// Promotional Offers & Credit Redemptions
+// ==========================================
+export interface PromoOfferRedemption {
+  promoOfferRedemptionId: string;
+  promoOfferId: string;
+  promoCode?: string | null;
+  offerName?: string | null;
+  mbrId: string;
+  memberName?: string | null;
+  memberEmail?: string | null;
+  storyCreditsGranted: number;
+  voiceCreditsGranted: number;
+  imageCreditsGranted: number;
+  redeemedAt: string;
+  redeemedIp?: string | null;
+}
+
+export interface PromoOfferRedeemResponse {
+  success: boolean;
+  message: string;
+  promoCode: string;
+  offerName: string;
+  storyCreditsGranted: number;
+  voiceCreditsGranted: number;
+  imageCreditsGranted: number;
+  account: MbrAcct;
+  redemption: PromoOfferRedemption;
+}
+
+export const promoOfferApi = {
+  async redeem(promoCode: string): Promise<PromoOfferRedeemResponse> {
+    const response = await fetch(`${API_BASE_URL}/promo-offers/redeem`, {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json', Accept: 'application/json' }),
+      body: JSON.stringify({ promoCode }),
+    });
+    return handleResponse<PromoOfferRedeemResponse>(response);
+  },
+
+  async getMyRedemptions(): Promise<PromoOfferRedemption[]> {
+    const response = await fetch(`${API_BASE_URL}/promo-offers/my-redemptions?t=${Date.now()}`, {
+      headers: getAuthHeaders({ Accept: 'application/json', 'Cache-Control': 'no-cache' }),
+      cache: 'no-cache',
+    });
+    return handleResponse<PromoOfferRedemption[]>(response);
+  },
+};

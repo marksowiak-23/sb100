@@ -1128,6 +1128,37 @@ const TABLES: TableDefinition[] = [
     ]
   },
   {
+    id: 'mbrMessage',
+    name: 'mbrMessage',
+    endpoint: '/mbr-messages',
+    primaryKey: 'mbrMessageId',
+    searchField: 'messageSubject',
+    fields: [
+      { name: 'senderMbrId', label: 'Sender Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrMessageThreadId', label: 'Thread ID (UUID)', type: 'uuid', required: false },
+      { name: 'messageSubject', label: 'Subject', type: 'string', required: true },
+      { name: 'messageBody', label: 'Body', type: 'textarea', required: true },
+      { name: 'senderStarredFlag', label: 'Sender Starred', type: 'boolean', required: false },
+      { name: 'senderDeletedFlag', label: 'Sender Deleted', type: 'boolean', required: false }
+    ]
+  },
+  {
+    id: 'mbrMessageRecipient',
+    name: 'mbrMessageRecipient',
+    endpoint: '/mbr-messages/recipients/all',
+    primaryKey: 'mbrMessageRecipientId',
+    searchField: 'recipientTypeCd',
+    fields: [
+      { name: 'mbrMessageId', label: 'Message ID (UUID)', type: 'uuid', required: true },
+      { name: 'recipientMbrId', label: 'Recipient Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'recipientTypeCd', label: 'Type (TO/CC)', type: 'string', required: true },
+      { name: 'isReadFlag', label: 'Read', type: 'boolean', required: true },
+      { name: 'isStarredFlag', label: 'Starred', type: 'boolean', required: true },
+      { name: 'isArchivedFlag', label: 'Archived', type: 'boolean', required: true },
+      { name: 'isDeletedFlag', label: 'Deleted', type: 'boolean', required: true }
+    ]
+  },
+  {
     id: 'panel',
     name: 'panel',
     endpoint: '/panels',
@@ -1175,7 +1206,129 @@ const TABLES: TableDefinition[] = [
       { name: 'email', label: 'Email', type: 'string', required: true, placeholder: 'e.g. john@example.com' },
       { name: 'user_typeCd', label: 'User Type', type: 'string', required: true, placeholder: 'e.g. MBR' },
       { name: 'password_hash', label: 'Password Hash', type: 'string', required: false, placeholder: 'e.g. salt:hash or hashed string' },
-      { name: 'is_active', label: 'Active Status', type: 'boolean', required: true }
+      { name: 'is_active', label: 'Active Status', type: 'boolean', required: true },
+      { name: 'email_verified', label: 'Email Verified', type: 'boolean', required: false },
+      { name: 'mfa_enabled', label: 'MFA Enabled', type: 'boolean', required: false },
+      { name: 'mfa_method_cd', label: 'MFA Method', type: 'string', required: false, placeholder: 'EMAIL' }
+    ]
+  },
+  {
+    id: 'userTrustedDevice',
+    name: 'userTrustedDevice',
+    endpoint: '/auth/admin/trusted-devices',
+    primaryKey: 'trustedDeviceId',
+    searchField: 'deviceLabel',
+    fields: [
+      { name: 'user_id', label: 'User ID (UUID)', type: 'uuid', required: true },
+      { name: 'deviceLabel', label: 'Device Label', type: 'string', required: true },
+      { name: 'ipAddress', label: 'IP Address', type: 'string', required: false },
+      { name: 'lastUsedAt', label: 'Last Used At', type: 'string', required: false },
+      { name: 'expiresAt', label: 'Expires At', type: 'string', required: true },
+      { name: 'revokedAt', label: 'Revoked At', type: 'string', required: false }
+    ]
+  },
+  {
+    id: 'userVerificationCode',
+    name: 'userVerificationCode',
+    endpoint: '/auth/admin/verification-codes',
+    primaryKey: 'verificationCodeId',
+    searchField: 'targetEmail',
+    fields: [
+      { name: 'user_id', label: 'User ID (UUID)', type: 'uuid', required: true },
+      { name: 'purposeCd', label: 'Purpose Code', type: 'string', required: true },
+      { name: 'targetEmail', label: 'Target Email', type: 'string', required: true },
+      { name: 'attemptCount', label: 'Attempts', type: 'number', required: false },
+      { name: 'maxAttempts', label: 'Max Attempts', type: 'number', required: false },
+      { name: 'expiresAt', label: 'Expires At', type: 'string', required: true },
+      { name: 'consumedAt', label: 'Consumed At', type: 'string', required: false }
+    ]
+  },
+  {
+    id: 'supportTicket',
+    name: 'supportTicket',
+    endpoint: '/support-tickets/admin/raw/tickets',
+    primaryKey: 'supportTicketId',
+    searchField: 'subject',
+    fields: [
+      { name: 'ticketNumber', label: 'Ticket #', type: 'number', required: false },
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'categoryCd', label: 'Category Code', type: 'string', required: true },
+      { name: 'statusCd', label: 'Status Code', type: 'string', required: true },
+      { name: 'priorityCd', label: 'Priority Code', type: 'string', required: true },
+      { name: 'subject', label: 'Subject', type: 'string', required: true },
+      { name: 'description', label: 'Description', type: 'textarea', required: true },
+      { name: 'assignedAdmId', label: 'Assigned Admin ID (UUID)', type: 'uuid', required: false },
+      { name: 'mbrMessageThreadId', label: 'Mail Thread ID (UUID)', type: 'uuid', required: false },
+      { name: 'firstRespondedAt', label: 'First Responded At', type: 'string', required: false },
+      { name: 'resolvedAt', label: 'Resolved At', type: 'string', required: false }
+    ]
+  },
+  {
+    id: 'supportTicketMessage',
+    name: 'supportTicketMessage',
+    endpoint: '/support-tickets/admin/raw/messages',
+    primaryKey: 'supportTicketMessageId',
+    searchField: 'messageBody',
+    fields: [
+      { name: 'supportTicketId', label: 'Ticket ID (UUID)', type: 'uuid', required: true },
+      { name: 'authorType', label: 'Author Type', type: 'string', required: true },
+      { name: 'authorMbrId', label: 'Author Member ID (UUID)', type: 'uuid', required: false },
+      { name: 'authorAdmId', label: 'Author Admin ID (UUID)', type: 'uuid', required: false },
+      { name: 'messageBody', label: 'Message Body', type: 'textarea', required: true },
+      { name: 'isInternalNote', label: 'Internal Note', type: 'boolean', required: false },
+      { name: 'mbrMessageId', label: 'Linked Mail Message ID (UUID)', type: 'uuid', required: false }
+    ]
+  },
+  {
+    id: 'supportTicketAttachment',
+    name: 'supportTicketAttachment',
+    endpoint: '/support-tickets/admin/raw/attachments',
+    primaryKey: 'supportTicketAttachmentId',
+    searchField: 'fileName',
+    fields: [
+      { name: 'supportTicketId', label: 'Ticket ID (UUID)', type: 'uuid', required: true },
+      { name: 'supportTicketMessageId', label: 'Message ID (UUID)', type: 'uuid', required: false },
+      { name: 'fileName', label: 'File Name', type: 'string', required: true },
+      { name: 'contentType', label: 'Content Type', type: 'string', required: true },
+      { name: 'fileSizeBytes', label: 'File Size (Bytes)', type: 'number', required: true },
+      { name: 'storageUrl', label: 'Storage URL', type: 'string', required: true },
+      { name: 'uploadedByType', label: 'Uploaded By Type', type: 'string', required: true }
+    ]
+  },
+  {
+    id: 'promoOffer',
+    name: 'promoOffer',
+    endpoint: '/promo-offers/admin/raw/offers',
+    primaryKey: 'promoOfferId',
+    searchField: 'promoCode',
+    fields: [
+      { name: 'promoCode', label: 'Promo Code', type: 'string', required: true },
+      { name: 'offerName', label: 'Offer Name', type: 'string', required: true },
+      { name: 'offerDescription', label: 'Description', type: 'textarea', required: false },
+      { name: 'storyCredits', label: 'Story Credits', type: 'number', required: false },
+      { name: 'voiceCredits', label: 'Voice Credits', type: 'number', required: false },
+      { name: 'imageCredits', label: 'Image Credits', type: 'number', required: false },
+      { name: 'validFrom', label: 'Valid From', type: 'string', required: true },
+      { name: 'validUntil', label: 'Valid Until', type: 'string', required: true },
+      { name: 'maxRedemptions', label: 'Max Redemptions', type: 'number', required: true },
+      { name: 'currentRedemptions', label: 'Current Redemptions', type: 'number', required: false },
+      { name: 'statusCd', label: 'Status Code', type: 'string', required: true }
+    ]
+  },
+  {
+    id: 'promoOfferRedemption',
+    name: 'promoOfferRedemption',
+    endpoint: '/promo-offers/admin/raw/redemptions',
+    primaryKey: 'promoOfferRedemptionId',
+    searchField: 'mbrId',
+    fields: [
+      { name: 'promoOfferId', label: 'Offer ID (UUID)', type: 'uuid', required: true },
+      { name: 'mbrId', label: 'Member ID (UUID)', type: 'uuid', required: true },
+      { name: 'storyCreditsGranted', label: 'Story Credits Granted', type: 'number', required: false },
+      { name: 'voiceCreditsGranted', label: 'Voice Credits Granted', type: 'number', required: false },
+      { name: 'imageCreditsGranted', label: 'Image Credits Granted', type: 'number', required: false },
+      { name: 'redeemedAt', label: 'Redeemed At', type: 'string', required: false },
+      { name: 'redeemedIp', label: 'Redeemed IP', type: 'string', required: false }
     ]
   }
 ];

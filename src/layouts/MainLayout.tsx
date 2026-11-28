@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { User, ChevronDown, ChevronUp, BookOpen, BookMarked, Shield, Home, Users, MessageSquare, Bell, CheckCircle2, MessageCircle, Menu, X, LogOut } from 'lucide-react';
-import { taskApi, resolveMediaUrl } from '@/src/services/api';
+import { taskApi, resolveMediaUrl, mbrMessageApi, MbrMessageView } from '@/src/services/api';
 import { userManager } from '@/src/services/userManager';
 import { AdminComponentTag } from '@/src/components/AdminComponentTag';
 import SessionTimeoutPanel from '@/src/components/sessionTimeoutPanel';
@@ -42,8 +42,11 @@ type TabType =
   | 'mbrPrivacy'
   | 'mbrAccountPage'
   | 'mbrAccount'
+  | 'mbrSecurityPage'
+  | 'mbrHelpPage'
   | 'mbrConnectionPage'
   | 'mbrConnections'
+  | 'mbrMailPage'
   | 'mbrLogonPage'
   | 'sbMbrLogon'
   | 'mbrRegistrationPage'
@@ -89,11 +92,10 @@ export default function MainLayout({
   children
 }: MainLayoutProps) {
   const [isDropdownOpen, setDropdownOpen] = React.useState(false);
-  const [isMessagingOpen, setIsMessagingOpen] = React.useState(false);
+  const [mailUnreadCount, setMailUnreadCount] = React.useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isMobileNotificationsOpen, setIsMobileNotificationsOpen] = React.useState(false);
-  const [isMobileMessagingOpen, setIsMobileMessagingOpen] = React.useState(false);
   const [isMobileAccountOpen, setIsMobileAccountOpen] = React.useState(false);
   const [isMobileAdminOpen, setIsMobileAdminOpen] = React.useState(false);
   const easterEggTapRef = React.useRef<{ count: number; lastTap: number }>({ count: 0, lastTap: 0 });
@@ -124,7 +126,6 @@ export default function MainLayout({
       if (window.innerWidth >= 1024) {
         setIsMobileMenuOpen(false);
         setIsMobileNotificationsOpen(false);
-        setIsMobileMessagingOpen(false);
         setIsMobileAccountOpen(false);
         setIsMobileAdminOpen(false);
       }
@@ -145,6 +146,49 @@ export default function MainLayout({
     sessionStorage.getItem('user') ||
     sessionStorage.getItem('sb_current_mbr')
   );
+
+  // Live Mail Unread Badge
+  React.useEffect(() => {
+    if (!isMemberLoggedIn) {
+      setMailUnreadCount(0);
+      return;
+    }
+    let mounted = true;
+    const fetchMailSummary = async () => {
+      if (isSandbox) {
+        try {
+          const raw = sessionStorage.getItem('sb_sandbox_mbr_mail');
+          if (raw) {
+            const items: MbrMessageView[] = JSON.parse(raw);
+            const inbox = items.filter((m) => m.viewerRole !== 'SENDER' && !m.isDeletedFlag && !m.isArchivedFlag);
+            if (mounted) {
+              setMailUnreadCount(inbox.filter((m) => !m.isReadFlag).length);
+            }
+          }
+        } catch {}
+        return;
+      }
+      try {
+        const summary = await mbrMessageApi.getUnreadSummary();
+        if (mounted) {
+          setMailUnreadCount(summary?.unreadCount || 0);
+        }
+      } catch {
+        // Ignore transient network errors in header badge
+      }
+    };
+    void fetchMailSummary();
+    const onRefresh = () => void fetchMailSummary();
+    window.addEventListener('mbr-mail-updated', onRefresh);
+    window.addEventListener('user-switched', onRefresh);
+    window.addEventListener('focus', onRefresh);
+    return () => {
+      mounted = false;
+      window.removeEventListener('mbr-mail-updated', onRefresh);
+      window.removeEventListener('user-switched', onRefresh);
+      window.removeEventListener('focus', onRefresh);
+    };
+  }, [isMemberLoggedIn, isSandbox, activeTab]);
 
   const isAdminUser = React.useMemo(() => {
     try {
@@ -329,6 +373,24 @@ export default function MainLayout({
           title: 'Connections',
           gradient: 'from-emerald-600 to-teal-500'
         };
+      case 'mbrMailPage':
+        return {
+          icon: <MessageSquare className="w-4 h-4 text-white" />,
+          title: 'Messaging',
+          gradient: 'from-blue-600 to-sky-500'
+        };
+      case 'mbrSecurityPage':
+        return {
+          icon: <Shield className="w-4 h-4 text-white" />,
+          title: 'My Security',
+          gradient: 'from-indigo-600 to-blue-500'
+        };
+      case 'mbrHelpPage':
+        return {
+          icon: <BookOpen className="w-4 h-4 text-white" />,
+          title: 'Help Center',
+          gradient: 'from-blue-600 to-cyan-500'
+        };
       default:
         return {
           icon: <BookOpen className="w-4 h-4 text-white" />,
@@ -405,7 +467,6 @@ export default function MainLayout({
               onClick={() => {
                 setActiveTab('mbrHomePage');
                 setDropdownOpen(false);
-                setIsMessagingOpen(false);
                 setIsNotificationsOpen(false);
               }}
               className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
@@ -426,7 +487,6 @@ export default function MainLayout({
               onClick={() => {
                 setActiveTab('mbrAuthorPage');
                 setDropdownOpen(false);
-                setIsMessagingOpen(false);
                 setIsNotificationsOpen(false);
               }}
               className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
@@ -447,7 +507,6 @@ export default function MainLayout({
               onClick={() => {
                 setActiveTab('mbrConnections');
                 setDropdownOpen(false);
-                setIsMessagingOpen(false);
                 setIsNotificationsOpen(false);
               }}
               className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
@@ -478,7 +537,6 @@ export default function MainLayout({
               onClick={() => {
                 setActiveTab('mbrStoryFeedPage');
                 setDropdownOpen(false);
-                setIsMessagingOpen(false);
                 setIsNotificationsOpen(false);
               }}
               className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
@@ -495,88 +553,30 @@ export default function MainLayout({
             {/* 3 & 4. Messaging + Notifications group */}
             <div className="flex items-center h-full gap-0.5 sm:gap-2 md:gap-4" data-coach-mark="nav-comms">
             {/* 3. Messaging */}
-            <div className="relative h-full flex items-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsMessagingOpen(!isMessagingOpen);
-                  setIsNotificationsOpen(false);
-                  setDropdownOpen(false);
-                }}
-                className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
-                  isMessagingOpen
-                    ? 'text-white border-b-2 border-white font-bold'
-                    : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
-                }`}
-                title="Messaging"
-              >
-                <div className="relative">
-                  <MessageSquare className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
-                  <span className="absolute -top-0.5 -right-1 w-2 h-2 bg-blue-500 rounded-full ring-2 ring-[#0F1B35]" />
-                </div>
-                <span className="text-[11px] font-sans tracking-tight leading-none">Messaging</span>
-              </button>
-
-              {/* Messaging Popover Panel */}
-              {isMessagingOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40 cursor-default"
-                    onClick={() => setIsMessagingOpen(false)}
-                  />
-                  <div className="absolute right-0 top-16 w-80 bg-[#0F1B35] border border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden">
-                    <div className="p-3.5 border-b border-slate-800 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="w-4 h-4 text-blue-400" />
-                        <h4 className="font-serif font-bold text-xs text-white">Messaging</h4>
-                      </div>
-                      <span className="text-[10px] text-blue-400 font-medium">New Chat</span>
-                    </div>
-
-                    <div className="p-2 space-y-1 max-h-72 overflow-y-auto">
-                      <div className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-blue-600/30 border border-blue-400/40 text-blue-300 flex items-center justify-center text-xs font-bold shrink-0">
-                          EV
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <h5 className="text-xs font-bold text-slate-200 truncate">Eleanor Vance</h5>
-                            <span className="text-[9px] text-slate-400 font-mono">2h ago</span>
-                          </div>
-                          <p className="text-[11px] text-slate-300 truncate">Loved your latest childhood memoir chapter!</p>
-                        </div>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl hover:bg-white/5 transition-colors cursor-pointer flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-emerald-600/30 border border-emerald-400/40 text-emerald-300 flex items-center justify-center text-xs font-bold shrink-0">
-                          JS
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between">
-                            <h5 className="text-xs font-bold text-slate-200 truncate">James Sterling</h5>
-                            <span className="text-[9px] text-slate-400 font-mono">1d ago</span>
-                          </div>
-                          <p className="text-[11px] text-slate-300 truncate">Added new photos from the Pacific Coast trip.</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 bg-slate-900/80 border-t border-slate-800 text-center">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsMessagingOpen(false);
-                          setActiveTab('mbrHomePage');
-                        }}
-                        className="text-[11px] font-semibold text-blue-400 hover:text-blue-300 transition-colors cursor-pointer"
-                      >
-                        View all in Member Workspace →
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('mbrMailPage');
+                setIsNotificationsOpen(false);
+                setDropdownOpen(false);
+              }}
+              className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
+                activeTab === 'mbrMailPage'
+                  ? 'text-white border-b-2 border-white font-bold'
+                  : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
+              }`}
+              title={mailUnreadCount > 0 ? `Messaging (${mailUnreadCount} unread)` : 'Messaging'}
+            >
+              <div className="relative">
+                <MessageSquare className="w-5 h-5 mb-0.5 group-hover:scale-105 transition-transform" />
+                {mailUnreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-amber-400 text-slate-950 text-[10px] font-mono font-bold rounded-full flex items-center justify-center ring-2 ring-[#0F1B35]">
+                    {mailUnreadCount > 99 ? '99+' : mailUnreadCount}
+                  </span>
+                )}
+              </div>
+              <span className="text-[11px] font-sans tracking-tight leading-none">Messaging</span>
+            </button>
 
             {/* 4. Notifications */}
             <div className="relative h-full flex items-center">
@@ -584,7 +584,6 @@ export default function MainLayout({
                 type="button"
                 onClick={() => {
                   setIsNotificationsOpen(!isNotificationsOpen);
-                  setIsMessagingOpen(false);
                   setDropdownOpen(false);
                 }}
                 className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[64px] px-2 relative transition-all cursor-pointer group ${
@@ -665,11 +664,10 @@ export default function MainLayout({
                 type="button"
                 onClick={() => {
                   setDropdownOpen(!isDropdownOpen);
-                  setIsMessagingOpen(false);
                   setIsNotificationsOpen(false);
                 }}
                 className={`h-full flex flex-col items-center justify-center min-w-[52px] sm:min-w-[58px] px-2 relative transition-all cursor-pointer group ${
-                  isDropdownOpen || ['mbrProfilePage', 'mbrProfile', 'mbrAccountPage', 'mbrAccount', 'mbrPreferencesPage', 'mbrPreferences', 'mbrPrivacySettingsPage', 'mbrPrivacy', 'mbrConnectionPage', 'mbrConnections'].includes(activeTab)
+                  isDropdownOpen || ['mbrProfilePage', 'mbrProfile', 'mbrAccountPage', 'mbrAccount', 'mbrSecurityPage', 'mbrHelpPage', 'mbrPreferencesPage', 'mbrPreferences', 'mbrPrivacySettingsPage', 'mbrPrivacy', 'mbrConnectionPage', 'mbrConnections'].includes(activeTab)
                     ? 'text-white border-b-2 border-white font-bold'
                     : 'text-slate-200 hover:text-white border-b-2 border-transparent font-medium'
                 }`}
@@ -750,6 +748,19 @@ export default function MainLayout({
                     </div>
                     <div
                       onClick={() => {
+                        setActiveTab('mbrSecurityPage');
+                        setDropdownOpen(false);
+                      }}
+                      className={`px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                        activeTab === 'mbrSecurityPage'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      My Security
+                    </div>
+                    <div
+                      onClick={() => {
                         setActiveTab('mbrPreferencesPage');
                         setDropdownOpen(false);
                       }}
@@ -776,10 +787,23 @@ export default function MainLayout({
                     </div>
                     <div
                       onClick={() => {
+                        setActiveTab('mbrHelpPage');
+                        setDropdownOpen(false);
+                      }}
+                      className={`border-t border-slate-800 mt-1 px-4 py-2 text-xs font-medium cursor-pointer transition-colors ${
+                        activeTab === 'mbrHelpPage'
+                          ? 'bg-white/10 text-white font-bold'
+                          : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      Help
+                    </div>
+                    <div
+                      onClick={() => {
                         setIsAboutOpen(true);
                         setDropdownOpen(false);
                       }}
-                      className="border-t border-slate-800 mt-1 px-4 py-2 text-xs font-medium text-slate-300 hover:bg-white/5 hover:text-white cursor-pointer transition-colors"
+                      className="px-4 py-2 text-xs font-medium text-slate-300 hover:bg-white/5 hover:text-white cursor-pointer transition-colors"
                     >
                       About
                     </div>
@@ -809,7 +833,6 @@ export default function MainLayout({
             onClick={() => {
               setIsMobileMenuOpen(!isMobileMenuOpen);
               setDropdownOpen(false);
-              setIsMessagingOpen(false);
               setIsNotificationsOpen(false);
             }}
             className="flex lg:hidden items-center justify-center w-10 h-10 rounded-xl text-slate-200 hover:text-white hover:bg-white/10 active:bg-white/15 transition-all cursor-pointer focus:outline-none relative"
@@ -893,18 +916,26 @@ export default function MainLayout({
               {/* Mobile Messaging Action */}
               <button
                 type="button"
-                onClick={() => setIsMobileMessagingOpen(!isMobileMessagingOpen)}
+                onClick={() => {
+                  setActiveTab('mbrMailPage');
+                  setIsMobileMenuOpen(false);
+                  setIsMobileNotificationsOpen(false);
+                }}
                 className={`flex items-center justify-between px-3 py-2.5 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
-                  isMobileMessagingOpen
+                  activeTab === 'mbrMailPage'
                     ? 'bg-blue-600/30 border-blue-500/50 text-white'
                     : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-blue-400" />
-                  <span>Messages</span>
+                  <span>Messaging</span>
                 </div>
-                <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                {mailUnreadCount > 0 && (
+                  <span className="px-1.5 py-0.2 text-[9.5px] font-mono font-bold bg-amber-400 text-slate-950 rounded-full">
+                    {mailUnreadCount > 99 ? '99+' : mailUnreadCount}
+                  </span>
+                )}
               </button>
 
               {/* Mobile Notifications Action */}
@@ -926,57 +957,6 @@ export default function MainLayout({
                 </span>
               </button>
             </div>
-
-            {/* Expanded Mobile Messaging Drawer Panel */}
-            {isMobileMessagingOpen && (
-              <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="w-3.5 h-3.5 text-blue-400" />
-                    <span className="text-xs font-bold text-white font-serif">Recent Conversations</span>
-                  </div>
-                  <span className="text-[10px] text-blue-400 font-medium">New Chat</span>
-                </div>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                  <div
-                    onClick={() => {
-                      setActiveTab('mbrHomePage');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer flex items-center gap-2"
-                  >
-                    <div className="w-7 h-7 rounded-full bg-blue-600/30 text-blue-300 flex items-center justify-center text-[10px] font-bold shrink-0">
-                      EV
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-white truncate">Eleanor Vance</span>
-                        <span className="text-[9px] text-slate-400 font-mono">2h ago</span>
-                      </div>
-                      <p className="text-[10px] text-slate-300 truncate">Loved your latest story chapter!</p>
-                    </div>
-                  </div>
-                  <div
-                    onClick={() => {
-                      setActiveTab('mbrHomePage');
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="p-2 rounded-lg hover:bg-white/5 cursor-pointer flex items-center gap-2"
-                  >
-                    <div className="w-7 h-7 rounded-full bg-emerald-600/30 text-emerald-300 flex items-center justify-center text-[10px] font-bold shrink-0">
-                      JS
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-bold text-white truncate">James Sterling</span>
-                        <span className="text-[9px] text-slate-400 font-mono">1d ago</span>
-                      </div>
-                      <p className="text-[10px] text-slate-300 truncate">Added photos from our trip.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Expanded Mobile Notifications Drawer Panel */}
             {isMobileNotificationsOpen && (
@@ -1043,6 +1023,21 @@ export default function MainLayout({
               <button
                 type="button"
                 onClick={() => {
+                  setActiveTab('mbrSecurityPage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer flex items-center justify-between ${
+                  activeTab === 'mbrSecurityPage'
+                    ? 'bg-white/10 text-white font-bold'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span>My Security</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
                   setActiveTab('mbrPreferencesPage');
                   setIsMobileMenuOpen(false);
                 }}
@@ -1068,6 +1063,21 @@ export default function MainLayout({
                 }`}
               >
                 <span>My Privacy</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('mbrHelpPage');
+                  setIsMobileMenuOpen(false);
+                }}
+                className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-medium transition-colors cursor-pointer flex items-center justify-between ${
+                  activeTab === 'mbrHelpPage'
+                    ? 'bg-white/10 text-white font-bold'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
+              >
+                <span>Help</span>
               </button>
             </div>
 
@@ -1515,6 +1525,19 @@ export default function MainLayout({
                 </div>
                 <div
                   onClick={() => {
+                    setActiveTab('mbrSecurityPage');
+                    setIsMobileAccountOpen(false);
+                  }}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-colors ${
+                    activeTab === 'mbrSecurityPage'
+                      ? 'bg-white/10 text-white font-bold'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  My Security
+                </div>
+                <div
+                  onClick={() => {
                     setActiveTab('mbrPreferencesPage');
                     setIsMobileAccountOpen(false);
                   }}
@@ -1538,6 +1561,19 @@ export default function MainLayout({
                   }`}
                 >
                   My Privacy
+                </div>
+                <div
+                  onClick={() => {
+                    setActiveTab('mbrHelpPage');
+                    setIsMobileAccountOpen(false);
+                  }}
+                  className={`px-3.5 py-2.5 rounded-xl text-xs font-medium cursor-pointer transition-colors ${
+                    activeTab === 'mbrHelpPage'
+                      ? 'bg-white/10 text-white font-bold'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  Help
                 </div>
                 <div
                   onClick={() => {

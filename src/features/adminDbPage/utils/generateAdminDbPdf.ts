@@ -97,9 +97,18 @@ const TABLE_TITLE_MAP: Record<string, string> = {
   mbrAlbumConnectionPrivs: 'Album Connection Access Privileges (mbrAlbumConnectionPrivs)',
   sysConfig: 'System Global Configurations (sysConfig)',
   topic: 'Standard Story Topics Directory (topic)',
+  mbrMessage: 'Member Private Mail Messages (mbrMessage)',
+  mbrMessageRecipient: 'Member Mail Recipient Deliveries (mbrMessageRecipient)',
   panel: 'Dynamic Site Messaging Panels (panel)',
   uiSoundEvent: 'UI Feedback Sound Event Mappings (uiSoundEvent)',
-  user: 'User Authentication & Accounts (user)'
+  user: 'User Authentication & Accounts (user)',
+  userTrustedDevice: 'User Trusted MFA Devices (userTrustedDevice)',
+  userVerificationCode: 'User Email & MFA Verification Codes (userVerificationCode)',
+  supportTicket: 'Member Support Tickets (supportTicket)',
+  supportTicketMessage: 'Support Ticket Messages & Notes (supportTicketMessage)',
+  supportTicketAttachment: 'Support Ticket File Attachments (supportTicketAttachment)',
+  promoOffer: 'Promotional Credit Offers (promoOffer)',
+  promoOfferRedemption: 'Promotional Offer Redemptions (promoOfferRedemption)'
 };
 
 const formatShortDate = (dateVal?: any): string => {
